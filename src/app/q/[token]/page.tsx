@@ -30,11 +30,11 @@ export default async function PublicQrPage({ params }: { params: Promise<{ token
   if (!item) notFound();
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-10 text-white">
-      <section className="mx-auto max-w-xl rounded-[2rem] border border-cyan-300/20 bg-white/[0.04] p-6 shadow-2xl shadow-cyan-950/20">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">Trading Docks QR</p>
+    <main className="min-h-screen bg-td-canvas px-5 py-10 text-td-primary">
+      <section className="mx-auto max-w-xl rounded-[2rem] border border-td-accent/20 bg-td-ink/[0.04] p-6 shadow-2xl shadow-cyan-950/20">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-td-accent-text">Trading Docks QR</p>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{item.item_name}</h1>
-        <div className="mt-6 grid gap-3 text-sm text-slate-300">
+        <div className="mt-6 grid gap-3 text-sm text-td-secondary">
           {item.card_name ? <Fact label="Card" value={item.card_name} /> : null}
           {item.product_name ? <Fact label="Product" value={item.product_name} /> : null}
           {[item.set_code, item.collector_number ? `#${item.collector_number}` : null].filter(Boolean).length ? (
@@ -47,7 +47,7 @@ export default async function PublicQrPage({ params }: { params: Promise<{ token
           <Fact label="Asking price" value={money(item.asking_price)} />
           <Fact label="Market price" value={money(item.market_price)} />
         </div>
-        <p className="mt-6 text-xs leading-5 text-slate-500">
+        <p className="mt-6 text-xs leading-5 text-td-muted">
           Public QR results show approved label fields only. Private inventory details, workspace identifiers,
           purchase cost, suppliers, storage locations, and notes are not exposed.
         </p>
@@ -59,9 +59,9 @@ export default async function PublicQrPage({ params }: { params: Promise<{ token
 function Fact({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-black/20 p-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-1 font-semibold text-slate-100">{value}</p>
+    <div className="rounded-2xl border border-td-ink/[0.07] bg-black/20 p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-muted">{label}</p>
+      <p className="mt-1 font-semibold text-td-primary">{value}</p>
     </div>
   );
 }

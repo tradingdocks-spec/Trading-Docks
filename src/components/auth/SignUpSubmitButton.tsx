@@ -31,7 +31,7 @@ export function SignUpSubmitButton() {
       type="submit"
       disabled={pending || !isValid}
       aria-busy={pending}
-      className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(37,99,235,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(37,99,235,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-blue-400/20 disabled:translate-y-0 disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+      className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-td-accent via-td-accent to-td-accent px-4 text-xs font-semibold text-td-on-accent shadow-[0_14px_32px_rgb(var(--td-accent-rgb)/0.26),inset_0_1px_0_rgb(var(--td-ink-rgb)/0.68),inset_0_-1px_0_rgb(var(--td-accent-rgb)/0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgb(var(--td-accent-rgb)/0.34),inset_0_1px_0_rgb(var(--td-ink-rgb)/0.72)] focus:outline-none focus:ring-4 focus:ring-td-accent/20 disabled:translate-y-0 disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
     >
       {pending ? (
         <>

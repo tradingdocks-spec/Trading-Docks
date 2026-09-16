@@ -48,7 +48,7 @@ function ManaSymbol({
     <span
       title={`${name(color)} mana`}
       className={[
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-slate-950 shadow-[0_2px_8px_rgba(0,0,0,0.38)]",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-td-ink/15 bg-td-canvas shadow-[0_2px_8px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)))]",
         wrapperSize,
       ].join(" ")}
     >
@@ -77,12 +77,12 @@ function ManaSymbol({
 
 function fallbackColor(color: ManaColor) {
   return {
-    W: "text-amber-100",
-    U: "text-sky-300",
-    B: "text-stone-200",
-    R: "text-rose-300",
-    G: "text-emerald-300",
-    C: "text-slate-300",
+    W: "text-td-warning",
+    U: "text-td-accent-text",
+    B: "text-td-primary",
+    R: "text-td-danger",
+    G: "text-td-success",
+    C: "text-td-secondary",
   }[color];
 }
 

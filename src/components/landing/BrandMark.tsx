@@ -17,7 +17,7 @@ export function BrandMark({
       className="group inline-flex items-center gap-4"
     >
       <span className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center">
-        <span className="absolute inset-2 rounded-[22px] bg-blue-400/[0.15] blur-2xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
+        <span className="absolute inset-2 rounded-[22px] bg-td-accent/[0.15] blur-2xl transition duration-500 group-hover:bg-td-accent/[0.24]" />
 
         <Image
           src="/trading-docks-mark.png"
@@ -31,11 +31,11 @@ export function BrandMark({
       </span>
 
       <span className="hidden flex-col sm:flex">
-        <span className="text-[18px] font-semibold tracking-[-0.03em] text-white">
+        <span className="text-[18px] font-semibold tracking-[-0.03em] text-td-primary">
           Trading Docks
         </span>
 
-        <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.25em] text-blue-200/45">
+        <span className="mt-1 text-[11px] font-medium uppercase tracking-[0.25em] text-td-accent-text/45">
           Collectibles OS
         </span>
       </span>

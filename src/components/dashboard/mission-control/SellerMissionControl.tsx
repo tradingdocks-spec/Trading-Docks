@@ -107,21 +107,21 @@ export function SellerMissionControl({
   const priorities = buildPriorities(snapshot);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,.08),transparent_30%),#020911] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-7">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgb(var(--td-accent-rgb)/.08),transparent_30%),var(--td-surface-default)] px-4 py-5 text-td-primary sm:px-6 lg:px-8 lg:py-7">
       <div className="mx-auto max-w-[1580px]">
         {previewMode ? (
-          <section className="mb-4 flex flex-col gap-3 rounded-[20px] border border-cyan-300/[0.16] bg-cyan-300/[0.045] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <section className="mb-4 flex flex-col gap-3 rounded-[20px] border border-td-accent/[0.16] bg-td-accent/[0.045] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-cyan-100">
+              <p className="text-sm font-semibold text-td-accent-text">
                 Mission Control preview
               </p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
+              <p className="mt-1 text-xs leading-5 text-td-muted">
                 Polished sample data lets you review the complete experience without changing your live workspace.
               </p>
             </div>
             <Link
               href="/dashboard"
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.055] px-4 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/[0.09]"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.055] px-4 text-xs font-semibold text-td-accent-text transition hover:bg-td-accent/[0.09]"
             >
               Return to dashboard
               <ArrowRight className="h-3.5 w-3.5" />
@@ -129,19 +129,19 @@ export function SellerMissionControl({
           </section>
         ) : null}
 
-        <section className="relative overflow-hidden rounded-[30px] border border-blue-300/[0.16] bg-[linear-gradient(135deg,#0b2032_0%,#071725_55%,#04111c_100%)] shadow-[0_36px_130px_rgba(0,0,0,.48)]">
-          <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full bg-blue-500/[0.18] blur-[125px]" />
-          <div className="pointer-events-none absolute -bottom-40 left-[18%] h-80 w-80 rounded-full bg-cyan-300/[0.08] blur-[130px]" />
+        <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.16] bg-[linear-gradient(135deg,var(--td-surface-default)_0%,var(--td-surface-default)_55%,var(--td-surface-default)_100%)] shadow-[0_36px_130px_rgb(var(--td-shadow-rgb)/calc(.48*var(--td-shadow-strength)))]">
+          <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full bg-td-accent/[0.18] blur-[125px]" />
+          <div className="pointer-events-none absolute -bottom-40 left-[18%] h-80 w-80 rounded-full bg-td-accent/[0.08] blur-[130px]" />
 
           <div className="relative grid gap-8 p-5 sm:p-8 xl:grid-cols-[1fr_410px] xl:items-center">
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.18] bg-cyan-300/[0.06] px-3 py-2 text-xs font-semibold text-cyan-200">
+                <span className="inline-flex items-center gap-2 rounded-full border border-td-accent/[0.18] bg-td-accent/[0.06] px-3 py-2 text-xs font-semibold text-td-accent-text">
                   <Rocket className="h-4 w-4" />
                   Mission Control
                 </span>
-                <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/80">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.75)]" />
+                <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-td-success/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-td-success shadow-[0_0_14px_rgb(var(--td-accent-rgb)/.75)]" />
                   Live workspace
                 </span>
               </div>
@@ -150,7 +150,7 @@ export function SellerMissionControl({
                 {greeting}, {displayName}.
               </h1>
 
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-td-secondary sm:text-base sm:leading-8">
                 Your business is {health.label.toLowerCase()}. Here is what moved, what needs attention, and the highest-impact next step.
               </p>
 
@@ -161,31 +161,31 @@ export function SellerMissionControl({
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-white/[0.09] bg-black/[0.18] p-5 shadow-[0_18px_55px_rgba(0,0,0,.24)] backdrop-blur-sm">
+            <div className="rounded-[24px] border border-td-ink/[0.09] bg-black/[0.18] p-5 shadow-[0_18px_55px_rgb(var(--td-shadow-rgb)/calc(.24*var(--td-shadow-strength)))] backdrop-blur-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/70">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/70">
                   Today&apos;s best next action
                 </p>
-                <span className="rounded-full border border-amber-300/[0.14] bg-amber-300/[0.055] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-200">
+                <span className="rounded-full border border-td-warning/[0.14] bg-td-warning/[0.055] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-warning">
                   {nextAction.impact} impact
                 </span>
               </div>
 
-              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">
+              <h2 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-td-primary">
                 {nextAction.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-td-muted">
                 {nextAction.description}
               </p>
 
-              <div className="mt-5 flex items-center gap-2 text-xs text-slate-500">
-                <Clock3 className="h-3.5 w-3.5 text-blue-300" />
+              <div className="mt-5 flex items-center gap-2 text-xs text-td-muted">
+                <Clock3 className="h-3.5 w-3.5 text-td-accent-text" />
                 About {nextAction.time}
               </div>
 
               <Link
                 href={nextAction.href}
-                className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-300 text-sm font-semibold text-[#001018] shadow-[0_16px_38px_rgba(37,99,235,.24)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(37,99,235,.3)]"
+                className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent text-sm font-semibold text-td-on-accent shadow-[0_16px_38px_rgb(var(--td-accent-rgb)/.24)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgb(var(--td-accent-rgb)/.3)]"
               >
                 {nextAction.cta}
                 <ArrowRight className="h-4 w-4" />
@@ -231,14 +231,14 @@ function HeroPulse({
   tone: "green" | "blue" | "amber";
 }) {
   const styles = {
-    green: "border-emerald-300/[0.14] bg-emerald-300/[0.045] text-emerald-200",
-    blue: "border-blue-300/[0.14] bg-blue-400/[0.04] text-blue-200",
-    amber: "border-amber-300/[0.14] bg-amber-300/[0.045] text-amber-200",
+    green: "border-td-success/[0.14] bg-td-success/[0.045] text-td-success",
+    blue: "border-td-accent/[0.14] bg-td-accent/[0.04] text-td-accent-text",
+    amber: "border-td-warning/[0.14] bg-td-warning/[0.045] text-td-warning",
   }[tone];
 
   return (
     <div className={`rounded-2xl border px-4 py-3 ${styles}`}>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.13em] opacity-60">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.13em] opacity-60">{label}</p>
       <p className="mt-1.5 text-base font-semibold [font-variant-numeric:tabular-nums]">{value}</p>
     </div>
   );
@@ -250,34 +250,34 @@ function BusinessHealth({
   health: ReturnType<typeof calculateHealth>;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[#071522] p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-6">
-      <div className="pointer-events-none absolute right-[-70px] top-[-80px] h-56 w-56 rounded-full bg-blue-500/[0.08] blur-[90px]" />
+    <article className="relative overflow-hidden rounded-[26px] border border-td-ink/[0.08] bg-td-surface p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] sm:p-6">
+      <div className="pointer-events-none absolute right-[-70px] top-[-80px] h-56 w-56 rounded-full bg-td-accent/[0.08] blur-[90px]" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/75">Business health</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">{health.label}</h2>
-          <p className="mt-2 text-sm text-slate-600">A live score across the five systems that keep your operation moving.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/75">Business health</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-td-primary">{health.label}</h2>
+          <p className="mt-2 text-sm text-td-muted">A live score across the five systems that keep your operation moving.</p>
         </div>
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-cyan-300/[0.15] bg-cyan-300/[0.035] shadow-[inset_0_0_35px_rgba(34,211,238,.05)]">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-td-accent/[0.15] bg-td-accent/[0.035] shadow-[inset_0_0_35px_rgb(var(--td-accent-rgb)/.05)]">
           <div className="text-center">
-            <span className="block text-4xl font-bold tracking-[-0.05em] text-white [font-variant-numeric:tabular-nums]">{health.score}</span>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-cyan-300/60">Score</span>
+            <span className="block text-4xl font-bold tracking-[-0.05em] text-td-primary [font-variant-numeric:tabular-nums]">{health.score}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/60">Score</span>
           </div>
         </div>
       </div>
 
       <div className="relative mt-6 grid gap-3 sm:grid-cols-2">
         {health.categories.map((category, index) => (
-          <div key={category.label} className={`rounded-2xl border border-white/[0.06] bg-black/[0.12] p-4 ${index === health.categories.length - 1 ? "sm:col-span-2" : ""}`}>
+          <div key={category.label} className={`rounded-2xl border border-td-ink/[0.06] bg-black/[0.12] p-4 ${index === health.categories.length - 1 ? "sm:col-span-2" : ""}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-slate-300">{category.label}</p>
-                <p className="mt-1 text-[10px] text-slate-600">{category.detail}</p>
+                <p className="text-xs font-semibold text-td-secondary">{category.label}</p>
+                <p className="mt-1 text-[11px] text-td-muted">{category.detail}</p>
               </div>
-              <p className="text-sm font-bold text-white">{category.score}</p>
+              <p className="text-sm font-bold text-td-primary">{category.score}</p>
             </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
-              <span className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 transition-[width] duration-700" style={{ width: `${category.score}%` }} />
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.055]">
+              <span className="block h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent transition-[width] duration-700" style={{ width: `${category.score}%` }} />
             </div>
           </div>
         ))}
@@ -288,25 +288,25 @@ function BusinessHealth({
 
 function PriorityPanel({ priorities }: { priorities: ReturnType<typeof buildPriorities> }) {
   return (
-    <article className="rounded-[26px] border border-amber-300/[0.10] bg-[linear-gradient(180deg,#0b1722,#07131f)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-6">
+    <article className="rounded-[26px] border border-td-warning/[0.10] bg-[linear-gradient(180deg,var(--td-surface-default),var(--td-surface-default))] p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300/80">Today&apos;s priorities</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{priorities.length} actions worth your attention</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-warning/80">Today&apos;s priorities</p>
+          <h2 className="mt-2 text-xl font-semibold text-td-primary">{priorities.length} actions worth your attention</h2>
         </div>
-        <Target className="h-5 w-5 text-amber-300" />
+        <Target className="h-5 w-5 text-td-warning" />
       </div>
 
       <div className="mt-5 space-y-2.5">
         {priorities.map((priority, index) => (
-          <Link key={priority.title} href={priority.href} className="group flex items-center gap-3 rounded-2xl border border-white/[0.065] bg-black/[0.12] p-3.5 transition hover:border-amber-300/[0.2] hover:bg-amber-300/[0.025]">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-300/[0.07] text-sm font-bold text-amber-200">{index + 1}</span>
+          <Link key={priority.title} href={priority.href} className="group flex items-center gap-3 rounded-2xl border border-td-ink/[0.065] bg-black/[0.12] p-3.5 transition hover:border-td-warning/[0.2] hover:bg-td-warning/[0.025]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-td-warning/[0.07] text-sm font-bold text-td-warning">{index + 1}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-200">{priority.title}</span>
-              <span className="mt-1 block truncate text-[11px] text-slate-600">{priority.detail}</span>
+              <span className="block text-sm font-semibold text-td-primary">{priority.title}</span>
+              <span className="mt-1 block truncate text-[11px] text-td-muted">{priority.detail}</span>
             </span>
-            <span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${priority.level === "High" ? "bg-rose-300/[0.07] text-rose-200" : priority.level === "Medium" ? "bg-amber-300/[0.07] text-amber-200" : "bg-blue-300/[0.07] text-blue-200"}`}>{priority.level}</span>
-            <ArrowUpRight className="h-4 w-4 text-slate-700 transition group-hover:text-amber-200" />
+            <span className={`rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${priority.level === "High" ? "bg-td-danger/[0.07] text-td-danger" : priority.level === "Medium" ? "bg-td-warning/[0.07] text-td-warning" : "bg-td-accent/[0.07] text-td-accent-text"}`}>{priority.level}</span>
+            <ArrowUpRight className="h-4 w-4 text-td-muted transition group-hover:text-td-warning" />
           </Link>
         ))}
       </div>
@@ -318,14 +318,14 @@ function MarketplaceHealth({ snapshot }: { snapshot: MissionControlSnapshot }) {
   const channels = snapshot.connectedMarketplaces.length ? snapshot.connectedMarketplaces : ["No channels connected"];
 
   return (
-    <article className="rounded-[26px] border border-white/[0.08] bg-[#071522] p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-6">
+    <article className="rounded-[26px] border border-td-ink/[0.08] bg-td-surface p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] sm:p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/75">Marketplace command center</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Connected commerce</h2>
-          <p className="mt-1.5 text-sm text-slate-600">Channel status, sync confidence, and order readiness.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/75">Marketplace command center</p>
+          <h2 className="mt-2 text-xl font-semibold text-td-primary">Connected commerce</h2>
+          <p className="mt-1.5 text-sm text-td-muted">Channel status, sync confidence, and order readiness.</p>
         </div>
-        <Store className="h-5 w-5 text-blue-300" />
+        <Store className="h-5 w-5 text-td-accent-text" />
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -333,26 +333,26 @@ function MarketplaceHealth({ snapshot }: { snapshot: MissionControlSnapshot }) {
           const connected = snapshot.connectedMarketplaces.length > 0;
           const confidence = connected ? Math.max(86, 98 - index * 3 - snapshot.failedSyncCount * 2) : 0;
           return (
-            <div key={channel} className="rounded-2xl border border-white/[0.065] bg-black/[0.12] p-4">
+            <div key={channel} className="rounded-2xl border border-td-ink/[0.065] bg-black/[0.12] p-4">
               <div className="flex items-start justify-between gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-300/[0.11] bg-blue-400/[0.04] text-blue-300"><Store className="h-4 w-4" /></span>
-                <span className={connected ? "rounded-full bg-emerald-300/[0.07] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-emerald-300" : "rounded-full bg-amber-300/[0.07] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-amber-300"}>{connected ? "Healthy" : "Setup"}</span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/[0.11] bg-td-accent/[0.04] text-td-accent-text"><Store className="h-4 w-4" /></span>
+                <span className={connected ? "rounded-full bg-td-success/[0.07] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-td-success" : "rounded-full bg-td-warning/[0.07] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-td-warning"}>{connected ? "Healthy" : "Setup"}</span>
               </div>
-              <p className="mt-4 text-sm font-semibold text-white">{channel}</p>
-              <p className="mt-1 text-[11px] text-slate-600">{connected ? `${confidence}% sync confidence` : "Connect this channel"}</p>
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
-                <span className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300" style={{ width: `${confidence}%` }} />
+              <p className="mt-4 text-sm font-semibold text-td-primary">{channel}</p>
+              <p className="mt-1 text-[11px] text-td-muted">{connected ? `${confidence}% sync confidence` : "Connect this channel"}</p>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.055]">
+                <span className="block h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent" style={{ width: `${confidence}%` }} />
               </div>
-              <div className="mt-4 flex items-center justify-between text-[10px] text-slate-700">
+              <div className="mt-4 flex items-center justify-between text-[11px] text-td-muted">
                 <span>Last sync</span>
-                <span className="text-slate-500">{snapshot.lastSyncAt ? new Date(snapshot.lastSyncAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : connected ? "Ready" : "—"}</span>
+                <span className="text-td-muted">{snapshot.lastSyncAt ? new Date(snapshot.lastSyncAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : connected ? "Ready" : "—"}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      <Link href="/dashboard/marketplaces" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-blue-200 transition hover:text-cyan-200">
+      <Link href="/dashboard/marketplaces" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-td-accent-text transition hover:text-td-accent-text">
         Manage connections
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -362,28 +362,28 @@ function MarketplaceHealth({ snapshot }: { snapshot: MissionControlSnapshot }) {
 
 function TimelinePanel({ timeline }: { timeline: Array<{ title: string; detail: string; time: string; tone: "blue" | "green" | "amber" }> }) {
   return (
-    <article className="rounded-[26px] border border-white/[0.08] bg-[#071522] p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-6">
+    <article className="rounded-[26px] border border-td-ink/[0.08] bg-td-surface p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/75">Business timeline</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Live activity</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/75">Business timeline</p>
+          <h2 className="mt-2 text-xl font-semibold text-td-primary">Live activity</h2>
         </div>
-        <Zap className="h-5 w-5 text-cyan-300" />
+        <Zap className="h-5 w-5 text-td-accent-text" />
       </div>
 
       <div className="mt-5 space-y-1">
         {timeline.map((item, index) => (
-          <div key={`${item.title}-${index}`} className="group relative flex gap-3 rounded-xl px-2 py-3 transition hover:bg-white/[0.018]">
-            {index < timeline.length - 1 ? <span className="absolute bottom-[-6px] left-[25px] top-11 w-px bg-white/[0.07]" /> : null}
-            <span className={`relative z-10 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${item.tone === "green" ? "border-emerald-300/[0.13] bg-emerald-300/[0.045] text-emerald-300" : item.tone === "amber" ? "border-amber-300/[0.13] bg-amber-300/[0.045] text-amber-300" : "border-blue-300/[0.13] bg-blue-400/[0.045] text-blue-300"}`}>
+          <div key={`${item.title}-${index}`} className="group relative flex gap-3 rounded-xl px-2 py-3 transition hover:bg-td-ink/[0.018]">
+            {index < timeline.length - 1 ? <span className="absolute bottom-[-6px] left-[25px] top-11 w-px bg-td-ink/[0.07]" /> : null}
+            <span className={`relative z-10 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${item.tone === "green" ? "border-td-success/[0.13] bg-td-success/[0.045] text-td-success" : item.tone === "amber" ? "border-td-warning/[0.13] bg-td-warning/[0.045] text-td-warning" : "border-td-accent/[0.13] bg-td-accent/[0.045] text-td-accent-text"}`}>
               <RefreshCw className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-200">{item.title}</p>
-                <span className="shrink-0 text-[10px] text-slate-700">{item.time}</span>
+                <p className="text-sm font-semibold text-td-primary">{item.title}</p>
+                <span className="shrink-0 text-[11px] text-td-muted">{item.time}</span>
               </div>
-              <p className="mt-1 text-[11px] leading-5 text-slate-600">{item.detail}</p>
+              <p className="mt-1 text-[11px] leading-5 text-td-muted">{item.detail}</p>
             </div>
           </div>
         ))}
@@ -394,24 +394,24 @@ function TimelinePanel({ timeline }: { timeline: Array<{ title: string; detail: 
 
 function ReadinessPanel({ snapshot }: { snapshot: MissionControlSnapshot }) {
   return (
-    <article className="relative overflow-hidden rounded-[26px] border border-cyan-300/[0.14] bg-[linear-gradient(135deg,rgba(37,99,235,.11),rgba(34,211,238,.035))] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] sm:p-6">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/[0.08] blur-[85px]" />
+    <article className="relative overflow-hidden rounded-[26px] border border-td-accent/[0.14] bg-[linear-gradient(135deg,rgb(var(--td-accent-rgb)/.11),rgb(var(--td-accent-rgb)/.035))] p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))] sm:p-6">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-td-accent/[0.08] blur-[85px]" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Seller readiness</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{snapshot.readinessComplete}/{snapshot.readinessTotal} core steps complete</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Keep tightening the workflows that reduce manual work and move orders faster.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/80">Seller readiness</p>
+          <h2 className="mt-2 text-xl font-semibold text-td-primary">{snapshot.readinessComplete}/{snapshot.readinessTotal} core steps complete</h2>
+          <p className="mt-2 text-sm leading-6 text-td-muted">Keep tightening the workflows that reduce manual work and move orders faster.</p>
         </div>
-        <BadgeCheck className="h-5 w-5 text-cyan-300" />
+        <BadgeCheck className="h-5 w-5 text-td-accent-text" />
       </div>
 
-      <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-        <span className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300" style={{ width: `${snapshot.readinessScore}%` }} />
+      <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-td-ink/[0.06]">
+        <span className="block h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent" style={{ width: `${snapshot.readinessScore}%` }} />
       </div>
 
       <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs font-semibold text-cyan-100">{snapshot.readinessScore}% operational readiness</span>
-        <Link href="/dashboard/seller-launch" className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-300/[0.14] bg-blue-400/[0.05] px-4 text-xs font-semibold text-blue-100 transition hover:bg-blue-400/[0.09]">
+        <span className="text-xs font-semibold text-td-accent-text">{snapshot.readinessScore}% operational readiness</span>
+        <Link href="/dashboard/seller-launch" className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.05] px-4 text-xs font-semibold text-td-accent-text transition hover:bg-td-accent/[0.09]">
           Open Seller Launch
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -431,30 +431,30 @@ function QuickActions() {
   ] as const;
 
   const toneClass = {
-    blue: "text-blue-300 bg-blue-400/[0.05] border-blue-300/[0.11]",
-    violet: "text-violet-300 bg-violet-400/[0.05] border-violet-300/[0.11]",
-    cyan: "text-cyan-300 bg-cyan-400/[0.05] border-cyan-300/[0.11]",
-    green: "text-emerald-300 bg-emerald-400/[0.05] border-emerald-300/[0.11]",
-    amber: "text-amber-300 bg-amber-400/[0.05] border-amber-300/[0.11]",
+    blue: "text-td-accent-text bg-td-accent/[0.05] border-td-accent/[0.11]",
+    violet: "text-td-violet bg-td-violet/[0.05] border-td-violet/[0.11]",
+    cyan: "text-td-accent-text bg-td-accent/[0.05] border-td-accent/[0.11]",
+    green: "text-td-success bg-td-success/[0.05] border-td-success/[0.11]",
+    amber: "text-td-warning bg-td-warning/[0.05] border-td-warning/[0.11]",
   };
 
   return (
-    <article className="rounded-[26px] border border-white/[0.08] bg-[#071522] p-5 shadow-[0_24px_80px_rgba(0,0,0,.22)] sm:p-6">
+    <article className="rounded-[26px] border border-td-ink/[0.08] bg-td-surface p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/75">Quick launch</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Common actions</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text/75">Quick launch</p>
+          <h2 className="mt-2 text-xl font-semibold text-td-primary">Common actions</h2>
         </div>
-        <Sparkles className="h-5 w-5 text-violet-300" />
+        <Sparkles className="h-5 w-5 text-td-violet" />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {actions.map(({ label, detail, href, icon: Icon, tone }) => (
-          <Link key={label} href={href} className="group flex min-h-[96px] flex-col justify-between rounded-2xl border border-white/[0.065] bg-black/[0.11] p-3.5 transition hover:-translate-y-0.5 hover:border-blue-300/[0.18] hover:bg-white/[0.018]">
+          <Link key={label} href={href} className="group flex min-h-[96px] flex-col justify-between rounded-2xl border border-td-ink/[0.065] bg-black/[0.11] p-3.5 transition hover:-translate-y-0.5 hover:border-td-accent/[0.18] hover:bg-td-ink/[0.018]">
             <span className={`flex h-8 w-8 items-center justify-center rounded-xl border ${toneClass[tone]}`}><Icon className="h-4 w-4" /></span>
             <span>
-              <span className="block text-xs font-semibold text-slate-200 group-hover:text-white">{label}</span>
-              <span className="mt-1 block text-[10px] text-slate-700">{detail}</span>
+              <span className="block text-xs font-semibold text-td-primary group-hover:text-td-primary">{label}</span>
+              <span className="mt-1 block text-[11px] text-td-muted">{detail}</span>
             </span>
           </Link>
         ))}
@@ -480,22 +480,22 @@ function MetricCard({
 }) {
   const max = Math.max(...spark, 1);
   return (
-    <article className="group relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#071522] p-4 shadow-[0_18px_55px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-cyan-300/[0.15]">
-      <div className="pointer-events-none absolute -right-10 -top-14 h-32 w-32 rounded-full bg-blue-500/[0.06] blur-[55px]" />
+    <article className="group relative overflow-hidden rounded-[22px] border border-td-ink/[0.08] bg-td-surface p-4 shadow-[0_18px_55px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] transition hover:-translate-y-0.5 hover:border-td-accent/[0.15]">
+      <div className="pointer-events-none absolute -right-10 -top-14 h-32 w-32 rounded-full bg-td-accent/[0.06] blur-[55px]" />
       <div className="relative flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-600">{label}</p>
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-blue-300/[0.09] bg-blue-400/[0.035] text-blue-300"><Icon className="h-4 w-4" /></span>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">{label}</p>
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-td-accent/[0.09] bg-td-accent/[0.035] text-td-accent-text"><Icon className="h-4 w-4" /></span>
       </div>
       <div className="relative mt-4 flex items-end justify-between gap-3">
         <div>
-          <p className="text-2xl font-bold tracking-[-0.04em] text-white [font-variant-numeric:tabular-nums]">{value}</p>
-          <p className="mt-1.5 text-[11px] text-slate-600">{detail}</p>
+          <p className="text-2xl font-bold tracking-[-0.04em] text-td-primary [font-variant-numeric:tabular-nums]">{value}</p>
+          <p className="mt-1.5 text-[11px] text-td-muted">{detail}</p>
         </div>
         <div className="flex h-10 items-end gap-1" aria-hidden="true">
-          {spark.map((point, index) => <span key={`${point}-${index}`} className="w-1.5 rounded-full bg-gradient-to-t from-blue-500/70 to-cyan-300/90 transition-all duration-500" style={{ height: `${Math.max(18, (point / max) * 100)}%` }} />)}
+          {spark.map((point, index) => <span key={`${point}-${index}`} className="w-1.5 rounded-full bg-gradient-to-t from-td-accent/70 to-td-accent/90 transition-all duration-500" style={{ height: `${Math.max(18, (point / max) * 100)}%` }} />)}
         </div>
       </div>
-      <div className="relative mt-4 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300/85"><TrendingUp className="h-3 w-3" />{trend}</div>
+      <div className="relative mt-4 flex items-center gap-1.5 text-[11px] font-semibold text-td-success/85"><TrendingUp className="h-3 w-3" />{trend}</div>
     </article>
   );
 }

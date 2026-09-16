@@ -58,7 +58,7 @@ type ProductAction = "add-inventory" | "add-collection" | "add-binder" | "add-tr
 const PURCHASE_CART_DOCUMENT = "purchasing-intelligence:current-purchase:v1";
 const LEGACY_CART_STORAGE_KEY = "trading-docks:purchasing-intelligence-cart:v1";
 const DEFAULT_CONDITIONS = ["Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"];
-const FIELD_CLASS = "h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs font-semibold text-white outline-none transition focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15";
+const FIELD_CLASS = "h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs font-semibold text-td-primary outline-none transition focus:border-td-accent/35 focus:ring-2 focus:ring-td-accent/15";
 
 export function PurchasingOverview() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -334,22 +334,22 @@ export function PurchasingOverview() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020b12] px-4 py-5 text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-td-canvas px-4 py-5 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1540px]">
-        <header className="rounded-[28px] border border-cyan-300/[0.12] bg-[#06141f] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.28)] sm:p-7">
+        <header className="rounded-[28px] border border-td-accent/[0.12] bg-td-surface p-5 shadow-[0_30px_100px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] sm:p-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.19em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.19em] text-td-accent-text">
                 Purchasing Intelligence
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
                 Search, price, and buy exact products.
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-td-muted">
                 Search any supported product, confirm the exact version, compare the market, and build a purchase with confidence.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
+            <div className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-td-secondary">
               <Badge label="Exact product matching" />
               <Badge label="Multi-market pricing" />
               <Badge label="Offer intelligence" />
@@ -359,19 +359,19 @@ export function PurchasingOverview() {
           <form onSubmit={submitSearch} className="mt-6 grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto_auto_auto] xl:items-center">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <label className="relative block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-td-muted" />
                 <input
                   ref={searchInputRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search cards, sealed products, sets, or product IDs..."
-                  className="h-12 w-full rounded-2xl border border-white/[0.08] bg-black/25 pl-11 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15"
+                  className="h-12 w-full rounded-2xl border border-td-ink/[0.08] bg-black/25 pl-11 pr-4 text-sm font-medium text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/35 focus:ring-2 focus:ring-td-accent/15"
                 />
               </label>
               <button
                 type="submit"
                 disabled={query.trim().length < 2 || loading}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-td-accent px-5 text-[11px] font-black uppercase tracking-[0.12em] text-td-on-accent transition hover:bg-td-accent-hover disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 Search
@@ -379,7 +379,7 @@ export function PurchasingOverview() {
             </div>
             <GameContextControl value={gameContext} onChange={setGameContext} includeAll={false} ariaLabel="Purchasing game context" />
             <SegmentedProductType value={productType} onChange={setProductType} />
-            <Link href="/dashboard/card-photo-scanner" className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/[0.08] px-4 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200">
+            <Link href="/dashboard/card-photo-scanner" className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-td-ink/[0.08] px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-td-secondary transition hover:border-td-accent/20 hover:text-td-accent-text">
               <Upload className="h-3.5 w-3.5" />
               Upload image
             </Link>
@@ -441,13 +441,13 @@ function ResultsPanel({ query, loading, results, selectedId, onSelect }: {
   onSelect: (result: PurchasingLookupResult) => void;
 }) {
   return (
-    <section className="rounded-[26px] border border-white/[0.07] bg-[#06141f] p-4">
+    <section className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">Search results</p>
-          <p className="mt-1 text-xs text-slate-600">{results.length ? `${results.length} products` : "Exact product lookup"}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Search results</p>
+          <p className="mt-1 text-xs text-td-muted">{results.length ? `${results.length} products` : "Exact product lookup"}</p>
         </div>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-300" /> : null}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin text-td-accent-text" /> : null}
       </div>
 
       <div className="mt-4 space-y-2">
@@ -462,26 +462,26 @@ function ResultsPanel({ query, loading, results, selectedId, onSelect }: {
             type="button"
             onClick={() => onSelect(result)}
             className={[
-              "group flex w-full gap-3 rounded-2xl border p-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70",
+              "group flex w-full gap-3 rounded-2xl border p-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-td-accent/70",
               selectedId === result.id
-                ? "border-cyan-300/25 bg-cyan-300/[0.06]"
-                : "border-white/[0.055] bg-white/[0.018] hover:border-cyan-300/15 hover:bg-white/[0.035]",
+                ? "border-td-accent/25 bg-td-accent/[0.06]"
+                : "border-td-ink/[0.055] bg-td-ink/[0.018] hover:border-td-accent/15 hover:bg-td-ink/[0.035]",
             ].join(" ")}
           >
             <ProductImage product={result} size="small" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-cyan-300/[0.1] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-cyan-200">{result.gameLabel}</span>
-                <span className="rounded-full bg-white/[0.055] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500">{result.productType === "sealed" ? "Sealed" : "Single"}</span>
+                <span className="rounded-full bg-td-accent/[0.1] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-td-accent-text">{result.gameLabel}</span>
+                <span className="rounded-full bg-td-ink/[0.055] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-td-muted">{result.productType === "sealed" ? "Sealed" : "Single"}</span>
                 {result.productType === "sealed" && result.productFamily ? (
-                  <span className="rounded-full bg-white/[0.035] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500">{result.productFamily}</span>
+                  <span className="rounded-full bg-td-ink/[0.035] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.1em] text-td-muted">{result.productFamily}</span>
                 ) : null}
               </div>
-              <h2 className="mt-2 truncate text-sm font-semibold text-white">{result.name}</h2>
-              <p className="mt-1 truncate text-[10px] text-slate-500">{[result.setName, result.collectorNumber ? `#${result.collectorNumber}` : null, result.rarity].filter(Boolean).join(" · ")}</p>
+              <h2 className="mt-2 truncate text-sm font-semibold text-td-primary">{result.name}</h2>
+              <p className="mt-1 truncate text-[11px] text-td-muted">{[result.setName, result.collectorNumber ? `#${result.collectorNumber}` : null, result.rarity].filter(Boolean).join(" · ")}</p>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-[10px] font-semibold text-slate-300">{money(result.marketPrice) ?? "Market unavailable"}</p>
-                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-cyan-300">Select <ArrowRight className="h-3 w-3" /></span>
+                <p className="text-[11px] font-semibold text-td-secondary">{money(result.marketPrice) ?? "Market unavailable"}</p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-td-accent-text">Select <ArrowRight className="h-3 w-3" /></span>
               </div>
             </div>
           </button>
@@ -512,7 +512,7 @@ function DetailPanel(props: {
   const product = props.product;
   if (!product) {
     return (
-      <section className="rounded-[28px] border border-white/[0.07] bg-[#06141f] p-8">
+      <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-8">
         <EmptyState title="Choose a product" detail="Select a result to inspect exact identity, variants, market pricing, and buying math." />
       </section>
     );
@@ -542,15 +542,15 @@ function DetailPanel(props: {
     props.onSkuChange((exact ?? fallback)?.id ?? "");
   };
   return (
-    <section className="rounded-[28px] border border-white/[0.07] bg-[#06141f] p-4 sm:p-5">
+    <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-4 sm:p-5">
       <div className="grid gap-5 2xl:grid-cols-[240px_minmax(420px,1fr)]">
         <div>
           <ProductImage product={product} size="large" />
-          <div className="mt-3 rounded-2xl border border-white/[0.06] bg-black/15 p-3">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Market sources</p>
+          <div className="mt-3 rounded-2xl border border-td-ink/[0.06] bg-black/15 p-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">Market sources</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.marketSources.map((source) => (
-                <span key={source} className="rounded-full bg-white/[0.05] px-2 py-1 text-[9px] font-semibold text-slate-400">{source}</span>
+                <span key={source} className="rounded-full bg-td-ink/[0.05] px-2 py-1 text-[11px] font-semibold text-td-secondary">{source}</span>
               ))}
             </div>
           </div>
@@ -558,14 +558,14 @@ function DetailPanel(props: {
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-cyan-300/[0.1] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">{product.gameLabel}</span>
-            <span className="rounded-full bg-white/[0.055] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">{product.productType === "sealed" ? "Sealed product" : "Single"}</span>
+            <span className="rounded-full bg-td-accent/[0.1] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-accent-text">{product.gameLabel}</span>
+            <span className="rounded-full bg-td-ink/[0.055] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-secondary">{product.productType === "sealed" ? "Sealed product" : "Single"}</span>
             {product.productType === "sealed" && product.productFamily ? (
-              <span className="rounded-full bg-white/[0.035] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">{product.productFamily}</span>
+              <span className="rounded-full bg-td-ink/[0.035] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-muted">{product.productFamily}</span>
             ) : null}
           </div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">{product.name}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-td-primary sm:text-3xl">{product.name}</h2>
+          <p className="mt-2 text-sm leading-6 text-td-muted">
             {[product.setName, product.setCode, product.collectorNumber ? `#${product.collectorNumber}` : null, product.rarity].filter(Boolean).join(" · ") || "Exact product identity"}
           </p>
 
@@ -575,7 +575,7 @@ function DetailPanel(props: {
             <Metric label="Listings" value={String(props.sku?.activeListings ?? product.activeListings ?? "N/A")} />
           </div>
 
-          <p className="mt-6 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">SKU details</p>
+          <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">SKU details</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-1 xl:grid-cols-2">
             {product.productType === "card" ? (
               <>
@@ -662,18 +662,18 @@ function BuyingPanel(props: {
   return (
     <section className="mt-6 rounded-[24px] bg-black/20 p-4 sm:p-5" aria-label="Buying">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text">Buying</p>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <BuyingSummaryBlock label="Market reference" value={money(props.offer.marketReference) ?? "Unavailable"} />
-        <div className="rounded-2xl bg-white/[0.025] p-4">
+        <div className="rounded-2xl bg-td-ink/[0.025] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">Buying rule</p>
-              <p className="mt-2 truncate text-xl font-semibold tracking-[-0.025em] text-slate-100">{ruleLabel}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">Buying rule</p>
+              <p className="mt-2 truncate text-xl font-semibold tracking-[-0.025em] text-td-primary">{ruleLabel}</p>
             </div>
-            <Link href="/dashboard/buying-rules" className="shrink-0 rounded-xl border border-white/[0.08] px-3 py-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/25 hover:text-cyan-200">
+            <Link href="/dashboard/buying-rules" className="shrink-0 rounded-xl border border-td-ink/[0.08] px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-td-secondary transition hover:border-td-accent/25 hover:text-td-accent-text">
               {ruleActionLabel}
             </Link>
           </div>
@@ -687,29 +687,29 @@ function BuyingPanel(props: {
       </div>
 
       {!props.hasExactSku || props.addToPurchaseDisabledReason ? (
-        <p className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-3 text-[10px] leading-5 text-amber-100/80">
+        <p className="mt-4 rounded-2xl border border-td-warning/15 bg-td-warning/[0.04] p-3 text-[11px] leading-5 text-td-warning/80">
           {props.addToPurchaseDisabledReason ?? "Confirm exact SKU pricing before finalizing an offer."}
         </p>
       ) : null}
 
       <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(190px,240px)]">
-        <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-cyan-300 px-4 text-[10px] font-black uppercase tracking-[0.08em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
+        <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-td-accent px-4 text-[11px] font-black uppercase tracking-[0.08em] text-td-on-accent transition hover:bg-td-accent-hover disabled:cursor-not-allowed disabled:opacity-40">
           <ShoppingCart className="h-4 w-4" />
           Add to Current Purchase
         </button>
-        <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.08em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
+        <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-td-ink/[0.08] px-4 text-[11px] font-black uppercase tracking-[0.08em] text-td-secondary transition hover:border-td-accent/20 hover:text-td-accent-text disabled:opacity-50">
           {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
           Add to Inventory
         </button>
       </div>
       <div className="mt-4">
-        <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">More actions</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">More actions</p>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SecondaryProductAction label="Wishlist" action="add-wishlist" saving={props.productActionSaving} onClick={props.onProductAction} />
         <SecondaryProductAction label="Trade Binder" action="add-trade-binder" saving={props.productActionSaving} onClick={props.onProductAction} />
         <SecondaryProductAction label="Binder" action="add-binder" saving={props.productActionSaving} onClick={props.onProductAction} disabled={!props.storageLocationId} title={!props.storageLocationId ? "Choose a storage or binder location first." : undefined} />
-        <Link href="/dashboard/market-intelligence" className="flex h-9 items-center justify-center rounded-xl border border-white/[0.06] px-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200">
+        <Link href="/dashboard/market-intelligence" className="flex h-9 items-center justify-center rounded-xl border border-td-ink/[0.06] px-2 text-[11px] font-black uppercase tracking-[0.08em] text-td-secondary transition hover:border-td-accent/20 hover:text-td-accent-text">
           View Market
         </Link>
       </div>
@@ -719,24 +719,24 @@ function BuyingPanel(props: {
 
 function BuyingSummaryBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white/[0.025] p-4">
-      <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{value}</p>
+    <div className="rounded-2xl bg-td-ink/[0.025] p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-td-primary">{value}</p>
     </div>
   );
 }
 
 function BuyingMetric({ label, value, detail, tone }: { label: string; value: string; detail?: string | null; tone: "primary" | "secondary" | "neutral" }) {
   const valueClass = tone === "primary"
-    ? "text-cyan-200"
+    ? "text-td-accent-text"
     : tone === "secondary"
-      ? "text-emerald-200"
-      : "text-slate-100";
+      ? "text-td-success"
+      : "text-td-primary";
   return (
-    <div className="min-w-0 rounded-2xl bg-[#03101a] p-4">
-      <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+    <div className="min-w-0 rounded-2xl bg-td-surface p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
       <p className={`mt-2 truncate text-2xl font-semibold tracking-[-0.03em] ${valueClass}`}>{value}</p>
-      {detail ? <p className="mt-1 text-[10px] font-semibold text-emerald-300/75">{detail}</p> : null}
+      {detail ? <p className="mt-1 text-[11px] font-semibold text-td-success/75">{detail}</p> : null}
     </div>
   );
 }
@@ -756,7 +756,7 @@ function SecondaryProductAction(props: {
       title={props.title}
       onClick={() => props.onClick(props.action)}
       disabled={props.disabled || loading}
-      className="flex h-9 items-center justify-center rounded-xl border border-white/[0.06] px-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-9 items-center justify-center rounded-xl border border-td-ink/[0.06] px-2 text-[11px] font-black uppercase tracking-[0.08em] text-td-secondary transition hover:border-td-accent/20 hover:text-td-accent-text disabled:cursor-not-allowed disabled:opacity-40"
     >
       {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : props.label}
     </button>
@@ -773,14 +773,14 @@ function PurchaseCartPanel(props: {
   onQuantity: (id: string, quantity: number) => void;
 }) {
   return (
-    <aside className="rounded-[26px] border border-white/[0.07] bg-[#06141f] p-4 xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-hidden">
+    <aside className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-4 xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-hidden">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Current purchase</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text">Current purchase</p>
           <h2 className="mt-2 text-2xl font-semibold">{money(props.summary.cashOffer) ?? "$0.00"}</h2>
-          <p className="mt-1 text-xs text-slate-600">{props.summary.unitCount} units · {props.summary.itemCount} items</p>
+          <p className="mt-1 text-xs text-td-muted">{props.summary.unitCount} units · {props.summary.itemCount} items</p>
         </div>
-        <WalletCards className="h-5 w-5 text-cyan-300" />
+        <WalletCards className="h-5 w-5 text-td-accent-text" />
       </div>
       <div className="mt-4 rounded-2xl bg-black/20 p-3">
         <CartSummaryRow label="Market value" value={money(props.summary.marketValue) ?? "$0.00"} />
@@ -792,23 +792,23 @@ function PurchaseCartPanel(props: {
         {!props.lines.length ? (
           <EmptyState title="No purchase lines" detail="Search for a product, confirm the version, and select Add to Current Purchase." compact />
         ) : props.lines.map((line) => (
-          <div key={line.id} className="rounded-2xl border border-white/[0.055] bg-white/[0.018] p-3">
+          <div key={line.id} className="rounded-2xl border border-td-ink/[0.055] bg-td-ink/[0.018] p-3">
             <div className="flex items-start gap-3">
               <ProductImage product={line.product} size="small" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-cyan-300/[0.1] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-cyan-200">{line.product.gameLabel}</span>
-                  <span className="rounded-full bg-white/[0.055] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-slate-400">{line.product.productType === "sealed" ? "Sealed" : "Single"}</span>
+                  <span className="rounded-full bg-td-accent/[0.1] px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] text-td-accent-text">{line.product.gameLabel}</span>
+                  <span className="rounded-full bg-td-ink/[0.055] px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.1em] text-td-secondary">{line.product.productType === "sealed" ? "Sealed" : "Single"}</span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-white">{line.product.name}</p>
-                <p className="mt-1 truncate text-[9px] text-slate-600">
+                <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-td-primary">{line.product.name}</p>
+                <p className="mt-1 truncate text-[11px] text-td-muted">
                   {[line.product.setName ?? line.product.productFamily, line.product.collectorNumber ? `#${line.product.collectorNumber}` : null].filter(Boolean).join(" · ") || "Exact product"}
                 </p>
-                <p className="mt-1 truncate text-[9px] text-slate-500">
+                <p className="mt-1 truncate text-[11px] text-td-muted">
                   {[line.sku?.condition ?? (line.product.productType === "sealed" ? "Sealed" : "Condition N/A"), line.sku?.variant ?? line.product.variants[0] ?? "Default", line.sku?.language ?? "English"].filter(Boolean).join(" · ")}
                 </p>
               </div>
-              <button type="button" aria-label={`Remove ${line.product.name}`} onClick={() => props.onRemove(line.id)} className="rounded-lg p-1 text-slate-600 transition hover:bg-white/[0.05] hover:text-red-300">
+              <button type="button" aria-label={`Remove ${line.product.name}`} onClick={() => props.onRemove(line.id)} className="rounded-lg p-1 text-td-muted transition hover:bg-td-ink/[0.05] hover:text-td-danger">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -818,21 +818,21 @@ function PurchaseCartPanel(props: {
               <CartMetric label="Cash offer" value={money(line.unitOffer * line.quantity) ?? "$0.00"} strong />
             </div>
             <div className="mt-3 flex items-center justify-between gap-2">
-              <div className="inline-flex h-8 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20">
-                <button type="button" aria-label={`Decrease ${line.product.name} quantity`} disabled={line.quantity <= 1} onClick={() => props.onQuantity(line.id, line.quantity - 1)} className="w-8 text-sm font-bold text-slate-400 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">-</button>
-                <input type="number" min={1} value={line.quantity} onChange={(event) => props.onQuantity(line.id, Number(event.target.value))} className="h-8 w-12 border-x border-white/[0.08] bg-transparent text-center text-xs font-semibold text-white outline-none" />
-                <button type="button" aria-label={`Increase ${line.product.name} quantity`} onClick={() => props.onQuantity(line.id, line.quantity + 1)} className="w-8 text-sm font-bold text-slate-400 transition hover:bg-white/[0.05] hover:text-white">+</button>
+              <div className="inline-flex h-8 overflow-hidden rounded-xl border border-td-ink/[0.08] bg-black/20">
+                <button type="button" aria-label={`Decrease ${line.product.name} quantity`} disabled={line.quantity <= 1} onClick={() => props.onQuantity(line.id, line.quantity - 1)} className="w-8 text-sm font-bold text-td-secondary transition hover:bg-td-ink/[0.05] hover:text-td-primary disabled:cursor-not-allowed disabled:opacity-35">-</button>
+                <input type="number" min={1} value={line.quantity} onChange={(event) => props.onQuantity(line.id, Number(event.target.value))} className="h-8 w-12 border-x border-td-ink/[0.08] bg-transparent text-center text-xs font-semibold text-td-primary outline-none" />
+                <button type="button" aria-label={`Increase ${line.product.name} quantity`} onClick={() => props.onQuantity(line.id, line.quantity + 1)} className="w-8 text-sm font-bold text-td-secondary transition hover:bg-td-ink/[0.05] hover:text-td-primary">+</button>
               </div>
-              <p className="text-[10px] font-semibold text-slate-500">Store credit {money((line.storeCreditOffer ?? line.unitOffer) * line.quantity) ?? "$0.00"}</p>
+              <p className="text-[11px] font-semibold text-td-muted">Store credit {money((line.storeCreditOffer ?? line.unitOffer) * line.quantity) ?? "$0.00"}</p>
             </div>
           </div>
         ))}
       </div>
-      <button type="button" onClick={props.onSave} disabled={!props.lines.length || props.saving} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] disabled:cursor-not-allowed disabled:opacity-40">
+      <button type="button" onClick={props.onSave} disabled={!props.lines.length || props.saving} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-td-accent text-[11px] font-black uppercase tracking-[0.12em] text-td-on-accent disabled:cursor-not-allowed disabled:opacity-40">
         {props.saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
         Review Purchase
       </button>
-      <button type="button" onClick={props.onClear} disabled={!props.lines.length} className="mt-2 h-10 w-full rounded-2xl border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 transition hover:text-slate-200 disabled:opacity-40">
+      <button type="button" onClick={props.onClear} disabled={!props.lines.length} className="mt-2 h-10 w-full rounded-2xl border border-td-ink/[0.08] text-[11px] font-bold uppercase tracking-[0.12em] text-td-muted transition hover:text-td-primary disabled:opacity-40">
         Clear purchase
       </button>
     </aside>
@@ -842,8 +842,8 @@ function PurchaseCartPanel(props: {
 function CartSummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-600">{label}</p>
-      <p className={`text-xs font-semibold ${strong ? "text-cyan-200" : "text-slate-200"}`}>{value}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-td-muted">{label}</p>
+      <p className={`text-xs font-semibold ${strong ? "text-td-accent-text" : "text-td-primary"}`}>{value}</p>
     </div>
   );
 }
@@ -851,8 +851,8 @@ function CartSummaryRow({ label, value, strong }: { label: string; value: string
 function CartMetric({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="min-w-0">
-      <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-600">{label}</p>
-      <p className={`mt-1 truncate text-[10px] font-semibold ${strong ? "text-cyan-200" : "text-slate-200"}`}>{value}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-td-muted">{label}</p>
+      <p className={`mt-1 truncate text-[11px] font-semibold ${strong ? "text-td-accent-text" : "text-td-primary"}`}>{value}</p>
     </div>
   );
 }
@@ -873,10 +873,10 @@ function ProductImage({ product, size }: { product: PurchasingLookupResult; size
       ? "h-20 w-20 rounded-xl"
       : "h-24 w-16 rounded-xl";
   return (
-    <div className={`relative shrink-0 overflow-hidden bg-[#020914] ${className}`}>
+    <div className={`relative shrink-0 overflow-hidden bg-td-canvas ${className}`}>
       {product.imageUrl && !failed ? (
         <>
-          {!loaded ? <div className="absolute inset-0 animate-pulse bg-white/[0.035]" aria-hidden="true" /> : null}
+          {!loaded ? <div className="absolute inset-0 animate-pulse bg-td-ink/[0.035]" aria-hidden="true" /> : null}
           <Image
             src={product.imageUrl}
             alt={product.name}
@@ -890,9 +890,9 @@ function ProductImage({ product, size }: { product: PurchasingLookupResult; size
         </>
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-1 px-2 text-center">
-          {product.productType === "sealed" ? <Boxes className="h-5 w-5 text-cyan-300/70" /> : <Layers3 className="h-5 w-5 text-cyan-300/70" />}
-          {product.productType === "sealed" ? <span className="text-[8px] font-black uppercase tracking-[0.12em] text-cyan-200/80">Sealed product</span> : null}
-          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500">Image unavailable</span>
+          {product.productType === "sealed" ? <Boxes className="h-5 w-5 text-td-accent-text/70" /> : <Layers3 className="h-5 w-5 text-td-accent-text/70" />}
+          {product.productType === "sealed" ? <span className="text-[11px] font-black uppercase tracking-[0.12em] text-td-accent-text/80">Sealed product</span> : null}
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-td-muted">Image unavailable</span>
         </div>
       )}
     </div>
@@ -901,9 +901,9 @@ function ProductImage({ product, size }: { product: PurchasingLookupResult; size
 
 function SegmentedProductType({ value, onChange }: { value: "all" | PurchasingProductType; onChange: (value: "all" | PurchasingProductType) => void }) {
   return (
-    <div className="inline-flex h-11 rounded-2xl border border-white/[0.08] bg-black/20 p-1" role="group" aria-label="Product type">
+    <div className="inline-flex h-11 rounded-2xl border border-td-ink/[0.08] bg-black/20 p-1" role="group" aria-label="Product type">
       {(["all", "card", "sealed"] as const).map((item) => (
-        <button key={item} type="button" aria-pressed={value === item} onClick={() => onChange(item)} className={`rounded-xl px-3 text-[10px] font-black uppercase tracking-[0.09em] transition ${value === item ? "bg-cyan-300 text-[#031319]" : "text-slate-500 hover:text-slate-200"}`}>
+        <button key={item} type="button" aria-pressed={value === item} onClick={() => onChange(item)} className={`rounded-xl px-3 text-[11px] font-black uppercase tracking-[0.09em] transition ${value === item ? "bg-td-accent text-td-on-accent" : "text-td-muted hover:text-td-primary"}`}>
           {item === "card" ? "Singles" : item === "sealed" ? "Sealed" : "All"}
         </button>
       ))}
@@ -914,15 +914,15 @@ function SegmentedProductType({ value, onChange }: { value: "all" | PurchasingPr
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-2xl bg-black/20 p-3">
-      <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-slate-100">{value}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-td-primary">{value}</p>
     </div>
   );
 }
 
 function Control({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
+    <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">
       {label}
       <div className="mt-2">{children}</div>
     </label>
@@ -954,12 +954,12 @@ function addToPurchaseDisabledReason(input: {
 }
 
 function Badge({ label }: { label: string }) {
-  return <span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5">{label}</span>;
+  return <span className="rounded-full border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 py-1.5">{label}</span>;
 }
 
 function Status({ message, tone }: { message: string; tone: "error" | "success" }) {
   return (
-    <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${tone === "error" ? "border-red-300/15 bg-red-300/[0.05] text-red-100" : "border-emerald-300/15 bg-emerald-300/[0.05] text-emerald-100"}`}>
+    <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${tone === "error" ? "border-td-danger/15 bg-td-danger/[0.05] text-td-danger" : "border-td-success/15 bg-td-success/[0.05] text-td-success"}`}>
       {message}
     </div>
   );
@@ -975,10 +975,10 @@ function productActionNotice(action: ProductAction, merged: boolean) {
 
 function EmptyState({ title, detail, compact = false }: { title: string; detail: string; compact?: boolean }) {
   return (
-    <div className={`rounded-2xl border border-dashed border-white/[0.08] text-center ${compact ? "p-4" : "p-8"}`}>
-      <SlidersHorizontal className="mx-auto h-5 w-5 text-slate-700" />
-      <p className="mt-3 text-sm font-semibold text-slate-300">{title}</p>
-      <p className="mt-1 text-[10px] leading-5 text-slate-600">{detail}</p>
+    <div className={`rounded-2xl border border-dashed border-td-ink/[0.08] text-center ${compact ? "p-4" : "p-8"}`}>
+      <SlidersHorizontal className="mx-auto h-5 w-5 text-td-muted" />
+      <p className="mt-3 text-sm font-semibold text-td-secondary">{title}</p>
+      <p className="mt-1 text-[11px] leading-5 text-td-muted">{detail}</p>
     </div>
   );
 }

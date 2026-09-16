@@ -202,15 +202,15 @@ function AccountTypeCard({
       aria-pressed={selected}
       className={`group relative min-h-[128px] rounded-2xl border p-4 text-left transition-all duration-300 ease-out ${
         selected
-          ? "-translate-y-[3px] border-blue-300/70 bg-blue-400/[0.09] shadow-[0_0_0_1px_rgba(59,130,246,0.16),0_18px_46px_rgba(0,0,0,0.30),0_0_42px_rgba(59,130,246,0.18)]"
+          ? "-translate-y-[3px] border-td-accent/70 bg-td-accent/[0.09] shadow-[0_0_0_1px_rgb(var(--td-accent-rgb)/0.16),0_18px_46px_rgb(var(--td-shadow-rgb)/calc(0.30*var(--td-shadow-strength))),0_0_42px_rgb(var(--td-accent-rgb)/0.18)]"
           : previewed
-            ? "-translate-y-0.5 border-blue-400/35 bg-blue-400/[0.05]"
-            : "border-white/10 bg-white/[0.03] hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-blue-400/[0.045]"
+            ? "-translate-y-0.5 border-td-accent/35 bg-td-accent/[0.05]"
+            : "border-td-ink/10 bg-td-ink/[0.03] hover:-translate-y-0.5 hover:border-td-accent/30 hover:bg-td-accent/[0.045]"
       }`}
     >
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-300/[0.08] via-transparent to-transparent transition-opacity duration-300 ${
+        className={`pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-td-accent/[0.08] via-transparent to-transparent transition-opacity duration-300 ${
           selected
             ? "opacity-100"
             : "opacity-0 group-hover:opacity-70"
@@ -221,8 +221,8 @@ function AccountTypeCard({
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 ${
             selected
-              ? "border-blue-300/45 bg-blue-400/15 text-blue-100 shadow-[0_0_24px_rgba(59,130,246,0.24)]"
-              : "border-white/10 bg-white/[0.04] text-slate-400 group-hover:border-blue-400/25 group-hover:text-blue-300"
+              ? "border-td-accent/45 bg-td-accent/15 text-td-accent-text shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.24)]"
+              : "border-td-ink/10 bg-td-ink/[0.04] text-td-secondary group-hover:border-td-accent/25 group-hover:text-td-accent-text"
           }`}
         >
           {option.icon}
@@ -231,8 +231,8 @@ function AccountTypeCard({
         <div
           className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-300 ${
             selected
-              ? "scale-100 border-blue-100/80 bg-blue-300 text-slate-950 opacity-100 shadow-[0_0_18px_rgba(59,130,246,0.35)]"
-              : "scale-90 border-white/25 bg-white/[0.025] text-transparent opacity-80"
+              ? "scale-100 border-td-accent/80 bg-td-accent text-td-on-accent opacity-100 shadow-[0_0_18px_rgb(var(--td-accent-rgb)/0.35)]"
+              : "scale-90 border-td-ink/25 bg-td-ink/[0.025] text-transparent opacity-80"
           }`}
         >
           <Check
@@ -246,11 +246,11 @@ function AccountTypeCard({
       </div>
 
       <div className="relative mt-4">
-        <h3 className="text-sm font-semibold text-white">
+        <h3 className="text-sm font-semibold text-td-primary">
           {option.title}
         </h3>
 
-        <p className="mt-1.5 max-w-[94%] text-[11px] leading-[1.55] text-slate-400">
+        <p className="mt-1.5 max-w-[94%] text-[11px] leading-[1.55] text-td-secondary">
           {option.description}
         </p>
       </div>
@@ -274,15 +274,15 @@ function InventoryModuleCard({
       aria-pressed={selected}
       className={`group relative flex min-h-[100px] items-start gap-3 rounded-2xl border p-3.5 text-left transition-all duration-300 ${
         selected
-          ? "-translate-y-0.5 border-blue-300/55 bg-blue-400/[0.08] shadow-[0_0_30px_rgba(59,130,246,0.10)]"
-          : "border-white/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-blue-400/25 hover:bg-blue-400/[0.04]"
+          ? "-translate-y-0.5 border-td-accent/55 bg-td-accent/[0.08] shadow-[0_0_30px_rgb(var(--td-accent-rgb)/0.10)]"
+          : "border-td-ink/10 bg-td-ink/[0.025] hover:-translate-y-0.5 hover:border-td-accent/25 hover:bg-td-accent/[0.04]"
       }`}
     >
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${
           selected
-            ? "border-blue-300/30 bg-blue-400/15 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.12)]"
-            : "border-white/[0.07] bg-white/[0.04] text-slate-500 group-hover:text-blue-300"
+            ? "border-td-accent/30 bg-td-accent/15 text-td-accent-text shadow-[0_0_18px_rgb(var(--td-accent-rgb)/0.12)]"
+            : "border-td-ink/[0.07] bg-td-ink/[0.04] text-td-muted group-hover:text-td-accent-text"
         }`}
       >
         {option.icon}
@@ -290,15 +290,15 @@ function InventoryModuleCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-xs font-semibold text-white">
+          <h3 className="text-xs font-semibold text-td-primary">
             {option.title}
           </h3>
 
           <div
             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
               selected
-                ? "border-blue-200/60 bg-blue-300 text-slate-950"
-                : "border-white/25 bg-white/[0.025] text-transparent"
+                ? "border-td-accent/60 bg-td-accent text-td-on-accent"
+                : "border-td-ink/25 bg-td-ink/[0.025] text-transparent"
             }`}
           >
             <Check
@@ -311,7 +311,7 @@ function InventoryModuleCard({
           </div>
         </div>
 
-        <p className="mt-1.5 text-[10px] leading-4 text-slate-400">
+        <p className="mt-1.5 text-[11px] leading-4 text-td-secondary">
           {option.description}
         </p>
       </div>
@@ -327,24 +327,24 @@ function WorkspacePreview({
   return (
     <div
       key={option.id}
-      className="workspace-preview mt-4 overflow-hidden rounded-2xl border border-blue-300/15 bg-gradient-to-br from-blue-400/[0.055] via-white/[0.025] to-transparent p-4 shadow-[0_18px_50px_rgba(0,0,0,0.22),0_0_30px_rgba(59,130,246,0.05)]"
+      className="workspace-preview mt-4 overflow-hidden rounded-2xl border border-td-accent/15 bg-gradient-to-br from-td-accent/[0.055] via-white/[0.025] to-transparent p-4 shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.22*var(--td-shadow-strength))),0_0_30px_rgb(var(--td-accent-rgb)/0.05)]"
     >
       <div className="grid gap-4 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:items-stretch">
-        <div className="flex items-center gap-3 border-b border-white/[0.07] pb-4 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-300/35 bg-blue-400/12 text-blue-200 shadow-[0_0_24px_rgba(59,130,246,0.14)]">
+        <div className="flex items-center gap-3 border-b border-td-ink/[0.07] pb-4 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-td-accent/35 bg-td-accent/12 text-td-accent-text shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.14)]">
             {option.dashboardIcon}
           </div>
 
           <div>
-            <p className="text-[8px] font-medium uppercase tracking-[0.16em] text-slate-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-td-muted">
               Workspace preview
             </p>
 
-            <h3 className="mt-1 text-sm font-semibold text-white">
+            <h3 className="mt-1 text-sm font-semibold text-td-primary">
               {option.title}
             </h3>
 
-            <p className="mt-1 text-[10px] text-slate-500">
+            <p className="mt-1 text-[11px] text-td-muted">
               Dashboard modules enabled
             </p>
           </div>
@@ -354,34 +354,34 @@ function WorkspacePreview({
           {option.modules.map((module) => (
             <div
               key={module}
-              className="preview-module flex min-h-[56px] h-full items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2.5"
+              className="preview-module flex min-h-[56px] h-full items-center gap-2.5 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 py-2.5"
             >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-blue-300/40 bg-blue-400/10 text-blue-300">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-td-accent/40 bg-td-accent/10 text-td-accent-text">
                 <Check className="h-3.5 w-3.5" />
               </div>
 
-              <span className="text-[10px] font-medium leading-4 text-slate-200">
+              <span className="text-[11px] font-medium leading-4 text-td-primary">
                 {module}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="flex h-full min-h-[120px] items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
+        <div className="flex h-full min-h-[120px] items-center gap-3 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-td-accent/10 text-td-accent-text">
             <BarChart3 className="h-4 w-4" />
           </div>
 
           <div>
-            <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-slate-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-td-muted">
               Primary dashboard
             </p>
 
-            <p className="mt-1 text-xs font-semibold text-white">
+            <p className="mt-1 text-xs font-semibold text-td-primary">
               {option.dashboardTitle}
             </p>
 
-            <p className="mt-1 text-[9px] leading-4 text-slate-500">
+            <p className="mt-1 text-[11px] leading-4 text-td-muted">
               {option.dashboardDescription}
             </p>
           </div>
@@ -479,7 +479,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
+    <main className="relative min-h-screen overflow-x-hidden bg-td-canvas text-td-primary lg:h-screen lg:min-h-0 lg:overflow-hidden">
       <style>{`
         @keyframes ambientGlow {
           0%, 100% {
@@ -517,14 +517,14 @@ export default function OnboardingPage() {
           0%, 100% {
             opacity: 0.72;
             filter: drop-shadow(
-              0 0 7px rgba(34, 211, 238, 0.16)
+              0 0 7px rgb(var(--td-accent-rgb)/0.16)
             );
           }
 
           50% {
             opacity: 1;
             filter: drop-shadow(
-              0 0 13px rgba(34, 211, 238, 0.24)
+              0 0 13px rgb(var(--td-accent-rgb)/0.24)
             );
           }
         }
@@ -555,15 +555,15 @@ export default function OnboardingPage() {
 
         @keyframes buttonActivate {
           0% {
-            box-shadow: 0 0 0 rgba(34, 211, 238, 0);
+            box-shadow: 0 0 0 rgb(var(--td-accent-rgb)/0);
           }
 
           50% {
-            box-shadow: 0 0 34px rgba(34, 211, 238, 0.3);
+            box-shadow: 0 0 34px rgb(var(--td-accent-rgb)/0.3);
           }
 
           100% {
-            box-shadow: 0 12px 32px rgba(6, 182, 212, 0.28);
+            box-shadow: 0 12px 32px rgb(var(--td-accent-rgb)/0.28);
           }
         }
 
@@ -652,45 +652,45 @@ export default function OnboardingPage() {
         className="pointer-events-none fixed inset-0 opacity-[0.1]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(148,163,184,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.14) 1px, transparent 1px)",
+            "linear-gradient(rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px)",
           backgroundSize: "54px 54px",
         }}
       />
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none fixed -left-56 -top-56 h-[760px] w-[760px] rounded-full bg-blue-500/[0.14] blur-[205px]"
+        className="ambient-glow pointer-events-none fixed -left-56 -top-56 h-[760px] w-[760px] rounded-full bg-td-accent/[0.14] blur-[205px]"
       />
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none fixed -bottom-72 right-[-150px] h-[760px] w-[760px] rounded-full bg-blue-500/[0.09] blur-[220px]"
+        className="ambient-glow pointer-events-none fixed -bottom-72 right-[-150px] h-[760px] w-[760px] rounded-full bg-td-accent/[0.09] blur-[220px]"
         style={{ animationDelay: "-4s" }}
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed left-1/2 top-[20%] h-[360px] w-[640px] -translate-x-1/2 rounded-full bg-blue-400/[0.045] blur-[145px]"
+        className="pointer-events-none fixed left-1/2 top-[20%] h-[360px] w-[640px] -translate-x-1/2 rounded-full bg-td-accent/[0.045] blur-[145px]"
       />
 
-      <header className="relative z-20 border-b border-white/[0.07] bg-[#03080c]/75 backdrop-blur-xl">
+      <header className="relative z-20 border-b border-td-ink/[0.07] bg-td-canvas/75 backdrop-blur-xl">
         <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between px-5 sm:px-8 lg:px-10">
           <Link href="/" className="flex items-center gap-2.5">
             <TradingDocksMark className="h-7 w-7" />
 
             <div>
-              <p className="text-xs font-semibold text-white">
+              <p className="text-xs font-semibold text-td-primary">
                 Trading Docks
               </p>
 
-              <p className="text-[8px] text-slate-600">
+              <p className="text-[11px] text-td-muted">
                 Workspace setup
               </p>
             </div>
           </Link>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[9px] text-slate-400">
-            <ShieldCheck className="h-3 w-3 text-blue-300" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-td-ink/10 bg-td-ink/[0.035] px-3 py-1.5 text-[11px] text-td-secondary">
+            <ShieldCheck className="h-3 w-3 text-td-accent-text" />
             Secure onboarding
           </div>
         </div>
@@ -698,18 +698,18 @@ export default function OnboardingPage() {
 
       <div className="onboarding-scale relative z-10 mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-[1360px] flex-col justify-center px-5 py-3 sm:px-8 lg:h-[calc(100vh-3.5rem)] lg:min-h-0 lg:px-8 lg:py-1">
         <div className="mx-auto max-w-[780px] text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/25 bg-blue-400/[0.07] px-3 py-1.5 text-[9px] font-medium text-blue-100 shadow-[0_0_28px_rgba(59,130,246,0.08)]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-td-accent/25 bg-td-accent/[0.07] px-3 py-1.5 text-[11px] font-medium text-td-accent-text shadow-[0_0_28px_rgb(var(--td-accent-rgb)/0.08)]">
             <Sparkles className="h-3 w-3" />
             Step {step} of 3
           </div>
 
-          <h1 className="mt-3 text-[clamp(2rem,4.2vw,3.45rem)] font-semibold leading-[0.96] tracking-[-0.055em] text-white">
+          <h1 className="mt-3 text-[clamp(2rem,4.2vw,3.45rem)] font-semibold leading-[0.96] tracking-[-0.055em] text-td-primary">
             {step === 1 && "Tell us how you use Trading Docks."}
             {step === 2 && "Choose what you want to manage."}
             {step === 3 && "Your workspace is ready."}
           </h1>
 
-          <p className="mx-auto mt-3 max-w-[670px] text-xs leading-5 text-slate-400 lg:text-sm">
+          <p className="mx-auto mt-3 max-w-[670px] text-xs leading-5 text-td-secondary lg:text-sm">
             {step === 1 &&
               "We’ll personalize your dashboard, shortcuts, and recommended tools around your collection or business."}
 
@@ -722,15 +722,15 @@ export default function OnboardingPage() {
         </div>
 
         <div className="mx-auto mt-4 w-full max-w-[1080px]">
-          <div className="mb-3 flex items-center justify-between text-[9px] text-slate-500">
+          <div className="mb-3 flex items-center justify-between text-[11px] text-td-muted">
             <span>Account type</span>
             <span>Inventory modules</span>
             <span>Complete</span>
           </div>
 
-          <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
+          <div className="h-2 overflow-hidden rounded-full bg-td-ink/[0.05]">
             <div
-              className="selected-pulse h-full rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-300 shadow-[0_0_16px_rgba(59,130,246,0.30)] transition-all duration-500"
+              className="selected-pulse h-full rounded-full bg-gradient-to-r from-td-accent via-td-accent to-td-accent shadow-[0_0_16px_rgb(var(--td-accent-rgb)/0.30)] transition-all duration-500"
               style={{ width: progress }}
             />
           </div>
@@ -739,21 +739,21 @@ export default function OnboardingPage() {
         <div className="panel-float relative mx-auto mt-4 w-full max-w-[1220px]">
           <div
             aria-hidden="true"
-            className="ambient-glow pointer-events-none absolute -inset-16 rounded-[72px] bg-blue-500/[0.14] blur-[115px]"
+            className="ambient-glow pointer-events-none absolute -inset-16 rounded-[72px] bg-td-accent/[0.14] blur-[115px]"
           />
 
-          <div className="relative overflow-hidden rounded-[30px] border border-blue-200/30 bg-white/[0.045] p-1.5 shadow-[0_38px_120px_rgba(0,0,0,0.58),0_0_78px_rgba(59,130,246,0.15)] backdrop-blur-2xl">
+          <div className="relative overflow-hidden rounded-[30px] border border-td-accent/30 bg-td-ink/[0.045] p-1.5 shadow-[0_38px_120px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength))),0_0_78px_rgb(var(--td-accent-rgb)/0.15)] backdrop-blur-2xl">
             <div className="panel-sweep pointer-events-none absolute inset-y-0 left-0 z-20 w-24 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
 
-            <div className="relative rounded-[24px] border border-white/[0.09] bg-[#071017]/96 p-5 sm:p-6">
+            <div className="relative rounded-[24px] border border-td-ink/[0.09] bg-td-surface/96 p-5 sm:p-6">
               {step === 1 ? (
                 <>
                   <div className="mb-4 flex items-center justify-between gap-4">
-                    <p className="text-[11px] font-medium text-slate-200">
+                    <p className="text-[11px] font-medium text-td-primary">
                       Choose the workspace that best matches your business.
                     </p>
 
-                    <span className="hidden text-[10px] text-slate-600 sm:inline">
+                    <span className="hidden text-[11px] text-td-muted sm:inline">
                       One selection required
                     </span>
                   </div>
@@ -782,11 +782,11 @@ export default function OnboardingPage() {
               {step === 2 ? (
                 <>
                   <div className="mb-4 flex items-center justify-between gap-4">
-                    <p className="text-[11px] font-medium text-slate-200">
+                    <p className="text-[11px] font-medium text-td-primary">
                       Select every inventory category you want enabled.
                     </p>
 
-                    <span className="hidden text-[10px] text-slate-600 sm:inline">
+                    <span className="hidden text-[11px] text-td-muted sm:inline">
                       Choose one or more
                     </span>
                   </div>
@@ -806,38 +806,38 @@ export default function OnboardingPage() {
 
               {step === 3 ? (
                 <div className="grid gap-4 lg:grid-cols-[0.82fr_1.18fr]">
-                  <div className="rounded-2xl border border-blue-400/30 bg-blue-400/[0.07] p-5 shadow-[0_0_38px_rgba(59,130,246,0.09)]">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-300/35 bg-blue-400/12 text-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.12)]">
+                  <div className="rounded-2xl border border-td-accent/30 bg-td-accent/[0.07] p-5 shadow-[0_0_38px_rgb(var(--td-accent-rgb)/0.09)]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/35 bg-td-accent/12 text-td-accent-text shadow-[0_0_20px_rgb(var(--td-accent-rgb)/0.12)]">
                       {selectedAccount?.icon}
                     </div>
 
-                    <p className="mt-4 text-[8px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                    <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-td-muted">
                       Workspace profile
                     </p>
 
-                    <h2 className="mt-1 text-lg font-semibold text-white">
+                    <h2 className="mt-1 text-lg font-semibold text-td-primary">
                       {selectedAccount?.title}
                     </h2>
 
-                    <p className="mt-2 text-xs leading-5 text-slate-400">
+                    <p className="mt-2 text-xs leading-5 text-td-secondary">
                       Your dashboard will prioritize the tools most useful
                       for this type of account.
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+                  <div className="rounded-2xl border border-td-ink/10 bg-td-ink/[0.025] p-5">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-[8px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-td-muted">
                           Enabled modules
                         </p>
 
-                        <h2 className="mt-1 text-base font-semibold text-white">
+                        <h2 className="mt-1 text-base font-semibold text-td-primary">
                           {modules.length} selected
                         </h2>
                       </div>
 
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-td-success/10 text-td-success">
                         <Check className="h-4 w-4" />
                       </div>
                     </div>
@@ -846,13 +846,13 @@ export default function OnboardingPage() {
                       {selectedModules.map((option) => (
                         <div
                           key={option.id}
-                          className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2.5"
+                          className="flex items-center gap-2.5 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 py-2.5"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-td-accent/10 text-td-accent-text">
                             {option.icon}
                           </div>
 
-                          <span className="text-[10px] font-medium text-slate-200">
+                          <span className="text-[11px] font-medium text-td-primary">
                             {option.title}
                           </span>
                         </div>
@@ -862,11 +862,11 @@ export default function OnboardingPage() {
                 </div>
               ) : null}
 
-              <div className="mt-4 flex flex-col-reverse gap-2.5 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex flex-col-reverse gap-2.5 border-t border-td-ink/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-between">
                 {step === 1 ? (
                   <Link
                     href="/sign-in"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.025] px-4 text-[11px] font-semibold text-slate-300 transition hover:-translate-y-0.5 hover:border-blue-400/25 hover:text-white"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-td-ink/10 bg-td-ink/[0.025] px-4 text-[11px] font-semibold text-td-secondary transition hover:-translate-y-0.5 hover:border-td-accent/25 hover:text-td-primary"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Back to sign in
@@ -877,7 +877,7 @@ export default function OnboardingPage() {
                     onClick={() =>
                       setStep((current) => current - 1)
                     }
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.025] px-4 text-[11px] font-semibold text-slate-300 transition hover:-translate-y-0.5 hover:border-blue-400/25 hover:text-white"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-td-ink/10 bg-td-ink/[0.025] px-4 text-[11px] font-semibold text-td-secondary transition hover:-translate-y-0.5 hover:border-td-accent/25 hover:text-td-primary"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Back
@@ -889,10 +889,10 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={continueToNextStep}
                     disabled={continueDisabled}
-                    className={`group inline-flex h-10 items-center justify-center gap-2 rounded-lg px-5 text-[11px] font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-400/15 ${
+                    className={`group inline-flex h-10 items-center justify-center gap-2 rounded-lg px-5 text-[11px] font-semibold transition focus:outline-none focus:ring-4 focus:ring-td-accent/15 ${
                       continueDisabled
-                        ? "cursor-not-allowed border border-white/10 bg-[#101820] text-slate-600 shadow-none"
-                        : "continue-active bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-300 text-slate-950 shadow-[0_12px_32px_rgba(37,99,235,0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(37,99,235,0.42)]"
+                        ? "cursor-not-allowed border border-td-ink/10 bg-td-surface text-td-muted shadow-none"
+                        : "continue-active bg-gradient-to-r from-td-accent via-td-accent to-td-accent text-td-on-accent shadow-[0_12px_32px_rgb(var(--td-accent-rgb)/0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgb(var(--td-accent-rgb)/0.42)]"
                     }`}
                   >
                     Continue
@@ -910,7 +910,7 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={finishOnboarding}
                     disabled={saving}
-                    className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-300 px-5 text-[11px] font-semibold text-slate-950 shadow-[0_12px_32px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(37,99,235,0.42)]"
+                    className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-td-accent via-td-accent to-td-accent px-5 text-[11px] font-semibold text-td-on-accent shadow-[0_12px_32px_rgb(var(--td-accent-rgb)/0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgb(var(--td-accent-rgb)/0.42)]"
                   >
                     {saving ? "Saving workspace..." : "Enter dashboard"}
 
@@ -919,7 +919,7 @@ export default function OnboardingPage() {
                 )}
               </div>
               {saveError ? (
-                <p className="mt-3 text-right text-[11px] text-rose-300">
+                <p className="mt-3 text-right text-[11px] text-td-danger">
                   {saveError}
                 </p>
               ) : null}
@@ -927,7 +927,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <p className="mt-2.5 text-center text-[9px] text-slate-600">
+        <p className="mt-2.5 text-center text-[11px] text-td-muted">
           You can change your account type and enabled modules later in
           workspace settings.
         </p>

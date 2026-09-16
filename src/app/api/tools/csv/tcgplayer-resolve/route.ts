@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getScryfallMtgSetIdentities } from "@/lib/mtg/set-identity";
 import { resolveTcgplayerVariant } from "@/lib/tcgplayer-catalog";
 import type { SupabaseCatalogResolverClient } from "@/lib/tcgplayer-catalog";
+import { createPrintingLookup } from "@/lib/tcgplayer-catalog/printing-identity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ type InputRow = {
   collectorNumber?: unknown;
   condition?: unknown;
   finish?: unknown;
+  tcgplayerId?: unknown;
+  tcgplayerProductId?: unknown;
+  scryfallId?: unknown;
+  gameId?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -31,13 +36,14 @@ export async function POST(request: Request) {
   const rows = body.rows.map(cleanRow);
   const setIdentities = await getScryfallMtgSetIdentities();
   const results = [];
+  const lookupPrinting = createPrintingLookup();
 
   for (const row of rows) {
-    const setName = row.setName || row.set;
-    if (!row.name || !setName || !row.collectorNumber || !row.condition || !row.finish) {
+    if ((!row.name && !row.tcgplayerId) || !row.condition || !row.finish) {
       results.push({
         status: "unresolved",
-        reason: "Name, set, collector number, condition, and foil status are required.",
+        reason: "Name or TCGplayer SKU ID, condition, and foil status are required.",
+        reasonCode: "MISSING_REQUIRED_FIELD",
       });
       continue;
     }
@@ -57,6 +63,11 @@ export async function POST(request: Request) {
         collectorNumber: row.collectorNumber,
         condition: row.condition,
         finish: row.finish,
+        gameId: row.gameId,
+        tcgplayerId: row.tcgplayerId,
+        tcgplayerProductId: row.tcgplayerProductId,
+        scryfallId: row.scryfallId,
+        lookupPrinting,
         setIdentities,
       });
 
@@ -93,6 +104,10 @@ export async function POST(request: Request) {
               collectorNumber: candidate.collector_number ?? "",
               condition: candidate.condition,
               finish: candidate.finish,
+              marketPrice: money(candidate.tcg_market_price),
+              directLowPrice: money(candidate.tcg_direct_low),
+              lowPrice: money(candidate.tcg_low_price_with_shipping ?? candidate.tcg_low_price),
+              marketplacePrice: money(candidate.tcg_marketplace_price),
             }))
             : [],
         });
@@ -116,6 +131,10 @@ function cleanRow(row: InputRow) {
     collectorNumber: stringValue(row.collectorNumber, 60),
     condition: stringValue(row.condition, 80),
     finish: normalizeFinish(stringValue(row.finish, 40)),
+    gameId: stringValue(row.gameId, 40),
+    tcgplayerId: stringValue(row.tcgplayerId, 40),
+    tcgplayerProductId: stringValue(row.tcgplayerProductId, 40),
+    scryfallId: stringValue(row.scryfallId, 80),
   };
 }
 

@@ -52,6 +52,7 @@
 - Implemented: `inventory_items.quantity` remains non-negative by schema check and action validation. Quantity zero means zero owned copies on the existing row; it does not delete or archive the record.
 - Implemented: `inventory_items.location_id` can be assigned to an existing owned `inventory_locations` id or cleared to `null`.
 - Partially Implemented: Condition and finish are still stored inside `inventory_items.data`; a future schema review may propose first-class columns if reporting/filtering requires stronger database constraints.
+- Planned: The Collection contract must represent per-location inventory lots in addition to aggregate owned quantity. A single printing may be split across multiple `inventory_items` rows or future normalized lot records, and search/Card Workspace must expose quantity, condition, finish, and human-readable location path for each lot.
 - Planned: Add a reviewed migration proposal for normalized collection-card, printing, deck-usage, and price-history relationships if JSON payloads become insufficient.
 
 ## Data Model Risks
@@ -118,6 +119,9 @@
 - Partially Implemented: Parent/child hierarchy, favorite, recent, and archive state are encoded in `inventory_locations.data` fields: `parentId`, `favorite`, `recentUsedAt`, and `archivedAt`.
 - Partially Implemented: The current schema does not enforce parent existence, prevent hierarchy cycles, or index archived/favorite/recent metadata. Application code validates these states, but database enforcement requires a reviewed migration.
 - Implemented: Archiving a location with assigned cards is blocked by default in active UI/helpers. Explicit archive-with-assignments behavior exists as a contract path but is not the normal UI action.
+- Planned: Location paths should be built once from canonical location records and reused by Collection search, Global Search, Inventory search, Card Workspace, CSV review, Storage browsing, Trade Binder, and future QR/location labels.
+- Planned: CSV import finalization must be able to write approved rows into a selected destination location so physical CSV digitization creates searchable location-aware inventory lots immediately.
+- Planned: Partial-quantity moves require truthful lot splitting/adjustment and movement-ledger entries. Moving three copies out of an eight-copy lot must leave five at the original location and three at the destination.
 - Planned: Migration proposal only: add nullable `parent_location_id`, `archived_at`, `favorite`, `recent_used_at`, constraints preventing self-parenting, indexes for `(user_id, parent_location_id)`, `(user_id, archived_at)`, and `(user_id, favorite, recent_used_at desc)`, plus SQL/RPC validation for cycle prevention.
 
 ## Trade Binder And Wishlist

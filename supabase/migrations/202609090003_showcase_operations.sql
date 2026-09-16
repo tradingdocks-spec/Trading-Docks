@@ -34,7 +34,7 @@ create trigger showcase_request_item_reservation after insert on public.showcase
 create or replace function public.get_kiosk_context(input_token text)
 returns table (device_id uuid, workspace_id uuid, showcase_slug text)
 language sql security definer stable set search_path = public
-as $$ select d.id, d.workspace_id, p.slug from public.showcase_kiosk_devices d join public.showcase_profiles p on p.workspace_id = d.workspace_id where d.token_hash = encode(digest(input_token, 'sha256'), 'hex') and d.enabled and d.revoked_at is null and p.enabled and p.kiosk_enabled; $$;
+as $$ select d.id, d.workspace_id, p.slug from public.showcase_kiosk_devices d join public.showcase_profiles p on p.workspace_id = d.workspace_id where d.token_hash = encode(extensions.digest(convert_to(input_token, 'UTF8'), 'sha256'), 'hex') and d.enabled and d.revoked_at is null and p.enabled and p.kiosk_enabled; $$;
 revoke all on function public.get_kiosk_context(text) from public; grant execute on function public.get_kiosk_context(text) to anon, authenticated;
 
 create or replace function public.update_showcase_request_status(requested_id uuid, next_status text, actor_id uuid default null)
@@ -59,3 +59,12 @@ declare r record; line record; reserved integer; begin
   return jsonb_build_object('id', r.id, 'status', next_status);
 end; $$;
 revoke all on function public.update_showcase_request_status(uuid,text,uuid) from public; grant execute on function public.update_showcase_request_status(uuid,text,uuid) to authenticated;
+
+create or replace function public.record_showcase_event(requested_slug text, requested_event text, event_metadata jsonb default '{}'::jsonb) returns boolean language plpgsql security definer set search_path = public as $$
+declare target_workspace uuid; begin
+  if requested_event not in ('showcase_view','search','search_no_results','card_view','add_to_request','request_submitted','request_completed','kiosk_session') then return false; end if;
+  select workspace_id into target_workspace from public.showcase_profiles where slug = requested_slug and enabled;
+  if target_workspace is null then return false; end if;
+  insert into public.showcase_events(workspace_id,event_type,metadata) values (target_workspace,requested_event,jsonb_build_object('source',coalesce(event_metadata->>'source','public_web')) || jsonb_strip_nulls(event_metadata - 'source')); return true;
+end; $$;
+revoke all on function public.record_showcase_event(text,text,jsonb) from public; grant execute on function public.record_showcase_event(text,text,jsonb) to anon, authenticated;

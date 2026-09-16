@@ -191,17 +191,49 @@ export function mappingForTemplate(headers: string[], selected?: CsvTemplate) {
   return mapped;
 }
 
-export function outputForTemplate(rows: CanonicalRow[], templateId: string) {
+export function outputForTemplate(rows: Array<CanonicalRow & { tcgplayerPrinting?: Pick<CanonicalRow, "name" | "setName" | "collectorNumber"> }>, templateId: string) {
   const selected = CSV_TEMPLATES.find((item) => item.id === templateId) ?? CSV_TEMPLATES.at(-1)!;
+  const exportRows = selected.id === "tcgplayer" ? dedupeTcgplayerRows(rows) : rows;
   return {
     headers: selected.headers,
-    values: rows.map((row) =>
-      selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header)),
-    ),
+    values: exportRows.map((source) => {
+      const row = selected.id === "tcgplayer" ? { ...source, ...source.tcgplayerPrinting } : source;
+      return selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header));
+    }),
   };
 }
 
+function dedupeTcgplayerRows<T extends CanonicalRow & { tcgplayerPrinting?: Pick<CanonicalRow, "name" | "setName" | "collectorNumber"> }>(rows: T[]) {
+  const result: T[] = [];
+  const byId = new Map<string, T>();
+  for (const row of rows) {
+    const id = (row.tcgplayerId ?? "").trim();
+    const copy = { ...row } as T;
+    if (!id || !byId.has(id)) {
+      result.push(copy);
+      if (id) byId.set(id, copy);
+      continue;
+    }
+    const existing = byId.get(id)!;
+    for (const key of ["marketPrice", "lowPrice", "directLowPrice", "imageUrl", "title", "rarity", "productLine"] as CanonicalKey[]) {
+      if (!existing[key] && row[key]) existing[key] = row[key];
+    }
+    for (const key of ["quantity", "addQuantity", "regularQuantity", "foilQuantity", "tradeQuantity"] as CanonicalKey[]) {
+      const current = Number.parseInt(existing[key], 10);
+      const additional = Number.parseInt(row[key], 10);
+      if (Number.isFinite(additional)) existing[key] = String((Number.isFinite(current) ? current : 0) + additional);
+    }
+  }
+  return result;
+}
+
 function outputValue(row: CanonicalRow, key: CanonicalKey, templateId: string, header: string) {
+  if (templateId === "tcgplayer" && header === "TCG Marketplace Price") {
+    // TCGplayer requires a listing price even when its market-price field is
+    // unavailable. Prefer the market price, then the lowest available seller
+    // price so matched rows remain importable without inventing a value.
+    return row.marketPrice || row.lowPrice || row.directLowPrice || "";
+  }
   const value = row[key] ?? "";
   if (key === "finish") {
     const normalizedFinish = value.trim().toLowerCase();

@@ -1,10 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 
+export type ShowcaseProfile = {
+  display_name: string;
+  description: string | null;
+  logo_url: string | null;
+  show_prices: boolean;
+  show_quantities: boolean;
+  allow_requests: boolean;
+};
+
 export type ShowcaseCard = {
   public_id: string; game: string; name: string; set_name: string | null;
   set_code: string | null; collector_number: string | null; rarity: string | null;
   condition: string | null; finish: string | null; language: string | null;
-  image_url: string | null; public_price: number | null; sellable_quantity: number;
+  image_url: string | null; provider_image_url: string | null; scryfall_id: string | null;
+  provider_product_id: string | null; tcgplayer_product_id: number | null;
+  public_price: number | null; sellable_quantity: number;
 };
 
 export async function getShowcase(slug: string, query = "") {

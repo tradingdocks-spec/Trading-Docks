@@ -247,7 +247,7 @@ const ROUTE_RULES: Array<{ test: (pathname: string) => boolean; feature: PlanFea
   { test: (p) => p.startsWith("/dashboard/deck-vault"), feature: "deck-vault" },
   { test: (p) => p.startsWith("/dashboard/analytics"), feature: "collector-analytics" },
   { test: (p) => p.startsWith("/dashboard/tools/csv-converter"), feature: "csv-tools" },
-  { test: (p) => p.startsWith("/dashboard/customers"), feature: "crm" },
+  { test: (p) => p.startsWith("/dashboard/customers") || p.startsWith("/dashboard/marketing"), feature: "crm" },
   {
     test: (p) =>
       /^\/dashboard\/(purchasing|purchasing-intelligence|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence)(\/|$)/.test(p),

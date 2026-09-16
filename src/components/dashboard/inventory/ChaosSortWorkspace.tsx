@@ -23,7 +23,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TDButton, TDCard, TDBadge, TDInput, TDLoadingState, TDText } from "@/components/design-system/td-primitives";
 import { PageHeader } from "@/components/dashboard/common/PageHeader";
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
-import { ContextHelp, FeatureIntro, WorkflowSteps } from "@/components/dashboard/help/HelpPrimitives";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { csvValue, parseSimpleCsv } from "@/lib/csv-simple";
@@ -85,13 +84,6 @@ const BATCH_SEQUENCE_KEY = "td-chaos-sort-batch-sequence";
 function money(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "n/a";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
-
-function humanizeChaosSortStatus(value: string | null | undefined) {
-  return String(value ?? "pending")
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function normalizeField(value: string | null | undefined) {
@@ -455,8 +447,7 @@ export function ChaosSortWorkspace() {
         const marketPrice = Array.isArray(candidate?.prices)
           ? candidate.prices.find((price: { available?: boolean; value?: number | null }) => price.available && typeof price.value === "number")?.value ?? null
           : null;
-        const language = typeof candidate?.language === "string" ? candidate.language : typeof identification.language === "string" ? identification.language : null;
-        const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null, language });
+        const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null });
         const machineState = classifyChaosSortRecognition({
           processingState: "ready",
           confidence,
@@ -480,7 +471,6 @@ export function ChaosSortWorkspace() {
           collectorNumber,
           rarity: typeof candidate?.rarity === "string" ? candidate.rarity : null,
           finish,
-          language,
           quantity: 1,
           marketPrice,
           existingOwnedQuantity: match.quantity,
@@ -520,7 +510,6 @@ export function ChaosSortWorkspace() {
         const scryfallId = csvValue(values, "scryfall id", "scryfall_id", "scryfallid") || null;
         const condition = csvValue(values, "condition") || "NM";
         const finish = csvValue(values, "finish", "printing") || "nonfoil";
-        const language = csvValue(values, "language", "lang") || null;
         const now = new Date().toISOString();
         const id = crypto.randomUUID();
         return {
@@ -540,7 +529,6 @@ export function ChaosSortWorkspace() {
           rarity: csvValue(values, "rarity") || null,
           finish,
           condition,
-          language,
           quantity,
           marketPrice: Number.parseFloat(csvValue(values, "market", "market price", "price") || "") || null,
           existingOwnedQuantity: 0,
@@ -798,14 +786,6 @@ export function ChaosSortWorkspace() {
           icon={Layers3}
         />
 
-        <FeatureIntro
-          eyebrow="First intake"
-          title="Turn a loose stack into filed inventory"
-          description="Chaos Sort keeps card matching and inventory writing separate. Review every exception, choose a storage location, then import the completed batch when you are ready."
-        >
-          <WorkflowSteps steps={["Scan", "Review", "Choose location", "Import into inventory"]} />
-        </FeatureIntro>
-
         {notice ? (
           <TDCard variant="outlined" className="border-td-success/20 bg-td-success/[0.04] text-td-success">
             <div className="flex flex-wrap items-center justify-between gap-3"><TDText variant="small">{notice}</TDText>{committedBatchId ? <Link href={`/dashboard/inventory/batches/${committedBatchId}`} className="inline-flex min-h-9 items-center rounded-lg bg-td-success px-3 text-xs font-bold text-td-on-accent">Open batch & print label</Link> : null}</div>
@@ -828,7 +808,7 @@ export function ChaosSortWorkspace() {
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[680px] text-left text-sm">
                 <thead className="text-[11px] font-bold uppercase tracking-[.12em] text-td-muted"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created</th><th className="px-3 py-2" /></tr></thead>
-                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-td-ink/5"><td className="px-3 py-3 font-semibold text-td-primary">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{humanizeChaosSortStatus(entry.status_v2 ?? entry.status)}</TDBadge></td><td className="px-3 py-3 text-td-secondary">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-td-secondary">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-td-secondary">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text hover:bg-td-accent/10">Open filing</Link></td></tr>)}</tbody>
+                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-td-ink/5"><td className="px-3 py-3 font-semibold text-td-primary">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-td-secondary">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-td-secondary">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-td-secondary">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text hover:bg-td-accent/10">Reprint label</Link></td></tr>)}</tbody>
               </table>
             </div>
           ) : <p className="mt-4 rounded-xl border border-dashed border-td-ink/10 px-3 py-5 text-center text-sm text-td-muted">No committed batches yet.</p>}
@@ -861,8 +841,8 @@ export function ChaosSortWorkspace() {
               <div className="space-y-2">
                 <TDBadge tone="info">Batch {batch.batchCode}</TDBadge>
                 <TDText as="h2" variant="heading">Drop scanner photos here</TDText>
-                <TDText tone="secondary" className="max-w-2xl">
-                  JPG, JPEG, PNG, and WebP are supported. CSV is available for rows you already matched. Duplicates are flagged, card matching stays separate from human confirmation, and no cards are written to inventory until you import the batch.
+                  <TDText tone="secondary" className="max-w-2xl">
+                  Scan → Review → Choose location → Import into inventory. JPG, JPEG, PNG, and WebP are supported. Duplicates are flagged, recognition stays separate from human confirmation, and no cards are written to inventory until you import the batch. Needs review, could-not-identify, and failed items stay visible until you resolve, remove, or retry them.
                 </TDText>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -893,14 +873,10 @@ export function ChaosSortWorkspace() {
                   onClick={commitBatch}
                   disabled={summary.needsReview > 0 || summary.unknown > 0 || !items.length}
                 >
-                  Import into inventory
+                  Commit to Inventory
                 </TDButton>
               </div>
             </div>
-
-            <ContextHelp label="How the batch is protected">
-              High-confidence matches can be confirmed together. Needs review, could-not-identify, and failed items stay visible until you resolve, remove, or retry them; the inventory write remains unavailable while unresolved items remain.
-            </ContextHelp>
 
             {stagedFiles.length ? (
               <div className="rounded-[22px] border border-td-accent/[0.2] bg-td-accent/[0.045] p-4">
@@ -1231,7 +1207,6 @@ export function ChaosSortWorkspace() {
                     <TDInput label="Collector number" value={selectionValue(selectedItem.collectorNumber)} onChange={(event) => updateItem(selectedItem.id, { collectorNumber: event.target.value })} />
                     <TDInput label="Finish" value={selectionValue(selectedItem.finish)} onChange={(event) => updateItem(selectedItem.id, { finish: event.target.value })} />
                     <TDInput label="Condition" value={selectionValue(selectedItem.condition)} onChange={(event) => updateItem(selectedItem.id, { condition: event.target.value })} />
-                    <TDInput label="Language" value={selectionValue(selectedItem.language)} onChange={(event) => updateItem(selectedItem.id, { language: event.target.value })} />
                     <TDInput label="Quantity" value={String(selectedItem.quantity)} onChange={(event) => updateItem(selectedItem.id, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} />
                     <TDInput label="Market price" value={selectionNumber(selectedItem.marketPrice)} onChange={(event) => updateItem(selectedItem.id, { marketPrice: event.target.value ? Number(event.target.value) : null })} />
                     <div className="space-y-2 sm:col-span-2">
@@ -1479,15 +1454,14 @@ function destinationLocationLabel(destinationLocationId: string, locations: Loca
 function resolveInventoryMatch(
   rows: InventoryRow[],
   locations: LocationRow[],
-  input: { cardName: string; setCode: string | null; collectorNumber: string | null; scryfallId: string | null; language?: string | null },
+  input: { cardName: string; setCode: string | null; collectorNumber: string | null; scryfallId: string | null },
 ) {
   const exact = rows.filter((row) => {
     const nameMatch = normalizeField(row.card_name) === normalizeField(input.cardName);
     const setMatch = normalizeField(row.set_code) === normalizeField(input.setCode);
     const numberMatch = normalizeField(row.collector_number) === normalizeField(input.collectorNumber);
     const scryfallMatch = input.scryfallId ? row.scryfall_id === input.scryfallId : true;
-    const languageMatch = input.language ? String(row.data?.language ?? "").toLowerCase() === input.language.toLowerCase() : true;
-    return nameMatch && setMatch && numberMatch && scryfallMatch && languageMatch;
+    return nameMatch && setMatch && numberMatch && scryfallMatch;
   });
   const locationId = exact[0]?.location_id ?? null;
   return {

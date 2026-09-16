@@ -57,18 +57,18 @@ const MARKET_CARDS: MarketCard[] = [
 
 export function LiveMarketIntelligence() {
   return (
-    <section className="bg-[#020b12] px-5 py-20 sm:px-8 lg:px-12">
+    <section className="bg-td-canvas px-5 py-20 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1420px]">
         <header className="text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-td-accent-text">
             Live Market Intelligence
           </p>
 
-          <h2 className="mx-auto mt-5 max-w-[760px] text-4xl font-semibold leading-[0.98] tracking-[-0.045em] text-white sm:text-5xl lg:text-[58px]">
+          <h2 className="mx-auto mt-5 max-w-[760px] text-4xl font-semibold leading-[0.98] tracking-[-0.045em] text-td-primary sm:text-5xl lg:text-[58px]">
             Understand what is moving—and why.
           </h2>
 
-          <p className="mx-auto mt-6 max-w-[760px] text-sm leading-6 text-slate-500 sm:text-base">
+          <p className="mx-auto mt-6 max-w-[760px] text-sm leading-6 text-td-muted sm:text-base">
             Use current market context to prioritize inventory, pricing,
             purchasing, and listing decisions.
           </p>
@@ -88,27 +88,27 @@ function MarketCardTile({ card }: { card: MarketCard }) {
   const isPositive = card.change >= 0;
 
   return (
-    <article className="overflow-hidden rounded-[24px] border border-slate-700/45 bg-[#071722] p-5 shadow-[0_22px_60px_rgba(0,0,0,0.18)]">
+    <article className="overflow-hidden rounded-[24px] border border-td-line/45 bg-td-surface p-5 shadow-[0_22px_60px_rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength)))]">
       <div className="flex min-w-0 gap-4">
         <LocalCardImage card={card} />
 
         <div className="min-w-0 flex-1 pt-1">
-          <h3 className="truncate text-sm font-semibold text-white">
+          <h3 className="truncate text-sm font-semibold text-td-primary">
             {card.name}
           </h3>
 
-          <p className="mt-2 truncate text-[9px] text-slate-600">
+          <p className="mt-2 truncate text-[11px] text-td-muted">
             {card.setName}
           </p>
 
-          <p className="mt-5 text-xl font-semibold tracking-[-0.025em] text-white">
+          <p className="mt-5 text-xl font-semibold tracking-[-0.025em] text-td-primary">
             {currency(card.price)}
           </p>
 
           <div
             className={[
-              "mt-2 inline-flex items-center gap-1 text-[9px] font-semibold",
-              isPositive ? "text-emerald-300" : "text-rose-300",
+              "mt-2 inline-flex items-center gap-1 text-[11px] font-semibold",
+              isPositive ? "text-td-success" : "text-td-danger",
             ].join(" ")}
           >
             {isPositive ? (
@@ -131,7 +131,7 @@ function LocalCardImage({ card }: { card: MarketCard }) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <div className="relative h-[92px] w-[66px] shrink-0 overflow-hidden rounded-xl border border-slate-600/55 bg-[#06111a]">
+    <div className="relative h-[92px] w-[66px] shrink-0 overflow-hidden rounded-xl border border-td-line/55 bg-td-surface">
       {!failed ? (
         <img
           src={card.image}
@@ -158,11 +158,11 @@ function CardPlaceholder({ name }: { name: string }) {
     .join("");
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-cyan-950 to-slate-950 px-1 text-center">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/[0.06] text-[10px] font-semibold text-cyan-200">
+    <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-td-accent to-td-canvas px-1 text-center">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-td-accent/25 bg-td-accent/[0.06] text-[11px] font-semibold text-td-accent-text">
         {initials}
       </span>
-      <span className="mt-2 line-clamp-2 text-[7px] leading-3 text-slate-500">
+      <span className="mt-2 line-clamp-2 text-[11px] leading-3 text-td-muted">
         Run image download script
       </span>
     </div>
@@ -208,7 +208,7 @@ function Sparkline({
       <polyline
         points={points}
         fill="none"
-        stroke={positive ? "#55e8ff" : "#fb7185"}
+        stroke={positive ? "var(--td-success)" : "var(--td-danger)"}
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"

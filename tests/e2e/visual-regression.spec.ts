@@ -9,24 +9,24 @@ import {
 
 async function openAuthenticatedPage(browser: Browser, account: QaAccount) {
   const context = await browser.newContext({
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173",
+    ignoreHTTPSErrors: !process.env.PLAYWRIGHT_BASE_URL,
     storageState: account.statePath,
   });
   const page = await context.newPage();
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
   return { context, page };
 }
 
 async function waitForPublicHomepageVisualState(page: Page) {
   await expect(page.locator("#market")).toBeVisible();
-  await expect(page.locator("#market")).not.toContainText("Connecting to market feed.", {
-    timeout: 15_000,
-  });
+  await expect(page.locator("#market tbody tr")).toHaveCount(3);
+  await expect(page.locator("#market")).toContainText("Illustrative sample");
 }
 
 test.describe("stable visual baselines", () => {
   test.beforeEach(async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
   });
 
   test("homepage desktop visual shell remains stable", async ({ page }, testInfo) => {

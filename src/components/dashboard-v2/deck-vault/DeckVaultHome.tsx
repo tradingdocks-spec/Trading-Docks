@@ -32,6 +32,16 @@ const FORMATS = [
   "Pauper",
 ];
 
+const DELETED_DECKS_KEY = "trading-docks-deleted-decks";
+
+function loadDeletedDeckIds() {
+  try {
+    return new Set<string>(JSON.parse(localStorage.getItem(DELETED_DECKS_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export function DeckVaultHome() {
   const [format, setFormat] = useState("All Formats");
   const [savedDecks, setSavedDecks] =
@@ -41,6 +51,7 @@ export function DeckVaultHome() {
 
   useEffect(() => {
     try {
+      const deletedDeckIds = loadDeletedDeckIds();
       const importedIds = JSON.parse(
         localStorage.getItem(
           "trading-docks-imported-decks",
@@ -63,9 +74,9 @@ export function DeckVaultHome() {
 
       const byId = new Map<string, DeckRecord>();
 
-      [...sampleDecks, ...importedDecks].forEach(
-        (deck) => byId.set(deck.id, deck),
-      );
+      [...sampleDecks, ...importedDecks].forEach((deck) => {
+        if (!deletedDeckIds.has(deck.id)) byId.set(deck.id, deck);
+      });
 
       setSavedDecks(Array.from(byId.values()));
     } catch {
@@ -114,6 +125,10 @@ export function DeckVaultHome() {
       `trading-docks-unresolved:${deckId}`,
     );
 
+    const deletedDeckIds = loadDeletedDeckIds();
+    deletedDeckIds.add(deckId);
+    localStorage.setItem(DELETED_DECKS_KEY, JSON.stringify([...deletedDeckIds]));
+
     const importedIds = JSON.parse(
       localStorage.getItem(
         "trading-docks-imported-decks",
@@ -137,19 +152,19 @@ export function DeckVaultHome() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020912] px-5 py-7 text-white sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-5 py-7 text-td-primary sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
-        <header className="relative overflow-hidden rounded-[30px] border border-sky-300/[0.12] bg-[#06131f] p-6 sm:p-8">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky-400/[0.08] blur-3xl" />
-          <div className="absolute bottom-[-90px] left-[35%] h-56 w-56 rounded-full bg-violet-500/[0.08] blur-3xl" />
+        <header className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.12] bg-td-surface p-6 sm:p-8">
+          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-td-accent/[0.08] blur-3xl" />
+          <div className="absolute bottom-[-90px] left-[35%] h-56 w-56 rounded-full bg-td-violet/[0.08] blur-3xl" />
 
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/[0.14] bg-sky-400/[0.05] text-sky-300">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-td-accent/[0.14] bg-td-accent/[0.05] text-td-accent-text">
                   <LibraryBig className="h-5 w-5" />
                 </span>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">
                   Deck Vault
                 </p>
               </div>
@@ -157,7 +172,7 @@ export function DeckVaultHome() {
               <h1 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.05em] sm:text-5xl">
                 Build deeper. Analyze smarter. Know every deck.
               </h1>
-              <p className="mt-4 max-w-3xl text-[15px] leading-7 text-slate-400">
+              <p className="mt-4 max-w-3xl text-[15px] leading-7 text-td-secondary">
                 Import decks from Moxfield, ManaBox, MTGGoldfish, Archidekt,
                 Deckstats, Arena, CSV, or plain text and turn them into a
                 living analytics workspace connected to your collection.
@@ -171,14 +186,14 @@ export function DeckVaultHome() {
             <div className="grid gap-3 sm:grid-cols-2">
               <Link
                 href="/dashboard/deck-vault/import"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-sky-300 px-5 text-[13px] font-semibold text-[#00121c]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-[13px] font-semibold text-td-on-accent"
               >
                 <Import className="h-4 w-4" />
                 Import a deck
               </Link>
               <Link
                 href="/dashboard/deck-vault/new"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 text-[13px] font-semibold text-slate-300"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-5 text-[13px] font-semibold text-td-secondary"
               >
                 <FolderPlus className="h-4 w-4" />
                 Create new deck
@@ -195,10 +210,10 @@ export function DeckVaultHome() {
         </section>
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.4fr_0.7fr]">
-          <div className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5">
+          <div className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-sky-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-accent-text">
                   My Decks
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">Recently opened</h2>
@@ -209,15 +224,15 @@ export function DeckVaultHome() {
                   onChange={(event) =>
                     setFormat(event.target.value)
                   }
-                  className="h-10 rounded-xl border border-white/[0.07] bg-[#07141e] px-3 text-[12px] text-slate-400 outline-none"
+                  className="h-10 rounded-xl border border-td-ink/[0.07] bg-td-surface px-3 text-[12px] text-td-secondary outline-none"
                 >
                   {FORMATS.map((item) => (
                     <option key={item}>{item}</option>
                   ))}
                 </select>
 
-                <label className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/[0.1] px-3">
-                  <Search className="h-4 w-4 text-slate-700" />
+                <label className="flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-black/[0.1] px-3">
+                  <Search className="h-4 w-4 text-td-muted" />
                   <input
                     value={searchQuery}
                     onChange={(event) =>
@@ -226,7 +241,7 @@ export function DeckVaultHome() {
                       )
                     }
                     placeholder="Search decks..."
-                    className="bg-transparent text-[12px] text-slate-300 outline-none placeholder:text-slate-700"
+                    className="bg-transparent text-[12px] text-td-secondary outline-none placeholder:text-td-muted"
                   />
                 </label>
               </div>
@@ -236,18 +251,18 @@ export function DeckVaultHome() {
               {visibleDecks.map((deck) => (
                 <article
                   key={deck.id}
-                  className="group relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-black/[0.12] transition duration-300 hover:-translate-y-1 hover:border-sky-300/[0.18]"
+                  className="group relative overflow-hidden rounded-[22px] border border-td-ink/[0.07] bg-black/[0.12] transition duration-300 hover:-translate-y-1 hover:border-td-accent/[0.18]"
                 >
                   <Link
                     href={`/dashboard/deck-vault/decks/${deck.id}`}
                     className="block p-4"
                   >
-                    <div className="absolute right-[-30px] top-[-30px] h-28 w-28 rounded-full bg-sky-400/[0.05] blur-2xl" />
+                    <div className="absolute right-[-30px] top-[-30px] h-28 w-28 rounded-full bg-td-accent/[0.05] blur-2xl" />
                     <div className="relative">
                       <ManaPips colors={displayDeckColors(deck.colors)} />
                       <h3 className="mt-4 text-[18px] font-semibold">{deck.name}</h3>
-                      <p className="mt-1 text-[13px] text-slate-400">{deck.commander || "No commander selected"}</p>
-                      <p className="mt-1 text-[12px] text-slate-500">{deck.theme}</p>
+                      <p className="mt-1 text-[13px] text-td-secondary">{deck.commander || "No commander selected"}</p>
+                      <p className="mt-1 text-[12px] text-td-muted">{deck.theme}</p>
 
                       <div className="mt-5 grid grid-cols-2 gap-2">
                         <Metric label="Value" value={`$${deck.marketValue.toFixed(2)}`} />
@@ -256,9 +271,9 @@ export function DeckVaultHome() {
                         <Metric label="Format" value={deck.format} />
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-white/[0.05] pt-3">
-                        <span className="text-[12px] text-slate-500">{deck.updatedAt}</span>
-                        <ArrowRight className="h-4 w-4 text-slate-700 transition group-hover:translate-x-1 group-hover:text-sky-300" />
+                      <div className="mt-4 flex items-center justify-between border-t border-td-ink/[0.05] pt-3">
+                        <span className="text-[12px] text-td-muted">{deck.updatedAt}</span>
+                        <ArrowRight className="h-4 w-4 text-td-muted transition group-hover:translate-x-1 group-hover:text-td-accent-text" />
                       </div>
                     </div>
                   </Link>
@@ -271,7 +286,7 @@ export function DeckVaultHome() {
                         deck.name,
                       )
                     }
-                    className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-rose-300/[0.13] bg-[#07141e]/92 text-rose-300 opacity-0 shadow-lg backdrop-blur transition hover:bg-rose-400/[0.08] group-hover:opacity-100"
+                    className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-td-danger/[0.13] bg-td-surface/92 text-td-danger opacity-0 shadow-lg backdrop-blur transition hover:bg-td-danger/[0.08] group-hover:opacity-100"
                     aria-label={`Delete ${deck.name}`}
                     title="Delete deck"
                   >
@@ -283,12 +298,12 @@ export function DeckVaultHome() {
           </div>
 
           <div className="space-y-5">
-            <section className="rounded-[26px] border border-violet-300/[0.11] bg-[#06131f] p-5">
+            <section className="rounded-[26px] border border-td-violet/[0.11] bg-td-surface p-5">
               <div className="flex items-center gap-3">
-                <BrainCircuit className="h-5 w-5 text-violet-300" />
+                <BrainCircuit className="h-5 w-5 text-td-violet" />
                 <div>
                   <p className="text-[18px] font-semibold">AI Deck Review</p>
-                  <p className="mt-1 text-[12px] text-slate-500">3 new insights</p>
+                  <p className="mt-1 text-[12px] text-td-muted">3 new insights</p>
                 </div>
               </div>
 
@@ -299,9 +314,9 @@ export function DeckVaultHome() {
               </div>
             </section>
 
-            <section className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5">
+            <section className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5">
               <p className="text-[18px] font-semibold">Collector loop</p>
-              <div className="mt-4 space-y-2 text-[12px] text-slate-500">
+              <div className="mt-4 space-y-2 text-[12px] text-td-muted">
                 {[
                   "Import a deck",
                   "Compare against inventory",
@@ -309,8 +324,8 @@ export function DeckVaultHome() {
                   "Create a want list",
                   "Track deck value",
                 ].map((item, index) => (
-                  <div key={item} className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-400/[0.07] text-[11px] font-semibold text-sky-300">
+                  <div key={item} className="flex items-center gap-3 rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] px-3 py-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-td-accent/[0.07] text-[11px] font-semibold text-td-accent-text">
                       {index + 1}
                     </span>
                     {item}
@@ -352,24 +367,24 @@ function Kpi({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-[22px] border border-white/[0.07] bg-[#06131f] p-4">
+    <div className="rounded-[22px] border border-td-ink/[0.07] bg-td-surface p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">{label}</p>
           <p className="mt-2 text-2xl font-semibold">{value}</p>
         </div>
-        <Icon className="h-4 w-4 text-sky-300" />
+        <Icon className="h-4 w-4 text-td-accent-text" />
       </div>
-      <p className="mt-3 text-[11px] text-slate-500">{detail}</p>
+      <p className="mt-3 text-[11px] text-td-muted">{detail}</p>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-3">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.09em] text-slate-600">{label}</p>
-      <p className="mt-1 text-[12px] font-semibold text-slate-200">{value}</p>
+    <div className="rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-td-muted">{label}</p>
+      <p className="mt-1 text-[12px] font-semibold text-td-primary">{value}</p>
     </div>
   );
 }
@@ -384,15 +399,15 @@ function Insight({
   tone: "sky" | "rose" | "emerald";
 }) {
   const toneClass = {
-    sky: "border-sky-300/[0.1] bg-sky-400/[0.025]",
-    rose: "border-rose-300/[0.1] bg-rose-400/[0.025]",
-    emerald: "border-emerald-300/[0.1] bg-emerald-400/[0.025]",
+    sky: "border-td-accent/[0.1] bg-td-accent/[0.025]",
+    rose: "border-td-danger/[0.1] bg-td-danger/[0.025]",
+    emerald: "border-td-success/[0.1] bg-td-success/[0.025]",
   }[tone];
 
   return (
     <div className={`rounded-xl border p-3 ${toneClass}`}>
-      <p className="text-[12px] font-semibold text-slate-200">{title}</p>
-      <p className="mt-1 text-[12px] leading-5 text-slate-500">{text}</p>
+      <p className="text-[12px] font-semibold text-td-primary">{title}</p>
+      <p className="mt-1 text-[12px] leading-5 text-td-muted">{text}</p>
     </div>
   );
 }

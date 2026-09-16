@@ -24,14 +24,15 @@ test('mobile and web Supabase clients use public project identity keys', () => {
 
 test('mobile collection reads the canonical shared inventory source', () => {
   assert.match(collectionRoute, /loadCollectorCollectionPage/);
-  assert.match(scannerData, /from\('inventory_items'\)/);
+  assert.match(scannerData, /create_inventory_item_with_event/);
   assert.match(scannerData, /eq\('user_id', userId\)/);
 });
 
 test('scanner review finalization writes canonical shared inventory records', () => {
   assert.match(scannerSession, /buildScannerCollectionConfirmation/);
   assert.match(scannerSession, /saveScannerConfirmation/);
-  assert.match(scannerData, /from\('inventory_items'\)\.insert\(payload\)/);
+  assert.match(scannerData, /supabase\.rpc\('create_inventory_item_with_event'/);
+  assert.match(scannerData, /p_inventory: payload/);
   assert.match(scannerData, /runMobileTradeWishlistMutation/);
   assert.match(scannerData, /clearScannerDraft/);
 });

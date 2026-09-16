@@ -5,6 +5,7 @@ import {
 } from "../../../mobile/services/platform-access.ts";
 import {
   normalizeChannelId,
+  canonicalOrderTimestamp,
   summarizeCanonicalOrders,
   type CanonicalChannelId,
   type CanonicalOrder,
@@ -40,11 +41,23 @@ import {
   type TradingDocksSignal,
 } from "./intelligence/business-intelligence.ts";
 
-export type BusinessDateRange = "today" | "week" | "7d" | "30d" | "month";
+export type BusinessDateRange = "today" | "week" | "7d" | "30d" | "90d" | "12m" | "month";
 
 export type BusinessChannelSummary = ChannelPerformanceInsight;
 
 export type BusinessNextAction = RankedBusinessAction;
+
+export type BusinessRevenueSeriesPoint = {
+  key: string;
+  label: string;
+  axisLabel: string;
+  start: string;
+  end: string;
+  revenue: number;
+  profitEstimate: number | null;
+  orders: number;
+  profitCoverageRatio: number;
+};
 
 export type BusinessCommandCenterSummary = {
   range: BusinessDateRange;
@@ -62,6 +75,9 @@ export type BusinessCommandCenterSummary = {
   itemsSold: number;
   averageOrderValue: number | null;
   realizedProfit: number | null;
+  profitCoverageRatio: number;
+  profitKnownUnits: number;
+  profitTotalUnits: number;
   openFulfillmentCount: number;
   listingIssues: number;
   syncIssues: number;
@@ -75,6 +91,7 @@ export type BusinessCommandCenterSummary = {
   executiveBrief: ExecutiveBrief;
   docksBrief: string;
   profitConfidence: ProfitConfidence;
+  revenueSeries: BusinessRevenueSeriesPoint[];
   inventoryAttribution: InventoryAttribution;
   inventoryCapital: InventoryCapital;
   signals: TradingDocksSignal[];
@@ -286,6 +303,7 @@ export function buildBusinessCommandCenterSummary({
   const inventoryAttribution = calculateInventoryAttribution(orders);
   const previousInventoryAttribution = calculateInventoryAttribution(previousOrders);
   const profitConfidence = calculateProfitConfidence(orders, inventoryAttribution);
+  const revenueSeries = buildRevenueSeries({ orders, range, now });
   const inventoryCapital = calculateInventoryCapital({ inventoryRows, listingRows, now });
   const channelBreakdown = buildChannelInsights({
     current: orderMetrics.channels,
@@ -349,6 +367,9 @@ export function buildBusinessCommandCenterSummary({
     itemsSold: orderMetrics.unitsSold,
     averageOrderValue: orderMetrics.averageOrderValue,
     realizedProfit: orderMetrics.realizedProfit,
+    profitCoverageRatio: orderMetrics.profitCoverageRatio,
+    profitKnownUnits: orderMetrics.profitKnownUnits,
+    profitTotalUnits: orderMetrics.profitTotalUnits,
     openFulfillmentCount: orderMetrics.openFulfillmentCount,
     listingIssues: orderMetrics.listingIssues,
     syncIssues,
@@ -373,6 +394,7 @@ export function buildBusinessCommandCenterSummary({
       signals,
     }),
     profitConfidence,
+    revenueSeries,
     inventoryAttribution,
     inventoryCapital,
     signals,
@@ -395,6 +417,12 @@ export function getBusinessDateWindow(range: BusinessDateRange, now: Date) {
     start.setHours(0, 0, 0, 0);
   } else if (range === "30d") {
     start.setDate(start.getDate() - 29);
+    start.setHours(0, 0, 0, 0);
+  } else if (range === "90d") {
+    start.setDate(start.getDate() - 89);
+    start.setHours(0, 0, 0, 0);
+  } else if (range === "12m") {
+    start.setMonth(start.getMonth() - 11, 1);
     start.setHours(0, 0, 0, 0);
   } else if (range === "month") {
     start.setDate(1);
@@ -420,10 +448,110 @@ function rangeLabel(range: BusinessDateRange, now: Date) {
   if (range === "today") return "Today";
   if (range === "7d") return "Last 7 days";
   if (range === "30d") return "Last 30 days";
+  if (range === "90d") return "Last 90 days";
+  if (range === "12m") return "Last 12 months";
   if (range === "month") {
     return now.toLocaleString("en-US", { month: "long" });
   }
   return "This week";
+}
+
+function buildRevenueSeries({
+  orders,
+  range,
+  now,
+}: {
+  orders: MarketplaceOrderRow[];
+  range: BusinessDateRange;
+  now: Date;
+}): BusinessRevenueSeriesPoint[] {
+  const buckets = buildSeriesBuckets(range, now);
+  return buckets.map((bucket) => {
+    const bucketOrders = orders.filter((order) => {
+      const timestamp = canonicalOrderTimestamp(order);
+      return Boolean(timestamp && timestamp >= bucket.start && timestamp < bucket.end);
+    });
+    const metrics = summarizeCanonicalOrders(bucketOrders);
+    return {
+      key: bucket.key,
+      label: bucket.label,
+      axisLabel: bucket.axisLabel,
+      start: bucket.start.toISOString(),
+      end: bucket.end.toISOString(),
+      revenue: metrics.grossSales,
+      profitEstimate: metrics.realizedProfit,
+      orders: metrics.orderCount,
+      profitCoverageRatio: metrics.profitCoverageRatio,
+    };
+  });
+}
+
+function buildSeriesBuckets(range: BusinessDateRange, now: Date) {
+  if (range === "12m") {
+    const first = getBusinessDateWindow("12m", now).start;
+    return Array.from({ length: 12 }, (_, index) => {
+      const start = new Date(first);
+      start.setMonth(first.getMonth() + index, 1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setMonth(start.getMonth() + 1, 1);
+      end.setHours(0, 0, 0, 0);
+      return {
+        key: start.toISOString().slice(0, 7),
+        label: start.toLocaleString("en-US", { month: "short", year: "numeric" }),
+        axisLabel: start.toLocaleString("en-US", { month: "short" }),
+        start,
+        end,
+      };
+    });
+  }
+
+  if (range === "90d") {
+    const first = getBusinessDateWindow("90d", now).start;
+    return Array.from({ length: 13 }, (_, index) => {
+      const start = new Date(first);
+      start.setDate(first.getDate() + index * 7);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      end.setHours(0, 0, 0, 0);
+      const clampedEnd = index === 12 ? getBusinessDateWindow("90d", now).end : end;
+      return {
+        key: start.toISOString().slice(0, 10),
+        label: `${start.toLocaleString("en-US", { month: "short", day: "numeric" })} week`,
+        axisLabel: index % 2 === 0 ? start.toLocaleString("en-US", { month: "short", day: "numeric" }) : "",
+        start,
+        end: clampedEnd,
+      };
+    });
+  }
+
+  const window = getBusinessDateWindow(range, now);
+  const dayCount = Math.max(1, Math.round((window.end.getTime() - window.start.getTime()) / 86_400_000));
+  return Array.from({ length: dayCount }, (_, index) => {
+    const start = new Date(window.start);
+    start.setDate(window.start.getDate() + index);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    end.setHours(0, 0, 0, 0);
+    return {
+      key: start.toISOString().slice(0, 10),
+      label: start.toLocaleString("en-US", { month: "short", day: "numeric" }),
+      axisLabel: shouldLabelDailyAxis(range, index, dayCount)
+        ? start.toLocaleString("en-US", { month: "short", day: "numeric" })
+        : "",
+      start,
+      end: index === dayCount - 1 ? window.end : end,
+    };
+  });
+}
+
+function shouldLabelDailyAxis(range: BusinessDateRange, index: number, dayCount: number) {
+  if (range === "today") return index === 0;
+  if (range === "7d" || range === "week") return true;
+  if (range === "month" || range === "30d") return index === 0 || index === dayCount - 1 || index % 7 === 0;
+  return false;
 }
 
 function normalizeStatus(value: unknown) {

@@ -1,5 +1,5 @@
-import { CollectionBuyingCenter } from "@/components/dashboard/collection-buying/CollectionBuyingCenter";
+import { CollectionIntakeWorkspace } from "@/components/dashboard/collection-intake/CollectionIntakeWorkspace";
 
 export default function CollectionBuyingPage() {
-  return <CollectionBuyingCenter />;
+  return <CollectionIntakeWorkspace />;
 }

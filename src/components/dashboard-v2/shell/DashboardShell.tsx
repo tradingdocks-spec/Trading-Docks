@@ -11,7 +11,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#02090f] text-white">
+    <div className="min-h-screen bg-td-canvas text-td-primary">
       <Sidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}

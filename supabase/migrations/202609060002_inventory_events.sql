@@ -1,5 +1,8 @@
 -- Inventory mutation ledger required by Chaos Sort and other durable writes.
 -- Additive, user-scoped, and safe to replay on an existing inventory database.
+-- main may already have created inventory_events through the earlier durable
+-- ledger migration; the table declaration is retained for fresh installs and
+-- the reconciliation below supplies the Chaos Sort-only location projection.
 
 create table if not exists public.inventory_events (
   id uuid primary key default gen_random_uuid(),
@@ -45,6 +48,9 @@ create table if not exists public.inventory_events (
   created_at timestamptz not null default now(),
   unique (user_id, idempotency_key)
 );
+
+alter table public.inventory_events
+  add column if not exists location_id text;
 
 create index if not exists inventory_events_user_time_idx
   on public.inventory_events(user_id, occurred_at desc);

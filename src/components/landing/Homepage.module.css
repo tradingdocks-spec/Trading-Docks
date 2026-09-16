@@ -1140,10 +1140,17 @@
   -webkit-text-fill-color: transparent;
 }
 .primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  background: linear-gradient(110deg, #005bbb, #006bd8);
+  color: #fff;
+  border: 1px solid #469dff;
+  border-radius: 10px;
+  box-shadow:
+    0 8px 26px rgb(var(--td-brand-blue-rgb) / 0.22),
+    inset 0 1px 0 #ffffff20;
+}
+.primary:hover {
+  background: linear-gradient(110deg, #004da4, #005fca);
+  box-shadow: 0 12px 32px rgb(var(--td-brand-blue-rgb) / 0.3);
 }
 .heroStatement {
   border-left-color: var(--td-action-primary);

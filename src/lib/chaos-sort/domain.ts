@@ -52,7 +52,6 @@ export type ChaosSortItem = {
   rarity: string | null;
   finish: string | null;
   condition: string | null;
-  language?: string | null;
   quantity: number;
   marketPrice: number | null;
   existingOwnedQuantity: number;

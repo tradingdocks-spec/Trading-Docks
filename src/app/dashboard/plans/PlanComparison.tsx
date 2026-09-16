@@ -144,30 +144,30 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
   const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
-    <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
+    <div className="min-h-full bg-td-canvas px-4 py-8 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1440px]">
         <Link
           href="/dashboard/inventory"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
+          className="inline-flex items-center gap-2 text-sm font-medium text-td-secondary transition hover:text-td-accent-text"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Inventory
         </Link>
 
         <header className="mx-auto max-w-3xl pb-10 pt-10 text-center">
-          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-td-accent/15 bg-td-accent/[0.06] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-td-accent-text">
             <Sparkles className="h-3.5 w-3.5" />
             Plans built to grow with you
           </div>
           <h1 className="mt-5 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
             Choose the workspace that fits.
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-td-secondary sm:text-base">
             Start free, organize a personal collection, grow an online sales operation,
             or run your entire store from one connected platform.
           </p>
 
-          <div className="mx-auto mt-7 flex w-fit items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1">
+          <div className="mx-auto mt-7 flex w-fit items-center rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.035] p-1">
             {(["monthly", "annual"] as const).map((cycle) => (
               <button
                 key={cycle}
@@ -175,13 +175,13 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                 onClick={() => setBilling(cycle)}
                 className={`rounded-xl px-5 py-2.5 text-xs font-semibold capitalize transition ${
                   billing === cycle
-                    ? "bg-cyan-400 text-[#00151b] shadow-[0_8px_25px_rgba(34,211,238,0.22)]"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-td-accent text-td-on-accent shadow-[0_8px_25px_rgb(var(--td-accent-rgb)/0.22)]"
+                    : "text-td-secondary hover:text-td-primary"
                 }`}
               >
                 {cycle}
                 {cycle === "annual" && (
-                  <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
+                  <span className="ml-2 rounded-full bg-td-raised px-2 py-0.5 text-[11px] uppercase tracking-wide text-td-accent-text">
                     Save up to 25%
                   </span>
                 )}
@@ -198,20 +198,20 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
             return (
               <article
                 key={plan.id}
-                className="group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
+                className="group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-td-ink/[0.08] bg-td-surface p-6 transition-all duration-300 hover:-translate-y-1 hover:border-td-accent/40 hover:bg-[linear-gradient(180deg,rgb(var(--td-accent-rgb)/0.48),rgb(var(--td-surface-rgb)/0.96)_35%)] hover:shadow-[0_25px_80px_rgb(var(--td-accent-rgb)/0.11)]"
               >
                 {plan.badge && (
-                  <div className="absolute right-5 top-5 rounded-full border border-cyan-300/15 bg-cyan-400/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                  <div className="absolute right-5 top-5 rounded-full border border-td-accent/15 bg-td-accent/[0.08] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text">
                     {plan.badge}
                   </div>
                 )}
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-cyan-300">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.04] text-td-accent-text">
                   {plan.id === "free" && <Sparkles className="h-5 w-5" />}
                   {plan.id === "collector" && <Crown className="h-5 w-5" />}
                   {plan.id === "seller" && <ShieldCheck className="h-5 w-5" />}
                   {plan.id === "store" && <Store className="h-5 w-5" />}
                 </div>
-                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.17em] text-slate-500">
+                <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.17em] text-td-muted">
                   {plan.audience}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">{plan.name}</h2>
@@ -219,37 +219,37 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                   <span className="text-4xl font-semibold tracking-[-0.045em]">
                     {formatPrice(price)}
                   </span>
-                  <span className="pb-1 text-xs text-slate-500">/ month</span>
+                  <span className="pb-1 text-xs text-td-muted">/ month</span>
                 </div>
-                <p className="mt-2 min-h-5 text-[11px] text-slate-500">
+                <p className="mt-2 min-h-5 text-[11px] text-td-muted">
                   {billing === "annual" && plan.annualPrice > 0
                     ? `${formatPrice(plan.annualPrice)} billed annually`
                     : plan.monthlyPrice > 0
                       ? "Billed monthly"
                       : "Free forever"}
                 </p>
-                <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
+                <p className="mt-5 min-h-[72px] text-sm leading-6 text-td-secondary">
                   {plan.description}
                 </p>
                 <Link
                   href={isCurrent ? "/dashboard/settings" : `/dashboard/settings?plan=${plan.id}&billing=${billing}`}
                   aria-current={isCurrent ? "true" : undefined}
-                  className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                  className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.1] bg-td-ink/[0.04] text-sm font-semibold text-td-on-accent transition group-hover:border-td-accent group-hover:bg-td-accent group-hover:text-td-on-accent group-hover:shadow-[0_10px_30px_rgb(var(--td-accent-rgb)/0.18)]"
                 >
                   {planAction(plan, currentPlan)}
                   {!isCurrent && <ArrowRight className="h-4 w-4" />}
                 </Link>
-                <div className="mt-7 border-t border-white/[0.07] pt-6">
-                  <p className="text-xs font-semibold text-slate-200">What&apos;s included</p>
+                <div className="mt-7 border-t border-td-ink/[0.07] pt-6">
+                  <p className="text-xs font-semibold text-td-primary">What&apos;s included</p>
                   <ul className="mt-4 space-y-3">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-2.5 text-xs leading-5 text-slate-400">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                      <li key={feature} className="flex gap-2.5 text-xs leading-5 text-td-secondary">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-td-accent-text" />
                         {feature}
                       </li>
                     ))}
                     {plan.limitations.map((limitation) => (
-                      <li key={limitation} className="flex gap-2.5 text-xs leading-5 text-slate-600">
+                      <li key={limitation} className="flex gap-2.5 text-xs leading-5 text-td-muted">
                         <X className="mt-0.5 h-4 w-4 shrink-0" />
                         {limitation}
                       </li>
@@ -261,9 +261,9 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
           })}
         </section>
 
-        <section className="mt-10 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d]">
-          <div className="border-b border-white/[0.07] p-6 sm:p-8">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+        <section className="mt-10 overflow-hidden rounded-[28px] border border-td-ink/[0.08] bg-td-surface">
+          <div className="border-b border-td-ink/[0.07] p-6 sm:p-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
               Detailed comparison
             </p>
             <h2 className="mt-2 text-2xl font-semibold">Compare Inventory features</h2>
@@ -271,10 +271,10 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-white/[0.07] text-xs text-slate-400">
+                <tr className="border-b border-td-ink/[0.07] text-xs text-td-secondary">
                   <th className="p-5 font-medium sm:px-8">Feature</th>
                   {plans.map((plan) => (
-                    <th key={plan.id} className="p-5 font-semibold text-slate-200">
+                    <th key={plan.id} className="p-5 font-semibold text-td-primary">
                       {plan.name}
                     </th>
                   ))}
@@ -282,14 +282,14 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
               </thead>
               <tbody>
                 {comparisonRows.map((row) => (
-                  <tr key={row.label} className="border-b border-white/[0.05] last:border-0">
-                    <td className="p-5 text-xs font-medium text-slate-400 sm:px-8">{row.label}</td>
+                  <tr key={row.label} className="border-b border-td-ink/[0.05] last:border-0">
+                    <td className="p-5 text-xs font-medium text-td-secondary sm:px-8">{row.label}</td>
                     {row.values.map((value, index) => (
-                      <td key={`${row.label}-${plans[index].id}`} className="p-5 text-xs text-slate-300">
+                      <td key={`${row.label}-${plans[index].id}`} className="p-5 text-xs text-td-secondary">
                         {value === true ? (
-                          <Check className="h-4 w-4 text-cyan-300" aria-label="Included" />
+                          <Check className="h-4 w-4 text-td-accent-text" aria-label="Included" />
                         ) : value === false ? (
-                          <span className="text-slate-700">—</span>
+                          <span className="text-td-muted">—</span>
                         ) : (
                           value
                         )}
@@ -310,10 +310,10 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
           ].map(([Icon, title, copy]) => {
             const FeatureIcon = Icon as typeof ShieldCheck;
             return (
-              <div key={title as string} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
-                <FeatureIcon className="h-5 w-5 text-cyan-300" />
+              <div key={title as string} className="rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-5">
+                <FeatureIcon className="h-5 w-5 text-td-accent-text" />
                 <h3 className="mt-4 text-sm font-semibold">{title as string}</h3>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{copy as string}</p>
+                <p className="mt-2 text-xs leading-5 text-td-muted">{copy as string}</p>
               </div>
             );
           })}

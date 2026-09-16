@@ -42,6 +42,7 @@ test("admin MFA UI no longer calls Supabase MFA endpoints from the browser clien
     assert.match(componentSource, /beginAdminTotpEnrollment/);
     assert.match(componentSource, /loadAdminMfaSecurityState/);
     assert.match(componentSource, /verifyAdminTotpFactor/);
+    assert.match(componentSource, /Set up a replacement authenticator/);
     assert.doesNotMatch(componentSource, /supabase\.auth\.mfa\.enroll/);
     assert.doesNotMatch(componentSource, /supabase\.auth\.mfa\.challengeAndVerify/);
     assert.doesNotMatch(componentSource, /supabase\.auth\.mfa\.listFactors/);

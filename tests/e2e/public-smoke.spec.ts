@@ -39,16 +39,7 @@ test.describe("public product surface", () => {
 
   test("homepage header navigation and CTAs are usable", async ({
     page,
-  }, testInfo) => {
-    test.skip(
-      testInfo.project.name.includes("mobile-webkit"),
-      "Mobile WebKit covers route rendering and screenshots; interactive drawer clicks are covered in mobile Chromium.",
-    );
-    test.skip(
-      testInfo.project.name.includes("desktop-webkit"),
-      "Desktop WebKit covers route rendering and overflow; same-page header navigation is covered in Chromium and Firefox.",
-    );
-
+  }) => {
     const monitor = monitorPageErrors(page);
 
     await gotoAndAssertLoaded(page, "/");
@@ -60,7 +51,7 @@ test.describe("public product surface", () => {
 
     if (await primaryNavigation.isVisible()) {
       await expect(page.locator("header").getByRole("link", { name: /log in/i })).toBeVisible();
-      await expect(page.locator("header").getByRole("link", { name: /get started/i })).toBeVisible();
+      await expect(page.locator("header").getByRole("link", { name: /start free/i })).toBeVisible();
       await primaryNavigation.getByRole("link", { name: /pricing/i }).click();
     } else {
       await openPublicMobileMenu(page);
@@ -68,7 +59,7 @@ test.describe("public product surface", () => {
         .locator("header")
         .getByRole("navigation", { name: /mobile site navigation/i });
       await expect(page.getByRole("link", { name: /log in/i })).toBeVisible();
-      await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+      await expect(page.locator("header").getByRole("link", { name: /start free/i })).toBeVisible();
       await mobileNavigation.getByRole("link", { name: /pricing/i }).click();
     }
     await expect(page.locator("#pricing")).toBeInViewport();
@@ -79,13 +70,8 @@ test.describe("public product surface", () => {
   test("mobile public menu opens closes and restores body scrolling", async ({
     page,
     isMobile,
-  }, testInfo) => {
+  }) => {
     test.skip(!isMobile, "mobile menu is only rendered for mobile projects");
-    test.skip(
-      testInfo.project.name.includes("webkit"),
-      "Mobile WebKit route smoke covers rendering; drawer open/close interaction is covered in mobile Chromium.",
-    );
-
     const monitor = monitorPageErrors(page);
 
     await gotoAndAssertLoaded(page, "/");
@@ -111,19 +97,18 @@ test.describe("public product surface", () => {
 
   test("auth forms expose named fields and safe password reveal controls", async ({
     page,
-  }, testInfo) => {
-    test.skip(testInfo.project.name.includes("webkit"), "WebKit route smoke covers form rendering; password interaction runs in Chromium and Firefox.");
-
+  }) => {
     const monitor = monitorPageErrors(page);
 
     await gotoAndAssertLoaded(page, "/sign-in");
     await expect(page.getByLabel(/email address/i)).toBeVisible();
     await expect(page.getByLabel(/^password$/i)).toBeVisible();
-    await page.getByRole("button", { name: /show password/i }).click({ force: true });
+    await page.getByRole("button", { name: /show password/i }).click();
     await expect(page.locator("#password")).toHaveAttribute("type", "text");
     await expectNoDocumentOverflow(page);
 
-    await gotoAndAssertLoaded(page, "/sign-up");
+    await page.getByRole("link", {name:"Create your free account",exact:true}).click();
+    await expect(page).toHaveURL(/\/sign-up$/);
     await expect(page.getByLabel(/full name/i)).toBeVisible();
     await expect(page.getByLabel(/email address/i)).toBeVisible();
     await expect(page.getByLabel(/^password$/i)).toBeVisible();

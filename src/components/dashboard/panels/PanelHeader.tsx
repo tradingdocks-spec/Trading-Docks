@@ -24,17 +24,17 @@ export function PanelHeader({
     >
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text/80">
             {eyebrow}
           </p>
         ) : null}
 
-        <h2 className="text-base font-semibold tracking-tight text-white">
+        <h2 className="text-base font-semibold tracking-tight text-td-primary">
           {title}
         </h2>
 
         {subtitle ? (
-          <p className="mt-1 text-sm leading-5 text-slate-600">
+          <p className="mt-1 text-sm leading-5 text-td-muted">
             {subtitle}
           </p>
         ) : null}

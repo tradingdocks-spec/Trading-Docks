@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiCapability } from "@/lib/platform/server-access";
+import { parseRetryAfterMs } from "@/lib/chaos-sort/batch-queue";
+import { classifyProviderFailure, providerFailureDetails } from "@/lib/chaos-sort/provider-errors";
 
 import type {
   CardCandidate,
@@ -30,6 +32,25 @@ export const dynamic = "force-dynamic";
 const SCRYFALL = "https://api.scryfall.com";
 const USER_AGENT = "TradingDocks/0.56 card-photo-scanner";
 const POKEMON_GAME = "pokemon";
+const VISION_TIMEOUT_MS = 30_000;
+
+type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable";
+
+class RecognitionPipelineError extends Error {
+  constructor(
+    readonly reason: ProviderFailureReason,
+    message: string,
+    readonly providerCode?: string | null,
+    readonly retryAfterMs?: number | null,
+  ) {
+    super(message);
+    this.name = "RecognitionPipelineError";
+  }
+}
+
+function recognitionLog(stage: string, details: Record<string, unknown> = {}) {
+  console.info("Chaos Sort recognition", { stage, ...details });
+}
 
 type ScryfallCard = {
   id: string;
@@ -146,48 +167,103 @@ function parseVisionJson(text: string): Partial<ScanIdentification> {
   return JSON.parse(fenced.slice(start, end + 1)) as Partial<ScanIdentification>;
 }
 
-async function identifyWithVision(file: File): Promise<ScanIdentification | null> {
-  if (!process.env.OPENAI_API_KEY) return null;
-  const data = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini",
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: "Identify this Magic: The Gathering card. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.",
-            },
-            {
-              type: "input_image",
-              image_url: `data:${file.type};base64,${data}`,
-              detail: "high",
-            },
-          ],
-        },
-      ],
-      max_output_tokens: 300,
-    }),
-  });
-  if (!response.ok) return null;
-  const payload = (await response.json()) as {
+async function identifyWithVision(file: File, requestItemId: string, attempt: number): Promise<ScanIdentification | null> {
+  if (!process.env.OPENAI_API_KEY) throw new RecognitionPipelineError("configuration", "Image recognition is not configured on the server.");
+  const bytes = await file.arrayBuffer();
+  if (bytes.byteLength < 16) throw new RecognitionPipelineError("image_decode", "The scanner image is empty or could not be decoded.");
+  recognitionLog("IMAGE DECODED", { contentType: file.type, bytes: bytes.byteLength });
+  const data = Buffer.from(bytes).toString("base64");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
+  let response: Response;
+  try {
+    recognitionLog("REQUEST SENT", { provider: "openai", model: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini", itemId: requestItemId, attempt });
+    response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: "Identify this Magic: The Gathering card. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.",
+              },
+              {
+                type: "input_image",
+                image_url: `data:${file.type};base64,${data}`,
+                detail: "high",
+              },
+            ],
+          },
+        ],
+        max_output_tokens: 300,
+      }),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      recognitionLog("TIMEOUT", { provider: "openai", timeoutMs: VISION_TIMEOUT_MS });
+      throw new RecognitionPipelineError("timeout", "Recognition request timed out.");
+    }
+    recognitionLog("PROVIDER FAILURE", { provider: "openai", message: error instanceof Error ? error.message : "network error" });
+    throw new RecognitionPipelineError("provider", "The recognition provider could not be reached.");
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) {
+    let providerPayload: unknown = null;
+    try {
+      providerPayload = await response.clone().json();
+    } catch {
+      // The status and headers are still useful when the provider does not return JSON.
+    }
+    const details = providerFailureDetails(providerPayload);
+    const reason = classifyProviderFailure(response.status, details);
+    const retryAfter = response.headers.get("retry-after");
+    const retryAfterMs = parseRetryAfterMs(retryAfter);
+    if (response.status === 401 || response.status === 403) {
+      recognitionLog("AUTH FAILURE", { provider: "openai", status: response.status, type: details.type, code: details.code, itemId: requestItemId, attempt });
+      throw new RecognitionPipelineError("auth", "Recognition provider authentication failed.", details.code);
+    }
+    recognitionLog("PROVIDER FAILURE", { provider: "openai", status: response.status, type: details.type, code: details.code, requestId: response.headers.get("x-request-id"), retryAfter, itemId: requestItemId, attempt });
+    throw new RecognitionPipelineError(
+      reason,
+      reason === "quota_exhausted" ? "Recognition quota is unavailable." : reason === "rate_limited" ? "Recognition is temporarily unavailable." : "Recognition provider is temporarily unavailable.",
+      details.code,
+      retryAfterMs,
+    );
+  }
+  let payload: {
     output_text?: string;
     output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
   };
+  try {
+    payload = (await response.json()) as typeof payload;
+  } catch {
+    recognitionLog("PARSE FAILURE", { provider: "openai", response: "json" });
+    throw new RecognitionPipelineError("parse", "Recognition provider returned invalid JSON.");
+  }
   const text =
     payload.output_text ??
     payload.output?.flatMap((item) => item.content ?? []).find((item) => item.type === "output_text")?.text ??
     "";
-  if (!text) return null;
-  const parsed = parseVisionJson(text);
-  if (!parsed.name || typeof parsed.name !== "string") return null;
+  if (!text) throw new RecognitionPipelineError("parse", "Recognition provider returned no readable result.");
+  recognitionLog("OCR RESULT", { provider: "openai", characters: text.length });
+  let parsed: Partial<ScanIdentification>;
+  try {
+    parsed = parseVisionJson(text);
+  } catch {
+    recognitionLog("PARSE FAILURE", { provider: "openai" });
+    throw new RecognitionPipelineError("parse", "Recognition provider returned an unreadable result.");
+  }
+  if (!parsed.name || typeof parsed.name !== "string") throw new RecognitionPipelineError("parse", "Recognition did not return a card name.");
+  recognitionLog("CARD NAME CANDIDATE", { name: parsed.name.trim() });
   return {
     name: parsed.name.trim(),
     setCode: typeof parsed.setCode === "string" ? parsed.setCode.trim() : null,
@@ -226,8 +302,14 @@ async function getCandidates(identification: ScanIdentification) {
       `${SCRYFALL}/cards/named?fuzzy=${encodeURIComponent(identification.name)}`,
       { headers: { "User-Agent": USER_AGENT }, cache: "no-store" },
     );
-    if (!fallback.ok) throw new Error("No matching Magic card was found.");
-    return [toCandidate((await fallback.json()) as ScryfallCard, identification, 0)];
+    if (!fallback.ok) {
+      recognitionLog("CATALOG MATCH", { name: identification.name, matches: 0 });
+      return [];
+    }
+    recognitionLog("CATALOG MATCH", { name: identification.name, matches: 1, fallback: true });
+    const candidate = toCandidate((await fallback.json()) as ScryfallCard, identification, 0);
+    recognitionLog("PRINTING MATCH", { name: candidate.name, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, exact: candidate.setCode.toLowerCase() === identification.setCode?.toLowerCase() && candidate.collectorNumber === identification.collectorNumber });
+    return [candidate];
   }
   const payload = (await response.json()) as { data?: ScryfallCard[] };
   const cards = payload.data ?? [];
@@ -240,7 +322,11 @@ async function getCandidates(identification: ScanIdentification) {
       (b.collector_number === identification.collectorNumber ? 2 : 0);
     return bScore - aScore;
   });
-  return cards.slice(0, 8).map((card, index) => toCandidate(card, identification, index));
+  recognitionLog("CATALOG MATCH", { name: identification.name, matches: Math.min(cards.length, 8) });
+  const candidates = cards.slice(0, 8).map((card, index) => toCandidate(card, identification, index));
+  const best = candidates[0];
+  if (best) recognitionLog("PRINTING MATCH", { name: best.name, setCode: best.setCode, collectorNumber: best.collectorNumber, exact: best.setCode.toLowerCase() === identification.setCode?.toLowerCase() && best.collectorNumber === identification.collectorNumber });
+  return candidates;
 }
 
 function normalizeGameId(value: FormDataEntryValue | null) {
@@ -432,15 +518,20 @@ async function getPokemonCandidates(input: {
 }
 
 export async function POST(request: Request) {
-  const capability = await requireApiCapability("buying.manage");
+  const form = await request.formData();
+  const surface = String(form.get("surface") ?? "purchasing");
+  const requestItemId = String(form.get("itemId") ?? "unknown");
+  const parsedAttempt = Number(form.get("attempt") ?? 1);
+  const attempt = Number.isFinite(parsedAttempt) ? Math.max(1, Math.floor(parsedAttempt)) : 1;
+  const capability = await requireApiCapability(surface === "chaos-sort" ? "collection.write" : "buying.manage");
   if (!capability.ok) return capability.response;
   try {
-    const form = await request.formData();
     const image = form.get("image");
     const manualName = String(form.get("cardName") ?? "").trim();
     const gameId = normalizeGameId(form.get("gameId"));
     const compressedImage = String(form.get("compressedImage") ?? "").trim();
     const file = image instanceof File && image.size > 0 ? image : null;
+    if (file) recognitionLog("FILE INGESTED", { surface, contentType: file.type, bytes: file.size });
     if (!file && !manualName && !compressedImage) {
       return NextResponse.json({ error: "Add a card photo or enter a card name." }, { status: 400 });
     }
@@ -496,7 +587,7 @@ export async function POST(request: Request) {
     }
 
     let recognitionMode: CardScanResponse["recognitionMode"] = "manual";
-    let identification = file ? await identifyWithVision(file) : null;
+    let identification = file ? await identifyWithVision(file, requestItemId, attempt) : null;
     if (identification) recognitionMode = "vision";
     if (!identification && manualName) {
       identification = {
@@ -511,14 +602,7 @@ export async function POST(request: Request) {
         provider: "scryfall",
       };
     }
-    if (!identification) {
-      warnings.push(
-        process.env.OPENAI_API_KEY
-          ? "Vision could not confidently identify this image. Enter the card name and retry."
-          : "Vision recognition needs OPENAI_API_KEY in Vercel. Enter the card name to use exact-printing search now.",
-      );
-      return NextResponse.json({ error: warnings[0] }, { status: 422 });
-    }
+    if (!identification) return NextResponse.json({ error: "Could not read card identity from the supplied input." }, { status: 422 });
 
     const candidates = await getCandidates(identification);
     const payload: CardScanResponse = {
@@ -538,8 +622,13 @@ export async function POST(request: Request) {
         ],
       },
     };
+    recognitionLog("CONFIDENCE RESULT", { name: identification.name, confidence: identification.confidence, candidates: candidates.length });
     return NextResponse.json(payload);
   } catch (error) {
+    if (error instanceof RecognitionPipelineError) {
+      recognitionLog("CONFIDENCE RESULT", { status: "failed", reason: error.reason, itemId: requestItemId, attempt });
+      return NextResponse.json({ error: error.message, recognitionStatus: "failed", failureReason: error.reason, providerCode: error.providerCode, retryAfterMs: error.retryAfterMs ?? null }, { status: error.reason === "configuration" || error.reason === "quota_exhausted" ? 503 : error.reason === "rate_limited" ? 429 : 502, headers: error.retryAfterMs ? { "Retry-After": String(Math.ceil(error.retryAfterMs / 1000)) } : undefined });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Card scan failed." },
       { status: 500 },

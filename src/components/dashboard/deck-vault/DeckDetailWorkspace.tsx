@@ -143,12 +143,12 @@ async function loadOwnedCollection() {
 }
 
 const manaStyles: Record<ManaColor, string> = {
-  W: "bg-amber-100",
-  U: "bg-sky-400",
-  B: "bg-violet-700",
-  R: "bg-rose-500",
-  G: "bg-emerald-500",
-  C: "bg-slate-500",
+  W: "bg-td-warning",
+  U: "bg-td-accent",
+  B: "bg-td-violet",
+  R: "bg-td-danger",
+  G: "bg-td-success",
+  C: "bg-td-raised",
 };
 
 function displayCommanderColors(
@@ -1002,6 +1002,9 @@ export function DeckDetailWorkspace({
   async function permanentlyDeleteDeck() {
     if (deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()) return;
     setDeckActionBusy(true);
+    // Drain any debounced/autosaved edits before deleting. Otherwise an edit
+    // already queued on this page can finish after the delete and recreate it.
+    await saveQueueRef.current.catch(() => undefined);
     await deleteDeckRecord(deck.id);
     router.push("/dashboard/deck-vault");
   }
@@ -1105,7 +1108,7 @@ export function DeckDetailWorkspace({
   }, [mainDeckCards, grouping]);
 
   return (
-    <main className="min-h-screen bg-[#020912] px-5 py-7 text-white sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-5 py-7 text-td-primary sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1540px]">
         <DeckHero
           deck={deck}
@@ -1132,8 +1135,8 @@ export function DeckDetailWorkspace({
           className={[
             "mt-3 flex items-center justify-between rounded-xl border px-4 py-2 text-xs",
             saveState === "error"
-              ? "border-rose-300/20 bg-rose-400/10 text-rose-100"
-              : "border-white/[0.06] bg-[#06131f] text-slate-400",
+              ? "border-td-danger/20 bg-td-danger/10 text-td-danger"
+              : "border-td-ink/[0.06] bg-td-surface text-td-secondary",
           ].join(" ")}
           role={saveState === "error" ? "alert" : "status"}
         >
@@ -1148,17 +1151,17 @@ export function DeckDetailWorkspace({
             <button
               type="button"
               onClick={retrySave}
-              className="ml-4 shrink-0 rounded-lg border border-rose-200/20 bg-rose-100/10 px-3 py-1.5 font-semibold text-rose-50 transition hover:bg-rose-100/15"
+              className="ml-4 shrink-0 rounded-lg border border-td-danger/20 bg-td-danger/10 px-3 py-1.5 font-semibold text-td-danger transition hover:bg-td-danger/15"
             >
               Retry save
             </button>
           ) : null}
-          {saveState === "saved" ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : null}
+          {saveState === "saved" ? <CheckCircle2 className="h-4 w-4 text-td-success" /> : null}
         </div>
 
         <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section className="min-w-0">
-            <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#06131f] p-2">
+            <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-td-ink/[0.06] bg-td-surface p-2">
           {[
             "Overview",
             "Cards",
@@ -1175,10 +1178,10 @@ export function DeckDetailWorkspace({
               type="button"
               onClick={() => setTab(item)}
               className={[
-                "h-10 rounded-xl px-4 text-[9px] font-semibold transition",
+                "h-10 rounded-xl px-4 text-[11px] font-semibold transition",
                 tab === item
-                  ? "bg-sky-300 text-[#00121c]"
-                  : "text-slate-600 hover:bg-white/[0.025] hover:text-slate-300",
+                  ? "bg-td-accent text-td-on-accent"
+                  : "text-td-muted hover:bg-td-ink/[0.025] hover:text-td-secondary",
               ].join(" ")}
             >
               {item}
@@ -1191,7 +1194,7 @@ export function DeckDetailWorkspace({
             <button
               type="button"
               onClick={() => setDeckmasterMobileOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#00121c] transition hover:bg-cyan-200"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-semibold text-td-on-accent transition hover:bg-td-accent-hover"
             >
               <BrainCircuit className="h-4 w-4" />
               Open Deckmaster
@@ -1199,7 +1202,7 @@ export function DeckDetailWorkspace({
             <button
               type="button"
               onClick={() => void copyDeckText()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-primary transition hover:bg-td-ink/[0.05]"
             >
               <Copy className="h-4 w-4" />
               Copy list
@@ -1207,7 +1210,7 @@ export function DeckDetailWorkspace({
             <button
               type="button"
               onClick={downloadDeckCsv}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-primary transition hover:bg-td-ink/[0.05]"
             >
               <Download className="h-4 w-4" />
               CSV
@@ -1215,7 +1218,7 @@ export function DeckDetailWorkspace({
             <button
               type="button"
               onClick={() => setDeckActionsOpen(true)}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300/[0.14] bg-rose-400/[0.045] px-4 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.08]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-danger/[0.14] bg-td-danger/[0.045] px-4 text-xs font-semibold text-td-danger transition hover:bg-td-danger/[0.08]"
             >
               <Trash2 className="h-4 w-4" />
               Tear apart or archive deck
@@ -1223,7 +1226,7 @@ export function DeckDetailWorkspace({
           </div>
         </div>
         {suiteActionStatus ? (
-          <p className="mt-2 text-right text-xs text-slate-500" role="status">{suiteActionStatus}</p>
+          <p className="mt-2 text-right text-xs text-td-muted" role="status">{suiteActionStatus}</p>
         ) : null}
 
         {tab === "Cards" ? (
@@ -1315,10 +1318,10 @@ export function DeckDetailWorkspace({
           onDragLeave={() => setDropSection(null)}
           onDrop={(event) => acceptDrop(event, "trash")}
           className={[
-            "fixed inset-x-4 bottom-4 z-[120] flex min-h-[78px] items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 text-sm font-semibold shadow-[0_24px_80px_rgba(0,0,0,.55)] transition",
+            "fixed inset-x-4 bottom-4 z-[120] flex min-h-[78px] items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 text-sm font-semibold shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.55*var(--td-shadow-strength)))] transition",
             dropSection === "trash"
-              ? "border-rose-300 bg-rose-400/20 text-rose-100 scale-[1.01]"
-              : "border-rose-300/30 bg-[#18080d]/95 text-rose-200",
+              ? "border-td-danger bg-td-danger/20 text-td-danger scale-[1.01]"
+              : "border-td-danger/30 bg-td-surface/95 text-td-danger",
           ].join(" ")}
         >
           <Trash2 className="h-5 w-5" />
@@ -1327,38 +1330,38 @@ export function DeckDetailWorkspace({
       ) : null}
 
       {undoCard ? (
-        <div className="fixed bottom-5 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-white/[0.1] bg-[#071522] px-4 py-3 text-sm shadow-[0_24px_80px_rgba(0,0,0,.55)]">
-          <span className="text-slate-300">Removed {undoCard.name}</span>
-          <button type="button" onClick={undoRemoval} className="font-semibold text-cyan-300">Undo</button>
+        <div className="fixed bottom-5 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-td-ink/[0.1] bg-td-surface px-4 py-3 text-sm shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.55*var(--td-shadow-strength)))]">
+          <span className="text-td-secondary">Removed {undoCard.name}</span>
+          <button type="button" onClick={undoRemoval} className="font-semibold text-td-accent-text">Undo</button>
         </div>
       ) : null}
 
       {deckActionsOpen ? (
         <div className="fixed inset-0 z-[140] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
-          <section className="w-full max-w-2xl rounded-[28px] border border-rose-300/[0.16] bg-[#07131f] p-6 shadow-[0_35px_120px_rgba(0,0,0,.7)]">
+          <section className="w-full max-w-2xl rounded-[28px] border border-td-danger/[0.16] bg-td-surface p-6 shadow-[0_35px_120px_rgb(var(--td-shadow-rgb)/calc(.7*var(--td-shadow-strength)))]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rose-300">Deck lifecycle</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Tear apart, archive, or delete</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-500">These actions affect the decklist only. Owned Inventory records are never deleted.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-td-danger">Deck lifecycle</p>
+                <h2 className="mt-2 text-2xl font-semibold text-td-primary">Tear apart, archive, or delete</h2>
+                <p className="mt-3 text-sm leading-7 text-td-muted">These actions affect the decklist only. Owned Inventory records are never deleted.</p>
               </div>
-              <button type="button" onClick={() => setDeckActionsOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500"><X className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setDeckActionsOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted"><X className="h-4 w-4" /></button>
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <button disabled={deckActionBusy} onClick={() => void emptyDeck()} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left hover:border-cyan-300/[0.2]">
-                <p className="text-sm font-semibold text-white">Empty decklist</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600">Keep the deck shell and remove every card.</p>
+              <button disabled={deckActionBusy} onClick={() => void emptyDeck()} className="rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] p-4 text-left hover:border-td-accent/[0.2]">
+                <p className="text-sm font-semibold text-td-primary">Empty decklist</p>
+                <p className="mt-2 text-xs leading-5 text-td-muted">Keep the deck shell and remove every card.</p>
               </button>
-              <button disabled={deckActionBusy} onClick={() => void archiveDeck()} className="rounded-2xl border border-amber-300/[0.12] bg-amber-300/[0.035] p-4 text-left">
-                <p className="text-sm font-semibold text-amber-100">Archive deck</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600">Preserve the complete list and return to Deck Vault.</p>
+              <button disabled={deckActionBusy} onClick={() => void archiveDeck()} className="rounded-2xl border border-td-warning/[0.12] bg-td-warning/[0.035] p-4 text-left">
+                <p className="text-sm font-semibold text-td-warning">Archive deck</p>
+                <p className="mt-2 text-xs leading-5 text-td-muted">Preserve the complete list and return to Deck Vault.</p>
               </button>
-              <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-400/[0.035] p-4">
-                <p className="text-sm font-semibold text-rose-100">Delete permanently</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600">Type the deck name to confirm.</p>
-                <input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder={deckName} className="mt-3 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none" />
-                <button disabled={deckActionBusy || deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()} onClick={() => void permanentlyDeleteDeck()} className="mt-3 h-10 w-full rounded-xl bg-rose-500 text-xs font-semibold text-white disabled:opacity-35">Delete deck</button>
+              <div className="rounded-2xl border border-td-danger/[0.14] bg-td-danger/[0.035] p-4">
+                <p className="text-sm font-semibold text-td-danger">Delete permanently</p>
+                <p className="mt-2 text-xs leading-5 text-td-muted">Type the deck name to confirm.</p>
+                <input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder={deckName} className="mt-3 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none" />
+                <button disabled={deckActionBusy || deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()} onClick={() => void permanentlyDeleteDeck()} className="mt-3 h-10 w-full rounded-xl bg-td-danger text-xs font-semibold text-td-primary disabled:opacity-35">Delete deck</button>
               </div>
             </div>
           </section>
@@ -1417,7 +1420,7 @@ function DeckHero({
 
   return (
     <>
-      <header className="relative min-h-[300px] overflow-hidden rounded-[30px] border border-sky-300/[0.12] bg-[#06131f]">
+      <header className="relative min-h-[300px] overflow-hidden rounded-[30px] border border-td-accent/[0.12] bg-td-surface">
         {commanderArt && isCommander ? (
           <>
             <img
@@ -1425,14 +1428,14 @@ function DeckHero({
               alt=""
               className="absolute inset-0 h-full w-full object-cover object-center opacity-55"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#030b13] via-[#030b13]/90 to-[#030b13]/15" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#030b13] via-transparent to-black/15" />
+            <div className="absolute inset-0 bg-gradient-to-r from-td-canvas via-td-canvas/90 to-td-canvas/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-td-canvas via-transparent to-black/15" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_25%,rgba(56,189,248,0.15),transparent_35%),radial-gradient(circle_at_35%_85%,rgba(139,92,246,0.12),transparent_38%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_25%,rgb(var(--td-accent-rgb)/0.15),transparent_35%),radial-gradient(circle_at_35%_85%,rgba(139,92,246,0.12),transparent_38%)]" />
         )}
 
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-100 via-sky-400 via-violet-700 via-rose-500 to-emerald-500 opacity-80" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-td-warning via-td-accent via-td-violet via-td-danger to-td-success opacity-80" />
 
         <div className="relative flex min-h-[300px] flex-col justify-end gap-6 p-6 sm:p-8 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex items-end gap-5">
@@ -1440,7 +1443,7 @@ function DeckHero({
               <img
                 src={commanderImage}
                 alt={commanderName || "Commander"}
-                className="hidden h-[184px] w-[132px] rounded-2xl border border-white/[0.12] object-cover shadow-2xl sm:block"
+                className="hidden h-[184px] w-[132px] rounded-2xl border border-td-ink/[0.12] object-cover shadow-2xl sm:block"
               />
             ) : null}
 
@@ -1457,7 +1460,7 @@ function DeckHero({
                 }
                 size="lg"
               />
-              <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+              <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 {format} · {deck.theme}
               </p>
               {editingName ? (
@@ -1468,12 +1471,12 @@ function DeckHero({
                       setDraftName(deckName);
                       setEditingName(false);
                     }
-                  }} className="h-14 min-w-0 flex-1 rounded-xl border border-sky-300/30 bg-[#03101a]/90 px-4 text-2xl font-semibold text-white outline-none sm:text-3xl" />
-                  <button type="button" onClick={commitName} className="flex h-12 items-center rounded-xl bg-sky-300 px-4 text-sm font-semibold text-[#00121c]">Save</button>
+                  }} className="h-14 min-w-0 flex-1 rounded-xl border border-td-accent/30 bg-td-surface/90 px-4 text-2xl font-semibold text-td-primary outline-none sm:text-3xl" />
+                  <button type="button" onClick={commitName} className="flex h-12 items-center rounded-xl bg-td-accent px-4 text-sm font-semibold text-td-on-accent">Save</button>
                   <button type="button" onClick={() => {
                     setDraftName(deckName);
                     setEditingName(false);
-                  }} className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 text-slate-300" aria-label="Cancel rename"><X className="h-4 w-4" /></button>
+                  }} className="flex h-12 w-12 items-center justify-center rounded-xl border border-td-ink/10 text-td-secondary" aria-label="Cancel rename"><X className="h-4 w-4" /></button>
                 </div>
               ) : (
                 <div className="mt-2 flex items-center gap-3">
@@ -1483,12 +1486,12 @@ function DeckHero({
                   <button type="button" onClick={() => {
                     setDraftName(deckName);
                     setEditingName(true);
-                  }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-slate-300 transition hover:border-sky-300/30 hover:text-sky-200" aria-label="Rename deck" title="Rename deck">
+                  }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-ink/10 bg-black/20 text-td-secondary transition hover:border-td-accent/30 hover:text-td-accent-text" aria-label="Rename deck" title="Rename deck">
                     <Pencil className="h-4 w-4" />
                   </button>
                 </div>
               )}
-              <p className="mt-3 text-sm text-slate-400">
+              <p className="mt-3 text-sm text-td-secondary">
                 {isCommander && commanderName
                   ? `Commander: ${commanderName}`
                   : `${format} constructed deck`}
@@ -1498,7 +1501,7 @@ function DeckHero({
                 <button
                   type="button"
                   onClick={() => setCommanderPickerOpen(true)}
-                  className="mt-4 h-10 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.045] px-4 text-[9px] font-semibold text-cyan-200 transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.08]"
+                  className="mt-4 h-10 rounded-xl border border-td-accent/[0.18] bg-td-accent/[0.045] px-4 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/40 hover:bg-td-accent/[0.08]"
                 >
                   Change Commander
                 </button>
@@ -1508,7 +1511,7 @@ function DeckHero({
 
           <div>
             <label className="block">
-              <span className="text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 View as format
               </span>
               <select
@@ -1518,7 +1521,7 @@ function DeckHero({
                     event.target.value as DeckFormat,
                   )
                 }
-                className="mt-2 h-11 w-full min-w-[190px] rounded-xl border border-white/[0.1] bg-[#06131f]/90 px-3 text-[10px] font-semibold text-white outline-none backdrop-blur"
+                className="mt-2 h-11 w-full min-w-[190px] rounded-xl border border-td-ink/[0.1] bg-td-surface/90 px-3 text-[11px] font-semibold text-td-primary outline-none backdrop-blur"
               >
                 {FORMATS.map((item) => (
                   <option key={item}>{item}</option>
@@ -1550,10 +1553,10 @@ function DeckHero({
 
       {commanderPickerOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <section className="max-h-[82vh] w-full max-w-3xl overflow-hidden rounded-[26px] border border-cyan-300/[0.16] bg-[#06131f] shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] p-5">
+          <section className="max-h-[82vh] w-full max-w-3xl overflow-hidden rounded-[26px] border border-td-accent/[0.16] bg-td-surface shadow-[0_30px_100px_rgb(var(--td-shadow-rgb)/calc(0.65*var(--td-shadow-strength)))]">
+            <div className="flex items-center justify-between border-b border-td-ink/[0.06] p-5">
               <div>
-                <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-cyan-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">
                   Change Commander
                 </p>
                 <h2 className="mt-2 text-xl font-semibold">
@@ -1563,22 +1566,22 @@ function DeckHero({
               <button
                 type="button"
                 onClick={() => setCommanderPickerOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] text-slate-500 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] text-td-muted hover:text-td-primary"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="p-5">
-              <label className="flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/[0.14] px-4">
-                <Search className="h-4 w-4 text-slate-700" />
+              <label className="flex h-12 items-center gap-3 rounded-xl border border-td-ink/[0.08] bg-black/[0.14] px-4">
+                <Search className="h-4 w-4 text-td-muted" />
                 <input
                   value={commanderQuery}
                   onChange={(event) =>
                     setCommanderQuery(event.target.value)
                   }
                   placeholder="Search commanders..."
-                  className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none placeholder:text-slate-700"
+                  className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted"
                 />
               </label>
 
@@ -1588,7 +1591,7 @@ function DeckHero({
                     key={result.id}
                     type="button"
                     onClick={() => selectCommander(result)}
-                    className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 text-left transition hover:border-cyan-300/[0.18] hover:bg-cyan-400/[0.025]"
+                    className="flex items-center gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 text-left transition hover:border-td-accent/[0.18] hover:bg-td-accent/[0.025]"
                   >
                     {result.image ? (
                       <img
@@ -1598,10 +1601,10 @@ function DeckHero({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-white">
+                      <p className="text-[11px] font-semibold text-td-primary">
                         {result.name}
                       </p>
-                      <p className="mt-1 text-[7px] text-slate-600">
+                      <p className="mt-1 text-[11px] text-td-muted">
                         {result.typeLine}
                       </p>
                       <div className="mt-3">
@@ -1615,12 +1618,12 @@ function DeckHero({
                         />
                       </div>
                     </div>
-                    <Check className="h-4 w-4 shrink-0 text-cyan-300" />
+                    <Check className="h-4 w-4 shrink-0 text-td-accent-text" />
                   </button>
                 ))}
 
                 {commanderSearching ? (
-                  <p className="col-span-full py-10 text-center text-[9px] text-slate-600">
+                  <p className="col-span-full py-10 text-center text-[11px] text-td-muted">
                     Searching commanders...
                   </p>
                 ) : null}
@@ -1628,7 +1631,7 @@ function DeckHero({
                 {!commanderSearching &&
                 commanderQuery.trim().length >= 2 &&
                 !commanderResults.length ? (
-                  <p className="col-span-full py-10 text-center text-[9px] text-slate-600">
+                  <p className="col-span-full py-10 text-center text-[11px] text-td-muted">
                     No matching commanders found.
                   </p>
                 ) : null}
@@ -2007,25 +2010,25 @@ function CardsWorkspace({
   }
 
   return (
-    <section className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/[0.085] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.055),transparent_26%),linear-gradient(180deg,#03101a_0%,#020911_100%)] shadow-[0_42px_140px_rgba(0,0,0,.48)]">
-      <section className="sticky top-0 z-40 overflow-visible border-b border-cyan-300/[0.10] bg-[#020d16]/98 shadow-[0_16px_48px_rgba(0,0,0,.34)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+    <section className="mt-5 overflow-hidden rounded-[28px] border border-td-accent/[0.085] bg-[radial-gradient(circle_at_top_left,rgb(var(--td-accent-rgb)/.055),transparent_26%),linear-gradient(180deg,var(--td-surface-default)_0%,var(--td-surface-default)_100%)] shadow-[0_42px_140px_rgb(var(--td-shadow-rgb)/calc(.48*var(--td-shadow-strength)))]">
+      <section className="sticky top-0 z-40 overflow-visible border-b border-td-accent/[0.10] bg-td-surface/98 shadow-[0_16px_48px_rgb(var(--td-shadow-rgb)/calc(.34*var(--td-shadow-strength)))] backdrop-blur-2xl">
+        <div className="flex flex-col gap-4 border-b border-td-ink/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.65)]" />
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-td-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-td-success shadow-[0_0_12px_rgb(var(--td-accent-rgb)/.65)]" />
               Live workspace
-              <span className="text-slate-800">/</span>
+              <span className="text-td-on-accent">/</span>
               Autosaved
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[20px] font-black uppercase tracking-[-0.035em] text-white">
-                Deck <span className="text-cyan-300">Studio</span>
+              <p className="text-[20px] font-black uppercase tracking-[-0.035em] text-td-primary">
+                Deck <span className="text-td-accent-text">Studio</span>
               </p>
-              <span className="rounded-full border border-cyan-300/[0.14] bg-cyan-300/[0.045] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-cyan-200">
+              <span className="rounded-full border border-td-accent/[0.14] bg-td-accent/[0.045] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.13em] text-td-accent-text">
                 Build mode
               </span>
             </div>
-            <p className="mt-2 text-[13px] text-slate-500">
+            <p className="mt-2 text-[13px] text-td-muted">
               Add cards, organize sections, and inspect every choice without leaving the builder.
             </p>
           </div>
@@ -2034,21 +2037,21 @@ function CardsWorkspace({
             <button
               type="button"
               onClick={() => setShowcaseOpen(true)}
-              className="flex h-10 items-center gap-2 rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-300 to-sky-400 px-4 text-[12px] font-bold text-[#00121c] shadow-[0_0_30px_rgba(34,211,238,0.14)] transition hover:brightness-110"
+              className="flex h-10 items-center gap-2 rounded-xl border border-td-accent/30 bg-gradient-to-r from-td-accent to-td-accent px-4 text-[12px] font-bold text-td-on-accent shadow-[0_0_30px_rgb(var(--td-accent-rgb)/0.14)] transition hover:brightness-110"
             >
               <Share2 className="h-4 w-4" />
               Share Deck
             </button>
             <details className="group/view relative">
-              <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-300/[0.06] px-3.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/35 [&::-webkit-details-marker]:hidden">
+              <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-td-accent/20 bg-td-accent/[0.06] px-3.5 text-[12px] font-semibold text-td-accent-text transition hover:border-td-accent/35 [&::-webkit-details-marker]:hidden">
                 <Eye className="h-4 w-4" />
                 View
-                <span className="hidden text-slate-400 sm:inline">
+                <span className="hidden text-td-secondary sm:inline">
                   · {view === "table" ? "Text" : view === "condensed" ? "Condensed" : view === "grid" ? "Visual Grid" : view === "stats" ? "Analytics" : view.charAt(0).toUpperCase() + view.slice(1)}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 transition group-open/view:rotate-180" />
               </summary>
-              <div className="absolute right-0 z-50 mt-2 grid max-h-[min(28rem,calc(100vh-7rem))] w-52 gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.09] bg-[#06131f]/98 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl [scrollbar-color:rgba(103,232,249,.35)_transparent]">
+              <div className="absolute right-0 z-50 mt-2 grid max-h-[min(28rem,calc(100vh-7rem))] w-52 gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-td-ink/[0.09] bg-td-surface/98 p-2 shadow-[0_24px_70px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength)))] backdrop-blur-xl [scrollbar-color:rgb(var(--td-accent-rgb)/.35)_transparent]">
                 {[
                   { value: "table" as const, label: "Text", icon: List },
                   { value: "condensed" as const, label: "Condensed", icon: ListCollapse },
@@ -2071,8 +2074,8 @@ function CardsWorkspace({
                       className={[
                         "flex h-10 items-center gap-3 rounded-xl px-3 text-left text-[12px] font-semibold transition",
                         view === mode.value
-                          ? "bg-cyan-300 text-[#00121c]"
-                          : "text-slate-300 hover:bg-white/[0.045] hover:text-cyan-100",
+                          ? "bg-td-accent text-td-on-accent"
+                          : "text-td-secondary hover:bg-td-ink/[0.045] hover:text-td-accent-text",
                       ].join(" ")}
                     >
                       <Icon className="h-4 w-4" />
@@ -2086,39 +2089,39 @@ function CardsWorkspace({
         </div>
 
         
-        <div className="grid grid-cols-2 gap-px border-t border-white/[0.045] bg-white/[0.035] sm:grid-cols-5">
-          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
-            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Cards</p>
-            <p className="mt-1 text-[13px] font-semibold text-white">{mainDeckCount}/100</p>
+        <div className="grid grid-cols-2 gap-px border-t border-td-ink/[0.045] bg-td-ink/[0.035] sm:grid-cols-5">
+          <div className="bg-td-surface px-4 py-3 transition hover:bg-td-accent/[0.025]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Cards</p>
+            <p className="mt-1 text-[13px] font-semibold text-td-primary">{mainDeckCount}/100</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
-            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Unique</p>
-            <p className="mt-1 text-[13px] font-semibold text-white">{uniqueCardCount}</p>
+          <div className="bg-td-surface px-4 py-3 transition hover:bg-td-accent/[0.025]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Unique</p>
+            <p className="mt-1 text-[13px] font-semibold text-td-primary">{uniqueCardCount}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
-            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Missing</p>
-            <p className="mt-1 text-[13px] font-semibold text-amber-200">{missing}</p>
+          <div className="bg-td-surface px-4 py-3 transition hover:bg-td-accent/[0.025]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Missing</p>
+            <p className="mt-1 text-[13px] font-semibold text-td-warning">{missing}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
-            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Est. Value</p>
-            <p className="mt-1 text-[13px] font-semibold text-cyan-200">${mainDeckValue.toFixed(2)}</p>
+          <div className="bg-td-surface px-4 py-3 transition hover:bg-td-accent/[0.025]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Est. Value</p>
+            <p className="mt-1 text-[13px] font-semibold text-td-accent-text">${mainDeckValue.toFixed(2)}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
-            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Power Level</p>
-            <p className="mt-1 text-[13px] font-semibold text-white">7–8</p>
+          <div className="bg-td-surface px-4 py-3 transition hover:bg-td-accent/[0.025]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Power Level</p>
+            <p className="mt-1 text-[13px] font-semibold text-td-primary">7–8</p>
           </div>
         </div>
 
-        <div className="grid gap-3 border-t border-white/[0.045] bg-black/[0.08] px-5 py-4 lg:grid-cols-[minmax(320px,1fr)_180px_170px_auto]">
-          <label className="flex h-11 items-center gap-3 rounded-xl border border-white/[0.075] bg-black/[0.15] px-3">
-            <Search className="h-4 w-4 text-slate-600" />
+        <div className="grid gap-3 border-t border-td-ink/[0.045] bg-black/[0.08] px-5 py-4 lg:grid-cols-[minmax(320px,1fr)_180px_170px_auto]">
+          <label className="flex h-11 items-center gap-3 rounded-xl border border-td-ink/[0.075] bg-black/[0.15] px-3">
+            <Search className="h-4 w-4 text-td-muted" />
             <input
               value={search}
               onChange={(event) =>
                 setSearch(event.target.value)
               }
               placeholder="Search cards, sets, or roles..."
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-slate-700"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-td-primary outline-none placeholder:text-td-muted"
             />
           </label>
 
@@ -2127,7 +2130,7 @@ function CardsWorkspace({
             onChange={(event) =>
               setTypeFilter(event.target.value)
             }
-            className="h-11 rounded-xl border border-white/[0.075] bg-[#06131f] px-3 text-[12px] text-slate-300 outline-none"
+            className="h-11 rounded-xl border border-td-ink/[0.075] bg-td-surface px-3 text-[12px] text-td-secondary outline-none"
           >
             {typeOptions.map((option) => (
               <option key={option}>
@@ -2146,7 +2149,7 @@ function CardsWorkspace({
                   | "missing",
               )
             }
-            className="h-11 rounded-xl border border-white/[0.075] bg-[#06131f] px-3 text-[12px] text-slate-300 outline-none"
+            className="h-11 rounded-xl border border-td-ink/[0.075] bg-td-surface px-3 text-[12px] text-td-secondary outline-none"
           >
             <option value="all">
               All ownership
@@ -2165,7 +2168,7 @@ function CardsWorkspace({
               onClick={() =>
                 setCommanderPickerOpen(true)
               }
-              className="h-11 rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.035] px-4 text-[12px] font-semibold text-violet-200"
+              className="h-11 rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.035] px-4 text-[12px] font-semibold text-td-violet"
             >
               Change Commander
             </button> : null}
@@ -2173,7 +2176,7 @@ function CardsWorkspace({
               <button
                 type="button"
                 onClick={removeSelected}
-                className="h-11 rounded-xl border border-rose-300/[0.15] bg-rose-400/[0.04] px-4 text-[12px] font-semibold text-rose-200"
+                className="h-11 rounded-xl border border-td-danger/[0.15] bg-td-danger/[0.04] px-4 text-[12px] font-semibold text-td-danger"
               >
                 Delete {selectedIds.length}
               </button>
@@ -2183,17 +2186,17 @@ function CardsWorkspace({
       </section>
 
       <div className="grid gap-0 xl:grid-cols-[255px_minmax(0,1fr)_345px]">
-        <aside className="space-y-4 border-r border-cyan-300/[0.055] bg-[#03101a]/82 p-4 xl:self-start">
+        <aside className="space-y-4 border-r border-td-accent/[0.055] bg-td-surface/82 p-4 xl:self-start">
           {isCommander && commanderCard ? (
-            <section className="overflow-hidden rounded-[20px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.13),transparent_46%),#06121d] shadow-[0_22px_65px_rgba(0,0,0,.34)]">
-              <div className="border-b border-white/[0.055] px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-violet-200">
+            <section className="overflow-hidden rounded-[20px] border border-td-violet/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.13),transparent_46%),var(--td-surface-default)] shadow-[0_22px_65px_rgb(var(--td-shadow-rgb)/calc(.34*var(--td-shadow-strength)))]">
+              <div className="border-b border-td-ink/[0.055] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-violet">
                   Commander
                 </p>
               </div>
 
               <div className="p-4">
-                <div className="mx-auto w-full max-w-[190px] overflow-hidden rounded-[18px] border border-white/[0.1] bg-black/30 shadow-[0_18px_50px_rgba(0,0,0,0.38),0_0_24px_rgba(139,92,246,0.10)]">
+                <div className="mx-auto w-full max-w-[190px] overflow-hidden rounded-[18px] border border-td-ink/[0.1] bg-black/30 shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength))),0_0_24px_rgba(139,92,246,0.10)]">
                   <img
                     src={
                       commanderCard.image ||
@@ -2207,7 +2210,7 @@ function CardsWorkspace({
                   />
                 </div>
 
-                <p className="mt-4 text-center text-[15px] font-semibold leading-5 tracking-[-0.01em] text-white">
+                <p className="mt-4 text-center text-[15px] font-semibold leading-5 tracking-[-0.01em] text-td-primary">
                   {commanderCard.name}
                 </p>
 
@@ -2219,13 +2222,13 @@ function CardsWorkspace({
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl border border-white/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700">Deck value</p>
-                    <p className="mt-1 text-[12px] font-semibold text-emerald-200">${mainDeckValue.toFixed(2)}</p>
+                  <div className="rounded-xl border border-td-ink/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">Deck value</p>
+                    <p className="mt-1 text-[12px] font-semibold text-td-success">${mainDeckValue.toFixed(2)}</p>
                   </div>
-                  <div className="rounded-xl border border-white/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700">Owned</p>
-                    <p className="mt-1 text-[12px] font-semibold text-white">{mainDeckCount ? Math.round((owned / mainDeckCount) * 100) : 0}%</p>
+                  <div className="rounded-xl border border-td-ink/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">Owned</p>
+                    <p className="mt-1 text-[12px] font-semibold text-td-primary">{mainDeckCount ? Math.round((owned / mainDeckCount) * 100) : 0}%</p>
                   </div>
                 </div>
 
@@ -2234,7 +2237,7 @@ function CardsWorkspace({
                   onClick={() =>
                     setCommanderPickerOpen(true)
                   }
-                  className="mt-4 h-10 w-full rounded-xl border border-violet-300/[0.14] bg-violet-400/[0.04] text-[12px] font-semibold text-violet-100 transition hover:border-violet-200/30 hover:bg-violet-400/[0.07]"
+                  className="mt-4 h-10 w-full rounded-xl border border-td-violet/[0.14] bg-td-violet/[0.04] text-[12px] font-semibold text-td-violet transition hover:border-td-violet/30 hover:bg-td-violet/[0.07]"
                 >
                   Change Commander
                 </button>
@@ -2242,8 +2245,8 @@ function CardsWorkspace({
             </section>
           ) : null}
 
-          <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-slate-600">
+          <section className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-muted">
               Deck Explorer
             </p>
             <div className="mt-3 space-y-1.5">
@@ -2271,8 +2274,8 @@ function CardsWorkspace({
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-slate-600">
+          <section className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-muted">
               Quick Add
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
@@ -2304,7 +2307,7 @@ function CardsWorkspace({
                   onClick={() =>
                     void addBasicLand(land.name)
                   }
-                  className="flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.012] px-2.5 py-2 text-[11px] text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-cyan-200"
+                  className="flex min-w-0 items-center gap-2 rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.012] px-2.5 py-2 text-[11px] text-td-secondary transition hover:border-td-accent/[0.14] hover:text-td-accent-text"
                 >
                   <ManaSymbols
                     colors={[land.color]}
@@ -2319,26 +2322,26 @@ function CardsWorkspace({
           </section>
         </aside>
 
-        <main className="min-w-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.045),transparent_30%),#020b13] p-3.5 sm:p-4">
-          <section className="mb-4 overflow-hidden rounded-[22px] border border-cyan-300/[0.14] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.085),transparent_34%),linear-gradient(135deg,#071923,#031019)] p-4 shadow-[0_22px_70px_rgba(0,0,0,.26)]">
+        <main className="min-w-0 bg-[radial-gradient(circle_at_top,rgb(var(--td-accent-rgb)/.045),transparent_30%),var(--td-surface-default)] p-3.5 sm:p-4">
+          <section className="mb-4 overflow-hidden rounded-[22px] border border-td-accent/[0.14] bg-[radial-gradient(circle_at_top_left,rgb(var(--td-accent-rgb)/.085),transparent_34%),linear-gradient(135deg,var(--td-surface-default),var(--td-surface-default))] p-4 shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(.26*var(--td-shadow-strength)))]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.7)]" /><p className="text-[14px] font-semibold tracking-[-0.01em] text-white">Deck Construction Canvas</p></div>
-                <p className="mt-1 text-[11px] text-slate-600">Drag cards from Trading Docks, Scryfall, or EDHREC. Every change saves automatically.</p>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-td-accent shadow-[0_0_14px_rgb(var(--td-accent-rgb)/.7)]" /><p className="text-[14px] font-semibold tracking-[-0.01em] text-td-primary">Deck Construction Canvas</p></div>
+                <p className="mt-1 text-[11px] text-td-muted">Drag cards from Trading Docks, Scryfall, or EDHREC. Every change saves automatically.</p>
               </div>
-              <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">{externalDropBusy ? "Resolving external card…" : "Autosaves to your account"}</span>
+              <span className="rounded-full border border-td-success/[0.12] bg-td-success/[0.04] px-3 py-1.5 text-[11px] font-semibold text-td-success">{externalDropBusy ? "Resolving external card…" : "Autosaves to your account"}</span>
             </div>
 
             {externalDropError ? (
-              <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border border-amber-300/[0.16] bg-amber-300/[0.055] px-4 py-3">
+              <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border border-td-warning/[0.16] bg-td-warning/[0.055] px-4 py-3">
                 <div>
-                  <p className="text-xs font-semibold text-amber-200">External card could not be added</p>
-                  <p className="mt-1 text-[11px] leading-5 text-amber-100/55">{externalDropError}</p>
+                  <p className="text-xs font-semibold text-td-warning">External card could not be added</p>
+                  <p className="mt-1 text-[11px] leading-5 text-td-warning/55">{externalDropError}</p>
                 </div>
                 <button
                   type="button"
                   onClick={clearExternalDropError}
-                  className="shrink-0 rounded-lg border border-amber-200/[0.12] px-2 py-1 text-[10px] font-semibold text-amber-100/70"
+                  className="shrink-0 rounded-lg border border-td-warning/[0.12] px-2 py-1 text-[11px] font-semibold text-td-warning/70"
                 >
                   Dismiss
                 </button>
@@ -2351,37 +2354,37 @@ function CardsWorkspace({
                   section: "commander",
                   label: "Commander",
                   count: cards.filter((card) => canonicalDeckSection(card) === "commander").reduce((sum, card) => sum + card.quantity, 0),
-                  idle: "border-violet-300/[0.18] bg-violet-400/[0.045] hover:border-violet-300/40 hover:bg-violet-400/[0.08]",
-                  active: "scale-[1.015] border-violet-300/80 bg-violet-400/[0.14] shadow-[0_0_42px_rgba(167,139,250,.22)]",
-                  accent: "text-violet-200",
-                  dot: "bg-violet-300 shadow-[0_0_12px_rgba(196,181,253,.65)]",
+                  idle: "border-td-violet/[0.18] bg-td-violet/[0.045] hover:border-td-violet/40 hover:bg-td-violet/[0.08]",
+                  active: "scale-[1.015] border-td-violet/80 bg-td-violet/[0.14] shadow-[0_0_42px_rgba(167,139,250,.22)]",
+                  accent: "text-td-violet",
+                  dot: "bg-td-violet shadow-[0_0_12px_rgba(196,181,253,.65)]",
                 },
                 {
                   section: "main",
                   label: "Main Deck",
                   count: cards.filter((card) => canonicalDeckSection(card) === "main").reduce((sum, card) => sum + card.quantity, 0),
-                  idle: "border-cyan-300/[0.18] bg-cyan-400/[0.045] hover:border-cyan-300/40 hover:bg-cyan-400/[0.08]",
-                  active: "scale-[1.015] border-cyan-300/80 bg-cyan-400/[0.14] shadow-[0_0_42px_rgba(103,232,249,.22)]",
-                  accent: "text-cyan-200",
-                  dot: "bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.65)]",
+                  idle: "border-td-accent/[0.18] bg-td-accent/[0.045] hover:border-td-accent/40 hover:bg-td-accent/[0.08]",
+                  active: "scale-[1.015] border-td-accent/80 bg-td-accent/[0.14] shadow-[0_0_42px_rgb(var(--td-accent-rgb)/.22)]",
+                  accent: "text-td-accent-text",
+                  dot: "bg-td-accent shadow-[0_0_12px_rgb(var(--td-accent-rgb)/.65)]",
                 },
                 {
                   section: "sideboard",
                   label: "Sideboard",
                   count: cards.filter((card) => canonicalDeckSection(card) === "sideboard").reduce((sum, card) => sum + card.quantity, 0),
-                  idle: "border-amber-300/[0.18] bg-amber-400/[0.04] hover:border-amber-300/40 hover:bg-amber-400/[0.075]",
-                  active: "scale-[1.015] border-amber-300/80 bg-amber-400/[0.13] shadow-[0_0_42px_rgba(252,211,77,.20)]",
-                  accent: "text-amber-200",
-                  dot: "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,.6)]",
+                  idle: "border-td-warning/[0.18] bg-td-warning/[0.04] hover:border-td-warning/40 hover:bg-td-warning/[0.075]",
+                  active: "scale-[1.015] border-td-warning/80 bg-td-warning/[0.13] shadow-[0_0_42px_rgba(252,211,77,.20)]",
+                  accent: "text-td-warning",
+                  dot: "bg-td-warning shadow-[0_0_12px_rgba(252,211,77,.6)]",
                 },
                 {
                   section: "maybeboard",
                   label: "Considering",
                   count: cards.filter((card) => canonicalDeckSection(card) === "maybeboard").reduce((sum, card) => sum + card.quantity, 0),
-                  idle: "border-emerald-300/[0.18] bg-emerald-400/[0.04] hover:border-emerald-300/40 hover:bg-emerald-400/[0.075]",
-                  active: "scale-[1.015] border-emerald-300/80 bg-emerald-400/[0.13] shadow-[0_0_42px_rgba(110,231,183,.20)]",
-                  accent: "text-emerald-200",
-                  dot: "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.6)]",
+                  idle: "border-td-success/[0.18] bg-td-success/[0.04] hover:border-td-success/40 hover:bg-td-success/[0.075]",
+                  active: "scale-[1.015] border-td-success/80 bg-td-success/[0.13] shadow-[0_0_42px_rgb(var(--td-accent-rgb)/.20)]",
+                  accent: "text-td-success",
+                  dot: "bg-td-success shadow-[0_0_12px_rgb(var(--td-accent-rgb)/.6)]",
                 },
               ] as Array<{
                 section: DeckDropSection;
@@ -2412,7 +2415,7 @@ function CardsWorkspace({
                     </div>
                     <span className={["text-xs font-bold", destination.accent].join(" ")}>{destination.count}</span>
                   </div>
-                  <p className="mt-2 text-[10px] leading-4 text-slate-600">Drop cards here</p>
+                  <p className="mt-2 text-[11px] leading-4 text-td-muted">Drop cards here</p>
                 </div>
               ))}
             </div>
@@ -2425,12 +2428,12 @@ function CardsWorkspace({
                   draggable
                   onDragStart={(event) => beginDrag(event, { source: "deck", cardId: card.id })}
                   onDragEnd={finishDrag}
-                  className="flex min-w-[170px] items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-2 text-left transition hover:border-cyan-300/[0.18]"
+                  className="flex min-w-[170px] items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-2 text-left transition hover:border-td-accent/[0.18]"
                 >
                   {card.image ? <img src={card.image} alt="" className="h-12 w-9 rounded-md object-cover" /> : null}
                   <span className="min-w-0">
-                    <span className="block truncate text-[11px] font-semibold text-white">{card.quantity}× {card.name}</span>
-                    <span className="mt-1 block text-[9px] capitalize text-slate-600">{canonicalDeckSection(card)}</span>
+                    <span className="block truncate text-[11px] font-semibold text-td-primary">{card.quantity}× {card.name}</span>
+                    <span className="mt-1 block text-[11px] capitalize text-td-muted">{canonicalDeckSection(card)}</span>
                   </span>
                 </button>
               ))}
@@ -2438,8 +2441,8 @@ function CardsWorkspace({
           </section>
 
           {searchResults.length ? (
-            <section className="mb-4 rounded-[22px] border border-cyan-300/[0.11] bg-[#06131f] p-4">
-              <p className="text-[12px] font-semibold text-cyan-200">
+            <section className="mb-4 rounded-[22px] border border-td-accent/[0.11] bg-td-surface p-4">
+              <p className="text-[12px] font-semibold text-td-accent-text">
                 Add cards
               </p>
               <div className="mt-3 grid max-h-[260px] gap-2 overflow-y-auto sm:grid-cols-2">
@@ -2449,7 +2452,7 @@ function CardsWorkspace({
                     draggable
                     onDragStart={(event) => beginDrag(event, { source: "search", card: result })}
                     onDragEnd={finishDrag}
-                    className="rounded-xl border border-white/[0.055] bg-white/[0.015] p-2 transition hover:border-cyan-300/[0.16]"
+                    className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.015] p-2 transition hover:border-td-accent/[0.16]"
                   >
                     <div className="flex items-center gap-3">
                       {result.image ? (
@@ -2460,28 +2463,28 @@ function CardsWorkspace({
                         />
                       ) : null}
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-white">
+                        <p className="text-[13px] font-semibold text-td-primary">
                           {result.name}
                         </p>
-                        <p className="mt-1 text-[11px] text-slate-500">
+                        <p className="mt-1 text-[11px] text-td-muted">
                           {result.setName} · ${result.price.toFixed(2)}
                         </p>
-                        <p className="mt-1 text-[9px] text-slate-700">Drag to a section or tap below</p>
+                        <p className="mt-1 text-[11px] text-td-muted">Drag to a section or tap below</p>
                       </div>
-                      <Plus className="h-4 w-4 text-cyan-300" />
+                      <Plus className="h-4 w-4 text-td-accent-text" />
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                       {([
-                        ["main", "Main", "border-cyan-300/[0.16] bg-cyan-400/[0.035] text-cyan-200 hover:bg-cyan-400/[0.08]"],
-                        ["sideboard", "Sideboard", "border-amber-300/[0.16] bg-amber-400/[0.03] text-amber-200 hover:bg-amber-400/[0.075]"],
-                        ["maybeboard", "Considering", "border-emerald-300/[0.16] bg-emerald-400/[0.03] text-emerald-200 hover:bg-emerald-400/[0.075]"],
-                        ["commander", "Commander", "border-violet-300/[0.16] bg-violet-400/[0.035] text-violet-200 hover:bg-violet-400/[0.08]"],
+                        ["main", "Main", "border-td-accent/[0.16] bg-td-accent/[0.035] text-td-accent-text hover:bg-td-accent/[0.08]"],
+                        ["sideboard", "Sideboard", "border-td-warning/[0.16] bg-td-warning/[0.03] text-td-warning hover:bg-td-warning/[0.075]"],
+                        ["maybeboard", "Considering", "border-td-success/[0.16] bg-td-success/[0.03] text-td-success hover:bg-td-success/[0.075]"],
+                        ["commander", "Commander", "border-td-violet/[0.16] bg-td-violet/[0.035] text-td-violet hover:bg-td-violet/[0.08]"],
                       ] as Array<[DeckDropSection, string, string]>).map(([section, label, tone]) => (
                         <button
                           key={section}
                           type="button"
                           onClick={() => addCard(result, section)}
-                          className={["h-8 rounded-lg border px-2 text-[9px] font-semibold transition", tone].join(" ")}
+                          className={["h-8 rounded-lg border px-2 text-[11px] font-semibold transition", tone].join(" ")}
                         >
                           {label}
                         </button>
@@ -2492,30 +2495,30 @@ function CardsWorkspace({
               </div>
             </section>
           ) : searching ? (
-            <p className="mb-4 rounded-xl border border-white/[0.05] bg-[#06131f] p-4 text-[12px] text-slate-500">
+            <p className="mb-4 rounded-xl border border-td-ink/[0.05] bg-td-surface p-4 text-[12px] text-td-muted">
               Searching Scryfall...
             </p>
           ) : null}
 
           {view === "table" ? (
-            <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131f]">
-              <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
+            <section className="overflow-hidden rounded-[24px] border border-td-ink/[0.07] bg-td-surface">
+              <div className="flex items-center justify-between border-b border-td-ink/[0.055] px-5 py-4">
                 <div>
-                  <p className="text-[17px] font-semibold text-white">
+                  <p className="text-[17px] font-semibold text-td-primary">
                     Deck Canvas
                   </p>
-                  <p className="mt-1 text-[12px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-td-muted">
                     {filteredCards.length} cards shown · hover to preview · click to edit
                   </p>
                 </div>
-                <span className="text-[12px] text-slate-500">
+                <span className="text-[12px] text-td-muted">
                   {owned} owned · {missing} missing
                 </span>
               </div>
 
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
                 <table className="w-full table-fixed border-collapse text-left">
-                  <thead className="sticky top-0 z-20 bg-[#071824] shadow-[0_1px_0_rgba(255,255,255,0.07)]">
+                  <thead className="sticky top-0 z-20 bg-td-surface shadow-[0_1px_0_rgb(var(--td-ink-rgb)/0.07)]">
                     <tr>
                       <th className="w-10 px-3 py-3">
                         <input
@@ -2553,7 +2556,7 @@ function CardsWorkspace({
                           changeSort("quantity")
                         }
                       />
-                      <th className="w-[46%] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                      <th className="w-[46%] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Card
                       </th>
                       <TableHeading
@@ -2589,7 +2592,7 @@ function CardsWorkspace({
                           changeSort("price")
                         }
                       />
-                      <th className="w-28 px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                      <th className="w-28 px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Status
                       </th>
                     </tr>
@@ -2643,7 +2646,7 @@ function CardsWorkspace({
           ) : null}
 
           {view === "grid" ? (
-            <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
+            <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
                 {filteredCards.map((card) => (
                   <div
@@ -2684,14 +2687,14 @@ function CardsWorkspace({
               {roleGroups.map((group) => (
                 <section
                   key={group.role}
-                  className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4"
+                  className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[16px] font-semibold text-white">
+                      <p className="text-[16px] font-semibold text-td-primary">
                         {group.role}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-td-muted">
                         {group.cards.reduce(
                           (sum, card) =>
                             sum + card.quantity,
@@ -2700,7 +2703,7 @@ function CardsWorkspace({
                         cards
                       </p>
                     </div>
-                    <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-400/[0.03] px-2.5 py-1 text-[11px] text-cyan-200">
+                    <span className="rounded-full border border-td-accent/[0.1] bg-td-accent/[0.03] px-2.5 py-1 text-[11px] text-td-accent-text">
                       {group.cards.length} unique
                     </span>
                   </div>
@@ -2725,18 +2728,18 @@ function CardsWorkspace({
               {summaryByType.map((entry) => (
                 <div
                   key={entry.type}
-                  className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-5"
+                  className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-5"
                 >
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-cyan-300">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-accent-text">
                     {entry.type}
                   </p>
-                  <p className="mt-3 text-3xl font-semibold text-white">
+                  <p className="mt-3 text-3xl font-semibold text-td-primary">
                     {entry.copies}
                   </p>
-                  <p className="mt-2 text-[12px] text-slate-500">
+                  <p className="mt-2 text-[12px] text-td-muted">
                     {entry.unique} unique cards
                   </p>
-                  <p className="mt-4 text-[14px] font-semibold text-emerald-200">
+                  <p className="mt-4 text-[14px] font-semibold text-td-success">
                     ${entry.value.toFixed(2)}
                   </p>
                 </div>
@@ -2746,19 +2749,19 @@ function CardsWorkspace({
         </main>
 
         <aside className="xl:sticky xl:top-[190px] xl:self-start">
-          <section className="overflow-hidden rounded-[24px] border border-cyan-300/[0.1] bg-[#06131f]">
+          <section className="overflow-hidden rounded-[24px] border border-td-accent/[0.1] bg-td-surface">
             {inspectorCard ? (
               <>
-                <div className="border-b border-white/[0.055] px-5 py-4">
+                <div className="border-b border-td-ink/[0.055] px-5 py-4">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
                       Live Inspector
                     </p>
                     <span className={[
-                      "rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em]",
+                      "rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em]",
                       inspectorLocked
-                        ? "bg-cyan-300 text-[#00121c]"
-                        : "border border-white/[0.08] bg-white/[0.025] text-slate-400",
+                        ? "bg-td-accent text-td-on-accent"
+                        : "border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary",
                     ].join(" ")}>
                       {inspectorLocked ? "Selected" : "Previewing"}
                     </span>
@@ -2766,10 +2769,10 @@ function CardsWorkspace({
                 </div>
                 <div className="p-5">
                   <InspectorCardImage card={inspectorCard} />
-                  <h3 className="mt-2 text-[18px] font-semibold leading-6 text-white">
+                  <h3 className="mt-2 text-[18px] font-semibold leading-6 text-td-primary">
                     {inspectorCard.name}
                   </h3>
-                  <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                  <p className="mt-2 text-[12px] leading-5 text-td-muted">
                     {inspectorCard.typeLine}
                   </p>
 
@@ -2831,7 +2834,7 @@ function CardsWorkspace({
                     </InspectorAction>
                   </div>
                   ) : (
-                    <div className="mt-5 rounded-xl border border-white/[0.065] bg-white/[0.018] px-3 py-3 text-[11px] leading-5 text-slate-500">
+                    <div className="mt-5 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.018] px-3 py-3 text-[11px] leading-5 text-td-muted">
                       Click this card in Deck Canvas to lock it for editing, replacement, or removal.
                     </div>
                   )}
@@ -2839,16 +2842,16 @@ function CardsWorkspace({
               </>
             ) : (
               <div className="p-6 text-center">
-                <Eye className="mx-auto h-6 w-6 text-slate-700" />
-                <p className="mt-3 text-[13px] text-slate-500">
+                <Eye className="mx-auto h-6 w-6 text-td-muted" />
+                <p className="mt-3 text-[13px] text-td-muted">
                   Select a card to inspect it.
                 </p>
               </div>
             )}
           </section>
 
-          <section className="mt-4 rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+          <section className="mt-4 rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-muted">
               Deck Health
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -2900,7 +2903,7 @@ function CardsWorkspace({
         />
       ) : null}
     
-      <div className="sticky bottom-3 z-30 mx-auto mt-4 hidden max-w-[820px] items-center justify-center gap-1 rounded-[20px] border border-white/[0.08] bg-[#06131e]/95 p-2 shadow-[0_22px_70px_rgba(0,0,0,.46)] backdrop-blur-2xl lg:flex">
+      <div className="sticky bottom-3 z-30 mx-auto mt-4 hidden max-w-[820px] items-center justify-center gap-1 rounded-[20px] border border-td-ink/[0.08] bg-td-surface/95 p-2 shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(.46*var(--td-shadow-strength)))] backdrop-blur-2xl lg:flex">
         <span className="sr-only">Deck Studio Action Dock</span>
         <button type="button" className="studio-dock-action">
           <Undo2 className="h-4 w-4" />
@@ -2913,7 +2916,7 @@ function CardsWorkspace({
         <button
           type="button"
           onClick={() => selectedCard && trashCardFromDeck(selectedCard)}
-          className="studio-dock-action text-rose-200"
+          className="studio-dock-action text-td-danger"
         >
           <Trash2 className="h-4 w-4" />
           <span>Trash</span>
@@ -2941,7 +2944,7 @@ function CardsWorkspace({
         <button
           type="button"
           onClick={() => setView("stats")}
-          className="studio-dock-action text-violet-200"
+          className="studio-dock-action text-td-violet"
         >
           <Sparkles className="h-4 w-4" />
           <span>AI Optimize</span>
@@ -3037,17 +3040,17 @@ const groups = groupedDeckCards(cards);
     deckGroups.map((group) => (
       <section
         key={group.type}
-        className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-white/[0.075] bg-[#071723] shadow-[0_14px_38px_rgba(0,0,0,.18)]"
+        className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-td-ink/[0.075] bg-td-surface shadow-[0_14px_38px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))]"
       >
-        <div className="flex items-center justify-between border-b border-white/[0.055] bg-[linear-gradient(90deg,rgba(34,211,238,.09),rgba(34,211,238,.025)_58%,transparent)] px-3.5 py-2.5">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-cyan-100">
+        <div className="flex items-center justify-between border-b border-td-ink/[0.055] bg-[linear-gradient(90deg,rgb(var(--td-accent-rgb)/.09),rgb(var(--td-accent-rgb)/.025)_58%,transparent)] px-3.5 py-2.5">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-td-accent-text">
             {group.type}
           </p>
-          <span className="min-w-6 rounded-full border border-cyan-200/10 bg-cyan-200/[0.07] px-2 py-0.5 text-center text-[9px] font-extrabold text-cyan-200">
+          <span className="min-w-6 rounded-full border border-td-accent/10 bg-td-accent-hover/[0.07] px-2 py-0.5 text-center text-[11px] font-extrabold text-td-accent-text">
             {group.cards.reduce((total, card) => total + card.quantity, 0)}
           </span>
         </div>
-        <div className="divide-y divide-white/[0.04] py-1">
+        <div className="divide-y divide-td-ink/[0.04] py-1">
           {group.cards.map((card) => (
             <button
               key={card.id}
@@ -3058,12 +3061,12 @@ const groups = groupedDeckCards(cards);
               onFocus={() => onPreview(card.id)}
               onBlur={() => onPreviewEnd(card.id)}
               className={[
-                "group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50",
+                "group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/50",
                 selectedCardId === card.id
-                  ? "bg-cyan-200/[0.085] text-white"
+                  ? "bg-td-accent-hover/[0.085] text-td-on-accent"
                   : previewCardId === card.id
-                    ? "bg-cyan-200/[0.055]"
-                    : "hover:bg-cyan-200/[0.045] focus-visible:bg-cyan-200/[0.055]",
+                    ? "bg-td-accent-hover/[0.055]"
+                    : "hover:bg-td-accent-hover/[0.045] focus-visible:bg-td-accent-hover/[0.055]",
               ].join(" ")}
             >
               <span
@@ -3076,19 +3079,19 @@ const groups = groupedDeckCards(cards);
                 ].join(" ")}
                 style={{ background: identityAccent(card.colors) }}
               />
-              <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.045] px-1.5 text-[10px] font-extrabold tabular-nums text-slate-200">
+              <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md border border-td-ink/[0.07] bg-td-ink/[0.045] px-1.5 text-[11px] font-extrabold tabular-nums text-td-primary">
                 {card.quantity}×
               </span>
-              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-slate-200 transition group-hover:text-white">
+              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-td-primary transition group-hover:text-td-primary">
                 {card.name}
               </span>
               <span
                 title={`Mana value ${card.manaValue}`}
-                className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-black/20 px-1.5 text-[9px] font-bold tabular-nums text-slate-500"
+                className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-td-ink/[0.07] bg-black/20 px-1.5 text-[11px] font-bold tabular-nums text-td-muted"
               >
                 {card.manaValue}
               </span>
-              <span className="w-14 shrink-0 text-right text-[10px] font-medium tabular-nums text-emerald-200/65">
+              <span className="w-14 shrink-0 text-right text-[11px] font-medium tabular-nums text-td-success/65">
                 ${(card.price * card.quantity).toFixed(2)}
               </span>
               <span
@@ -3107,7 +3110,7 @@ const groups = groupedDeckCards(cards);
                     onTrash(card);
                   }
                 }}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-300/[0.14] bg-rose-400/[0.04] text-rose-300/75 opacity-0 transition group-hover:opacity-100 focus:opacity-100 hover:bg-rose-400/[0.1] hover:text-rose-200"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-td-danger/[0.14] bg-td-danger/[0.04] text-td-danger/75 opacity-0 transition group-hover:opacity-100 focus:opacity-100 hover:bg-td-danger/[0.1] hover:text-td-danger"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </span>
@@ -3118,20 +3121,20 @@ const groups = groupedDeckCards(cards);
     ));
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.06),transparent_30%),#04111b] shadow-[0_30px_90px_rgba(0,0,0,.28)]">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+    <section className="overflow-hidden rounded-[28px] border border-td-ink/[0.075] bg-[radial-gradient(circle_at_top_left,rgb(var(--td-accent-rgb)/.06),transparent_30%),var(--td-surface-default)] shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(.28*var(--td-shadow-strength)))]">
+      <div className="flex items-center justify-between border-b border-td-ink/[0.06] px-5 py-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <p className="text-[17px] font-semibold tracking-[-0.01em] text-white">Deck Canvas</p>
-            <span className="rounded-md border border-cyan-200/10 bg-cyan-200/[0.055] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.16em] text-cyan-200/80">
+            <p className="text-[17px] font-semibold tracking-[-0.01em] text-td-primary">Deck Canvas</p>
+            <span className="rounded-md border border-td-accent/10 bg-td-accent-hover/[0.055] px-1.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-td-accent-text/80">
               Condensed
             </span>
           </div>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[12px] text-td-muted">
             A clean, complete scan of every card in your build
           </p>
         </div>
-        <span className="rounded-full border border-cyan-200/[0.12] bg-cyan-200/[0.045] px-3 py-1 text-[10px] font-bold tabular-nums text-cyan-100">
+        <span className="rounded-full border border-td-accent/[0.12] bg-td-accent-hover/[0.045] px-3 py-1 text-[11px] font-bold tabular-nums text-td-accent-text">
           {cards.reduce((total, card) => total + card.quantity, 0)} cards
         </span>
       </div>
@@ -3140,8 +3143,8 @@ const groups = groupedDeckCards(cards);
         {renderGroups(mainGroups)}
       </div>
       {separateGroups.length ? (
-        <div className="border-t border-cyan-300/[0.12] bg-cyan-300/[0.018] p-4">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+        <div className="border-t border-td-accent/[0.12] bg-td-accent/[0.018] p-4">
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">
             Outside the main deck
           </p>
           <div className="columns-1 gap-3 md:columns-2 2xl:columns-3">
@@ -3162,18 +3165,18 @@ function DeckColumnsView({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
+    <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
       <div className="columns-1 gap-4 md:columns-2 2xl:columns-3">
         {groupedDeckCards(cards).map((group) => (
           <section
             key={group.type}
-            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.065] bg-[#081824]"
+            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-td-ink/[0.065] bg-td-surface"
           >
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-cyan-200">
+            <div className="flex items-center justify-between border-b border-td-ink/[0.06] px-4 py-3">
+              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-td-accent-text">
                 {group.type}
               </p>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-td-muted">
                 {group.cards.reduce((total, card) => total + card.quantity, 0)}
               </span>
             </div>
@@ -3183,16 +3186,16 @@ function DeckColumnsView({
                   key={card.id}
                   type="button"
                   onClick={() => onSelect(card.id)}
-                  className="group flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-cyan-300/[0.045]"
+                  className="group flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-td-accent/[0.045]"
                 >
-                  <span className="w-5 text-[11px] font-bold text-slate-600">
+                  <span className="w-5 text-[11px] font-bold text-td-muted">
                     {card.quantity}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300 group-hover:text-cyan-100">
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-td-secondary group-hover:text-td-accent-text">
                     {card.name}
                   </span>
                   <ManaSymbols colors={card.colors} size="sm" />
-                  <span className="text-[10px] text-slate-600">
+                  <span className="text-[11px] text-td-muted">
                     ${card.price.toFixed(2)}
                   </span>
                 </button>
@@ -3213,26 +3216,26 @@ function DeckStacksView({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-[24px] border border-cyan-300/[0.09] bg-[radial-gradient(circle_at_top,#0c2635_0,#06131f_42%,#030b12_100%)] p-5">
+    <section className="overflow-hidden rounded-[24px] border border-td-accent/[0.09] bg-[radial-gradient(circle_at_top,var(--td-surface-default)_0,var(--td-surface-default)_42%,var(--td-surface-default)_100%)] p-5">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <p className="text-[17px] font-semibold text-white">Tabletop Stacks</p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="text-[17px] font-semibold text-td-primary">Tabletop Stacks</p>
+          <p className="mt-1 text-[12px] text-td-muted">
             A physical, artwork-forward view of the complete deck.
           </p>
         </div>
-        <span className="rounded-full border border-cyan-300/10 bg-cyan-300/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200">
+        <span className="rounded-full border border-td-accent/10 bg-td-accent/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
           Trading Docks display
         </span>
       </div>
       <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
         {groupedDeckCards(cards).map((group) => (
           <section key={group.type} className="min-w-0">
-            <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-300">
+            <div className="mb-3 flex items-center justify-between border-b border-td-ink/[0.07] pb-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-secondary">
                 {group.type}
               </p>
-              <span className="text-[10px] text-slate-600">
+              <span className="text-[11px] text-td-muted">
                 {group.cards.reduce((total, card) => total + card.quantity, 0)}
               </span>
             </div>
@@ -3245,7 +3248,7 @@ function DeckStacksView({
                   className="group relative block w-full text-left transition hover:z-20 hover:-translate-y-2"
                   style={{ zIndex: group.cards.length - index }}
                 >
-                  <div className="relative aspect-[1.9] overflow-hidden rounded-xl border border-white/10 bg-[#071824] shadow-[0_-8px_18px_rgba(0,0,0,0.3)]">
+                  <div className="relative aspect-[1.9] overflow-hidden rounded-xl border border-td-ink/10 bg-td-surface shadow-[0_-8px_18px_rgb(var(--td-shadow-rgb)/calc(0.3*var(--td-shadow-strength)))]">
                     <img
                       src={
                         card.artCrop ||
@@ -3258,13 +3261,13 @@ function DeckStacksView({
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/25 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
                       <div className="min-w-0">
-                        <p className="truncate text-[12px] font-semibold text-white">{card.name}</p>
-                        <p className="mt-0.5 text-[9px] uppercase tracking-[0.1em] text-slate-400">
+                        <p className="truncate text-[12px] font-semibold text-td-primary">{card.name}</p>
+                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-td-secondary">
                           {card.setCode || group.type}
                         </p>
                       </div>
                       {card.quantity > 1 ? (
-                        <span className="ml-2 rounded-full bg-cyan-300 px-2 py-1 text-[10px] font-black text-[#00131d]">
+                        <span className="ml-2 rounded-full bg-td-accent px-2 py-1 text-[11px] font-black text-td-on-accent">
                           ×{card.quantity}
                         </span>
                       ) : null}
@@ -3976,8 +3979,8 @@ function DeckShowcaseStudio({
   }
 
   const previewGradient = {
-    harbor: "from-[#0b3444] via-[#04141f] to-[#02070b]",
-    midnight: "from-[#1a2040] via-[#080a18] to-[#03040a]",
+    harbor: "from-td-raised via-td-surface to-td-canvas",
+    midnight: "from-td-raised via-td-surface to-td-canvas",
     color: "",
     black: "from-black via-black to-black",
   }[theme];
@@ -3990,10 +3993,10 @@ function DeckShowcaseStudio({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-td-canvas/92 p-4 backdrop-blur-xl">
       <div className="mx-auto flex min-h-full max-w-[1480px] items-center justify-center">
-        <section className="w-full overflow-hidden rounded-[28px] border border-cyan-300/15 bg-[#06131f] shadow-[0_30px_120px_rgba(0,0,0,.65)]">
-          <header className="flex items-center justify-between border-b border-white/[0.07] px-6 py-3">
+        <section className="w-full overflow-hidden rounded-[28px] border border-td-accent/15 bg-td-surface shadow-[0_30px_120px_rgb(var(--td-shadow-rgb)/calc(.65*var(--td-shadow-strength)))]">
+          <header className="flex items-center justify-between border-b border-td-ink/[0.07] px-6 py-3">
             <div className="flex items-center gap-4">
               <img
                 src="/trading-docks-horizontal.png"
@@ -4004,24 +4007,24 @@ function DeckShowcaseStudio({
                 className="hidden h-9 w-auto max-w-[150px] object-contain sm:block"
               />
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text">
                   Showcase Studio
                 </p>
-              <h2 className="mt-0.5 text-lg font-semibold text-white">Create and share your full-deck poster</h2>
+              <h2 className="mt-0.5 text-lg font-semibold text-td-primary">Create and share your full-deck poster</h2>
               </div>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl border border-white/10 p-2.5 text-slate-400 hover:text-white">
+            <button type="button" onClick={onClose} className="rounded-xl border border-td-ink/10 p-2.5 text-td-secondary hover:text-td-primary">
               <X className="h-5 w-5" />
             </button>
           </header>
           <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
-            <aside className="border-b border-white/[0.07] p-5 lg:border-b-0 lg:border-r">
+            <aside className="border-b border-td-ink/[0.07] p-5 lg:border-b-0 lg:border-r">
               <ShowcaseControl title="Deck display">
                 {([
                   ["cards", "Visual cards"],
                   ["text", "Text list"],
                 ] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setDisplay(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${display === value ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500"}`}>
+                  <button key={value} type="button" onClick={() => setDisplay(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${display === value ? "border-td-accent/30 bg-td-accent/10 text-td-accent-text" : "border-td-ink/[0.07] text-td-muted"}`}>
                     {label}
                   </button>
                 ))}
@@ -4032,7 +4035,7 @@ function DeckShowcaseStudio({
                   ["square", "Square 1:1"],
                   ["story", "Story 9:16"],
                 ] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setSize(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${size === value ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500"}`}>
+                  <button key={value} type="button" onClick={() => setSize(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${size === value ? "border-td-accent/30 bg-td-accent/10 text-td-accent-text" : "border-td-ink/[0.07] text-td-muted"}`}>
                     {label}
                   </button>
                 ))}
@@ -4044,7 +4047,7 @@ function DeckShowcaseStudio({
                   ["color", "Color Identity"],
                   ["black", "Pure Black"],
                 ] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => setTheme(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${theme === value ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500"}`}>
+                  <button key={value} type="button" onClick={() => setTheme(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${theme === value ? "border-td-accent/30 bg-td-accent/10 text-td-accent-text" : "border-td-ink/[0.07] text-td-muted"}`}>
                     {label}
                   </button>
                 ))}
@@ -4054,38 +4057,38 @@ function DeckShowcaseStudio({
                 <ShowcaseToggle label="Deck stats" checked={showStats} onChange={setShowStats} />
                 <ShowcaseToggle label="Public deck link" checked={showLink} onChange={setShowLink} />
               </ShowcaseControl>
-              <div className="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
-                <p className="text-[11px] font-semibold text-cyan-100">Full-deck poster</p>
-                <p className="mt-2 text-[11px] leading-5 text-slate-500">
+              <div className="mt-7 rounded-2xl border border-td-accent/10 bg-td-accent/[0.035] p-4">
+                <p className="text-[11px] font-semibold text-td-accent-text">Full-deck poster</p>
+                <p className="mt-2 text-[11px] leading-5 text-td-muted">
                   Every unique card is shown once with a clear quantity badge, and every export carries the Trading Docks signature.
                 </p>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-2.5">
-                <button type="button" onClick={() => void downloadShowcase()} disabled={exporting} className="col-span-2 flex h-12 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-cyan-300 px-4 text-[12px] font-black text-[#00121c] shadow-[0_8px_24px_rgba(34,211,238,.18)] transition hover:bg-cyan-200 disabled:opacity-60">
+                <button type="button" onClick={() => void downloadShowcase()} disabled={exporting} className="col-span-2 flex h-12 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-td-accent px-4 text-[12px] font-black text-td-on-accent shadow-[0_8px_24px_rgb(var(--td-accent-rgb)/.18)] transition hover:bg-td-accent-hover disabled:opacity-60">
                   <Download className="h-4 w-4" /> {exporting ? "Building HD graphic…" : "Download HD PNG"}
                 </button>
-                <button type="button" onClick={() => void copyDeckLink()} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-white/10 bg-white/[0.04] px-3 text-[11px] font-bold text-white transition hover:border-white/20 hover:bg-white/[0.08]">
+                <button type="button" onClick={() => void copyDeckLink()} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-td-ink/10 bg-td-ink/[0.04] px-3 text-[11px] font-bold text-td-primary transition hover:border-td-ink/20 hover:bg-td-ink/[0.08]">
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
-                <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-3 text-[11px] font-bold text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-60">
+                <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-td-accent/25 bg-td-accent/[0.07] px-3 text-[11px] font-bold text-td-accent-text transition hover:bg-td-accent/10 disabled:opacity-60">
                   <Share2 className="h-4 w-4" /> More apps
                 </button>
               </div>
-              <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">Share directly</p>
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-td-secondary">Share directly</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => openSocial("facebook")} className="flex h-10 items-center justify-center rounded-xl border border-[#1877f2]/35 bg-[#1877f2]/10 px-2 text-[10px] font-bold text-[#8fc0ff] transition hover:bg-[#1877f2]/20 hover:text-white">Facebook</button>
-                <button type="button" onClick={() => openSocial("x")} className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.045] px-2 text-[10px] font-bold text-white transition hover:bg-white/10">X</button>
-                <button type="button" onClick={() => void shareToMedia("instagram")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-fuchsia-400/25 bg-gradient-to-r from-fuchsia-500/10 via-rose-500/10 to-amber-400/10 px-2 text-[10px] font-bold text-rose-200 transition hover:border-rose-300/50 hover:text-white disabled:opacity-60">Instagram</button>
-                <button type="button" onClick={() => void shareToMedia("discord")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2 text-[10px] font-bold text-indigo-200 transition hover:bg-indigo-500/20 hover:text-white disabled:opacity-60">Discord</button>
+                <button type="button" onClick={() => openSocial("facebook")} className="flex h-10 items-center justify-center rounded-xl border border-td-accent-text/35 bg-td-accent/10 px-2 text-[11px] font-bold text-td-accent-text transition hover:bg-td-accent/20 hover:text-td-primary">Facebook</button>
+                <button type="button" onClick={() => openSocial("x")} className="flex h-10 items-center justify-center rounded-xl border border-td-ink/15 bg-td-ink/[0.045] px-2 text-[11px] font-bold text-td-primary transition hover:bg-td-ink/10">X</button>
+                <button type="button" onClick={() => void shareToMedia("instagram")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-fuchsia-400/25 bg-gradient-to-r from-fuchsia-500/10 via-td-danger/10 to-td-warning/10 px-2 text-[11px] font-bold text-td-danger transition hover:border-td-danger/50 hover:text-td-primary disabled:opacity-60">Instagram</button>
+                <button type="button" onClick={() => void shareToMedia("discord")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-td-violet/30 bg-td-violet/10 px-2 text-[11px] font-bold text-td-violet transition hover:bg-td-violet/20 hover:text-td-primary disabled:opacity-60">Discord</button>
               </div>
-              <p className="mt-2 text-[9px] leading-4 text-slate-500">
+              <p className="mt-2 text-[11px] leading-4 text-td-muted">
                 Instagram and Discord download the finished PNG, copy the caption, and open the platform.
               </p>
-              {shareStatus ? <p className="mt-3 text-center text-[10px] font-semibold text-cyan-200">{shareStatus}</p> : null}
+              {shareStatus ? <p className="mt-3 text-center text-[11px] font-semibold text-td-accent-text">{shareStatus}</p> : null}
             </aside>
-            <main className="flex min-h-[820px] items-center justify-center overflow-hidden bg-[#02090e] p-2 sm:p-3">
+            <main className="flex min-h-[820px] items-center justify-center overflow-hidden bg-td-canvas p-2 sm:p-3">
               <div
-                className={`relative w-full max-w-[1100px] overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br ${previewGradient} p-3 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-4 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[600px]" : "aspect-[4/5] max-w-[900px]"}`}
+                className={`relative w-full max-w-[1100px] overflow-hidden rounded-[20px] border border-td-ink/10 bg-gradient-to-br ${previewGradient} p-3 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.55*var(--td-shadow-strength)))] sm:p-4 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[600px]" : "aspect-[4/5] max-w-[900px]"}`}
                 style={previewBackground ? { backgroundImage: previewBackground } : undefined}
               >
                 {theme !== "black" ? (
@@ -4093,8 +4096,8 @@ function DeckShowcaseStudio({
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
                   <div className="grid grid-cols-[minmax(210px,0.72fr)_minmax(0,1.28fr)] items-stretch gap-2.5">
-                    <div className="relative overflow-hidden rounded-lg border border-cyan-300/25 bg-[#01080e]/90 px-3.5 py-3 shadow-[0_8px_30px_rgba(0,0,0,.4)]">
-                      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-cyan-300 to-blue-500" />
+                    <div className="relative overflow-hidden rounded-lg border border-td-accent/25 bg-td-canvas/90 px-3.5 py-3 shadow-[0_8px_30px_rgb(var(--td-shadow-rgb)/calc(.4*var(--td-shadow-strength)))]">
+                      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-td-accent to-td-accent" />
                       <div className="min-w-0">
                         <img
                           src="/trading-docks-horizontal.png"
@@ -4104,25 +4107,25 @@ function DeckShowcaseStudio({
                           alt="Trading Docks"
                           className="h-10 w-auto max-w-[210px] object-contain object-left"
                         />
-                        <p className="mt-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-cyan-300">Made in Deck Vault</p>
+                        <p className="mt-1.5 text-[11px] font-black uppercase tracking-[0.15em] text-td-accent-text">Made in Deck Vault</p>
                       </div>
-                      <div className="mt-2.5 flex items-center gap-1.5 border-t border-white/10 pt-2">
-                        <span className="rounded bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase text-cyan-200">{format}</span>
-                        <span className="truncate text-[9px] font-semibold text-slate-300">
+                      <div className="mt-2.5 flex items-center gap-1.5 border-t border-td-ink/10 pt-2">
+                        <span className="rounded bg-td-accent/10 px-2 py-0.5 text-[11px] font-bold uppercase text-td-accent-text">{format}</span>
+                        <span className="truncate text-[11px] font-semibold text-td-secondary">
                           {commanderName ? `Commander · ${commanderName}` : "Built to share"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex min-w-0 flex-col justify-center rounded-lg border border-white/[0.07] bg-black/20 px-4 py-2.5">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">Deck showcase</p>
-                      <h3 className="mt-1 truncate text-[clamp(24px,3.4vw,40px)] font-black leading-none tracking-[-0.035em] text-white">{deckName}</h3>
-                      <p className="mt-2 truncate text-[11px] font-semibold text-slate-200">
+                    <div className="flex min-w-0 flex-col justify-center rounded-lg border border-td-ink/[0.07] bg-black/20 px-4 py-2.5">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-secondary">Deck showcase</p>
+                      <h3 className="mt-1 truncate text-[clamp(24px,3.4vw,40px)] font-black leading-none tracking-[-0.035em] text-td-primary">{deckName}</h3>
+                      <p className="mt-2 truncate text-[11px] font-semibold text-td-primary">
                         {cardCount} cards {showValue ? `· $${marketValue.toFixed(2)} total value` : ""} · tradingdocks.com
                       </p>
                     </div>
                   </div>
                   {showStats ? (
-                    <div className="mt-1.5 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-2 rounded-lg border border-white/[0.07] bg-white/[0.045] px-3 py-2">
+                    <div className="mt-1.5 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-2 rounded-lg border border-td-ink/[0.07] bg-td-ink/[0.045] px-3 py-2">
                       {[
                         ["Avg MV", stats.averageManaValue.toFixed(2)],
                         ["Creatures", stats.typeCounts.creatures],
@@ -4130,15 +4133,15 @@ function DeckShowcaseStudio({
                         ["Lands", stats.typeCounts.lands],
                       ].map(([label, value]) => (
                         <div key={label}>
-                          <p className="truncate text-[8px] font-bold uppercase tracking-[0.08em] text-slate-400">{label}</p>
-                          <p className="mt-0.5 text-[13px] font-black text-white">{value}</p>
+                          <p className="truncate text-[11px] font-bold uppercase tracking-[0.08em] text-td-secondary">{label}</p>
+                          <p className="mt-0.5 text-[13px] font-black text-td-primary">{value}</p>
                         </div>
                       ))}
                       <div className="flex items-end gap-[2px]">
                         {stats.manaCurve.map((count, index) => (
                           <div key={index} className="flex min-w-0 flex-1 flex-col items-center justify-end">
-                            <div className="w-full rounded-t-[1px] bg-cyan-300" style={{ height: `${Math.max(2, (count / Math.max(1, ...stats.manaCurve)) * 17)}px` }} />
-                            <span className="mt-0.5 text-[7px] text-slate-400">{index === 7 ? "7+" : index}</span>
+                            <div className="w-full rounded-t-[1px] bg-td-accent" style={{ height: `${Math.max(2, (count / Math.max(1, ...stats.manaCurve)) * 17)}px` }} />
+                            <span className="mt-0.5 text-[11px] text-td-secondary">{index === 7 ? "7+" : index}</span>
                           </div>
                         ))}
                       </div>
@@ -4146,7 +4149,7 @@ function DeckShowcaseStudio({
                   ) : null}
                   {display === "text" ? (
                     <div
-                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
+                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden rounded-xl border border-td-ink/[0.07] bg-black/25 p-4 text-td-primary`}
                       style={{
                         gridTemplateColumns: `repeat(${size === "story" ? 1 : 2}, minmax(0, 1fr))`,
                         gap: "1.5rem",
@@ -4156,25 +4159,25 @@ function DeckShowcaseStudio({
                         <div key={`text-lane-${laneIndex}`} className="min-w-0">
                           {lane.groups.map((group) => (
                             <section key={group.category} className="mb-3 w-full min-w-0">
-                              <div className="mb-1.5 flex items-center justify-between rounded-md bg-cyan-300/10 px-2.5 py-1.5">
-                                <p className="text-[12px] font-black uppercase tracking-[0.05em] text-white">{group.category}</p>
-                                <span className="text-[11px] font-bold text-cyan-300">{group.count}</span>
+                              <div className="mb-1.5 flex items-center justify-between rounded-md bg-td-accent/10 px-2.5 py-1.5">
+                                <p className="text-[12px] font-black uppercase tracking-[0.05em] text-td-primary">{group.category}</p>
+                                <span className="text-[11px] font-bold text-td-accent-text">{group.count}</span>
                               </div>
                               <div className="space-y-1">
                                 {group.cards.map((card) => (
-                                  <div key={card.id} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded px-1.5 py-0.5 hover:bg-white/[0.04]">
-                                    <span className="text-[11px] font-black text-slate-300">{card.quantity}</span>
-                                    <span className="truncate text-[11px] font-semibold text-cyan-200">{card.name}</span>
+                                  <div key={card.id} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded px-1.5 py-0.5 hover:bg-td-ink/[0.04]">
+                                    <span className="text-[11px] font-black text-td-secondary">{card.quantity}</span>
+                                    <span className="truncate text-[11px] font-semibold text-td-accent-text">{card.name}</span>
                                     <span className="flex gap-0.5">
                                       {card.colors.slice(0, 4).map((color, index) => (
                                         <span
                                           key={`${card.id}-${color}-${index}`}
-                                          className="h-3 w-3 rounded-full border border-white/20"
+                                          className="h-3 w-3 rounded-full border border-td-ink/20"
                                           style={{ backgroundColor: { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color] }}
                                         />
                                       ))}
                                     </span>
-                                    <span className="min-w-[48px] text-right text-[11px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
+                                    <span className="min-w-[48px] text-right text-[11px] font-semibold text-td-primary">${(card.price * card.quantity).toFixed(2)}</span>
                                   </div>
                                 ))}
                               </div>
@@ -4196,19 +4199,19 @@ function DeckShowcaseStudio({
                         {lane.groups.map((group) => (
                           <section
                             key={group.category}
-                            className="mb-2 w-full overflow-hidden rounded-lg border border-cyan-200/10 bg-[#01080e]/80 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)]"
+                            className="mb-2 w-full overflow-hidden rounded-lg border border-td-accent/10 bg-td-canvas/80 p-1.5 shadow-[0_8px_24px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))]"
                           >
-                            <div className="mb-1 flex items-center justify-between rounded-[5px] bg-cyan-300/10 px-2 py-1.5">
-                              <p className="truncate text-[10px] font-black uppercase tracking-[0.055em] text-white">
+                            <div className="mb-1 flex items-center justify-between rounded-[5px] bg-td-accent/10 px-2 py-1.5">
+                              <p className="truncate text-[11px] font-black uppercase tracking-[0.055em] text-td-primary">
                                 {group.category}
                               </p>
-                              <span className="ml-2 text-[10px] font-black text-cyan-300">{group.count}</span>
+                              <span className="ml-2 text-[11px] font-black text-td-accent-text">{group.count}</span>
                             </div>
                             <div className="space-y-1">
                               {group.cards.map((card) => (
                                 <div
                                   key={card.id}
-                                  className="grid h-9 grid-cols-[54px_minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.035] pr-2"
+                                  className="grid h-9 grid-cols-[54px_minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-md border border-td-ink/[0.06] bg-td-ink/[0.035] pr-2"
                                 >
                                   <img
                                     src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
@@ -4217,8 +4220,8 @@ function DeckShowcaseStudio({
                                     decoding="async"
                                     className="h-full w-full object-cover object-[center_28%]"
                                   />
-                                  <span className="truncate text-[10px] font-bold text-white">{card.name}</span>
-                                  <span className="text-[10px] font-black text-cyan-300">×{card.quantity}</span>
+                                  <span className="truncate text-[11px] font-bold text-td-primary">{card.name}</span>
+                                  <span className="text-[11px] font-black text-td-accent-text">×{card.quantity}</span>
                                 </div>
                               ))}
                             </div>
@@ -4228,11 +4231,11 @@ function DeckShowcaseStudio({
                     ))}
                   </div>
                   )}
-                  <div className="mt-2 border-t border-white/10 pt-2">
+                  <div className="mt-2 border-t border-td-ink/10 pt-2">
                     <div className="flex items-end justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-[7px] font-black uppercase tracking-[0.13em] text-white">Built in the Deck Vault</p>
-                        <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
+                        <p className="text-[11px] font-black uppercase tracking-[0.13em] text-td-primary">Built in the Deck Vault</p>
+                        <p className="mt-0.5 truncate text-[11px] font-semibold text-td-accent-text">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
                       </div>
                       <img
                         src="/trading-docks-horizontal.png"
@@ -4259,7 +4262,7 @@ function DeckShowcaseStudio({
 function ShowcaseControl({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mb-6">
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{title}</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{title}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -4275,7 +4278,7 @@ function ShowcaseToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-white/[0.07] px-3 py-2.5 text-[11px] text-slate-300">
+    <label className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-td-ink/[0.07] px-3 py-2.5 text-[11px] text-td-secondary">
       {label}
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
@@ -4354,8 +4357,8 @@ function ExplorerRow({
       className={[
         "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition",
         active
-          ? "border-cyan-300/[0.16] bg-cyan-400/[0.04] text-cyan-100"
-          : "border-transparent text-slate-500 hover:border-white/[0.055] hover:bg-white/[0.015] hover:text-slate-300",
+          ? "border-td-accent/[0.16] bg-td-accent/[0.04] text-td-accent-text"
+          : "border-transparent text-td-muted hover:border-td-ink/[0.055] hover:bg-td-ink/[0.015] hover:text-td-secondary",
       ].join(" ")}
     >
       <span className="text-[12px] font-medium">
@@ -4389,8 +4392,8 @@ function TableHeading({
         className={[
           "text-[11px] font-semibold uppercase tracking-[0.1em]",
           active
-            ? "text-cyan-200"
-            : "text-slate-500",
+            ? "text-td-accent-text"
+            : "text-td-muted",
         ].join(" ")}
       >
         {label}
@@ -4438,12 +4441,12 @@ function DeckTableRow({
       onMouseEnter={onPreview}
       onMouseLeave={onPreviewEnd}
       className={[
-        "cursor-pointer border-b border-white/[0.045] transition odd:bg-white/[0.006] last:border-b-0",
+        "cursor-pointer border-b border-td-ink/[0.045] transition odd:bg-td-ink/[0.006] last:border-b-0",
         selected
-          ? "bg-cyan-400/[0.07] shadow-[inset_3px_0_0_rgba(103,232,249,.85),0_8px_18px_rgba(0,0,0,.08)]"
+          ? "bg-td-accent/[0.07] shadow-[inset_3px_0_0_rgb(var(--td-accent-rgb)/.85),0_8px_18px_rgb(var(--td-shadow-rgb)/calc(.08*var(--td-shadow-strength)))]"
           : previewing
-            ? "bg-cyan-300/[0.04] shadow-[inset_3px_0_0_rgba(103,232,249,.44)]"
-          : "hover:bg-cyan-300/[0.025]",
+            ? "bg-td-accent/[0.04] shadow-[inset_3px_0_0_rgb(var(--td-accent-rgb)/.44)]"
+          : "hover:bg-td-accent/[0.025]",
       ].join(" ")}
     >
       <td
@@ -4460,7 +4463,7 @@ function DeckTableRow({
         />
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] font-semibold text-cyan-200">
+      <td className="px-3 py-2.5 text-[13px] font-semibold text-td-accent-text">
         {card.quantity}
       </td>
 
@@ -4474,9 +4477,9 @@ function DeckTableRow({
           onMouseEnter={onPreview}
           onFocus={onPreview}
           onBlur={onPreviewEnd}
-          className="group/name flex min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50"
+          className="group/name flex min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/50"
         >
-          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/[0.08] bg-slate-950 shadow-[0_7px_18px_rgba(0,0,0,.3)]">
+          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-td-ink/[0.08] bg-td-canvas shadow-[0_7px_18px_rgb(var(--td-shadow-rgb)/calc(.3*var(--td-shadow-strength)))]">
             {!imageFailed ? (
               <img
                 src={imageSource}
@@ -4491,40 +4494,40 @@ function DeckTableRow({
           </div>
 
           <div className="min-w-0">
-            <p className="truncate text-[14px] font-semibold text-white underline decoration-transparent underline-offset-4 transition group-hover/name:text-cyan-200 group-hover/name:decoration-cyan-300/40">
+            <p className="truncate text-[14px] font-semibold text-td-primary underline decoration-transparent underline-offset-4 transition group-hover/name:text-td-accent-text group-hover/name:decoration-cyan-300/40">
               {card.name}
             </p>
-            <p className="mt-1 truncate text-[11px] text-slate-500">
+            <p className="mt-1 truncate text-[11px] text-td-muted">
               {card.category} · {card.typeLine}
             </p>
           </div>
         </button>
       </td>
 
-      <td className="hidden truncate px-3 py-2.5 text-[12px] text-slate-400 2xl:table-cell">
+      <td className="hidden truncate px-3 py-2.5 text-[12px] text-td-secondary 2xl:table-cell">
         {card.typeLine}
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] text-slate-300">
+      <td className="px-3 py-2.5 text-[13px] text-td-secondary">
         {card.manaValue}
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] font-semibold text-emerald-200">
+      <td className="px-3 py-2.5 text-[13px] font-semibold text-td-success">
         ${card.price.toFixed(2)}
       </td>
 
       <td className="px-3 py-2.5">
         <div className="flex flex-wrap gap-1.5">
           {card.owned ? (
-            <span className="rounded-full border border-emerald-300/[0.1] bg-emerald-400/[0.025] px-2 py-1 text-[10px] text-emerald-200">
+            <span className="rounded-full border border-td-success/[0.1] bg-td-success/[0.025] px-2 py-1 text-[11px] text-td-success">
               Owned {Math.min(card.quantity, card.ownedQuantity ?? card.quantity)}/{card.quantity}
             </span>
           ) : (card.ownedQuantity ?? 0) > 0 ? (
-            <span className="rounded-full border border-amber-300/[0.12] bg-amber-400/[0.035] px-2 py-1 text-[10px] text-amber-100">
+            <span className="rounded-full border border-td-warning/[0.12] bg-td-warning/[0.035] px-2 py-1 text-[11px] text-td-warning">
               Partial {Math.min(card.quantity, card.ownedQuantity ?? 0)}/{card.quantity}
             </span>
           ) : (
-            <span className="rounded-full border border-amber-300/[0.1] bg-amber-400/[0.025] px-2 py-1 text-[10px] text-amber-200">
+            <span className="rounded-full border border-td-warning/[0.1] bg-td-warning/[0.025] px-2 py-1 text-[11px] text-td-warning">
               Missing
             </span>
           )}
@@ -4533,7 +4536,7 @@ function DeckTableRow({
           card.legalityStatus !== "legal" ? (
             <span
               title={card.legalityMessage}
-              className="rounded-full border border-rose-300/30 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold text-rose-100"
+              className="rounded-full border border-td-danger/30 bg-td-danger/15 px-2 py-1 text-[11px] font-semibold text-td-danger"
             >
               {card.legalityStatus === "banned"
                 ? "Banned"
@@ -4542,7 +4545,7 @@ function DeckTableRow({
           ) : null}
 
           {card.gameChanger ? (
-            <span className="rounded-full border border-violet-300/[0.12] bg-violet-400/[0.035] px-2 py-1 text-[10px] text-violet-200">
+            <span className="rounded-full border border-td-violet/[0.12] bg-td-violet/[0.035] px-2 py-1 text-[11px] text-td-violet">
               Game Changer
             </span>
           ) : null}
@@ -4745,9 +4748,9 @@ function InspectorCardImage({ card }: { card: DeckCard }) {
     process.env.NODE_ENV !== "production";
 
   return (
-    <div className="relative mx-auto mb-4 aspect-[0.715] w-full max-w-[255px] overflow-hidden rounded-[22px] border border-white/[0.095] bg-[#030b12] shadow-[0_22px_70px_rgba(0,0,0,0.42),0_0_28px_rgba(34,211,238,0.08)]">
+    <div className="relative mx-auto mb-4 aspect-[0.715] w-full max-w-[255px] overflow-hidden rounded-[22px] border border-td-ink/[0.095] bg-td-canvas shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(0.42*var(--td-shadow-strength))),0_0_28px_rgb(var(--td-accent-rgb)/0.08)]">
       {!loaded && !failed ? (
-        <div className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,rgba(255,255,255,.025),rgba(103,232,249,.08),rgba(255,255,255,.025))]" />
+        <div className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,rgb(var(--td-ink-rgb)/.025),rgb(var(--td-accent-rgb)/.08),rgb(var(--td-ink-rgb)/.025))]" />
       ) : null}
       {!failed && imageSource ? (
         <img
@@ -4765,17 +4768,17 @@ function InspectorCardImage({ card }: { card: DeckCard }) {
         />
       ) : (
         <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-          <ImageIcon className="h-7 w-7 text-slate-700" />
-          <p className="mt-3 text-[12px] font-semibold text-slate-400">
+          <ImageIcon className="h-7 w-7 text-td-muted" />
+          <p className="mt-3 text-[12px] font-semibold text-td-secondary">
             Card image unavailable
           </p>
-          <p className="mt-1 text-[10px] leading-4 text-slate-600">
+          <p className="mt-1 text-[11px] leading-4 text-td-muted">
             {card.name}
           </p>
         </div>
       )}
       {showDiagnostics ? (
-        <p className="absolute bottom-2 left-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-cyan-100/70">
+        <p className="absolute bottom-2 left-2 rounded-full bg-black/65 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text/70">
           {imageCandidate?.source ?? "none"} · {imageStatus}
         </p>
       ) : null}
@@ -4788,12 +4791,12 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
   const ownedQuantity = card.ownedQuantity ?? 0;
 
   return (
-    <div className="mt-4 rounded-xl border border-white/[0.065] bg-black/[0.14] p-3">
+    <div className="mt-4 rounded-xl border border-td-ink/[0.065] bg-black/[0.14] p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
           Collection locations
         </p>
-        <span className="text-[10px] font-semibold text-cyan-200">
+        <span className="text-[11px] font-semibold text-td-accent-text">
           {ownedQuantity} owned
         </span>
       </div>
@@ -4802,14 +4805,14 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
           {matches.map((match) => (
             <div
               key={match.inventoryId}
-              className="flex items-start gap-2 rounded-lg border border-white/[0.05] bg-white/[0.018] px-2.5 py-2"
+              className="flex items-start gap-2 rounded-lg border border-td-ink/[0.05] bg-td-ink/[0.018] px-2.5 py-2"
             >
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-td-violet" />
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-slate-200">
+                <p className="text-[11px] font-semibold text-td-primary">
                   {inventoryLocationLabel(match)}
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-td-muted">
                   {match.quantity} {match.quantity === 1 ? "copy" : "copies"}
                   {match.condition ? ` · ${match.condition}` : ""}
                   {match.printing ? ` · ${match.printing}` : ""}
@@ -4819,7 +4822,7 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
           ))}
         </div>
       ) : (
-        <p className="mt-2 text-[11px] leading-4 text-slate-600">
+        <p className="mt-2 text-[11px] leading-4 text-td-muted">
           No matching physical copy was found in a binder, bulk box, or other inventory location.
         </p>
       )}
@@ -4845,7 +4848,7 @@ function RoleCardPreview({
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="flex w-full items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.012] p-2 text-left transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025]"
+        className="flex w-full items-center gap-3 rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.012] p-2 text-left transition hover:border-td-accent/[0.14] hover:bg-td-accent/[0.025]"
       >
         <img
           src={imageSource}
@@ -4853,10 +4856,10 @@ function RoleCardPreview({
           className="h-14 w-10 rounded-md object-cover"
         />
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-semibold text-white">
+          <p className="truncate text-[12px] font-semibold text-td-primary">
             {card.name}
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">
+          <p className="mt-1 text-[11px] text-td-muted">
             {card.quantity}{" "}
             {card.quantity === 1
               ? "copy"
@@ -4868,21 +4871,21 @@ function RoleCardPreview({
       {open ? (
         <div
           role="tooltip"
-          className="pointer-events-none absolute left-full top-1/2 z-[80] ml-4 w-[220px] -translate-y-1/2 rounded-[20px] border border-cyan-300/[0.14] bg-[#04101a]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.58),0_0_28px_rgba(34,211,238,0.10)] backdrop-blur-xl"
+          className="pointer-events-none absolute left-full top-1/2 z-[80] ml-4 w-[220px] -translate-y-1/2 rounded-[20px] border border-td-accent/[0.14] bg-td-surface/98 p-3 shadow-[0_24px_70px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength))),0_0_28px_rgb(var(--td-accent-rgb)/0.10)] backdrop-blur-xl"
         >
           <img
             src={imageSource}
             alt={card.name}
             className="aspect-[0.715] w-full rounded-2xl object-cover"
           />
-          <p className="mt-3 text-[14px] font-semibold text-white">
+          <p className="mt-3 text-[14px] font-semibold text-td-primary">
             {card.name}
           </p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-td-muted">
               MV {card.manaValue}
             </span>
-            <span className="text-[12px] font-semibold text-emerald-200">
+            <span className="text-[12px] font-semibold text-td-success">
               ${card.price.toFixed(2)}
             </span>
           </div>
@@ -4985,7 +4988,7 @@ function ReplacementFinder({
 
   return (
     <div
-      className="fixed inset-0 z-[180] flex items-center justify-center bg-[#01060c]/82 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[180] flex items-center justify-center bg-td-canvas/82 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label={`Find a replacement for ${card.name}`}
@@ -4993,8 +4996,8 @@ function ReplacementFinder({
         if (event.currentTarget === event.target) onClose();
       }}
     >
-      <section className="flex max-h-[90vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[#06131f] shadow-[0_35px_120px_rgba(0,0,0,.75),0_0_55px_rgba(139,92,246,.11)]">
-        <header className="flex items-start justify-between gap-5 border-b border-white/[0.07] px-5 py-5 sm:px-7">
+      <section className="flex max-h-[90vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-[28px] border border-td-violet/[0.16] bg-td-surface shadow-[0_35px_120px_rgb(var(--td-shadow-rgb)/calc(.75*var(--td-shadow-strength))),0_0_55px_rgba(139,92,246,.11)]">
+        <header className="flex items-start justify-between gap-5 border-b border-td-ink/[0.07] px-5 py-5 sm:px-7">
           <div className="flex min-w-0 items-center gap-4">
             <img
               src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
@@ -5002,13 +5005,13 @@ function ReplacementFinder({
               className="h-[92px] w-[66px] shrink-0 rounded-lg object-cover shadow-xl"
             />
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-violet-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-violet">
                 Smart Replacement Finder
               </p>
-              <h2 className="mt-1 truncate text-xl font-semibold text-white">
+              <h2 className="mt-1 truncate text-xl font-semibold text-td-primary">
                 Replace {card.name}
               </h2>
-              <p className="mt-1 text-[12px] text-slate-500">
+              <p className="mt-1 text-[12px] text-td-muted">
                 Only cards legal in {format}
                 {deckColors.length
                   ? ` and within this deck’s ${deckColors.join("/")} color identity`
@@ -5019,7 +5022,7 @@ function ReplacementFinder({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-slate-400 transition hover:bg-white/[0.05] hover:text-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-secondary transition hover:bg-td-ink/[0.05] hover:text-td-primary"
             aria-label="Close replacement finder"
           >
             <X className="h-4 w-4" />
@@ -5027,18 +5030,18 @@ function ReplacementFinder({
         </header>
 
         {payload?.role ? (
-          <div className="border-b border-white/[0.06] bg-violet-400/[0.035] px-5 py-4 sm:px-7">
+          <div className="border-b border-td-ink/[0.06] bg-td-violet/[0.035] px-5 py-4 sm:px-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-violet-300/[0.18] bg-violet-400/[0.08] px-3 py-1 text-[11px] font-bold text-violet-200">
+              <span className="rounded-full border border-td-violet/[0.18] bg-td-violet/[0.08] px-3 py-1 text-[11px] font-bold text-td-violet">
                 {payload.role.label}
               </span>
               {payload.role.signals.map((signal) => (
-                <span key={signal} className="rounded-full border border-white/[0.07] px-2.5 py-1 text-[10px] text-slate-500">
+                <span key={signal} className="rounded-full border border-td-ink/[0.07] px-2.5 py-1 text-[11px] text-td-muted">
                   {signal}
                 </span>
               ))}
             </div>
-            <p className="mt-2 text-[12px] leading-5 text-slate-400">
+            <p className="mt-2 text-[12px] leading-5 text-td-secondary">
               {payload.role.explanation} Suggestions are ranked by role, card type, and mana-curve fit.
             </p>
           </div>
@@ -5047,19 +5050,19 @@ function ReplacementFinder({
         <div className="min-h-[280px] overflow-y-auto p-5 sm:p-7">
           {loading ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
-              <WandSparkles className="h-7 w-7 animate-pulse text-violet-300" />
-              <p className="mt-4 text-sm font-semibold text-white">
+              <WandSparkles className="h-7 w-7 animate-pulse text-td-violet" />
+              <p className="mt-4 text-sm font-semibold text-td-primary">
                 Analyzing this card’s deck-building role…
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-td-muted">
                 Checking format legality, color identity, function, and mana value.
               </p>
             </div>
           ) : error ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
-              <AlertTriangle className="h-7 w-7 text-amber-300" />
-              <p className="mt-4 text-sm font-semibold text-white">{error}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              <AlertTriangle className="h-7 w-7 text-td-warning" />
+              <p className="mt-4 text-sm font-semibold text-td-primary">{error}</p>
+              <p className="mt-2 text-xs text-td-muted">
                 Close this window and try the card again.
               </p>
             </div>
@@ -5068,7 +5071,7 @@ function ReplacementFinder({
               {payload.recommendations.map((suggestion) => (
                 <article
                   key={suggestion.id}
-                  className="group grid grid-cols-[76px_minmax(0,1fr)] gap-4 rounded-2xl border border-white/[0.065] bg-black/[0.12] p-3 transition hover:border-violet-300/[0.2] hover:bg-violet-400/[0.025]"
+                  className="group grid grid-cols-[76px_minmax(0,1fr)] gap-4 rounded-2xl border border-td-ink/[0.065] bg-black/[0.12] p-3 transition hover:border-td-violet/[0.2] hover:bg-td-violet/[0.025]"
                 >
                   <img
                     src={suggestion.image}
@@ -5079,28 +5082,28 @@ function ReplacementFinder({
                   <div className="flex min-w-0 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h3 className="truncate text-[14px] font-semibold text-white group-hover:text-violet-100">
+                        <h3 className="truncate text-[14px] font-semibold text-td-primary group-hover:text-td-violet">
                           {suggestion.name}
                         </h3>
-                        <p className="mt-1 truncate text-[10px] text-slate-500">
+                        <p className="mt-1 truncate text-[11px] text-td-muted">
                           {suggestion.typeLine}
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-lg bg-emerald-400/[0.08] px-2 py-1 text-[10px] font-bold text-emerald-200">
+                      <span className="shrink-0 rounded-lg bg-td-success/[0.08] px-2 py-1 text-[11px] font-bold text-td-success">
                         {suggestion.score}% fit
                       </span>
                     </div>
-                    <p className="mt-3 text-[11px] leading-4 text-slate-400">
+                    <p className="mt-3 text-[11px] leading-4 text-td-secondary">
                       {suggestion.reason}
                     </p>
                     <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         MV {suggestion.manaValue} · ${suggestion.price.toFixed(2)}
                       </span>
                       <button
                         type="button"
                         onClick={() => onReplace(suggestion)}
-                        className="h-9 rounded-xl bg-violet-300 px-3 text-[11px] font-bold text-[#11051f] transition hover:bg-violet-200"
+                        className="h-9 rounded-xl bg-td-violet px-3 text-[11px] font-bold text-td-on-accent transition hover:bg-td-violet"
                       >
                         Replace 1 copy
                       </button>
@@ -5110,7 +5113,7 @@ function ReplacementFinder({
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[280px] items-center justify-center text-center text-sm text-slate-500">
+            <div className="flex min-h-[280px] items-center justify-center text-center text-sm text-td-muted">
               No legal alternatives matched this card’s role closely enough.
             </div>
           )}
@@ -5134,10 +5137,10 @@ function InspectorAction({
   const className = [
     "flex h-11 w-full appearance-none items-center justify-center rounded-xl border px-4 text-center text-[13px] font-semibold leading-none tracking-normal transition",
     tone === "cyan"
-      ? "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200 hover:border-cyan-200/30 hover:bg-cyan-400/[0.07]"
+      ? "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text hover:border-td-accent/30 hover:bg-td-accent/[0.07]"
       : tone === "violet"
-        ? "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200 hover:border-violet-200/30 hover:bg-violet-400/[0.07]"
-        : "border-rose-300/[0.12] bg-rose-400/[0.035] text-rose-200 hover:border-rose-200/30 hover:bg-rose-400/[0.07]",
+        ? "border-td-violet/[0.12] bg-td-violet/[0.035] text-td-violet hover:border-td-violet/30 hover:bg-td-violet/[0.07]"
+        : "border-td-danger/[0.12] bg-td-danger/[0.035] text-td-danger hover:border-td-danger/30 hover:bg-td-danger/[0.07]",
   ].join(" ");
 
   const sharedStyle = {
@@ -5180,11 +5183,11 @@ function CurveMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-white/[0.015] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.015] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-[16px] font-semibold text-white">
+      <p className="mt-2 text-[16px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -5199,11 +5202,11 @@ function InspectorMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1.5 text-[14px] font-semibold text-slate-100">
+      <p className="mt-1.5 text-[14px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -5311,10 +5314,10 @@ function DeckCardTile({
 
   const glowClass =
     banned || formatIllegal || duplicateViolation
-      ? "group-hover:shadow-[0_0_0_1px_rgba(244,63,94,0.8),0_0_34px_rgba(244,63,94,0.5),0_18px_50px_rgba(0,0,0,0.5)]"
+      ? "group-hover:shadow-[0_0_0_1px_rgba(244,63,94,0.8),0_0_34px_rgba(244,63,94,0.5),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]"
       : card.gameChanger
-        ? "group-hover:shadow-[0_0_0_1px_rgba(250,204,21,0.58),0_0_26px_rgba(250,204,21,0.28),0_18px_50px_rgba(0,0,0,0.5)]"
-        : "group-hover:shadow-[0_0_0_1px_rgba(34,211,238,0.58),0_0_18px_rgba(34,211,238,0.28),0_0_34px_rgba(139,92,246,0.16),0_18px_50px_rgba(0,0,0,0.5)]";
+        ? "group-hover:shadow-[0_0_0_1px_rgba(250,204,21,0.58),0_0_26px_rgba(250,204,21,0.28),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]"
+        : "group-hover:shadow-[0_0_0_1px_rgb(var(--td-accent-rgb)/0.58),0_0_18px_rgb(var(--td-accent-rgb)/0.28),0_0_34px_rgba(139,92,246,0.16),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]";
 
   return (
     <article
@@ -5322,10 +5325,10 @@ function DeckCardTile({
         "group relative isolate overflow-visible rounded-2xl border bg-black/[0.12] transition duration-300 hover:z-50 hover:-translate-y-3",
         glowClass,
         banned || formatIllegal || duplicateViolation
-          ? "border-rose-400/[0.55]"
+          ? "border-td-danger/[0.55]"
           : card.gameChanger
-            ? "border-amber-300/[0.22]"
-            : "border-white/[0.07]",
+            ? "border-td-warning/[0.22]"
+            : "border-td-ink/[0.07]",
         standalone
           ? "shadow-[0_20px_50px_rgba(76,29,149,0.22)]"
           : "",
@@ -5333,7 +5336,7 @@ function DeckCardTile({
     >
       <div
         className={[
-          "relative aspect-[0.715] overflow-hidden rounded-t-2xl bg-[#020617] transition duration-300 ease-out",
+          "relative aspect-[0.715] overflow-hidden rounded-t-2xl bg-td-surface transition duration-300 ease-out",
           standalone
             ? ""
             : "origin-bottom group-hover:scale-[1.28] group-hover:rounded-2xl",
@@ -5348,25 +5351,25 @@ function DeckCardTile({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-950 to-sky-950/30 p-4 text-center">
-            <span className="text-[9px] font-semibold text-slate-400">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-td-canvas to-td-accent/30 p-4 text-center">
+            <span className="text-[11px] font-semibold text-td-secondary">
               {card.name}
             </span>
           </div>
         )}
 
         {issueLabel && !standalone ? (
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-rose-600/92 p-4 text-center opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-td-danger/92 p-4 text-center opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
             <div>
-              <AlertTriangle className="mx-auto h-7 w-7 text-white" />
-              <p className="mt-3 text-[12px] font-black uppercase tracking-[0.08em] text-white">
+              <AlertTriangle className="mx-auto h-7 w-7 text-td-primary" />
+              <p className="mt-3 text-[12px] font-black uppercase tracking-[0.08em] text-td-primary">
                 {banned
                   ? "Banned in this format"
                   : formatIllegal
                     ? "Illegal in this format"
                     : "Deck construction error"}
               </p>
-              <p className="mt-2 text-[11px] leading-4 text-rose-50">
+              <p className="mt-2 text-[11px] leading-4 text-td-danger">
                 {issueLabel}
               </p>
             </div>
@@ -5384,7 +5387,7 @@ function DeckCardTile({
               }}
               aria-label={`Remove ${card.name} from deck`}
               title="Remove from deck"
-              className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/75 text-slate-300 opacity-0 shadow-lg backdrop-blur transition hover:border-rose-300/30 hover:bg-rose-950/90 hover:text-rose-200 group-hover:opacity-100"
+              className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-full border border-td-ink/15 bg-black/75 text-white opacity-0 shadow-lg backdrop-blur transition hover:border-td-danger/30 hover:bg-td-danger/90 hover:text-td-danger group-hover:opacity-100"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -5392,7 +5395,7 @@ function DeckCardTile({
         ) : null}
 
         {card.gameChanger ? (
-          <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-amber-100/35 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 px-2 py-1.5 text-[6px] font-black uppercase tracking-[0.08em] text-amber-950 shadow-[0_0_20px_rgba(250,204,21,0.42)]">
+          <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-td-warning/35 bg-gradient-to-r from-td-warning via-td-warning to-td-warning px-2 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-td-warning shadow-[0_0_20px_rgba(250,204,21,0.42)]">
             <Sparkles className="h-3 w-3" />
             Game Changer
           </div>
@@ -5400,10 +5403,10 @@ function DeckCardTile({
 
         {!standalone ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent px-3 pb-3 pt-10 opacity-0 transition group-hover:opacity-100">
-            <p className="text-center text-[8px] font-semibold text-white">
+            <p className="text-center text-[11px] font-semibold text-td-primary">
               {card.name}
             </p>
-            <p className="mt-1 text-center text-[7px] font-semibold text-cyan-200">
+            <p className="mt-1 text-center text-[11px] font-semibold text-td-accent-text">
               ${card.price.toFixed(2)}
             </p>
           </div>
@@ -5411,8 +5414,8 @@ function DeckCardTile({
       </div>
 
       {!standalone ? (
-        <div className="rounded-b-2xl border-t border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.012),rgba(0,0,0,0.06))] px-2.5 py-2.5">
-          <p className="line-clamp-2 min-h-7 text-center text-[8px] font-semibold leading-3.5 text-white">
+        <div className="rounded-b-2xl border-t border-td-ink/[0.045] bg-[linear-gradient(180deg,rgb(var(--td-ink-rgb)/0.012),rgb(var(--td-shadow-rgb)/calc(0.06*var(--td-shadow-strength))))] px-2.5 py-2.5">
+          <p className="line-clamp-2 min-h-7 text-center text-[11px] font-semibold leading-3.5 text-td-primary">
             {card.name}
           </p>
 
@@ -5420,16 +5423,16 @@ function DeckCardTile({
             {card.quantity > 1 || basicLand ? (
               <span
                 className={[
-                  "rounded-md border px-2 py-1 text-[7px] font-semibold",
+                  "rounded-md border px-2 py-1 text-[11px] font-semibold",
                   duplicateViolation
-                    ? "border-rose-300/20 bg-rose-400/[0.08] text-rose-200"
-                    : "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
+                    ? "border-td-danger/20 bg-td-danger/[0.08] text-td-danger"
+                    : "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text",
                 ].join(" ")}
               >
                 {card.quantity} copies
               </span>
             ) : (
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-td-muted">
                 Single copy
               </span>
             )}
@@ -5447,11 +5450,11 @@ function BuilderMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-3">
-      <p className="text-[6px] uppercase tracking-[0.1em] text-slate-700">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-3">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-slate-200">
+      <p className="mt-1 text-sm font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -5468,10 +5471,10 @@ function DoctorNote({
   return (
     <div
       className={[
-        "rounded-xl border p-3 text-[8px] leading-4",
+        "rounded-xl border p-3 text-[11px] leading-4",
         tone === "good"
-          ? "border-emerald-300/[0.1] bg-emerald-400/[0.025] text-emerald-200"
-          : "border-amber-300/[0.1] bg-amber-400/[0.025] text-amber-200",
+          ? "border-td-success/[0.1] bg-td-success/[0.025] text-td-success"
+          : "border-td-warning/[0.1] bg-td-warning/[0.025] text-td-warning",
       ].join(" ")}
     >
       {text}
@@ -5499,7 +5502,7 @@ function DeckCardRow({
 
   return (
     <div className="flex items-center gap-3 py-3">
-      <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/[0.06] bg-slate-950">
+      <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-td-ink/[0.06] bg-td-canvas">
         {!imageFailed ? (
           <img
             src={imageSource}
@@ -5511,33 +5514,33 @@ function DeckCardRow({
         ) : null}
       </div>
 
-      <span className="w-8 text-center text-[9px] font-semibold text-sky-300">
+      <span className="w-8 text-center text-[11px] font-semibold text-td-accent-text">
         {card.quantity}
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold text-white">
+        <p className="text-[11px] font-semibold text-td-primary">
           {card.name}
         </p>
-        <p className="mt-1 text-[7px] text-slate-600">
+        <p className="mt-1 text-[11px] text-td-muted">
           {card.typeLine}
         </p>
       </div>
 
       {card.gameChanger ? (
-        <span className="rounded-lg border border-violet-300/[0.12] bg-violet-400/[0.035] px-2 py-1 text-[6px] font-semibold text-violet-200">
+        <span className="rounded-lg border border-td-violet/[0.12] bg-td-violet/[0.035] px-2 py-1 text-[11px] font-semibold text-td-violet">
           Game Changer
         </span>
       ) : null}
 
-      <span className="text-[8px] text-slate-500">
+      <span className="text-[11px] text-td-muted">
         ${card.price.toFixed(2)}
       </span>
 
       <button
         type="button"
         onClick={() => removeCard(card.id)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/[0.1] text-rose-300"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-danger/[0.1] text-td-danger"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -5612,17 +5615,17 @@ function IntelligenceWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.13] bg-[#06131f] p-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.12),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(139,92,246,0.10),transparent_32%)]" />
+      <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.13] bg-td-surface p-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgb(var(--td-accent-rgb)/0.12),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(139,92,246,0.10),transparent_32%)]" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text">
               Live Deck Intelligence
             </p>
-            <h2 className="mt-3 text-3xl font-semibold text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-td-primary">
               {format} Validation Center
             </h2>
-            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-td-secondary">
               Format legality, copy limits, deck size, command-zone compatibility,
               token requirements, and inventory readiness update as the deck changes.
             </p>
@@ -5631,17 +5634,17 @@ function IntelligenceWorkspace({
           <div className={[
             "rounded-2xl border px-5 py-4 text-center",
             report?.valid
-              ? "border-emerald-300/[0.14] bg-emerald-400/[0.035]"
-              : "border-rose-300/[0.18] bg-rose-400/[0.045]",
+              ? "border-td-success/[0.14] bg-td-success/[0.035]"
+              : "border-td-danger/[0.18] bg-td-danger/[0.045]",
           ].join(" ")}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
               Deck Status
             </p>
             <p className={[
               "mt-2 text-2xl font-semibold",
               report?.valid
-                ? "text-emerald-200"
-                : "text-rose-200",
+                ? "text-td-success"
+                : "text-td-danger",
             ].join(" ")}>
               {loading
                 ? "Checking…"
@@ -5678,11 +5681,11 @@ function IntelligenceWorkspace({
         <ComboIntelligence report={combos} loading={combosLoading} />
       ) : null}
 
-      <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6">
-        <h3 className="text-[20px] font-semibold text-white">
+      <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6">
+        <h3 className="text-[20px] font-semibold text-td-primary">
           Validation Results
         </h3>
-        <p className="mt-2 text-[13px] text-slate-500">
+        <p className="mt-2 text-[13px] text-td-muted">
           Illegal cards receive a bright red hover overlay in Grid View and a status badge in Table View.
         </p>
 
@@ -5694,22 +5697,22 @@ function IntelligenceWorkspace({
                 className={[
                   "rounded-2xl border p-4",
                   issue.severity === "error"
-                    ? "border-rose-300/[0.16] bg-rose-400/[0.035]"
-                    : "border-amber-300/[0.13] bg-amber-400/[0.03]",
+                    ? "border-td-danger/[0.16] bg-td-danger/[0.035]"
+                    : "border-td-warning/[0.13] bg-td-warning/[0.03]",
                 ].join(" ")}
               >
                 <div className="flex items-start gap-3">
                   <AlertTriangle className={[
                     "mt-0.5 h-5 w-5 shrink-0",
                     issue.severity === "error"
-                      ? "text-rose-300"
-                      : "text-amber-300",
+                      ? "text-td-danger"
+                      : "text-td-warning",
                   ].join(" ")} />
                   <div>
-                    <p className="text-[14px] font-semibold text-white">
+                    <p className="text-[14px] font-semibold text-td-primary">
                       {issue.cardName ?? "Deck construction"}
                     </p>
-                    <p className="mt-2 text-[13px] leading-5 text-slate-400">
+                    <p className="mt-2 text-[13px] leading-5 text-td-secondary">
                       {issue.message}
                     </p>
                   </div>
@@ -5717,7 +5720,7 @@ function IntelligenceWorkspace({
               </div>
             ))
           ) : (
-            <div className="col-span-full rounded-2xl border border-emerald-300/[0.12] bg-emerald-400/[0.025] p-5 text-[14px] text-emerald-200">
+            <div className="col-span-full rounded-2xl border border-td-success/[0.12] bg-td-success/[0.025] p-5 text-[14px] text-td-success">
               No format or command-zone issues were detected.
             </div>
           )}
@@ -5738,23 +5741,23 @@ function ComboIntelligence({
   const selected = view === "complete" ? report?.complete ?? [] : report?.oneCardAway ?? [];
 
   return (
-    <section className="relative overflow-hidden rounded-[30px] border border-sky-300/[0.14] bg-[#06131f] p-6 sm:p-7">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_95%_0%,rgba(56,189,248,0.13),transparent_34%),radial-gradient(circle_at_5%_100%,rgba(99,102,241,0.10),transparent_38%)]" />
+    <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.14] bg-td-surface p-6 sm:p-7">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_95%_0%,rgb(var(--td-accent-rgb)/0.13),transparent_34%),radial-gradient(circle_at_5%_100%,rgb(var(--td-accent-rgb)/0.10),transparent_38%)]" />
       <div className="relative">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07]">
-                <BrainCircuit className="h-4 w-4 text-cyan-200" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.07]">
+                <BrainCircuit className="h-4 w-4 text-td-accent-text" />
               </div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-300">Combo Intelligence</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text">Combo Intelligence</p>
             </div>
-            <h2 className="mt-4 text-[28px] font-semibold tracking-[-0.03em] text-white">See the lines already hiding in your deck</h2>
-            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-slate-400">
+            <h2 className="mt-4 text-[28px] font-semibold tracking-[-0.03em] text-td-primary">See the lines already hiding in your deck</h2>
+            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-td-secondary">
               Verified Commander combos, exact execution steps, outcomes, and missing pieces matched against your Trading Docks inventory.
             </p>
           </div>
-          <a href="https://commanderspellbook.com/" target="_blank" rel="noreferrer" className="text-[10px] font-semibold text-slate-500 transition hover:text-cyan-200">
+          <a href="https://commanderspellbook.com/" target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-td-muted transition hover:text-td-accent-text">
             Data by Commander Spellbook ↗
           </a>
         </div>
@@ -5766,21 +5769,21 @@ function ComboIntelligence({
           <ComboMetric label="Bracket-sensitive" value={report?.summary.bracketSensitive ?? 0} tone="amber" />
         </div>
 
-        <div className="mt-6 flex w-fit gap-1 rounded-xl border border-white/[0.07] bg-black/15 p-1">
-          <button type="button" onClick={() => setView("complete")} className={["h-9 rounded-lg px-4 text-[10px] font-semibold transition", view === "complete" ? "bg-emerald-300 text-[#00150f]" : "text-slate-500 hover:text-white"].join(" ")}>
+        <div className="mt-6 flex w-fit gap-1 rounded-xl border border-td-ink/[0.07] bg-black/15 p-1">
+          <button type="button" onClick={() => setView("complete")} className={["h-9 rounded-lg px-4 text-[11px] font-semibold transition", view === "complete" ? "bg-td-success text-td-on-accent" : "text-td-muted hover:text-td-primary"].join(" ")}>
             Active combos
           </button>
-          <button type="button" onClick={() => setView("nearby")} className={["h-9 rounded-lg px-4 text-[10px] font-semibold transition", view === "nearby" ? "bg-cyan-300 text-[#00121c]" : "text-slate-500 hover:text-white"].join(" ")}>
+          <button type="button" onClick={() => setView("nearby")} className={["h-9 rounded-lg px-4 text-[11px] font-semibold transition", view === "nearby" ? "bg-td-accent text-td-on-accent" : "text-td-muted hover:text-td-primary"].join(" ")}>
             One card away
           </button>
         </div>
 
         {loading ? (
-          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-black/10 p-5 text-[13px] text-slate-400">
-            <RefreshCw className="h-4 w-4 animate-spin text-cyan-300" /> Scanning verified combo lines…
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-td-ink/[0.06] bg-black/10 p-5 text-[13px] text-td-secondary">
+            <RefreshCw className="h-4 w-4 animate-spin text-td-accent-text" /> Scanning verified combo lines…
           </div>
         ) : !report?.available ? (
-          <div className="mt-5 rounded-2xl border border-amber-300/[0.12] bg-amber-400/[0.03] p-5 text-[13px] text-amber-100/80">
+          <div className="mt-5 rounded-2xl border border-td-warning/[0.12] bg-td-warning/[0.03] p-5 text-[13px] text-td-warning/80">
             {report?.message ?? "Combo analysis will appear when this Commander deck has cards."}
           </div>
         ) : selected.length ? (
@@ -5788,7 +5791,7 @@ function ComboIntelligence({
             {selected.map((combo) => <ComboCardView key={combo.id} combo={combo} nearComplete={view === "nearby"} />)}
           </div>
         ) : (
-          <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-5 text-[13px] text-slate-500">
+          <div className="mt-5 rounded-2xl border border-td-ink/[0.06] bg-black/10 p-5 text-[13px] text-td-muted">
             {view === "complete" ? "No complete verified combos were detected in this list." : "No legal one-card-away combos were found for this commander and color identity."}
           </div>
         )}
@@ -5799,56 +5802,56 @@ function ComboIntelligence({
 
 function ComboMetric({ label, value, tone }: { label: string; value: number; tone: "emerald" | "cyan" | "violet" | "amber" }) {
   const styles = {
-    emerald: "border-emerald-300/[0.12] bg-emerald-400/[0.035] text-emerald-200",
-    cyan: "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
-    violet: "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200",
-    amber: "border-amber-300/[0.12] bg-amber-400/[0.035] text-amber-200",
+    emerald: "border-td-success/[0.12] bg-td-success/[0.035] text-td-success",
+    cyan: "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text",
+    violet: "border-td-violet/[0.12] bg-td-violet/[0.035] text-td-violet",
+    amber: "border-td-warning/[0.12] bg-td-warning/[0.035] text-td-warning",
   };
-  return <div className={["rounded-2xl border p-4", styles[tone]].join(" ")}><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>;
+  return <div className={["rounded-2xl border p-4", styles[tone]].join(" ")}><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>;
 }
 
 function ComboCardView({ combo, nearComplete }: { combo: DeckCombo; nearComplete: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const missing = combo.missingCards[0];
   return (
-    <article className="rounded-[24px] border border-white/[0.075] bg-[#04101a]/85 p-5 transition hover:border-cyan-300/[0.15]">
+    <article className="rounded-[24px] border border-td-ink/[0.075] bg-td-surface/85 p-5 transition hover:border-td-accent/[0.15]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-wrap gap-2">
           {combo.cards.map((card) => (
-            <span key={card.name} className={["rounded-full border px-2.5 py-1.5 text-[10px] font-semibold", !card.inDeck ? "border-cyan-300/20 bg-cyan-400/[0.07] text-cyan-100" : "border-white/[0.08] bg-white/[0.025] text-slate-300"].join(" ")}>
+            <span key={card.name} className={["rounded-full border px-2.5 py-1.5 text-[11px] font-semibold", !card.inDeck ? "border-td-accent/20 bg-td-accent/[0.07] text-td-accent-text" : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary"].join(" ")}>
               {!card.inDeck ? "+ " : ""}{card.name}{card.isCommander ? " · CZ" : ""}
             </span>
           ))}
         </div>
-        <span className={["shrink-0 rounded-lg px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.08em]", nearComplete ? "bg-cyan-400/10 text-cyan-200" : "bg-emerald-400/10 text-emerald-200"].join(" ")}>
+        <span className={["shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]", nearComplete ? "bg-td-accent/10 text-td-accent-text" : "bg-td-success/10 text-td-success"].join(" ")}>
           {nearComplete ? "1 missing" : "Live"}
         </span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        {combo.produces.map((result) => <span key={result} className="rounded-lg border border-violet-300/[0.12] bg-violet-400/[0.035] px-2.5 py-1.5 text-[9px] font-semibold text-violet-200">{result}</span>)}
+        {combo.produces.map((result) => <span key={result} className="rounded-lg border border-td-violet/[0.12] bg-td-violet/[0.035] px-2.5 py-1.5 text-[11px] font-semibold text-td-violet">{result}</span>)}
       </div>
       {missing ? (
-        <div className="mt-4 rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-3">
+        <div className="mt-4 rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
-            <div><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-600">Missing piece</p><p className="mt-1 text-[13px] font-semibold text-white">{missing.name}</p></div>
-            {missing.ownedQuantity > 0 ? <span className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-[9px] font-semibold text-emerald-200">Owned ×{missing.ownedQuantity}</span> : <span className="text-[10px] text-slate-500">Not in inventory</span>}
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">Missing piece</p><p className="mt-1 text-[13px] font-semibold text-td-primary">{missing.name}</p></div>
+            {missing.ownedQuantity > 0 ? <span className="rounded-lg bg-td-success/10 px-2.5 py-1.5 text-[11px] font-semibold text-td-success">Owned ×{missing.ownedQuantity}</span> : <span className="text-[11px] text-td-muted">Not in inventory</span>}
           </div>
-          {missing.inventoryLocations.length ? <p className="mt-2 text-[10px] text-slate-500">Located in {missing.inventoryLocations.join(" · ")}</p> : null}
+          {missing.inventoryLocations.length ? <p className="mt-2 text-[11px] text-td-muted">Located in {missing.inventoryLocations.join(" · ")}</p> : null}
         </div>
       ) : null}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] text-slate-500">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-td-muted">
         {combo.manaNeeded ? <span>Setup mana {combo.manaNeeded}</span> : null}
         {combo.estimatedComboValue !== null ? <span>Combo value ~${combo.estimatedComboValue.toFixed(2)}</span> : null}
         {combo.popularity !== null ? <span>{combo.popularity.toLocaleString()} saves</span> : null}
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-white/[0.06] pt-4">
-        <button type="button" onClick={() => setExpanded((value) => !value)} className="text-[10px] font-semibold text-cyan-200">{expanded ? "Hide steps" : "How it works"}</button>
-        <a href={combo.spellbookUrl} target="_blank" rel="noreferrer" className="text-[9px] font-semibold text-slate-500 hover:text-white">View verified combo ↗</a>
+      <div className="mt-4 flex items-center justify-between border-t border-td-ink/[0.06] pt-4">
+        <button type="button" onClick={() => setExpanded((value) => !value)} className="text-[11px] font-semibold text-td-accent-text">{expanded ? "Hide steps" : "How it works"}</button>
+        <a href={combo.spellbookUrl} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-td-muted hover:text-td-primary">View verified combo ↗</a>
       </div>
       {expanded ? (
-        <div className="mt-4 space-y-3 rounded-xl border border-white/[0.06] bg-black/10 p-4">
-          {combo.prerequisites.length ? <p className="text-[11px] leading-5 text-amber-100/80"><span className="font-semibold">Before you start:</span> {combo.prerequisites.join(" ")}</p> : null}
-          <ol className="space-y-2">{combo.steps.map((step, index) => <li key={`${combo.id}-${index}`} className="flex gap-3 text-[11px] leading-5 text-slate-400"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[9px] font-semibold text-cyan-200">{index + 1}</span><span>{step}</span></li>)}</ol>
+        <div className="mt-4 space-y-3 rounded-xl border border-td-ink/[0.06] bg-black/10 p-4">
+          {combo.prerequisites.length ? <p className="text-[11px] leading-5 text-td-warning/80"><span className="font-semibold">Before you start:</span> {combo.prerequisites.join(" ")}</p> : null}
+          <ol className="space-y-2">{combo.steps.map((step, index) => <li key={`${combo.id}-${index}`} className="flex gap-3 text-[11px] leading-5 text-td-secondary"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-td-accent/[0.08] text-[11px] font-semibold text-td-accent-text">{index + 1}</span><span>{step}</span></li>)}</ol>
         </div>
       ) : null}
     </article>
@@ -5947,35 +5950,35 @@ function TokenWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="rounded-[26px] border border-violet-300/[0.12] bg-[#06131f] p-6">
+      <section className="rounded-[26px] border border-td-violet/[0.12] bg-td-surface p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-violet">
               Token Intelligence
             </p>
-            <h2 className="mt-3 text-[28px] font-semibold text-white">
+            <h2 className="mt-3 text-[28px] font-semibold text-td-primary">
               Complete token kit
             </h2>
-            <p className="mt-2 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-2 max-w-3xl text-[14px] leading-6 text-td-secondary">
               Only genuine token types enter the physical token kit. Multipliers,
               payoffs, copiers, and token consumers are classified separately.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-violet-300/[0.12] bg-violet-400/[0.035] px-5 py-4 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <div className="rounded-2xl border border-td-violet/[0.12] bg-td-violet/[0.035] px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                 Unique tokens
               </p>
-              <p className="mt-1 text-3xl font-semibold text-violet-200">
+              <p className="mt-1 text-3xl font-semibold text-td-violet">
                 {tokens.length}
               </p>
             </div>
-            <div className="rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-5 py-4 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <div className="rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.035] px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                 Support cards
               </p>
-              <p className="mt-1 text-3xl font-semibold text-cyan-200">
+              <p className="mt-1 text-3xl font-semibold text-td-accent-text">
                 {support.length}
               </p>
             </div>
@@ -5984,17 +5987,17 @@ function TokenWorkspace({
       </section>
 
       {loading ? (
-        <div className="rounded-2xl border border-white/[0.06] bg-[#06131f] p-6 text-[14px] text-slate-500">
+        <div className="rounded-2xl border border-td-ink/[0.06] bg-td-surface p-6 text-[14px] text-td-muted">
           Classifying token producers and support cards…
         </div>
       ) : (
         <>
-          <section className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5">
+          <section className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5">
             <div>
-              <p className="text-[18px] font-semibold text-white">
+              <p className="text-[18px] font-semibold text-td-primary">
                 Required Token Kit
               </p>
-              <p className="mt-1 text-[12px] text-slate-500">
+              <p className="mt-1 text-[12px] text-td-muted">
                 Bring one physical card for each unique token below. Use dice or counters for additional copies.
               </p>
             </div>
@@ -6004,9 +6007,9 @@ function TokenWorkspace({
                 {tokens.map((token) => (
                   <article
                     key={token.name}
-                    className="group overflow-hidden rounded-[22px] border border-white/[0.07] bg-black/[0.09] transition duration-200 hover:-translate-y-0.5 hover:border-violet-300/[0.16] hover:shadow-[0_18px_50px_rgba(0,0,0,0.28),0_0_24px_rgba(139,92,246,0.08)]"
+                    className="group overflow-hidden rounded-[22px] border border-td-ink/[0.07] bg-black/[0.09] transition duration-200 hover:-translate-y-0.5 hover:border-td-violet/[0.16] hover:shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength))),0_0_24px_rgba(139,92,246,0.08)]"
                   >
-                    <div className="relative aspect-[1.55] overflow-hidden bg-violet-400/[0.03]">
+                    <div className="relative aspect-[1.55] overflow-hidden bg-td-violet/[0.03]">
                       {token.image ? (
                         <img
                           src={token.image}
@@ -6017,25 +6020,25 @@ function TokenWorkspace({
                       ) : (
                         <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.08),transparent_70%)]">
                           <div className="text-center">
-                            <Sparkles className="mx-auto h-7 w-7 text-violet-300" />
-                            <p className="mt-3 text-[12px] font-semibold text-violet-100">
+                            <Sparkles className="mx-auto h-7 w-7 text-td-violet" />
+                            <p className="mt-3 text-[12px] font-semibold text-td-violet">
                               {token.name}
                             </p>
                           </div>
                         </div>
                       )}
 
-                      <div className="absolute left-3 top-3 rounded-full border border-white/[0.12] bg-[#03101a]/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-100 backdrop-blur">
+                      <div className="absolute left-3 top-3 rounded-full border border-td-ink/[0.12] bg-td-surface/88 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-violet backdrop-blur">
                         Required Token
                       </div>
                     </div>
 
                     <div className="p-4">
-                      <h3 className="text-[17px] font-semibold text-white">
+                      <h3 className="text-[17px] font-semibold text-td-primary">
                         {token.name}
                       </h3>
 
-                      <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600">
+                      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Created by
                       </p>
 
@@ -6044,7 +6047,7 @@ function TokenWorkspace({
                           (name) => (
                             <span
                               key={name}
-                              className="rounded-full border border-white/[0.06] bg-white/[0.015] px-2.5 py-1.5 text-[10px] leading-4 text-slate-400"
+                              className="rounded-full border border-td-ink/[0.06] bg-td-ink/[0.015] px-2.5 py-1.5 text-[11px] leading-4 text-td-secondary"
                             >
                               {name}
                             </span>
@@ -6056,7 +6059,7 @@ function TokenWorkspace({
                 ))}
               </div>
             ) : (
-              <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/[0.08] p-5 text-[13px] text-slate-500">
+              <div className="mt-5 rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-5 text-[13px] text-td-muted">
                 No genuine token-producing effects were detected in the current list.
               </div>
             )}
@@ -6070,13 +6073,13 @@ function TokenWorkspace({
             .map((group) => (
               <section
                 key={group.role}
-                className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5"
+                className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5"
               >
                 <div>
-                  <p className="text-[18px] font-semibold text-white">
+                  <p className="text-[18px] font-semibold text-td-primary">
                     {group.title}
                   </p>
-                  <p className="mt-1 text-[12px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-td-muted">
                     {group.description}
                   </p>
                 </div>
@@ -6085,17 +6088,17 @@ function TokenWorkspace({
                   {group.cards.map((card) => (
                     <article
                       key={`${group.role}-${card.cardName}`}
-                      className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4"
+                      className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-[14px] font-semibold text-white">
+                        <p className="text-[14px] font-semibold text-td-primary">
                           {card.cardName}
                         </p>
-                        <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-400/[0.025] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-cyan-200">
+                        <span className="rounded-full border border-td-accent/[0.1] bg-td-accent/[0.025] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                           {card.role}
                         </span>
                       </div>
-                      <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                      <p className="mt-2 text-[12px] leading-5 text-td-muted">
                         {card.explanation}
                       </p>
                     </article>
@@ -6126,14 +6129,14 @@ function OwnershipIntelligenceWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="rounded-[30px] border border-emerald-300/[0.11] bg-[#06131f] p-7">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
+      <section className="rounded-[30px] border border-td-success/[0.11] bg-td-surface p-7">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-success">
           Inventory Intelligence
         </p>
-        <h2 className="mt-3 text-3xl font-semibold text-white">
+        <h2 className="mt-3 text-3xl font-semibold text-td-primary">
           Know what you own, where it is, and where it is listed.
         </h2>
-        <p className="mt-3 max-w-4xl text-[14px] leading-6 text-slate-400">
+        <p className="mt-3 max-w-4xl text-[14px] leading-6 text-td-secondary">
           Matches the deck against Trading Docks inventory data, including physical
           location, condition, printing, marketplace, listing ID, and reservation state.
         </p>
@@ -6160,16 +6163,16 @@ function OwnershipIntelligenceWorkspace({
         />
       </div>
 
-      <section className="overflow-hidden rounded-[26px] border border-white/[0.07] bg-[#06131f]">
-        <div className="border-b border-white/[0.055] px-5 py-4">
-          <h3 className="text-[18px] font-semibold text-white">
+      <section className="overflow-hidden rounded-[26px] border border-td-ink/[0.07] bg-td-surface">
+        <div className="border-b border-td-ink/[0.055] px-5 py-4">
+          <h3 className="text-[18px] font-semibold text-td-primary">
             Ownership Map
           </h3>
         </div>
 
-        <div className="divide-y divide-white/[0.045]">
+        <div className="divide-y divide-td-ink/[0.045]">
           {loading ? (
-            <p className="p-5 text-[13px] text-slate-500">
+            <p className="p-5 text-[13px] text-td-muted">
               Checking inventory…
             </p>
           ) : rows.map((row) => (
@@ -6178,22 +6181,22 @@ function OwnershipIntelligenceWorkspace({
               className="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(180px,1fr)_100px_100px_2fr]"
             >
               <div>
-                <p className="text-[14px] font-semibold text-white">
+                <p className="text-[14px] font-semibold text-td-primary">
                   {row.cardName}
                 </p>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-td-muted">
                   Need {row.required}
                 </p>
               </div>
               <p className={[
                 "text-[13px] font-semibold",
                 row.owned >= row.required
-                  ? "text-emerald-200"
-                  : "text-amber-200",
+                  ? "text-td-success"
+                  : "text-td-warning",
               ].join(" ")}>
                 {row.owned} owned
               </p>
-              <p className="text-[13px] text-slate-400">
+              <p className="text-[13px] text-td-secondary">
                 {row.matches.length} locations
               </p>
               <div className="flex flex-wrap gap-2">
@@ -6203,7 +6206,7 @@ function OwnershipIntelligenceWorkspace({
                     match={match}
                   />
                 )) : (
-                  <span className="rounded-full border border-amber-300/[0.1] bg-amber-400/[0.025] px-3 py-1.5 text-[11px] text-amber-200">
+                  <span className="rounded-full border border-td-warning/[0.1] bg-td-warning/[0.025] px-3 py-1.5 text-[11px] text-td-warning">
                     Not found in inventory
                   </span>
                 )}
@@ -6222,8 +6225,8 @@ function InventoryMatchChip({
   match: InventoryMatch;
 }) {
   return (
-    <span className="rounded-xl border border-white/[0.065] bg-white/[0.015] px-3 py-2 text-[11px] text-slate-400">
-      <strong className="text-slate-200">
+    <span className="rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.015] px-3 py-2 text-[11px] text-td-secondary">
+      <strong className="text-td-primary">
         {match.quantity}×
       </strong>{" "}
       {match.location} · {match.condition}
@@ -6249,10 +6252,10 @@ function IntelligenceMetric({
   tone: "cyan" | "rose" | "amber" | "emerald";
 }) {
   const tones = {
-    cyan: "border-cyan-300/[0.11] bg-cyan-400/[0.025] text-cyan-200",
-    rose: "border-rose-300/[0.12] bg-rose-400/[0.03] text-rose-200",
-    amber: "border-amber-300/[0.11] bg-amber-400/[0.025] text-amber-200",
-    emerald: "border-emerald-300/[0.11] bg-emerald-400/[0.025] text-emerald-200",
+    cyan: "border-td-accent/[0.11] bg-td-accent/[0.025] text-td-accent-text",
+    rose: "border-td-danger/[0.12] bg-td-danger/[0.03] text-td-danger",
+    amber: "border-td-warning/[0.11] bg-td-warning/[0.025] text-td-warning",
+    emerald: "border-td-success/[0.11] bg-td-success/[0.025] text-td-success",
   }[tone];
 
   return (
@@ -6263,7 +6266,7 @@ function IntelligenceMetric({
       <p className="text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold text-white">
+      <p className="mt-2 text-3xl font-semibold text-td-primary">
         {value}
       </p>
       <p className="mt-2 text-[12px] opacity-70">
@@ -6355,25 +6358,25 @@ function AnalyticsWorkspace({
 
   return (
     <section className="mt-6 space-y-6">
-      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.12] bg-[#06131f] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.10),transparent_33%),radial-gradient(circle_at_82%_20%,rgba(139,92,246,0.09),transparent_30%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.018)_1px,transparent_1px)] bg-[size:34px_34px]" />
+      <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.12] bg-td-surface p-6 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] sm:p-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgb(var(--td-accent-rgb)/0.10),transparent_33%),radial-gradient(circle_at_82%_20%,rgba(139,92,246,0.09),transparent_30%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--td-accent-rgb)/0.018)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--td-accent-rgb)/0.018)_1px,transparent_1px)] bg-[size:34px_34px]" />
 
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <span className="rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200">
+              <span className="rounded-full border border-td-accent/[0.16] bg-td-accent/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
                 Deck Intelligence
               </span>
-              <span className="text-[12px] text-slate-500">
+              <span className="text-[12px] text-td-muted">
                 Live analysis
               </span>
             </div>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-td-primary sm:text-4xl">
               {commanderName || deck.name}
             </h1>
-            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-td-secondary">
               A format-aware view of deck health, color balance, collection readiness,
               power level, and the highest-impact improvements available right now.
             </p>
@@ -6414,25 +6417,25 @@ function AnalyticsWorkspace({
         commanderName={commanderName}
       />
 
-      <section className="rounded-[28px] border border-emerald-300/[0.11] bg-[#06131f] p-6">
+      <section className="rounded-[28px] border border-td-success/[0.11] bg-td-surface p-6">
         <div className="grid gap-6 xl:grid-cols-[190px_minmax(0,1fr)] xl:items-center">
-          <div className="rounded-2xl border border-emerald-300/[0.12] bg-emerald-400/[0.03] p-5 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+          <div className="rounded-2xl border border-td-success/[0.12] bg-td-success/[0.03] p-5 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-success">
               Deck Readiness
             </p>
-            <p className="mt-3 text-5xl font-semibold text-white">
+            <p className="mt-3 text-5xl font-semibold text-td-primary">
               {readinessScore}%
             </p>
-            <p className="mt-2 text-[12px] text-slate-500">
+            <p className="mt-2 text-[12px] text-td-muted">
               Ready for the deck box
             </p>
           </div>
 
           <div>
-            <h2 className="text-[20px] font-semibold text-white">
+            <h2 className="text-[20px] font-semibold text-td-primary">
               Pre-game readiness checklist
             </h2>
-            <p className="mt-2 text-[13px] leading-5 text-slate-500">
+            <p className="mt-2 text-[13px] leading-5 text-td-muted">
               Combines legality, ownership, token preparation, and deck health into one actionable status.
             </p>
 
@@ -6489,7 +6492,7 @@ function AnalyticsWorkspace({
               subtitle="Nonland cards grouped by mana value"
             >
               <div className="mt-6">
-                <div className="flex h-40 items-end gap-3 rounded-2xl border border-white/[0.045] bg-black/[0.08] px-4 pt-4">
+                <div className="flex h-40 items-end gap-3 rounded-2xl border border-td-ink/[0.045] bg-black/[0.08] px-4 pt-4">
                   {analytics.manaCurve.map((item) => {
                     const max = Math.max(
                       ...analytics.manaCurve.map(
@@ -6507,14 +6510,14 @@ function AnalyticsWorkspace({
                         key={item.label}
                         className="group flex flex-1 flex-col items-center justify-end gap-2"
                       >
-                        <span className="text-[12px] font-semibold text-slate-200">
+                        <span className="text-[12px] font-semibold text-td-primary">
                           {item.value}
                         </span>
                         <div
-                          className="w-full max-w-[44px] rounded-t-xl border border-cyan-200/[0.1] bg-gradient-to-t from-sky-700 via-sky-500 to-cyan-300 shadow-[0_0_20px_rgba(56,189,248,0.10)] transition duration-300 group-hover:shadow-[0_0_30px_rgba(56,189,248,0.26)]"
+                          className="w-full max-w-[44px] rounded-t-xl border border-td-accent/[0.1] bg-gradient-to-t from-td-accent via-td-accent to-td-accent shadow-[0_0_20px_rgb(var(--td-accent-rgb)/0.10)] transition duration-300 group-hover:shadow-[0_0_30px_rgb(var(--td-accent-rgb)/0.26)]"
                           style={{ height }}
                         />
-                        <span className="pb-2 text-[11px] text-slate-500">
+                        <span className="pb-2 text-[11px] text-td-muted">
                           {item.label}
                         </span>
                       </div>
@@ -6605,20 +6608,20 @@ function AnalyticsWorkspace({
             </Panel>
           </div>
 
-          <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6">
+          <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[18px] font-semibold text-white">
+                <p className="text-[18px] font-semibold text-td-primary">
                   Current Deck List
                 </p>
-                <p className="mt-1 text-[13px] text-slate-500">
+                <p className="mt-1 text-[13px] text-td-muted">
                   Preview the current construction or return to the full editor.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={openCards}
-                className="h-11 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-300 px-5 text-[13px] font-semibold text-[#00121c] shadow-[0_0_24px_rgba(34,211,238,0.14)] transition hover:brightness-110"
+                className="h-11 rounded-xl bg-gradient-to-r from-td-accent to-td-accent px-5 text-[13px] font-semibold text-td-on-accent shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.14)] transition hover:brightness-110"
               >
                 Open Deck Editor
               </button>
@@ -6628,7 +6631,7 @@ function AnalyticsWorkspace({
               {mainDeckCards.slice(0, 8).map((card) => (
                 <div
                   key={card.id}
-                  className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 transition hover:border-cyan-300/[0.13]"
+                  className="flex items-center gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 transition hover:border-td-accent/[0.13]"
                 >
                   {card.image ? (
                     <img
@@ -6638,10 +6641,10 @@ function AnalyticsWorkspace({
                     />
                   ) : null}
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-white">
+                    <p className="truncate text-[13px] font-semibold text-td-primary">
                       {card.name}
                     </p>
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-td-muted">
                       {card.quantity === 1
                         ? "Single copy"
                         : `${card.quantity} copies`}
@@ -6654,33 +6657,33 @@ function AnalyticsWorkspace({
         </div>
 
         <aside className="space-y-6 xl:sticky xl:top-5 xl:self-start">
-          <section className="rounded-[28px] border border-violet-300/[0.12] bg-[#06131f] p-6">
+          <section className="rounded-[28px] border border-td-violet/[0.12] bg-td-surface p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.05]">
-                <BrainCircuit className="h-5 w-5 text-violet-200" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.05]">
+                <BrainCircuit className="h-5 w-5 text-td-violet" />
               </div>
               <div>
-                <p className="text-[18px] font-semibold text-white">
+                <p className="text-[18px] font-semibold text-td-primary">
                   AI Deck Review
                 </p>
-                <p className="mt-1 text-[12px] text-slate-500">
+                <p className="mt-1 text-[12px] text-td-muted">
                   Format-aware strategic profile
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-violet-300/[0.11] bg-violet-400/[0.025] p-5 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <div className="mt-6 rounded-2xl border border-td-violet/[0.11] bg-td-violet/[0.025] p-5 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 {isCommander
                   ? "Commander Bracket"
                   : "Deck Health"}
               </p>
-              <p className="mt-2 text-5xl font-semibold text-violet-200">
+              <p className="mt-2 text-5xl font-semibold text-td-violet">
                 {isCommander
                   ? bracket.bracket
                   : Math.round(healthScore)}
               </p>
-              <p className="mt-2 text-[14px] font-semibold text-violet-300">
+              <p className="mt-2 text-[14px] font-semibold text-td-violet">
                 {isCommander
                   ? bracket.name
                   : `${format} Review`}
@@ -6708,14 +6711,14 @@ function AnalyticsWorkspace({
 
             {isCommander && bracket.gameChangers.length ? (
               <div className="mt-5">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-amber-200">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-td-warning">
                   Game Changers
                 </p>
                 <div className="mt-3 space-y-2">
                   {bracket.gameChangers.map((name) => (
                     <div
                       key={name}
-                      className="rounded-xl border border-amber-300/[0.1] bg-amber-400/[0.025] px-4 py-3 text-[13px] text-amber-100"
+                      className="rounded-xl border border-td-warning/[0.1] bg-td-warning/[0.025] px-4 py-3 text-[13px] text-td-warning"
                     >
                       {name}
                     </div>
@@ -6728,7 +6731,7 @@ function AnalyticsWorkspace({
               {bracket.reasons.map((reason) => (
                 <p
                   key={reason}
-                  className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-4 text-[13px] leading-5 text-slate-400"
+                  className="rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] p-4 text-[13px] leading-5 text-td-secondary"
                 >
                   {reason}
                 </p>
@@ -6736,11 +6739,11 @@ function AnalyticsWorkspace({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-emerald-300/[0.1] bg-[#06131f] p-6">
-            <p className="text-[18px] font-semibold text-white">
+          <section className="rounded-[28px] border border-td-success/[0.1] bg-td-surface p-6">
+            <p className="text-[18px] font-semibold text-td-primary">
               Collection Status
             </p>
-            <p className="mt-1 text-[12px] text-slate-500">
+            <p className="mt-1 text-[12px] text-td-muted">
               Completion, acquisition, and upgrade readiness
             </p>
 
@@ -6770,7 +6773,7 @@ function AnalyticsWorkspace({
               />
             </div>
 
-            <button className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-emerald-300 to-teal-300 text-[13px] font-semibold text-[#00140d] transition hover:brightness-110">
+            <button className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-td-success to-td-accent text-[13px] font-semibold text-td-on-accent transition hover:brightness-110">
               Create Want List
             </button>
           </section>
@@ -6804,7 +6807,7 @@ function CleanColorIdentity({
   return (
     <div
       className={[
-        "inline-flex items-center rounded-full border border-white/[0.08] bg-[#030b13]/88",
+        "inline-flex items-center rounded-full border border-td-ink/[0.08] bg-td-canvas/88",
         compact ? "gap-1 px-1.5 py-1" : "gap-1.5 px-2 py-1.5",
       ].join(" ")}
       aria-label={`Color identity: ${shown.map(manaName).join(", ")}`}
@@ -6813,7 +6816,7 @@ function CleanColorIdentity({
         <span
           key={color}
           className={[
-            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-slate-950 shadow-[0_2px_7px_rgba(0,0,0,.4)]",
+            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-td-ink/[0.14] bg-td-canvas shadow-[0_2px_7px_rgb(var(--td-shadow-rgb)/calc(.4*var(--td-shadow-strength)))]",
             compact ? "h-5 w-5" : "h-6 w-6",
           ].join(" ")}
           title={manaName(color)}
@@ -6849,7 +6852,7 @@ function ManaSymbols({
           key={color}
           title={`${manaName(color)} mana`}
           className={[
-            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-slate-950 shadow-[0_2px_8px_rgba(0,0,0,0.38)]",
+            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-td-ink/15 bg-td-canvas shadow-[0_2px_8px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)))]",
             wrapperSize,
           ].join(" ")}
         >
@@ -6944,22 +6947,22 @@ function ColorDemandPie({
 
   return (
     <div className="min-w-0 space-y-5">
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.055] bg-black/[0.08] px-4 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-td-ink/[0.055] bg-black/[0.08] px-4 py-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">
             Demand profile
           </p>
-          <p className="mt-1 text-[13px] text-slate-300">
+          <p className="mt-1 text-[13px] text-td-secondary">
             Relative color presence across the deck
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-300/[0.12] bg-emerald-400/[0.035] px-3 py-2">
+        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-td-success/[0.12] bg-td-success/[0.035] px-3 py-2">
           <ManaSymbols colors={[highestDemand.color]} size="sm" />
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-300/70">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-success/70">
               Highest
             </p>
-            <p className="text-[12px] font-semibold text-white">
+            <p className="text-[12px] font-semibold text-td-primary">
               {manaName(highestDemand.color)}
             </p>
           </div>
@@ -6989,8 +6992,8 @@ function ColorDemandPie({
                   "group flex w-full min-w-0 items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition duration-300",
                   activeColor ===
                   entry.color
-                    ? "bg-white/[0.045] shadow-[0_12px_30px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.10]"
-                    : "bg-white/[0.018] ring-1 ring-white/[0.045]",
+                    ? "bg-td-ink/[0.045] shadow-[0_12px_30px_rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.10]"
+                    : "bg-td-ink/[0.018] ring-1 ring-td-ink/[0.045]",
                 ].join(" ")}
               >
                 <ManaSymbols
@@ -7001,18 +7004,18 @@ function ColorDemandPie({
                 <div className="min-w-0 flex-1">
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-x-4 gap-y-1">
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-white">
+                      <p className="truncate text-[13px] font-semibold text-td-primary">
                         {manaName(entry.color)}
                       </p>
-                      <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                      <p className="mt-0.5 text-[11px] font-medium text-td-secondary">
                         {entry.count} {entry.count === 1 ? "card" : "cards"}
                       </p>
                     </div>
-                    <p className="text-right text-[13px] font-semibold tabular-nums text-slate-100">
+                    <p className="text-right text-[13px] font-semibold tabular-nums text-td-primary">
                       {percentage.toFixed(0)}%
                     </p>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.055]">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-td-ink/[0.055]">
                     <div
                       className="h-full rounded-full transition-all duration-500 group-hover:brightness-110"
                       style={{
@@ -7028,9 +7031,9 @@ function ColorDemandPie({
           })}
       </div>
 
-      <div className="flex items-center justify-between gap-4 border-t border-white/[0.055] pt-4 text-[11px] text-slate-500">
+      <div className="flex items-center justify-between gap-4 border-t border-td-ink/[0.055] pt-4 text-[11px] text-td-muted">
         <span>Percentages include multicolor cards in each matching color.</span>
-        <span className="shrink-0 font-semibold text-slate-300">{total} color matches</span>
+        <span className="shrink-0 font-semibold text-td-secondary">{total} color matches</span>
       </div>
     </div>
   );
@@ -7131,26 +7134,26 @@ function DeckDoctorRecommendations({
   ]);
 
   return (
-    <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.14] bg-[#06131f] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.24)] sm:p-7">
+    <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.14] bg-td-surface p-6 shadow-[0_28px_80px_rgb(var(--td-shadow-rgb)/calc(0.24*var(--td-shadow-strength)))] sm:p-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.05]">
-            <BrainCircuit className="h-5 w-5 text-violet-200" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.05]">
+            <BrainCircuit className="h-5 w-5 text-td-violet" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[20px] font-semibold text-white">
+              <h2 className="text-[20px] font-semibold text-td-primary">
                 AI Deck Doctor
               </h2>
               {report ? (
-                <span className="rounded-full border border-cyan-300/[0.12] bg-cyan-400/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-200">
+                <span className="rounded-full border border-td-accent/[0.12] bg-td-accent/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                   {report.analysisMode === "ai"
                     ? "AI + Scryfall"
                     : "Rules + Scryfall"}
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 max-w-3xl text-[13px] leading-5 text-slate-400">
+            <p className="mt-2 max-w-3xl text-[13px] leading-5 text-td-secondary">
               Detects structural gaps, validates candidates against format and color identity,
               then ranks cards for draw, ramp, interaction, protection, finishers, and combo support.
             </p>
@@ -7161,14 +7164,14 @@ function DeckDoctorRecommendations({
           type="button"
           onClick={() => void runReview()}
           disabled={loading}
-          className="h-11 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.05] px-5 text-[13px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.09] disabled:cursor-wait disabled:opacity-50"
+          className="h-11 rounded-xl border border-td-accent/[0.18] bg-td-accent/[0.05] px-5 text-[13px] font-semibold text-td-accent-text transition hover:bg-td-accent/[0.09] disabled:cursor-wait disabled:opacity-50"
         >
           {loading ? "Analyzing…" : "Run New Review"}
         </button>
       </div>
 
       {error ? (
-        <div className="mt-5 rounded-xl border border-rose-300/[0.12] bg-rose-400/[0.035] p-4 text-[13px] text-rose-200">
+        <div className="mt-5 rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.035] p-4 text-[13px] text-td-danger">
           {error}
         </div>
       ) : null}
@@ -7178,7 +7181,7 @@ function DeckDoctorRecommendations({
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-2xl border border-white/[0.05] bg-white/[0.02]"
+              className="h-36 animate-pulse rounded-2xl border border-td-ink/[0.05] bg-td-ink/[0.02]"
             />
           ))}
         </div>
@@ -7187,23 +7190,23 @@ function DeckDoctorRecommendations({
       {report ? (
         <>
           <div className="mt-5 grid gap-3 sm:grid-cols-[150px_1fr]">
-            <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-violet-300/[0.11] bg-violet-400/[0.025] text-center">
-              <p className="text-4xl font-semibold text-violet-200">
+            <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-td-violet/[0.11] bg-td-violet/[0.025] text-center">
+              <p className="text-4xl font-semibold text-td-violet">
                 {report.score}
               </p>
-              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-td-muted">
                 Deck Health
               </p>
             </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <p className="text-[14px] leading-6 text-slate-300">
+            <div className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4">
+              <p className="text-[14px] leading-6 text-td-secondary">
                 {report.summary}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {report.strengths.map((strength) => (
                   <span
                     key={strength}
-                    className="rounded-full border border-emerald-300/[0.11] bg-emerald-400/[0.025] px-3 py-2 text-[11px] text-emerald-200"
+                    className="rounded-full border border-td-success/[0.11] bg-td-success/[0.025] px-3 py-2 text-[11px] text-td-success"
                   >
                     {strength}
                   </span>
@@ -7213,36 +7216,36 @@ function DeckDoctorRecommendations({
           </div>
 
           <div className="mt-5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-td-secondary">
               Issues detected
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {report.issues.map((issue) => (
                 <div
                   key={`${issue.role}-${issue.target}`}
-                  className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4"
+                  className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[14px] font-semibold text-white">
+                    <p className="text-[14px] font-semibold text-td-primary">
                       {issue.role}
                     </p>
                     <span
                       className={[
-                        "rounded-full px-2 py-1 text-[6px] font-semibold uppercase tracking-[0.08em]",
+                        "rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
                         issue.severity === "high"
-                          ? "bg-rose-400/[0.1] text-rose-200"
+                          ? "bg-td-danger/[0.1] text-td-danger"
                           : issue.severity === "medium"
-                            ? "bg-amber-400/[0.1] text-amber-200"
-                            : "bg-sky-400/[0.08] text-sky-200",
+                            ? "bg-td-warning/[0.1] text-td-warning"
+                            : "bg-td-accent/[0.08] text-td-accent-text",
                       ].join(" ")}
                     >
                       {issue.severity}
                     </span>
                   </div>
-                  <p className="mt-2 text-[12px] text-slate-400">
+                  <p className="mt-2 text-[12px] text-td-secondary">
                     Current {issue.current} · Target {issue.target}
                   </p>
-                  <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                  <p className="mt-2 text-[12px] leading-5 text-td-muted">
                     {issue.explanation}
                   </p>
                 </div>
@@ -7251,14 +7254,14 @@ function DeckDoctorRecommendations({
           </div>
 
           <div className="mt-5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-td-secondary">
               Recommended cards
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {report.recommendations.map((recommendation) => (
                 <article
                   key={`${recommendation.role}-${recommendation.cardName}`}
-                  className="flex gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.02]"
+                  className="flex gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 transition hover:border-td-accent/[0.14] hover:bg-td-accent/[0.02]"
                 >
                   {recommendation.image ? (
                     <img
@@ -7271,32 +7274,32 @@ function DeckDoctorRecommendations({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[14px] font-semibold text-white">
+                        <p className="text-[14px] font-semibold text-td-primary">
                           {recommendation.cardName}
                         </p>
-                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-300">
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                           {recommendation.role}
                         </p>
                       </div>
-                      <span className="rounded-full border border-white/[0.06] px-2.5 py-1.5 text-[11px] text-slate-300">
+                      <span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1.5 text-[11px] text-td-secondary">
                         {recommendation.confidence}%
                       </span>
                     </div>
-                    <p className="mt-2 text-[12px] leading-5 text-slate-400">
+                    <p className="mt-2 text-[12px] leading-5 text-td-secondary">
                       {recommendation.reason}
                     </p>
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         Solves: {recommendation.issue}
                       </span>
                       {typeof recommendation.price === "number" ? (
-                        <span className="text-[12px] font-semibold text-emerald-200">
+                        <span className="text-[12px] font-semibold text-td-success">
                           ${recommendation.price.toFixed(2)}
                         </span>
                       ) : null}
                     </div>
                     {recommendation.replacement ? (
-                      <p className="mt-2 text-[11px] text-amber-200/80">
+                      <p className="mt-2 text-[11px] text-td-warning/80">
                         Consider replacing: {recommendation.replacement}
                       </p>
                     ) : null}
@@ -7319,11 +7322,11 @@ function HeaderMetric({
   value: string;
 }) {
   return (
-    <div className="min-w-[112px] rounded-xl border border-white/[0.08] bg-black/35 p-3 backdrop-blur">
-      <p className="text-[6px] uppercase tracking-[0.1em] text-slate-500">
+    <div className="min-w-[112px] rounded-xl border border-td-ink/[0.08] bg-black/35 p-3 backdrop-blur">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1 text-[10px] font-semibold text-white">
+      <p className="mt-1 text-[11px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -7343,20 +7346,20 @@ function ReadinessCheck({
     <div className={[
       "rounded-xl border p-3",
       ready
-        ? "border-emerald-300/[0.1] bg-emerald-400/[0.025]"
-        : "border-amber-300/[0.11] bg-amber-400/[0.025]",
+        ? "border-td-success/[0.1] bg-td-success/[0.025]"
+        : "border-td-warning/[0.11] bg-td-warning/[0.025]",
     ].join(" ")}>
       <div className="flex min-w-0 items-center gap-2">
         {ready ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+          <CheckCircle2 className="h-4 w-4 text-td-success" />
         ) : (
-          <AlertTriangle className="h-4 w-4 text-amber-300" />
+          <AlertTriangle className="h-4 w-4 text-td-warning" />
         )}
-        <p className="text-[12px] font-semibold text-white">
+        <p className="text-[12px] font-semibold text-td-primary">
           {label}
         </p>
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">
+      <p className="mt-2 text-[11px] text-td-muted">
         {detail}
       </p>
     </div>
@@ -7375,10 +7378,10 @@ function CommandMetric({
   tone: "cyan" | "violet" | "emerald" | "amber";
 }) {
   const toneClass = {
-    cyan: "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
-    violet: "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200",
-    emerald: "border-emerald-300/[0.12] bg-emerald-400/[0.035] text-emerald-200",
-    amber: "border-amber-300/[0.12] bg-amber-400/[0.035] text-amber-200",
+    cyan: "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text",
+    violet: "border-td-violet/[0.12] bg-td-violet/[0.035] text-td-violet",
+    emerald: "border-td-success/[0.12] bg-td-success/[0.035] text-td-success",
+    amber: "border-td-warning/[0.12] bg-td-warning/[0.035] text-td-warning",
   }[tone];
 
   return (
@@ -7388,10 +7391,10 @@ function CommandMetric({
         toneClass,
       ].join(" ")}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] opacity-70">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] opacity-70">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">
+      <p className="mt-2 text-2xl font-semibold text-td-primary">
         {value}
       </p>
       <p className="mt-1 text-[11px] opacity-70">
@@ -7415,15 +7418,15 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
-      <Icon className="h-5 w-5 text-sky-300" />
-      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+    <div className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
+      <Icon className="h-5 w-5 text-td-accent-text" />
+      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.11em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">
+      <p className="mt-2 text-2xl font-semibold text-td-primary">
         {value}
       </p>
-      <p className="mt-2 text-[12px] text-slate-500">
+      <p className="mt-2 text-[12px] text-td-muted">
         {detail}
       </p>
     </div>
@@ -7444,16 +7447,16 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+    <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/0.018)]">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.035]">
-          <Icon className="h-5 w-5 text-sky-300" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.035]">
+          <Icon className="h-5 w-5 text-td-accent-text" />
         </div>
         <div>
-          <p className="text-[18px] font-semibold text-white">
+          <p className="text-[18px] font-semibold text-td-primary">
             {title}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[12px] text-td-muted">
             {subtitle}
           </p>
         </div>
@@ -7478,16 +7481,16 @@ function MetricBars({
       {rows.map((item) => (
         <div key={item.label}>
           <div className="flex items-center justify-between text-[12px]">
-            <span className="font-medium text-slate-400">
+            <span className="font-medium text-td-secondary">
               {item.label}
             </span>
-            <span className="font-semibold text-slate-200">
+            <span className="font-semibold text-td-primary">
               {item.value} cards
             </span>
           </div>
-          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[0.045]">
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-td-ink/[0.045]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-600 to-violet-400"
+              className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-violet"
               style={{
                 width: `${Math.min(
                   100,
@@ -7512,15 +7515,15 @@ function ReviewLine({
   tone: "good" | "warn";
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-3 text-[8px]">
-      <span className="text-slate-600">
+    <div className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] px-3 py-3 text-[11px]">
+      <span className="text-td-muted">
         {label}
       </span>
       <span
         className={
           tone === "good"
-            ? "text-emerald-300"
-            : "text-amber-300"
+            ? "text-td-success"
+            : "text-td-warning"
         }
       >
         {value}
@@ -7537,11 +7540,11 @@ function MiniMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-slate-100">
+      <p className="mt-2 text-lg font-semibold text-td-primary">
         {value}
       </p>
     </div>

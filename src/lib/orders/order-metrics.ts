@@ -1,3 +1,5 @@
+import { calculateRealizedProfit } from "../financials/domain.ts";
+
 export type CanonicalChannelId =
   | "tcgplayer"
   | "ebay"
@@ -14,6 +16,10 @@ export type CanonicalOrderItem = {
   quantity?: number | string | null;
   inventory_item_id?: string | null;
   match_status?: string | null;
+  unit_price?: number | string | null;
+  unit_cost?: number | string | null;
+  marketplace_fee?: number | string | null;
+  realized_profit?: number | string | null;
 };
 
 export type CanonicalOrder = {
@@ -26,6 +32,11 @@ export type CanonicalOrder = {
   normalized_status?: string | null;
   fulfillment_stage?: string | null;
   total?: number | string | null;
+  subtotal?: number | string | null;
+  tax?: number | string | null;
+  marketplace_fees?: number | string | null;
+  shipping_cost?: number | string | null;
+  cost_of_goods?: number | string | null;
   refund_amount?: number | string | null;
   net_profit?: number | string | null;
   ordered_at?: string | null;
@@ -49,6 +60,9 @@ export type CanonicalOrderMetrics = {
   unitsSold: number;
   averageOrderValue: number | null;
   realizedProfit: number | null;
+  profitCoverageRatio: number;
+  profitKnownUnits: number;
+  profitTotalUnits: number;
   openFulfillmentCount: number;
   listingIssues: number;
   channels: CanonicalChannelMetric[];
@@ -90,7 +104,9 @@ export function summarizeCanonicalOrders(
   let unitsSold = 0;
   let openFulfillmentCount = 0;
   let listingIssues = 0;
-  const realizedProfitValues: Array<number | null> = [];
+  let knownRealizedProfit = 0;
+  let profitKnownUnits = 0;
+  let profitTotalUnits = 0;
 
   for (const order of orders) {
     const status = normalizeOrderStatus(order);
@@ -106,7 +122,12 @@ export function summarizeCanonicalOrders(
 
     grossSales += orderGross;
     unitsSold += orderUnits;
-    realizedProfitValues.push(numericOrNull(order.net_profit));
+    const financials = calculateOrderProfit(order, orderGross, orderUnits);
+    if (financials.realizedProfit !== null) {
+      knownRealizedProfit += financials.realizedProfit;
+      profitKnownUnits += orderUnits;
+    }
+    profitTotalUnits += orderUnits;
     if (isOpenOrder(order)) openFulfillmentCount += 1;
     if (unmatched) listingIssues += 1;
 
@@ -131,9 +152,7 @@ export function summarizeCanonicalOrders(
     }
   }
 
-  const realizedProfit = realizedProfitValues.some((value) => value !== null)
-    ? realizedProfitValues.reduce<number>((total, value) => total + (value ?? 0), 0)
-    : null;
+  const realizedProfit = profitKnownUnits > 0 ? knownRealizedProfit : null;
   const orderCount = orders.length;
 
   return {
@@ -142,6 +161,9 @@ export function summarizeCanonicalOrders(
     unitsSold,
     averageOrderValue: orderCount ? grossSales / orderCount : null,
     realizedProfit,
+    profitCoverageRatio: profitTotalUnits > 0 ? profitKnownUnits / profitTotalUnits : 0,
+    profitKnownUnits,
+    profitTotalUnits,
     openFulfillmentCount,
     listingIssues,
     channels: [...channelMap.values()].map((channel) => ({
@@ -213,6 +235,39 @@ function isOpenOrder(order: CanonicalOrder) {
     fulfillment === "needs-review" ||
     fulfillment === "picking" ||
     fulfillment === "packing";
+}
+
+function calculateOrderProfit(order: CanonicalOrder, orderGross: number, orderUnits: number) {
+  const explicitCostOfGoods = numericOrNull(order.cost_of_goods);
+  const itemCosts = (order.marketplace_order_items ?? []).reduce((sum, item) => {
+    const quantity = Math.max(0, numeric(item.quantity));
+    const unitCost = numericOrNull(item.unit_cost);
+    return unitCost === null ? sum : sum + (unitCost * quantity);
+  }, 0);
+  const hasKnownCost = explicitCostOfGoods !== null && explicitCostOfGoods > 0
+    ? true
+    : itemCosts > 0;
+  const allocatedCostBasis = explicitCostOfGoods !== null && explicitCostOfGoods > 0
+    ? explicitCostOfGoods
+    : itemCosts > 0
+      ? itemCosts
+      : null;
+  const lineFees = (order.marketplace_order_items ?? []).reduce((sum, item) => sum + numeric(item.marketplace_fee), 0);
+  const authoritativeNetProfit = numericOrNull(order.net_profit);
+  if (hasKnownCost && authoritativeNetProfit !== null) {
+    return {
+      realizedProfit: authoritativeNetProfit,
+    };
+  }
+  return calculateRealizedProfit({
+    grossSale: orderGross,
+    taxCollected: order.tax,
+    marketplaceFees: numeric(order.marketplace_fees) + lineFees,
+    sellerShipping: order.shipping_cost,
+    refunds: order.refund_amount,
+    allocatedCostBasis,
+    costBasisKnown: hasKnownCost,
+  });
 }
 
 function normalizeText(value: unknown) {

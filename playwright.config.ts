@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { guardPlaywrightTarget } from "./tests/helpers/staging-guard";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173";
+guardPlaywrightTarget(process.env);
+
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173";
 const useLocalServer = !process.env.PLAYWRIGHT_BASE_URL;
 
 if (useLocalServer) {
@@ -21,6 +24,8 @@ export default defineConfig({
   ],
   use: {
     baseURL,
+    // Only the loopback fixture uses a temporary self-signed certificate.
+    ignoreHTTPSErrors: useLocalServer,
     actionTimeout: 10_000,
     navigationTimeout: 30_000,
     trace: "retain-on-failure",
@@ -29,9 +34,10 @@ export default defineConfig({
   },
   webServer: useLocalServer
     ? {
-        command: "npm run build && npx next start --hostname 127.0.0.1 --port 4173",
+        command: "npm run build && node tests/helpers/local-https-server.mjs",
         url: baseURL,
-        reuseExistingServer: !process.env.CI,
+        ignoreHTTPSErrors: true,
+        reuseExistingServer: false,
         timeout: 180_000,
       }
     : undefined,

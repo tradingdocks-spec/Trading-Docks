@@ -26,39 +26,39 @@ const groupOrder = [
 const themes = {
   color: {
     accent: "#67e8f9",
-    background: "#06131d",
+    background: "var(--td-surface-default)",
     board: "#071b26",
     ink: "#f8fbfd",
     muted: "#b6c5ce",
-    panel: "rgba(3,12,18,.78)",
+    panel: "rgb(var(--td-surface-rgb)/.78)",
     preview: "",
   },
   harbor: {
     accent: "#4ce8f4",
-    background: "#03131d",
+    background: "var(--td-surface-default)",
     board: "#071b26",
     ink: "#f8fbfd",
     muted: "#9fb2bf",
     panel: "#0a2632",
-    preview: "from-[#0b3444] via-[#04141f] to-[#02070b]",
+    preview: "from-td-raised via-td-surface to-td-canvas",
   },
   midnight: {
     accent: "#a78bfa",
-    background: "#070817",
+    background: "var(--td-surface-default)",
     board: "#10132a",
     ink: "#fbfaff",
     muted: "#aaa9c1",
     panel: "#181b37",
-    preview: "from-[#252954] via-[#0b0c20] to-[#04050b]",
+    preview: "from-td-raised via-td-surface to-td-canvas",
   },
   paper: {
     accent: "#0e7490",
-    background: "#dce8ee",
+    background: "var(--td-surface-elevated)",
     board: "#edf3f5",
     ink: "#101820",
     muted: "#4b5d68",
     panel: "#d4e1e7",
-    preview: "from-[#c9dde7] via-[#eef4f6] to-[#d7e4e9]",
+    preview: "from-td-raised via-td-raised to-td-raised",
   },
 } satisfies Record<ShowcaseTheme, Record<string, string>>;
 
@@ -397,26 +397,26 @@ export function DeckShowcaseStudio({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/95 p-3 backdrop-blur-xl sm:p-5">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-td-canvas/95 p-3 backdrop-blur-xl sm:p-5">
       <div className="mx-auto flex min-h-full max-w-[1600px] items-center justify-center">
-        <section className="w-full overflow-hidden rounded-[28px] border border-cyan-300/15 bg-[#06131f] shadow-[0_30px_120px_rgba(0,0,0,.7)]">
-          <header className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4 sm:px-7 sm:py-5">
+        <section className="w-full overflow-hidden rounded-[28px] border border-td-accent/15 bg-td-surface shadow-[0_30px_120px_rgb(var(--td-shadow-rgb)/calc(.7*var(--td-shadow-strength)))]">
+          <header className="flex items-center justify-between border-b border-td-ink/[0.07] px-5 py-4 sm:px-7 sm:py-5">
             <div>
-              <div className="flex items-center gap-2 text-cyan-300">
+              <div className="flex items-center gap-2 text-td-accent-text">
                 <Sparkles className="h-3.5 w-3.5" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em]">Deck Craft Studio</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em]">Deck Craft Studio</p>
               </div>
-              <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
+              <h2 className="mt-1 text-lg font-semibold text-td-primary sm:text-xl">
                 Turn your deck into a shareable poster
               </h2>
             </div>
-            <button type="button" aria-label="Close showcase" onClick={onClose} className="rounded-xl border border-white/10 p-2.5 text-slate-400 transition hover:text-white">
+            <button type="button" aria-label="Close showcase" onClick={onClose} className="rounded-xl border border-td-ink/10 p-2.5 text-td-secondary transition hover:text-td-primary">
               <X className="h-5 w-5" />
             </button>
           </header>
 
           <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
-            <aside className="border-b border-white/[0.07] p-5 lg:border-b-0 lg:border-r">
+            <aside className="border-b border-td-ink/[0.07] p-5 lg:border-b-0 lg:border-r">
               <ShowcaseControl title="Share format">
                 {([
                   ["portrait", "Facebook / Feed"],
@@ -445,21 +445,21 @@ export function DeckShowcaseStudio({
               <ShowcaseControl title="Include">
                 <ShowcaseToggle label="Deck value" checked={showValue} onChange={setShowValue} />
               </ShowcaseControl>
-              <div className="mt-6 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
-                <p className="text-[11px] font-semibold text-cyan-100">Card-first deck poster</p>
-                <p className="mt-2 text-[11px] leading-5 text-slate-500">
+              <div className="mt-6 rounded-2xl border border-td-accent/10 bg-td-accent/[0.035] p-4">
+                <p className="text-[11px] font-semibold text-td-accent-text">Card-first deck poster</p>
+                <p className="mt-2 text-[11px] leading-5 text-td-muted">
                   Full cards are stacked like a tournament deck board, with every category packed into the available space.
                 </p>
               </div>
-              <button type="button" onClick={() => void exportShowcase()} disabled={exporting} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-400 text-[12px] font-black text-[#00121c] shadow-[0_10px_35px_rgba(34,211,238,.16)] transition hover:brightness-105 disabled:opacity-60">
+              <button type="button" onClick={() => void exportShowcase()} disabled={exporting} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent text-[12px] font-black text-td-on-accent shadow-[0_10px_35px_rgb(var(--td-accent-rgb)/.16)] transition hover:brightness-105 disabled:opacity-60">
                 {typeof navigator !== "undefined" && "share" in navigator ? <Share2 className="h-4 w-4" /> : <Download className="h-4 w-4" />}
                 {exporting ? "Rendering HD poster…" : "Share or Download HD"}
               </button>
             </aside>
 
-            <main className="flex min-h-[680px] items-center justify-center overflow-auto bg-[#02090e] p-4 sm:p-7">
+            <main className="flex min-h-[680px] items-center justify-center overflow-auto bg-td-canvas p-4 sm:p-7">
               <div
-                className={`relative w-full overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br ${tokens.preview} shadow-[0_24px_80px_rgba(0,0,0,.58)] ${
+                className={`relative w-full overflow-hidden rounded-[20px] border border-td-ink/10 bg-gradient-to-br ${tokens.preview} shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.58*var(--td-shadow-strength)))] ${
                   size === "square" ? "max-w-[820px] aspect-square" : size === "story" ? "max-w-[450px] aspect-[9/16]" : "max-w-[760px] aspect-[4/5]"
                 }`}
                 style={theme === "color" ? { backgroundImage: identityGradient } : undefined}
@@ -492,7 +492,7 @@ export function DeckShowcaseStudio({
                     className="mt-[2.5%] grid min-h-0 flex-1 items-start gap-[1.2%] rounded-[2%] p-[1.4%]"
                     style={{
                       gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-                      background: theme === "paper" ? "rgba(255,255,255,.42)" : "rgba(0,0,0,.25)",
+                      background: theme === "paper" ? "rgb(var(--td-ink-rgb)/.42)" : "rgb(var(--td-shadow-rgb)/calc(.25*var(--td-shadow-strength)))",
                     }}
                   >
                     {columns.map((column, index) => (
@@ -544,10 +544,10 @@ function PosterGroup({
         {group.cards.map((card, index) => (
           <div
             key={card.id}
-            className="relative aspect-[.716] overflow-hidden rounded-[4%] border shadow-[0_5px_12px_rgba(0,0,0,.45)]"
+            className="relative aspect-[.716] overflow-hidden rounded-[4%] border shadow-[0_5px_12px_rgb(var(--td-shadow-rgb)/calc(.45*var(--td-shadow-strength)))]"
             style={{
               marginTop: index ? `-${100 - overlap}%` : undefined,
-              borderColor: "rgba(255,255,255,.34)",
+              borderColor: "rgb(var(--td-ink-rgb)/.34)",
               zIndex: index + 1,
             }}
           >
@@ -572,14 +572,14 @@ function TextPosterGroup({
   tokens: (typeof themes)[ShowcaseTheme];
 }) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-[5px] border border-white/10 bg-black/35">
+    <section className="min-w-0 overflow-hidden rounded-[5px] border border-td-ink/10 bg-black/35">
       <header className="flex items-center justify-between px-[5%] py-[3%]" style={{ background: tokens.panel }}>
         <p className="truncate text-[clamp(5px,.62vw,9px)] font-black uppercase tracking-[.08em]" style={{ color: tokens.ink }}>{group.name}</p>
         <span className="text-[clamp(5px,.62vw,9px)] font-black" style={{ color: tokens.accent }}>{group.count}</span>
       </header>
       <div className="px-[4%] py-[2.5%]">
         {group.cards.map((card) => (
-          <div key={card.id} className="grid grid-cols-[1.1em_minmax(0,1fr)] items-baseline gap-[3%] border-b border-white/[0.055] py-[1.2%] last:border-b-0">
+          <div key={card.id} className="grid grid-cols-[1.1em_minmax(0,1fr)] items-baseline gap-[3%] border-b border-td-ink/[0.055] py-[1.2%] last:border-b-0">
             <span className="text-[clamp(5px,.58vw,8px)] font-black" style={{ color: tokens.accent }}>{card.quantity}</span>
             <span className="truncate text-[clamp(5px,.58vw,8px)] font-semibold" style={{ color: tokens.ink }}>{card.name}</span>
           </div>
@@ -600,7 +600,7 @@ function MiniCurve({ cards, accent, muted }: { cards: DeckCard[]; accent: string
       {bins.map((amount, index) => (
         <div key={index} className="flex h-full flex-1 flex-col items-center justify-end gap-0.5">
           <span className="w-full rounded-t-sm" style={{ height: `${Math.max(3, (amount / max) * 42)}px`, background: accent }} />
-          <span className="text-[6px] font-bold" style={{ color: muted }}>{index === 6 ? "6+" : index}</span>
+          <span className="text-[11px] font-bold" style={{ color: muted }}>{index === 6 ? "6+" : index}</span>
         </div>
       ))}
     </div>
@@ -609,7 +609,7 @@ function MiniCurve({ cards, accent, muted }: { cards: DeckCard[]; accent: string
 
 function Choice({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold transition ${active ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500 hover:text-slate-300"}`}>
+    <button type="button" onClick={onClick} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold transition ${active ? "border-td-accent/30 bg-td-accent/10 text-td-accent-text" : "border-td-ink/[0.07] text-td-muted hover:text-td-secondary"}`}>
       {label}
     </button>
   );
@@ -618,7 +618,7 @@ function Choice({ active, onClick, label }: { active: boolean; onClick: () => vo
 function ShowcaseControl({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mb-6">
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{title}</p>
+      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{title}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -626,9 +626,9 @@ function ShowcaseControl({ title, children }: { title: string; children: ReactNo
 
 function ShowcaseToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return (
-    <label className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-white/[0.07] px-3 py-2.5 text-[11px] text-slate-300">
+    <label className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-td-ink/[0.07] px-3 py-2.5 text-[11px] text-td-secondary">
       {label}
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="accent-cyan-300" />
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="accent-td-accent" />
     </label>
   );
 }

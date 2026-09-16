@@ -258,15 +258,15 @@ export function QuickCreateMenu({
         onMouseEnter={() => setActiveIndex(index)}
         className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all duration-150 ${
           isActive
-            ? "border-cyan-300/20 bg-cyan-400/[0.07] shadow-[0_0_25px_rgba(34,211,238,0.05)]"
-            : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.035]"
+            ? "border-td-accent/20 bg-td-accent/[0.07] shadow-[0_0_25px_rgb(var(--td-accent-rgb)/0.05)]"
+            : "border-transparent hover:border-td-ink/[0.06] hover:bg-td-ink/[0.035]"
         }`}
       >
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
             isActive
-              ? "border-cyan-300/25 bg-cyan-400/10 text-cyan-300"
-              : "border-white/[0.07] bg-white/[0.025] text-slate-500 group-hover:text-cyan-300"
+              ? "border-td-accent/25 bg-td-accent/10 text-td-accent-text"
+              : "border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted group-hover:text-td-accent-text"
           }`}
         >
           <Icon className="h-4 w-4" />
@@ -276,26 +276,26 @@ export function QuickCreateMenu({
           <div className="flex items-center gap-2">
             <p
               className={`truncate text-[11px] font-medium ${
-                isActive ? "text-cyan-100" : "text-white"
+                isActive ? "text-td-accent-text" : "text-td-primary"
               }`}
             >
               {item.title}
             </p>
 
             {showGroup ? (
-              <span className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.025] px-2 py-0.5 text-[8px] text-slate-500">
+              <span className="shrink-0 rounded-full border border-td-ink/[0.07] bg-td-ink/[0.025] px-2 py-0.5 text-[11px] text-td-muted">
                 {item.group}
               </span>
             ) : null}
           </div>
 
-          <p className="mt-0.5 truncate text-[9px] text-slate-500">
+          <p className="mt-0.5 truncate text-[11px] text-td-muted">
             {item.description}
           </p>
         </div>
 
         {item.shortcut ? (
-          <span className="rounded-md border border-white/[0.08] bg-white/[0.025] px-1.5 py-1 text-[8px] font-medium text-slate-600">
+          <span className="rounded-md border border-td-ink/[0.08] bg-td-ink/[0.025] px-1.5 py-1 text-[11px] font-medium text-td-muted">
             {item.shortcut}
           </span>
         ) : null}
@@ -303,8 +303,8 @@ export function QuickCreateMenu({
         <ArrowRight
           className={`h-3.5 w-3.5 transition ${
             isActive
-              ? "translate-x-0 text-cyan-300 opacity-100"
-              : "-translate-x-1 text-slate-600 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+              ? "translate-x-0 text-td-accent-text opacity-100"
+              : "-translate-x-1 text-td-muted opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
           }`}
         />
       </Link>
@@ -315,32 +315,32 @@ export function QuickCreateMenu({
     <div
       role="dialog"
       aria-label="Quick Create"
-      className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#071017]/98 shadow-[0_30px_90px_rgba(0,0,0,0.58),0_0_50px_rgba(34,211,238,0.08)] backdrop-blur-2xl"
+      className="absolute right-0 top-[calc(100%+12px)] z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-td-ink/[0.09] bg-td-surface/98 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength))),0_0_50px_rgb(var(--td-accent-rgb)/0.08)] backdrop-blur-2xl"
     >
-      <div className="border-b border-white/[0.06] px-4 pb-3 pt-4">
+      <div className="border-b border-td-ink/[0.06] px-4 pb-3 pt-4">
         <div className="flex items-start justify-between gap-4 px-1">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              <Sparkles className="h-3.5 w-3.5 text-td-accent-text" />
 
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-td-primary">
                 Quick Create
               </p>
             </div>
 
-            <p className="mt-1 text-[9px] text-slate-500">
+            <p className="mt-1 text-[11px] text-td-muted">
               Search and launch any Trading Docks action.
             </p>
           </div>
 
-          <div className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.025] px-1.5 py-1 text-[8px] text-slate-600">
+          <div className="flex items-center gap-1 rounded-md border border-td-ink/[0.08] bg-td-ink/[0.025] px-1.5 py-1 text-[11px] text-td-muted">
             <Command className="h-2.5 w-2.5" />
             Shift P
           </div>
         </div>
 
         <div className="relative mt-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
 
           <input
             ref={searchInputRef}
@@ -349,7 +349,7 @@ export function QuickCreateMenu({
             onKeyDown={handleKeyDown}
             placeholder="Search actions, imports, listings..."
             aria-label="Search Quick Create actions"
-            className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.025] pl-9 pr-3 text-[11px] text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/25 focus:bg-cyan-400/[0.025] focus:shadow-[0_0_24px_rgba(34,211,238,0.05)]"
+            className="h-10 w-full rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] pl-9 pr-3 text-[11px] text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/25 focus:bg-td-accent/[0.025] focus:shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.05)]"
           />
         </div>
       </div>
@@ -360,9 +360,9 @@ export function QuickCreateMenu({
             {!query && recentItems.length > 0 ? (
               <section className="mb-3">
                 <div className="mb-1.5 flex items-center gap-2 px-2">
-                  <Clock3 className="h-3 w-3 text-cyan-300" />
+                  <Clock3 className="h-3 w-3 text-td-accent-text" />
 
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-muted">
                     Recently used
                   </p>
                 </div>
@@ -383,7 +383,7 @@ export function QuickCreateMenu({
 
             {query ? (
               <section>
-                <p className="px-2 pb-1.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-muted">
                   {filteredItems.length}{" "}
                   {filteredItems.length === 1 ? "result" : "results"}
                 </p>
@@ -413,7 +413,7 @@ export function QuickCreateMenu({
                     key={section.group}
                     className="mb-3 last:mb-0"
                   >
-                    <p className="px-2 pb-1.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                    <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-muted">
                       {section.group}
                     </p>
 
@@ -434,15 +434,15 @@ export function QuickCreateMenu({
           </>
         ) : (
           <div className="flex min-h-[220px] flex-col items-center justify-center px-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025] text-slate-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-muted">
               <Search className="h-4 w-4" />
             </div>
 
-            <p className="mt-3 text-[11px] font-medium text-slate-300">
+            <p className="mt-3 text-[11px] font-medium text-td-secondary">
               No matching actions
             </p>
 
-            <p className="mt-1 max-w-[280px] text-[9px] leading-4 text-slate-600">
+            <p className="mt-1 max-w-[280px] text-[11px] leading-4 text-td-muted">
               Try searching for a card, binder, import,
               marketplace listing, sale, or automation.
             </p>
@@ -450,33 +450,33 @@ export function QuickCreateMenu({
         )}
       </div>
 
-      <div className="border-t border-white/[0.06] bg-white/[0.015] px-4 py-3">
+      <div className="border-t border-td-ink/[0.06] bg-td-ink/[0.015] px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Bot className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+            <Bot className="h-3.5 w-3.5 shrink-0 text-td-accent-text" />
 
-            <p className="truncate text-[8px] text-slate-500">
+            <p className="truncate text-[11px] text-td-muted">
               AI Create will support natural-language actions here.
             </p>
           </div>
 
-          <div className="hidden shrink-0 items-center gap-2 text-[8px] text-slate-600 sm:flex">
+          <div className="hidden shrink-0 items-center gap-2 text-[11px] text-td-muted sm:flex">
             <span>
-              <kbd className="rounded border border-white/[0.08] bg-white/[0.025] px-1 py-0.5">
+              <kbd className="rounded border border-td-ink/[0.08] bg-td-ink/[0.025] px-1 py-0.5">
                 ↑↓
               </kbd>{" "}
               Navigate
             </span>
 
             <span>
-              <kbd className="rounded border border-white/[0.08] bg-white/[0.025] px-1 py-0.5">
+              <kbd className="rounded border border-td-ink/[0.08] bg-td-ink/[0.025] px-1 py-0.5">
                 Enter
               </kbd>{" "}
               Open
             </span>
 
             <span>
-              <kbd className="rounded border border-white/[0.08] bg-white/[0.025] px-1 py-0.5">
+              <kbd className="rounded border border-td-ink/[0.08] bg-td-ink/[0.025] px-1 py-0.5">
                 Esc
               </kbd>{" "}
               Close
@@ -488,7 +488,7 @@ export function QuickCreateMenu({
       <style jsx global>{`
         .quick-create-scrollbar {
           scrollbar-width: thin;
-          scrollbar-color: rgba(148, 163, 184, 0.14)
+          scrollbar-color: rgb(var(--td-accent-rgb)/0.14)
             transparent;
         }
 
@@ -502,11 +502,11 @@ export function QuickCreateMenu({
 
         .quick-create-scrollbar::-webkit-scrollbar-thumb {
           border-radius: 999px;
-          background: rgba(148, 163, 184, 0.12);
+          background: rgb(var(--td-accent-rgb)/0.12);
         }
 
         .quick-create-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(34, 211, 238, 0.2);
+          background: rgb(var(--td-accent-rgb)/0.2);
         }
       `}</style>
     </div>

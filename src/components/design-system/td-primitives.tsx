@@ -42,10 +42,10 @@ type TDStateProps = {
 };
 
 const buttonVariant: Record<TDButtonVariant, string> = {
-  primary: "border-[var(--td-action-primary)] bg-[var(--td-action-primary)] text-white shadow-[var(--td-elevation-raised)] hover:bg-[var(--td-action-primary-hover)] active:bg-[var(--td-action-primary-pressed)]",
+  primary: "border-[var(--td-action-primary)] bg-[var(--td-action-primary)] text-td-primary shadow-[var(--td-elevation-raised)] hover:bg-[var(--td-action-primary-hover)] active:bg-[var(--td-action-primary-pressed)]",
   secondary: "border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] text-[var(--td-text-primary)] hover:border-[var(--td-border-focus)]",
   ghost: "border-[var(--td-border-default)] bg-transparent text-[var(--td-text-secondary)] hover:bg-[var(--td-surface-default)] hover:text-[var(--td-text-primary)]",
-  danger: "border-red-300/30 bg-red-400/10 text-red-200 hover:bg-red-400/15",
+  danger: "border-td-danger/30 bg-td-danger/10 text-td-danger hover:bg-td-danger/15",
 };
 
 const buttonSize: Record<TDButtonSize, string> = {
@@ -62,13 +62,13 @@ const cardVariant: Record<TDCardVariant, string> = {
 };
 
 const textVariant: Record<TDTextVariant, string> = {
-  display: "text-[2.375rem] leading-[1.1] font-black tracking-normal",
-  heading: "text-[1.625rem] leading-tight font-black tracking-normal",
-  title: "text-lg leading-snug font-black tracking-normal",
+  display: "text-[2.375rem] leading-[1.1] font-semibold tracking-normal",
+  heading: "text-[1.625rem] leading-tight font-semibold tracking-normal",
+  title: "text-lg leading-snug font-semibold tracking-normal",
   body: "text-sm leading-6 font-medium tracking-normal",
-  small: "text-xs leading-5 font-semibold tracking-normal",
-  caption: "text-[11px] leading-4 font-semibold tracking-normal",
-  label: "text-[11px] leading-4 font-black uppercase tracking-[0.1em]",
+  small: "text-xs leading-5 font-medium tracking-normal",
+  caption: "text-[11px] leading-4 font-medium tracking-normal",
+  label: "text-[11px] leading-4 font-semibold uppercase tracking-[0.1em]",
 };
 
 const textTone: Record<TDTextTone, string> = {
@@ -83,11 +83,11 @@ const textTone: Record<TDTextTone, string> = {
 
 const badgeTone: Record<TDBadgeTone, string> = {
   neutral: "border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] text-[var(--td-text-secondary)]",
-  success: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
-  warning: "border-amber-300/30 bg-amber-300/10 text-amber-200",
-  danger: "border-red-300/30 bg-red-300/10 text-red-200",
-  info: "border-cyan-300/30 bg-cyan-300/10 text-cyan-200",
-  accent: "border-violet-300/30 bg-violet-300/10 text-violet-200",
+  success: "border-td-success/30 bg-td-success/10 text-td-success",
+  warning: "border-td-warning/30 bg-td-warning/10 text-td-warning",
+  danger: "border-td-danger/30 bg-td-danger/10 text-td-danger",
+  info: "border-td-accent/30 bg-td-accent/10 text-td-accent-text",
+  accent: "border-td-violet/30 bg-td-violet/10 text-td-violet",
 };
 
 export function TDButton({
@@ -109,7 +109,7 @@ export function TDButton({
       data-slot="td-button"
       disabled={isDisabled}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border font-black transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--td-background-primary)] disabled:pointer-events-none disabled:opacity-55",
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--td-background-primary)] disabled:pointer-events-none disabled:opacity-55",
         buttonVariant[variant],
         buttonSize[size],
         className,
@@ -146,7 +146,7 @@ export function TDInput({
   return (
     <div className={cn("space-y-2", containerClassName)}>
       {label ? (
-        <label htmlFor={inputId} className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">
+        <label htmlFor={inputId} className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--td-text-muted)]">
           {label}
         </label>
       ) : null}
@@ -156,14 +156,14 @@ export function TDInput({
         aria-describedby={error && inputId ? `${inputId}-error` : undefined}
         disabled={disabled}
         className={cn(
-          "min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition placeholder:text-[var(--td-text-muted)] focus:border-[var(--td-border-focus)] focus:ring-2 focus:ring-[rgba(102,217,255,0.18)] disabled:opacity-55",
-          error && "border-red-300/45 bg-red-400/10",
+          "min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition placeholder:text-[var(--td-text-muted)] focus:border-[var(--td-border-focus)] focus:ring-2 focus:ring-[rgb(var(--td-accent-rgb)/0.18)] disabled:opacity-55",
+          error && "border-td-danger/45 bg-td-danger/10",
           className,
         )}
         {...props}
       />
       {error ? (
-        <p id={inputId ? `${inputId}-error` : undefined} role="alert" className="text-xs font-semibold text-red-200">
+        <p id={inputId ? `${inputId}-error` : undefined} role="alert" className="text-xs font-semibold text-td-danger">
           {error}
         </p>
       ) : null}
@@ -175,7 +175,7 @@ export function TDBadge({ className, tone = "neutral", ...props }: ComponentProp
   return (
     <span
       data-slot="td-badge"
-      className={cn("inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em]", badgeTone[tone], className)}
+      className={cn("inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]", badgeTone[tone], className)}
       {...props}
     />
   );

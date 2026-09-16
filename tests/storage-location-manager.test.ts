@@ -137,12 +137,12 @@ test('Collection exposes Storage as a first-class workflow entry', () => {
 
   assert.match(source, /type CollectionSection = "overview" \| "cards" \| "binders" \| "portfolio" \| "storage" \| "trade" \| "wishlist"/);
   assert.match(source, /aria-label="Collection navigation"/);
-  assert.match(source, /SectionTab label="Overview"/);
-  assert.match(source, /SectionTab label="Cards"/);
+  assert.match(source, /useState<CollectionSection>\("cards"\)/);
+  assert.match(source, /SectionTab label="Inventory"/);
   assert.match(source, /SectionTab label="Binders"/);
   assert.match(source, /SectionTab label="Portfolio"/);
   assert.match(source, /SectionTab label="Storage"/);
-  assert.match(source, /SectionTab label="Trade"/);
+  assert.match(source, /SectionTab label="Trade Binder"/);
   assert.match(source, /SectionTab label="Wishlist"/);
   assert.match(source, /setActiveSection\("storage"\)/);
   assert.match(source, /label="Stored"/);

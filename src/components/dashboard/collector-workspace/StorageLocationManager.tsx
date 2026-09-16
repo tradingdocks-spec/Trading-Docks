@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, Boxes, MapPin, Plus, Star, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -20,9 +21,10 @@ import {
   loadWebStorageLocationManager,
   renameWebStorageLocation,
 } from "@/lib/storage-location-client-data";
+import { runWebCollectorMutation } from "@/lib/collector-workspace-client-data";
 import {
   STORAGE_LOCATION_TYPES,
-  cardsInLocation,
+  cardsInLocationTree,
   favoriteLocationSummaries,
   recentLocationSummaries,
   searchLocationSummaries,
@@ -85,7 +87,7 @@ export function StorageLocationManager() {
   const selected = useMemo(() => summaries.find((location) => location.id === selectedId) ?? null, [selectedId, summaries]);
   const selectedIsUnassigned = selectedId === UNASSIGNED_LOCATION_ID;
   const selectedCards = useMemo(
-    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocation(state.cards, selected.id) : [],
+    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocationTree(state.cards, selected.id, state.locations) : [],
     [selected, selectedIsUnassigned, state],
   );
   const filteredCards = useMemo(() => {
@@ -140,7 +142,7 @@ export function StorageLocationManager() {
 
       {error ? <TDErrorState title="Location update failed" message={error} /> : null}
       {showCreateLocation ? (
-        <div className="rounded-[var(--td-radius-lg)] border border-cyan-300/15 bg-cyan-300/[.035] p-4">
+        <div className="rounded-[var(--td-radius-lg)] border border-td-accent/15 bg-td-accent/[.035] p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <TDText variant="title">New location</TDText>
@@ -175,10 +177,10 @@ export function StorageLocationManager() {
             type="button"
             aria-pressed={selectedIsUnassigned}
             onClick={() => setSelectedId(UNASSIGNED_LOCATION_ID)}
-            className="w-full rounded-[var(--td-radius-md)] border border-amber-300/20 bg-amber-300/[.06] p-3 text-left outline-none transition hover:border-amber-200/50 focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+            className="w-full rounded-[var(--td-radius-md)] border border-td-warning/20 bg-td-warning/[.06] p-3 text-left outline-none transition hover:border-td-warning/50 focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="font-black text-amber-100">Unassigned</span>
+              <span className="font-black text-td-warning">Unassigned</span>
               <TDBadge tone="warning">{state.unassignedCards.reduce((sum, card) => sum + card.quantityOwned, 0)} cards</TDBadge>
             </div>
             <TDText variant="caption" tone="muted" className="mt-1">Cards with no physical location</TDText>
@@ -226,6 +228,10 @@ export function StorageLocationManager() {
               onArchive={() => selected ? run("archive", () => archiveWebStorageLocation(selected.id)) : undefined}
               onAssign={(card, toLocationId = selected?.id ?? null) => run(`assign-${card.id}`, () => assignWebStorageLocation({ userId: state.userId, inventoryItemId: card.id, fromLocationId: card.storageLocation?.id ?? null, toLocationId }))}
               onClear={(card) => run(`clear-${card.id}`, () => assignWebStorageLocation({ userId: state.userId, inventoryItemId: card.id, fromLocationId: card.storageLocation?.id ?? null, toLocationId: null }))}
+              onRemove={(card) => run(`remove-${card.id}`, async () => {
+                if (!window.confirm(`Remove all ${card.quantityOwned} ${card.quantityOwned === 1 ? "copy" : "copies"} of ${card.cardName} from your collection? This preserves the event history.`)) return;
+                await runWebCollectorMutation({ type: "remove_quantity", userId: state.userId, inventoryItemId: card.id, quantity: card.quantityOwned, reason: "Removed from storage location" });
+              })}
             />
           ) : (
             <TDEmptyState title="No location selected" message="Choose a location to see assigned and unassigned cards." />
@@ -243,7 +249,7 @@ function QuickLocations({ title, locations, onSelect }: { title: string; locatio
       <TDText variant="label" tone="muted">{title}</TDText>
       <div className="mt-2 flex flex-wrap gap-2">
         {locations.map((location) => (
-          <button key={location.id} type="button" onClick={() => onSelect(location.id)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-cyan-300/25 px-3 text-xs font-black text-cyan-100 outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+          <button key={location.id} type="button" onClick={() => onSelect(location.id)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-td-accent/25 px-3 text-xs font-black text-td-accent-text outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
             {title === "Favorites" ? <Star className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
             {location.name}
           </button>
@@ -269,6 +275,7 @@ function LocationDetail({
   onArchive,
   onAssign,
   onClear,
+  onRemove,
 }: {
   location: LocationSummary | null;
   cards: CollectionCard[];
@@ -285,6 +292,7 @@ function LocationDetail({
   onArchive: () => void | Promise<void> | undefined;
   onAssign: (card: CollectionCard, toLocationId?: string | null) => void;
   onClear: (card: CollectionCard) => void;
+  onRemove: (card: CollectionCard) => void;
 }) {
   const title = isUnassigned ? "Unassigned" : location?.name ?? "Storage";
   const quantity = cards.reduce((sum, card) => sum + card.quantityOwned, 0);
@@ -300,6 +308,15 @@ function LocationDetail({
           </div>
           <TDText variant="heading">{title}</TDText>
           <TDText variant="small" tone="muted">{isUnassigned ? "Cards with no physical location. Assign these to make them findable later." : location?.path.label}</TDText>
+          {!isUnassigned && location ? (
+            <Link
+              href={`/dashboard/inventory/import?locationId=${encodeURIComponent(location.id)}&locationName=${encodeURIComponent(location.path.label)}`}
+              className="inline-flex min-h-10 w-fit items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-td-accent/25 bg-td-accent/10 px-3 text-xs font-black text-td-accent-text outline-none transition hover:border-td-accent/50 focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Import CSV here
+            </Link>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-3">
             <MiniMetric icon={<Boxes className="h-4 w-4" />} label="Cards" value={String(cards.length)} />
             <MiniMetric icon={<Archive className="h-4 w-4" />} label="Quantity" value={String(quantity)} />
@@ -315,7 +332,7 @@ function LocationDetail({
         ) : null}
 
         {cards.length ? (
-          <CardList cards={cards} locations={locations} actionLabel={isUnassigned ? "Move to..." : "Clear assignment"} pending={pending} onAction={isUnassigned ? onAssign : onClear} />
+          <CardList cards={cards} locations={locations} actionLabel={isUnassigned ? "Move to..." : "Clear assignment"} pending={pending} onAction={isUnassigned ? onAssign : onClear} onRemove={onRemove} />
         ) : (
           <TDEmptyState title={isUnassigned ? "Everything is assigned" : "No cards assigned"} message={isUnassigned ? "Every visible card has a physical location." : "Use search or unassigned cards to move cards into this location."} />
         )}
@@ -349,7 +366,7 @@ function LocationDetail({
   );
 }
 
-function CardList({ cards, locations, actionLabel, pending, onAction }: { cards: CollectionCard[]; locations: LocationSummary[]; actionLabel: string; pending: string | null; onAction: (card: CollectionCard, locationId?: string | null) => void }) {
+function CardList({ cards, locations, actionLabel, pending, onAction, onRemove }: { cards: CollectionCard[]; locations: LocationSummary[]; actionLabel: string; pending: string | null; onAction: (card: CollectionCard, locationId?: string | null) => void; onRemove?: (card: CollectionCard) => void }) {
   return (
     <div className="space-y-2">
       {cards.map((card) => (
@@ -373,7 +390,10 @@ function CardList({ cards, locations, actionLabel, pending, onAction }: { cards:
               {locations.map((location) => <option key={location.id} value={location.id}>{location.path.label}</option>)}
             </select>
           ) : (
-            <TDButton label={actionLabel} variant="secondary" size="sm" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onClick={() => onAction(card)} />
+            <div className="flex flex-wrap justify-end gap-2">
+              <TDButton label={actionLabel} variant="secondary" size="sm" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onClick={() => onAction(card)} />
+              {onRemove ? <TDButton label="Remove from collection" variant="ghost" size="sm" loading={pending === `remove-${card.id}`} onClick={() => onRemove(card)} /> : null}
+            </div>
           )}
         </div>
       ))}

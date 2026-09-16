@@ -44,7 +44,7 @@ export function TieredDashboardShell({
   }, [mobileOpen]);
 
   return (
-    <div className="desktop_layout tablet_layout mobile_layout min-h-screen bg-[var(--td-background-primary)] text-white">
+    <div className="desktop_layout tablet_layout mobile_layout min-h-screen bg-[var(--td-background-primary)] text-td-primary">
       <TieredSidebar
         accountType={accountType}
         inventoryModules={inventoryModules}
@@ -79,7 +79,7 @@ export function TieredDashboardShell({
       <Link
         href="/dashboard/feedback"
         aria-label="Provide feedback, report a bug, or request a feature"
-        className="fixed bottom-5 right-5 z-30 hidden h-11 items-center justify-center rounded-[13px] border border-blue-300/20 bg-[var(--td-action-primary)] px-4 text-xs font-bold text-[#021018] shadow-[0_10px_24px_rgba(0,0,0,.22)] transition hover:-translate-y-0.5 hover:bg-[var(--td-action-primary-hover)] md:flex md:w-auto md:gap-2"
+        className="fixed bottom-5 right-5 z-30 hidden h-11 items-center justify-center rounded-[13px] border border-td-accent/20 bg-[var(--td-action-primary)] px-4 text-xs font-bold text-td-on-accent shadow-[0_10px_24px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] transition hover:-translate-y-0.5 hover:bg-[var(--td-action-primary-hover)] md:flex md:w-auto md:gap-2"
       >
         <MessageSquarePlus className="h-4 w-4" />
         <span className="hidden md:inline">Feedback / Report Bug</span>
