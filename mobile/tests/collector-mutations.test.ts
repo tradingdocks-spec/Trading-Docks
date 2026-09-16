@@ -73,6 +73,37 @@ test('Free plan limit enforcement prevents increasing collection beyond card lim
   assert.equal(result.ok ? null : result.code, 'free_limit');
 });
 
+test('Free plan collection limits apply only to growth and preserve over-limit edits and decreases', () => {
+  const context = {
+    membershipTier: 'free',
+    currentTotalQuantity: 1_219,
+    currentCardQuantity: 1,
+    requestedUserId: 'user-1',
+    authenticatedUserId: 'user-1',
+  };
+
+  assert.equal(validateCollectorMutation({ type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 1 }, context).ok, true);
+  assert.equal(validateCollectorMutation({ type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 0 }, context).ok, true);
+  assert.equal(validateCollectorMutation({ type: 'condition', userId: 'user-1', inventoryItemId: 'card-1', condition: 'damaged' }, context).ok, true);
+  assert.equal(validateCollectorMutation({ type: 'storage', userId: 'user-1', inventoryItemId: 'card-1', storageLocationId: null }, context).ok, true);
+  assert.equal(validateCollectorMutation({ type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 2 }, context).ok, false);
+});
+
+test('trusted platform owners and admins bypass commercial collection growth limits', () => {
+  const result = validateCollectorMutation(
+    { type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 2_000 },
+    {
+      membershipTier: 'free',
+      currentTotalQuantity: 1_219,
+      currentCardQuantity: 1,
+      hasFullPlatformAccess: true,
+      requestedUserId: 'user-1',
+      authenticatedUserId: 'user-1',
+    },
+  );
+  assert.equal(result.ok, true);
+});
+
 test('quantity mutation rejects negative or fractional quantities but allows zero as non-destructive zero-owned state', () => {
   for (const quantity of [-1, 1.5]) {
     const result = validateCollectorMutation(
@@ -196,7 +227,7 @@ test('authoritative database errors are recognizable for mobile offline replay',
     {
       authoritative: true,
       code: 'TD_COLLECTOR_FREE_LIMIT_EXCEEDED',
-      message: 'Free plan collections are limited to 500 total owned cards.',
+      message: 'Collection limit reached: Free accounts can hold up to 500 total owned cards. Reduce quantity or upgrade to add more.',
     },
   );
   assert.deepEqual(

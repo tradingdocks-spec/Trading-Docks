@@ -1,7 +1,4 @@
-import {
-  MEMBERSHIP_PLANS,
-  normalizeMembershipTier,
-} from './membership-catalog.ts';
+import { collectionQuantityLimitDecision } from './collector-mutations.ts';
 import {
   normalizeCardCondition,
   normalizeCardFinish,
@@ -101,6 +98,8 @@ export type ScannerConfirmation = {
 export type ScannerValidationContext = {
   membershipTier: unknown;
   currentTotalQuantity: number;
+  /** Set only from trusted platform access, never from a user-entered plan. */
+  hasFullPlatformAccess?: boolean;
 };
 
 export type ScannerValidationResult =
@@ -176,12 +175,17 @@ export function validateScannerConfirmation(
   if (normalizeCardFinish(confirmation.finish) !== confirmation.finish) {
     return { ok: false, code: 'invalid_finish', reason: 'Choose a supported finish.' };
   }
-  const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(context.membershipTier)];
-  if (plan.limits.cardLimit !== null && context.currentTotalQuantity + confirmation.quantity > plan.limits.cardLimit) {
+  const limit = collectionQuantityLimitDecision({
+    membershipTier: context.membershipTier,
+    currentTotalQuantity: context.currentTotalQuantity,
+    currentCardQuantity: 0,
+    hasFullPlatformAccess: context.hasFullPlatformAccess,
+  }, confirmation.quantity);
+  if (!limit.ok) {
     return {
       ok: false,
       code: 'free_limit',
-      reason: `Free plan collections are limited to ${plan.limits.cardLimit} cards.`,
+      reason: limit.reason,
     };
   }
   return { ok: true };

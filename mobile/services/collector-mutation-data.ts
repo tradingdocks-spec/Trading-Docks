@@ -24,11 +24,13 @@ export async function runMobileCollectorMutation({
   membershipTier,
   currentTotalQuantity,
   currentCardQuantity,
+  hasFullPlatformAccess = false,
 }: {
   mutation: CollectorMutation;
   membershipTier: unknown;
   currentTotalQuantity: number;
   currentCardQuantity: number;
+  hasFullPlatformAccess?: boolean;
 }): Promise<MutationResult> {
   const auth = await currentUserId();
   if (!auth) return queueCollectorMutation(mutation, 'Collection storage is offline. The change is queued for sync.');
@@ -37,13 +39,14 @@ export async function runMobileCollectorMutation({
     membershipTier,
     currentTotalQuantity,
     currentCardQuantity,
+    hasFullPlatformAccess,
     requestedUserId: mutation.userId,
     authenticatedUserId: auth,
   });
   if (!validation.ok) return { ok: false, error: validation.reason };
 
   try {
-    await executeOnlineMutation(mutation, auth, membershipTier, currentTotalQuantity, currentCardQuantity);
+    await executeOnlineMutation(mutation, auth, membershipTier, currentTotalQuantity, currentCardQuantity, hasFullPlatformAccess);
     return { ok: true, queued: false };
   } catch (error) {
     const authoritativeError = classifyCollectorAuthoritativeError(error);
@@ -56,9 +59,11 @@ export async function runMobileCollectorMutation({
 export async function retryQueuedCollectorMutations({
   userId,
   membershipTier,
+  hasFullPlatformAccess = false,
 }: {
   userId: string;
   membershipTier: unknown;
+  hasFullPlatformAccess?: boolean;
 }) {
   const queue = await getOfflineQueue();
   const remaining: OfflineOperation[] = [];
@@ -70,7 +75,7 @@ export async function retryQueuedCollectorMutations({
     const mutation = operation.payload as unknown as CollectorMutation;
     try {
       const totals = await loadMutationQuantityContext(userId, mutation.inventoryItemId);
-      await executeOnlineMutation(mutation, userId, membershipTier, totals.currentTotalQuantity, totals.currentCardQuantity);
+      await executeOnlineMutation(mutation, userId, membershipTier, totals.currentTotalQuantity, totals.currentCardQuantity, hasFullPlatformAccess);
     } catch (error) {
       const authoritativeError = classifyCollectorAuthoritativeError(error);
       remaining.push({
@@ -90,12 +95,14 @@ async function executeOnlineMutation(
   membershipTier: unknown,
   currentTotalQuantity: number,
   currentCardQuantity: number,
+  hasFullPlatformAccess = false,
 ) {
   if (!supabase) throw new Error('Supabase collection storage is not configured.');
   const validation = validateCollectorMutation(mutation, {
     membershipTier,
     currentTotalQuantity,
     currentCardQuantity,
+    hasFullPlatformAccess,
     requestedUserId: mutation.userId,
     authenticatedUserId: userId,
   });

@@ -48,7 +48,7 @@ import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 export default function MobileCollectionCardDetail() {
   const insets = useSafeAreaInsets();
   const { cardId } = useLocalSearchParams<{ cardId?: string }>();
-  const { accountType } = useAccount();
+  const { accountType, hasFullPlatformAccess } = useAccount();
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [totalQuantity, setTotalQuantity] = useState(0);
@@ -111,6 +111,7 @@ export default function MobileCollectionCardDetail() {
       membershipTier: accountType,
       currentTotalQuantity: totalQuantity,
       currentCardQuantity: card.quantityOwned,
+      hasFullPlatformAccess,
     });
 
     if (!result.ok) {

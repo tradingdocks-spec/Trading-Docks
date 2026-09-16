@@ -23,6 +23,16 @@ test("Collector inventory authority migration enforces limits with transactional
   assert.doesNotMatch(source, /Proposal:/);
 });
 
+test("Forward-only collection entitlement migration preserves edits and trusted platform access", () => {
+  const source = read("supabase/migrations/20260916224925_first_time_collection_entitlement_semantics.sql");
+
+  assert.match(source, /public\.current_admin_role\(\) in \('owner'::public\.admin_role, 'admin'::public\.admin_role\)/);
+  assert.match(source, /if effective_tier = 'free' and not has_full_platform_access/);
+  assert.match(source, /next_quantity_total > previous_quantity_total/);
+  assert.match(source, /Collection limit reached: Free accounts can hold up to 500/);
+  assert.match(source, /notify pgrst, 'reload schema'/);
+});
+
 test("binder share API derives public cards only from owned inventory records", () => {
   const source = read("src/app/api/binder-shares/route.ts");
 
