@@ -34,3 +34,17 @@ test("scanner copy does not imply that image lookup imports inventory", () => {
   assert.match(source, /This tool does not add cards to inventory/);
   assert.match(source, /Review suggested printings/);
 });
+
+test("Chaos Sort exposes the protected intake path and filing destination", () => {
+  const workspace = readFileSync(path.join(repoRoot, "src/components/dashboard/inventory/ChaosSortWorkspace.tsx"), "utf8");
+  const navigation = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const commitRoute = readFileSync(path.join(repoRoot, "src/app/api/chaos-sort/route.ts"), "utf8");
+
+  assert.match(workspace, /Scan.*Review.*Choose location.*Import into inventory/s);
+  assert.match(workspace, /no cards are written to inventory until you import the batch/);
+  assert.match(workspace, /Needs review, could-not-identify, and failed items stay visible/);
+  assert.match(workspace, /dashboard\/inventory\/batches/);
+  assert.match(navigation, /href: "\/dashboard\/inventory\/chaos-sort"/);
+  assert.match(commitRoute, /requireApiCapability\("collection\.write"\)/);
+  assert.match(commitRoute, /commit_chaos_sort_batch/);
+});
