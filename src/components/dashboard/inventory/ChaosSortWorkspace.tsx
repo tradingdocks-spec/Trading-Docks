@@ -447,7 +447,8 @@ export function ChaosSortWorkspace() {
         const marketPrice = Array.isArray(candidate?.prices)
           ? candidate.prices.find((price: { available?: boolean; value?: number | null }) => price.available && typeof price.value === "number")?.value ?? null
           : null;
-        const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null });
+        const language = typeof candidate?.language === "string" ? candidate.language : typeof identification.language === "string" ? identification.language : null;
+        const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null, language });
         const machineState = classifyChaosSortRecognition({
           processingState: "ready",
           confidence,
@@ -471,6 +472,7 @@ export function ChaosSortWorkspace() {
           collectorNumber,
           rarity: typeof candidate?.rarity === "string" ? candidate.rarity : null,
           finish,
+          language,
           quantity: 1,
           marketPrice,
           existingOwnedQuantity: match.quantity,
@@ -510,6 +512,7 @@ export function ChaosSortWorkspace() {
         const scryfallId = csvValue(values, "scryfall id", "scryfall_id", "scryfallid") || null;
         const condition = csvValue(values, "condition") || "NM";
         const finish = csvValue(values, "finish", "printing") || "nonfoil";
+        const language = csvValue(values, "language", "lang") || null;
         const now = new Date().toISOString();
         const id = crypto.randomUUID();
         return {
@@ -529,6 +532,7 @@ export function ChaosSortWorkspace() {
           rarity: csvValue(values, "rarity") || null,
           finish,
           condition,
+          language,
           quantity,
           marketPrice: Number.parseFloat(csvValue(values, "market", "market price", "price") || "") || null,
           existingOwnedQuantity: 0,
@@ -1207,6 +1211,7 @@ export function ChaosSortWorkspace() {
                     <TDInput label="Collector number" value={selectionValue(selectedItem.collectorNumber)} onChange={(event) => updateItem(selectedItem.id, { collectorNumber: event.target.value })} />
                     <TDInput label="Finish" value={selectionValue(selectedItem.finish)} onChange={(event) => updateItem(selectedItem.id, { finish: event.target.value })} />
                     <TDInput label="Condition" value={selectionValue(selectedItem.condition)} onChange={(event) => updateItem(selectedItem.id, { condition: event.target.value })} />
+                    <TDInput label="Language" value={selectionValue(selectedItem.language)} onChange={(event) => updateItem(selectedItem.id, { language: event.target.value })} />
                     <TDInput label="Quantity" value={String(selectedItem.quantity)} onChange={(event) => updateItem(selectedItem.id, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} />
                     <TDInput label="Market price" value={selectionNumber(selectedItem.marketPrice)} onChange={(event) => updateItem(selectedItem.id, { marketPrice: event.target.value ? Number(event.target.value) : null })} />
                     <div className="space-y-2 sm:col-span-2">
@@ -1454,14 +1459,15 @@ function destinationLocationLabel(destinationLocationId: string, locations: Loca
 function resolveInventoryMatch(
   rows: InventoryRow[],
   locations: LocationRow[],
-  input: { cardName: string; setCode: string | null; collectorNumber: string | null; scryfallId: string | null },
+  input: { cardName: string; setCode: string | null; collectorNumber: string | null; scryfallId: string | null; language?: string | null },
 ) {
   const exact = rows.filter((row) => {
     const nameMatch = normalizeField(row.card_name) === normalizeField(input.cardName);
     const setMatch = normalizeField(row.set_code) === normalizeField(input.setCode);
     const numberMatch = normalizeField(row.collector_number) === normalizeField(input.collectorNumber);
     const scryfallMatch = input.scryfallId ? row.scryfall_id === input.scryfallId : true;
-    return nameMatch && setMatch && numberMatch && scryfallMatch;
+    const languageMatch = input.language ? String(row.data?.language ?? "").toLowerCase() === input.language.toLowerCase() : true;
+    return nameMatch && setMatch && numberMatch && scryfallMatch && languageMatch;
   });
   const locationId = exact[0]?.location_id ?? null;
   return {

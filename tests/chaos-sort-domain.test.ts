@@ -41,6 +41,39 @@ test("chaos sort commit creates its batch parent before physical positions", () 
   assert.ok(positionInsert > parentInsert);
 });
 
+test("chaos sort persistence preserves canonical identity, quantities, positions, and event idempotency", () => {
+  const migration = readFileSync("supabase/migrations/202609070002_fix_chaos_sort_commit_order.sql", "utf8");
+  assert.match(migration, /scryfall_id.*set_code.*collector_number/s);
+  assert.match(migration, /data->>'finish'/);
+  assert.match(migration, /data->>'condition'/);
+  assert.match(migration, /data->>'language'/);
+  assert.match(migration, /data->>'game_id'/);
+  assert.match(migration, /candidate\.location_id/);
+  assert.match(migration, /quantity = public\.inventory_items\.quantity \+ excluded\.quantity/);
+  assert.match(migration, /case when existing_inventory\.id is null then 'inventory_created' else 'quantity_added' end/);
+  assert.match(migration, /chaos-position-/);
+  assert.match(migration, /chaos-sort-commit:/);
+  assert.match(migration, /Every committed card must be resolved/);
+  assert.match(migration, /canonical printing identity/);
+  assert.match(migration, /between 1 and 1000/);
+});
+
+test("inventory events are user-scoped and uniquely idempotent", () => {
+  const migration = readFileSync("supabase/migrations/202609060002_inventory_events.sql", "utf8");
+  assert.match(migration, /user_id uuid not null references auth\.users/);
+  assert.match(migration, /unique \(user_id, idempotency_key\)/);
+  assert.match(migration, /using \(user_id = auth\.uid\(\)\) with check \(user_id = auth\.uid\(\)\)/);
+});
+
+test("batch label print CSS renders one bounded label sheet", () => {
+  const detail = readFileSync("src/components/dashboard/inventory/ChaosSortBatchDetail.tsx", "utf8");
+  assert.match(detail, /@page \{ size: var\(--label-width\) var\(--label-height\); margin: 0; \}/);
+  assert.match(detail, /body \* \{ visibility: hidden !important; \}/);
+  assert.match(detail, /\.label-sheet, \.label-sheet \* \{ visibility: visible !important; \}/);
+  assert.match(detail, /height: var\(--label-height\)/);
+  assert.doesNotMatch(detail, /window\.print\(\).*window\.print\(\)/s);
+});
+
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
   return {

@@ -138,3 +138,23 @@ This branch implements the P0/P1 corrections and restores the previously existin
 - targeted tests for the new terminology and import guidance contracts.
 
 The following remain intentionally unimplemented: a new recognition pipeline, marketplace API connections, and production deployment. The restored Chaos Sort migrations require production review and application before the persisted batch workflow can operate against Supabase.
+
+## Chaos Sort Safety Audit
+
+The reduced `src/app/api/chaos-sort/route.ts` intentionally removed the unused direct-write fallback (`recordBatchAudit`, `commitInventory`, their Supabase adapter, event helper calls, missing-schema fallback, and money helper). The supported path remains capability-guarded and delegates the write atomically to `commit_chaos_sort_batch`; the database function is the source of truth for ownership, identity, quantity, location, unresolved-card, replay, event, position, and batch-state invariants. The API still owns authentication/capability gating and malformed top-level request rejection.
+
+The audit corrected a real persistence defect in the RPC: existing canonical inventory identities now reuse and increment the existing row; game, finish, condition, language, set, collector number, provider identity, and destination location participate in matching; batch positions use batch-specific IDs; and events record the before/after quantity and `quantity_added` versus `inventory_created`. Invalid identity-free cards and quantities outside 1–1000 are rejected. The whole RPC remains transactional, so event, position, or batch failures roll back inventory writes.
+
+The approximately 33 deleted test lines were not Chaos Sort coverage: they exercised an absent `src/lib/orders/pick-domain.ts` helper (physical location hierarchy and deterministic order-pick tasks) from inside the Chaos Sort test. Those tests were removed because the helper is not present in this checkout; Chaos Sort queue, recognition, progress, review closure, provider-failure, commit ordering, canonical-identity, quantity, position, and event-idempotency coverage now remains in `tests/chaos-sort-domain.test.ts`. Pick/retire behavior is additionally covered by the RPC contract and route access checks; a live database integration test remains Requires Production Configuration.
+
+### Required migration order
+
+1. `supabase/migrations/202607280004_inventory_persistence.sql` — existing user-scoped `inventory_locations` and `inventory_items` foundation.
+2. `supabase/migrations/202608310001_chaos_sort.sql` — Chaos Sort batches, source items, rules, indexes, grants, and RLS.
+3. `supabase/migrations/202609060002_inventory_events.sql` — additive user-scoped inventory event ledger, indexes, RLS, and idempotency constraint.
+4. `supabase/migrations/202609070001_chaos_sort_sessions_and_positions.sql` — sessions, batch lifecycle columns, physical positions, RLS, and session/pick/retire/commit RPCs.
+5. `supabase/migrations/202609070002_fix_chaos_sort_commit_order.sql` — replacement commit RPC with parent-before-position ordering and the audited identity/quantity behavior.
+
+`supabase/migrations/202609060001_inventory_commit_boundaries_proposal.sql` is not required by the Chaos Sort RPC; it belongs to the separate CSV inventory commit path and should be reviewed/applied independently.
+
+The Chaos Sort migrations are additive and use `if not exists`, `if not exists` indexes, `drop policy if exists`, and `create or replace function`; they are intended to be replay-safe. The event migration assumes no conflicting `inventory_events` object exists; an owner must compare any existing object before applying it. Local schema lint could not run because Docker/local Postgres was unavailable (`127.0.0.1:54322`); a live authenticated integration test is therefore still Requires Production Configuration. No remote migration or local production database change was performed in this audit. The current inventory authority is user-scoped; workspace-level isolation is not modeled in these legacy inventory tables and should be added only as an explicitly approved schema change.
