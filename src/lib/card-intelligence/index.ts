@@ -7,4 +7,5 @@ export * from "./ranking.ts";
 export * from "./request.ts";
 export * from "./service.ts";
 export * from "./scryfall-provider.ts";
+export * from "./cardsight-provider.ts";
 export * from "./tcgtracking-provider.ts";

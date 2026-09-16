@@ -36,6 +36,7 @@ import type {
   PricePoint,
 } from "@/lib/card-photo-scanner/types";
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
+import { ContextHelp, FeatureIntro, WorkflowSteps } from "@/components/dashboard/help/HelpPrimitives";
 import {
   displayGameBadge,
   marketSourcesForGame,
@@ -383,6 +384,16 @@ export function CardPhotoScanner() {
     <main className="min-h-screen bg-td-canvas px-4 py-5 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1540px] space-y-5">
         <Hero />
+        <FeatureIntro
+          eyebrow="Card image lookup"
+          title="Identify one card before you decide what to pay."
+          description="Upload a clear card photo or enter its name. Trading Docks suggests exact printings and market context; you confirm the result before using it in a buying decision. This tool does not add cards to inventory."
+        >
+          <div className="space-y-3">
+            <WorkflowSteps steps={["Upload or name the card", "Review suggested printings", "Confirm the printing", "Use the buying context"]} />
+            <ContextHelp label="Card could not be identified?">Try a brighter, full-card photo with less sleeve glare, or enter the card name manually. If the exact printing is still uncertain, choose from the suggestions rather than relying on an automatic guess.</ContextHelp>
+          </div>
+        </FeatureIntro>
 
         {!result ? (
           <ScanWorkspace

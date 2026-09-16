@@ -1,10 +1,10 @@
-import { accountStorageKey } from "@/lib/account-storage";
+import { accountStorageKey } from "../account-storage";
 import {
   loadAccountDocument,
   saveAccountDocument,
-} from "@/lib/account-documents";
-import type { DeckRecord } from "@/lib/deck-vault/types";
-import { createClient } from "@/lib/supabase/client";
+} from "../account-documents";
+import type { DeckRecord } from "./types";
+import { createClient } from "../supabase/client";
 
 const LIST_KEY = "deck-vault:list";
 const DECK_PREFIX = "deck-vault:deck:";

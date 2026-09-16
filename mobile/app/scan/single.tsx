@@ -1,3 +1,3 @@
-import UnifiedScannerScreen from '@/components/scanner/automatic-scanner-screen';
+import PrebuiltScannerScreen from '@/components/scanner/prebuilt-scanner-screen';
 
-export default UnifiedScannerScreen;
+export default PrebuiltScannerScreen;

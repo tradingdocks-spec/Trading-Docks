@@ -28,18 +28,21 @@ export async function POST(request: Request) {
   if (itemResult.error) return NextResponse.json({ error: itemResult.error.message }, { status: 500 });
   if (!itemResult.data) return NextResponse.json({ error: "Collection record not found." }, { status: 404 });
 
-  const [quantityResult, access] = await Promise.all([
-    totalOwnedCardQuantity(supabase, user.id),
-    resolveServerAccess(supabase, user),
-  ]);
-  if (!quantityResult.ok) return NextResponse.json({ error: quantityResult.error }, { status: 500 });
+  const access = await resolveServerAccess(supabase, user);
+  if (access.isSuspended) return NextResponse.json({ error: "Collection access is currently suspended." }, { status: 403 });
 
-  const currentTotalQuantity = quantityResult.total;
   const currentCardQuantity = Number(itemResult.data.quantity ?? 0);
+  let currentTotalQuantity = currentCardQuantity;
+  if (mutation.type === "quantity") {
+    const quantityResult = await totalOwnedCardQuantity(supabase, user.id);
+    if (!quantityResult.ok) return NextResponse.json({ error: quantityResult.error }, { status: 500 });
+    currentTotalQuantity = quantityResult.total;
+  }
   const validation = validateCollectorMutation(mutation, {
     membershipTier: access.membershipTier,
     currentTotalQuantity,
     currentCardQuantity,
+    hasFullPlatformAccess: access.hasFullPlatformAccess,
     requestedUserId: mutation.userId,
     authenticatedUserId: user.id,
   });

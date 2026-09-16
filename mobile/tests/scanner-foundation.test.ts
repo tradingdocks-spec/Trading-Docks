@@ -61,6 +61,7 @@ test('quantity validation and Free-plan limits are enforced before save', () => 
   assert.equal(validateScannerConfirmation({ ...confirmation, quantity: 0 }, { membershipTier: 'free', currentTotalQuantity: 10 }).ok, false);
   assert.equal(validateScannerConfirmation({ ...confirmation, quantity: 2 }, { membershipTier: 'free', currentTotalQuantity: 499 }).ok, false);
   assert.equal(validateScannerConfirmation(confirmation, { membershipTier: 'collector', currentTotalQuantity: 2000 }).ok, true);
+  assert.equal(validateScannerConfirmation(confirmation, { membershipTier: 'free', currentTotalQuantity: 1_219, hasFullPlatformAccess: true }).ok, true);
 });
 
 test('scanner add payload includes storage assignment and exact printing fields', () => {

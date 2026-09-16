@@ -17,7 +17,7 @@ test('scanner performance samples are monotonic and bounded', () => {
     const sample = createScannerPerformanceSample({
       previousSamples: samples,
       source: 'assisted_capture',
-      timing: { captureMs: index, cropMs: null, ocrMs: 10, scryfallMs: 20, sessionWriteMs: 5, totalMs: 40, fallbackCount: 0 },
+      timing: { captureMs: index, cropMs: null, recognitionMs: 12, ocrMs: 10, scryfallMs: 20, sessionWriteMs: 5, totalMs: 40, fallbackCount: 0 },
     });
     samples = appendScannerPerformanceSample(samples, sample);
   }
@@ -31,20 +31,21 @@ test('scanner performance report averages measured values only', () => {
   const first = createScannerPerformanceSample({
     previousSamples: [],
     source: 'assisted_capture',
-    timing: { captureMs: 12.2, cropMs: null, ocrMs: 88.8, scryfallMs: 140.1, sessionWriteMs: 5, totalMs: 250, fallbackCount: 2 },
+    timing: { captureMs: 12.2, cropMs: null, recognitionMs: 91.2, ocrMs: 88.8, scryfallMs: 140.1, sessionWriteMs: 5, totalMs: 250, fallbackCount: 2 },
     previewResolution: { width: 390.4, height: 720.2 },
     captureResolution: { width: 3024, height: 4032 },
   });
   const second = createScannerPerformanceSample({
     previousSamples: [first],
     source: 'manual_search',
-    timing: { captureMs: null, cropMs: null, ocrMs: null, scryfallMs: 100, sessionWriteMs: 4, totalMs: 120, fallbackCount: 1 },
+    timing: { captureMs: null, cropMs: null, recognitionMs: null, ocrMs: null, scryfallMs: 100, sessionWriteMs: 4, totalMs: 120, fallbackCount: 1 },
     cameraFps: null,
   });
 
   const report = buildScannerPerformanceReport([second, first]);
 
   assert.equal(report.averages.averageScanTimeMs, 12);
+  assert.equal(report.averages.averageRecognitionTimeMs, 91);
   assert.equal(report.averages.averageOcrTimeMs, 89);
   assert.equal(report.averages.averageScryfallLookupTimeMs, 120);
   assert.equal(report.averages.averageTotalUntilSessionInsertionMs, 190);
@@ -57,7 +58,7 @@ test('scanner performance JSON omits images users and local paths', () => {
   const sample = createScannerPerformanceSample({
     previousSamples: [],
     source: 'assisted_capture',
-    timing: { captureMs: 10, cropMs: null, ocrMs: 20, scryfallMs: 30, sessionWriteMs: 4, totalMs: 60, fallbackCount: 0 },
+    timing: { captureMs: 10, cropMs: null, recognitionMs: 22, ocrMs: 20, scryfallMs: 30, sessionWriteMs: 4, totalMs: 60, fallbackCount: 0 },
     previewResolution: { width: 390, height: 844 },
     captureResolution: { width: 3024, height: 4032 },
   });
@@ -72,7 +73,7 @@ test('compact benchmark summary reports tunable scanner timings without sensitiv
   const sample = createScannerPerformanceSample({
     previousSamples: [],
     source: 'assisted_capture',
-    timing: { captureMs: 44, cropMs: null, ocrMs: 120, scryfallMs: 180, sessionWriteMs: 8, totalMs: 410, fallbackCount: 0 },
+    timing: { captureMs: 44, cropMs: null, recognitionMs: 128, ocrMs: 120, scryfallMs: 180, sessionWriteMs: 8, totalMs: 410, fallbackCount: 0 },
     cameraFps: 28,
     previewResolution: { width: 390, height: 844 },
     captureResolution: { width: 3024, height: 4032 },
@@ -80,6 +81,7 @@ test('compact benchmark summary reports tunable scanner timings without sensitiv
   const summary = serializeScannerBenchmarkSummary(buildScannerPerformanceReport([sample]));
 
   assert.match(summary, /Average scan time: 44 ms/);
+  assert.match(summary, /Average recognition time: 128 ms/);
   assert.match(summary, /Average OCR time: 120 ms/);
   assert.match(summary, /Average Scryfall lookup time: 180 ms/);
   assert.match(summary, /Average total until session insertion: 418 ms/);

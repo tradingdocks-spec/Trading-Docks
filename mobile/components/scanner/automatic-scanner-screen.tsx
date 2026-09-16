@@ -47,12 +47,15 @@ import {
   type ContinuousScannerSession,
   type BatchScannerNoticeModel,
   type BatchScannerTimingSnapshot,
+  type ScannerSessionLine,
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
 import { loadScannerContext, loadScannerDraft, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
+import { createRapidLiveOcrState, runRapidLiveTitleOcr } from '@/services/rapid-scan-live-ocr';
+import { prewarmMagicNameIndex } from '@/services/magic-card-identity';
 import {
   createInterruptedScanDraft,
   resolveScannerPermissionState,
@@ -61,7 +64,9 @@ import {
   type ScannerCardCandidate,
   type ScannerPermissionState,
 } from '@/services/scanner-foundation';
+import { buildRapidMagicNameIndex, type RapidMagicNameIndex } from '@/services/rapid-scan-pipeline';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
+import { createScannerLiveInferenceState, sampleScannerLiveInference, updateScannerLiveInference, type ScannerLiveInferenceState } from '@/services/scanner-live-inference';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
 import { enrichScannerSessionLinePrice, type ScannerPricingTrace } from '@/services/scanner-price-enrichment';
 import { runScannerParallelEnrichment } from '@/services/scanner-parallel-enrichment';
@@ -138,6 +143,7 @@ import {
   type ScannerVisionConfig,
   type ScannerVisionResult,
 } from '@/services/scanner-vision-engine';
+import { defaultMagicVisualReferenceIndex } from '@/services/scanner-multi-signal-recognition';
 import {
   buildPremiumResultTray,
   dominantScannerSurface,
@@ -162,7 +168,104 @@ import type { StorageLocation } from '@/services/storage-location-manager';
 
 type ScannerContext = { userId: string; locations: StorageLocation[]; currentTotalQuantity: number };
 type ScanRecognitionStage = 'idle' | 'reading_title' | 'finding_card' | 'review_ready' | 'failed';
+type ScannerLiveProofDiagnostics = {
+  cameraReady: boolean;
+  framesObserved: number;
+  framesSampled: number;
+  recognitionSamplesStarted: number;
+  recognitionSamplesCompleted: number;
+  ocrAttempts: number;
+  ocrSuccesses: number;
+  latestRawOcrText: string | null;
+  latestTitleCropText: string | null;
+  latestNormalizedTitle: string | null;
+  magicNameIndexLoaded: boolean;
+  magicNameIndexSize: number;
+  localNameLookupAttempts: number;
+  localNameCandidateCount: number;
+  localNameTopCandidate: string | null;
+  localNameTopScore: number | null;
+  visualIndexLoaded: boolean;
+  visualIndexSize: number;
+  visualDescriptorAttempts: number;
+  visualDescriptorSuccesses: number;
+  visualCandidateCount: number;
+  visualTopCandidate: string | null;
+  visualTopSimilarity: number | null;
+  cardBoundsDetected: boolean;
+  cardBoundsConfidence: number | null;
+  qualityGateEvaluations: number;
+  qualityGateRejects: number;
+  latestQualityRejectReason: string | null;
+  backendRequests: number;
+  backendResponses: number;
+  recognitionCycleId: string | null;
+  lastSuccessfulStage: string | null;
+  cameraReadyMs: number | null;
+  firstImageSampleMs: number | null;
+  firstOcrAttemptMs: number | null;
+  firstSuccessfulOcrMs: number | null;
+  firstNormalizedTitleMs: number | null;
+  firstLocalCandidateMs: number | null;
+  firstDisplayedCandidateMs: number | null;
+  exactPrintingMs: number | null;
+  priceMs: number | null;
+  imageSamples: number;
+  emptyOcrResults: number;
+  nameLookupMisses: number;
+  qualityRejects: number;
+};
 const INITIAL_SESSION_MODE: ContinuousScannerMode = 'card_show_purchase';
+
+function createScannerLiveProofDiagnostics(): ScannerLiveProofDiagnostics {
+  return {
+    cameraReady: false,
+    framesObserved: 0,
+    framesSampled: 0,
+    recognitionSamplesStarted: 0,
+    recognitionSamplesCompleted: 0,
+    ocrAttempts: 0,
+    ocrSuccesses: 0,
+    latestRawOcrText: null,
+    latestTitleCropText: null,
+    latestNormalizedTitle: null,
+    magicNameIndexLoaded: false,
+    magicNameIndexSize: 0,
+    localNameLookupAttempts: 0,
+    localNameCandidateCount: 0,
+    localNameTopCandidate: null,
+    localNameTopScore: null,
+    visualIndexLoaded: false,
+    visualIndexSize: 0,
+    visualDescriptorAttempts: 0,
+    visualDescriptorSuccesses: 0,
+    visualCandidateCount: 0,
+    visualTopCandidate: null,
+    visualTopSimilarity: null,
+    cardBoundsDetected: false,
+    cardBoundsConfidence: null,
+    qualityGateEvaluations: 0,
+    qualityGateRejects: 0,
+    latestQualityRejectReason: null,
+    backendRequests: 0,
+    backendResponses: 0,
+    recognitionCycleId: null,
+    lastSuccessfulStage: null,
+    cameraReadyMs: null,
+    firstImageSampleMs: null,
+    firstOcrAttemptMs: null,
+    firstSuccessfulOcrMs: null,
+    firstNormalizedTitleMs: null,
+    firstLocalCandidateMs: null,
+    firstDisplayedCandidateMs: null,
+    exactPrintingMs: null,
+    priceMs: null,
+    imageSamples: 0,
+    emptyOcrResults: 0,
+    nameLookupMisses: 0,
+    qualityRejects: 0,
+  };
+}
 
 export default function AutomaticScannerScreen() {
   const { accountType } = useAccount();
@@ -172,6 +275,7 @@ export default function AutomaticScannerScreen() {
   const mountedRef = useRef(true);
   const activeCaptureIdRef = useRef<string | null>(null);
   const activeSearchIdRef = useRef<string | null>(null);
+  const nextRecognitionCycleRef = useRef(0);
   const autoCaptureInFlightRef = useRef(false);
   const captureStillRef = useRef<() => Promise<void>>(async () => undefined);
   const lastLiveFrameAcceptedAtRef = useRef(0);
@@ -183,6 +287,7 @@ export default function AutomaticScannerScreen() {
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
   const [session, setSession] = useState<ContinuousScannerSession | null>(null);
+  const sessionRef = useRef<ContinuousScannerSession | null>(null);
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
@@ -274,12 +379,96 @@ export default function AutomaticScannerScreen() {
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
+  const [liveInference, setLiveInference] = useState<ScannerLiveInferenceState>(() => createScannerLiveInferenceState());
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLensSwitchStartedAtRef = useRef<number | null>(null);
   const activeCameraDeviceIdRef = useRef<string | null>(null);
   const cameraIsActiveRef = useRef(false);
   const torchTransitionsRef = useRef<ScannerTorchTransition[]>([]);
+  const rapidLiveOcrStateRef = useRef(createRapidLiveOcrState());
+  const rapidLiveNameIndexRef = useRef<RapidMagicNameIndex | null>(null);
+  const lastLiveOcrAttemptAtRef = useRef(0);
+  const liveInferenceRef = useRef<ScannerLiveInferenceState>(createScannerLiveInferenceState());
+  const liveProofDiagnosticsRef = useRef<ScannerLiveProofDiagnostics>(createScannerLiveProofDiagnostics());
+  const lastLiveProofLogRef = useRef<string | null>(null);
+  const nextRecognitionCycleId = useCallback(() => {
+    nextRecognitionCycleRef.current += 1;
+    return `scan-${nextRecognitionCycleRef.current}`;
+  }, []);
+  const isActiveRecognitionCycle = useCallback((cycleId: string | null) => (
+    cycleId !== null && (activeCaptureIdRef.current === cycleId || activeSearchIdRef.current === cycleId)
+  ), []);
+  const updateLiveProofDiagnostics = useCallback((patch: Partial<ScannerLiveProofDiagnostics>) => {
+    const next = { ...liveProofDiagnosticsRef.current, ...patch };
+    liveProofDiagnosticsRef.current = next;
+    if (process.env.NODE_ENV !== 'development') return;
+    const signature = [
+      next.recognitionCycleId ?? 'none',
+      next.cameraReady ? 'ready' : 'not-ready',
+      next.framesSampled,
+      next.ocrAttempts,
+      next.ocrSuccesses,
+      next.latestRawOcrText ?? '',
+      next.latestNormalizedTitle ?? '',
+      next.magicNameIndexLoaded ? `name-${next.magicNameIndexSize}` : 'name-loading',
+      next.localNameTopCandidate ?? '',
+      next.localNameTopScore ?? '',
+      next.visualTopCandidate ?? '',
+      next.visualTopSimilarity ?? '',
+      next.latestQualityRejectReason ?? '',
+      next.lastSuccessfulStage ?? '',
+    ].join('|');
+    if (signature === lastLiveProofLogRef.current) return;
+    lastLiveProofLogRef.current = signature;
+    console.info('TD_SCANNER_LIVE', {
+      cycle: next.recognitionCycleId,
+      cameraReady: next.cameraReady,
+      framesObserved: next.framesObserved,
+      framesSampled: next.framesSampled,
+      recognitionSamplesStarted: next.recognitionSamplesStarted,
+      recognitionSamplesCompleted: next.recognitionSamplesCompleted,
+      ocrAttempts: next.ocrAttempts,
+      ocrSuccesses: next.ocrSuccesses,
+      latestRawOcrText: next.latestRawOcrText,
+      latestTitleCropText: next.latestTitleCropText,
+      latestNormalizedTitle: next.latestNormalizedTitle,
+      magicNameIndexLoaded: next.magicNameIndexLoaded,
+      magicNameIndexSize: next.magicNameIndexSize,
+      localNameLookupAttempts: next.localNameLookupAttempts,
+      localNameCandidateCount: next.localNameCandidateCount,
+      localNameTopCandidate: next.localNameTopCandidate,
+      localNameTopScore: next.localNameTopScore,
+      visualIndexLoaded: next.visualIndexLoaded,
+      visualIndexSize: next.visualIndexSize,
+      visualDescriptorAttempts: next.visualDescriptorAttempts,
+      visualDescriptorSuccesses: next.visualDescriptorSuccesses,
+      visualCandidateCount: next.visualCandidateCount,
+      visualTopCandidate: next.visualTopCandidate,
+      visualTopSimilarity: next.visualTopSimilarity,
+      cardBoundsDetected: next.cardBoundsDetected,
+      cardBoundsConfidence: next.cardBoundsConfidence,
+      qualityGateEvaluations: next.qualityGateEvaluations,
+      qualityGateRejects: next.qualityGateRejects,
+      latestQualityRejectReason: next.latestQualityRejectReason,
+      backendRequests: next.backendRequests,
+      backendResponses: next.backendResponses,
+      lastSuccessfulStage: next.lastSuccessfulStage,
+      cameraReadyMs: next.cameraReadyMs,
+      firstImageSampleMs: next.firstImageSampleMs,
+      firstOcrAttemptMs: next.firstOcrAttemptMs,
+      firstSuccessfulOcrMs: next.firstSuccessfulOcrMs,
+      firstNormalizedTitleMs: next.firstNormalizedTitleMs,
+      firstLocalCandidateMs: next.firstLocalCandidateMs,
+      firstDisplayedCandidateMs: next.firstDisplayedCandidateMs,
+      exactPrintingMs: next.exactPrintingMs,
+      priceMs: next.priceMs,
+      imageSamples: next.imageSamples,
+      emptyOcrResults: next.emptyOcrResults,
+      nameLookupMisses: next.nameLookupMisses,
+      qualityRejects: next.qualityRejects,
+    });
+  }, []);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
@@ -460,6 +649,7 @@ export default function AutomaticScannerScreen() {
     state: scanner2State,
   });
   const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
+  const showRemovalBanner = scanner2State === 'remove_card';
   const logCameraEvent = useCallback((event: Omit<ScannerCameraRuntimeEvent, 'id'>) => {
     setCameraEvents((current) => appendScannerCameraEvent(current, event));
   }, []);
@@ -552,6 +742,116 @@ export default function AutomaticScannerScreen() {
     }
     const result = visionEngineRef.current.analyzeFrame(frame);
     setLiveVisionResult(result);
+    updateLiveProofDiagnostics({
+      cameraReady,
+      framesObserved: liveProofDiagnosticsRef.current.framesObserved + 1,
+      imageSamples: liveProofDiagnosticsRef.current.imageSamples + 1,
+      firstImageSampleMs: liveProofDiagnosticsRef.current.firstImageSampleMs ?? frame.capturedAt,
+      cardBoundsDetected: result.detection.cardPresent,
+      cardBoundsConfidence: result.detection.confidence,
+      visualIndexLoaded: true,
+      visualIndexSize: defaultMagicVisualReferenceIndex().recordCount,
+      qualityGateEvaluations: liveProofDiagnosticsRef.current.qualityGateEvaluations + 1,
+      qualityGateRejects: result.readyForAutoCapture ? liveProofDiagnosticsRef.current.qualityGateRejects : liveProofDiagnosticsRef.current.qualityGateRejects + 1,
+      latestQualityRejectReason: result.readyForAutoCapture ? null : result.guidance,
+      visualDescriptorAttempts: liveProofDiagnosticsRef.current.visualDescriptorAttempts + 1,
+      visualDescriptorSuccesses: result.detection.fingerprint ? liveProofDiagnosticsRef.current.visualDescriptorSuccesses + 1 : liveProofDiagnosticsRef.current.visualDescriptorSuccesses,
+    });
+    const liveOcrEligible = cameraReady && permission === 'granted' && cameraActive && !autoCaptureInFlightRef.current;
+    const liveOcrDue = scannerNow() - lastLiveOcrAttemptAtRef.current >= 140;
+    if (liveOcrEligible && liveOcrDue) {
+      lastLiveOcrAttemptAtRef.current = scannerNow();
+      if (!rapidLiveNameIndexRef.current) {
+        const catalog = prewarmMagicNameIndex();
+        rapidLiveNameIndexRef.current = buildRapidMagicNameIndex(catalog.records.map((record) => ({
+          name: record.name,
+          oracleId: record.oracleId,
+          scryfallId: record.scryfallId,
+        })));
+        updateLiveProofDiagnostics({
+          magicNameIndexLoaded: true,
+          magicNameIndexSize: catalog.records.length,
+        });
+      }
+      const liveFrame = frame;
+      const liveVision = result;
+      const liveNameIndex = rapidLiveNameIndexRef.current;
+      if (liveNameIndex) {
+        updateLiveProofDiagnostics({
+          framesSampled: liveProofDiagnosticsRef.current.framesSampled + 1,
+          recognitionSamplesStarted: liveProofDiagnosticsRef.current.recognitionSamplesStarted + 1,
+          ocrAttempts: liveProofDiagnosticsRef.current.ocrAttempts + 1,
+          recognitionCycleId: `live-${liveFrame.id}`,
+          firstOcrAttemptMs: liveProofDiagnosticsRef.current.firstOcrAttemptMs ?? liveFrame.capturedAt,
+        });
+        void runRapidLiveTitleOcr({
+          state: rapidLiveOcrStateRef.current,
+          frame: liveFrame,
+          nameIndex: liveNameIndex,
+          destination: 'collection',
+          createResultId: createScanId,
+          vision: liveVision,
+          visualIndex: defaultMagicVisualReferenceIndex(),
+          now: scannerNow,
+        }).then(({ state, outcome }) => {
+          if (!mountedRef.current) return;
+          rapidLiveOcrStateRef.current = state;
+          const diagnostics = state.lastDiagnostics;
+          if (diagnostics) {
+            const ocrSucceeded = Boolean(diagnostics.rawOcrText?.trim());
+            const localMatchCandidate = diagnostics.localMatchCandidate ?? null;
+            const fusion = diagnostics.fusion ?? null;
+            updateLiveProofDiagnostics({
+              recognitionSamplesCompleted: liveProofDiagnosticsRef.current.recognitionSamplesCompleted + 1,
+              ocrSuccesses: ocrSucceeded ? liveProofDiagnosticsRef.current.ocrSuccesses + 1 : liveProofDiagnosticsRef.current.ocrSuccesses,
+              latestRawOcrText: diagnostics.rawOcrText,
+              latestTitleCropText: diagnostics.rawOcrText,
+              latestNormalizedTitle: diagnostics.normalizedOcrText,
+              magicNameIndexLoaded: diagnostics.indexReady,
+              magicNameIndexSize: diagnostics.catalogCardCount,
+              localNameLookupAttempts: liveProofDiagnosticsRef.current.localNameLookupAttempts + 1,
+              localNameCandidateCount: localMatchCandidate ? 1 : 0,
+              localNameTopCandidate: localMatchCandidate,
+              localNameTopScore: diagnostics.matchScore,
+              visualDescriptorAttempts: liveProofDiagnosticsRef.current.visualDescriptorAttempts + 1,
+              visualDescriptorSuccesses: fusion?.visualCandidate ? liveProofDiagnosticsRef.current.visualDescriptorSuccesses + 1 : liveProofDiagnosticsRef.current.visualDescriptorSuccesses,
+              visualCandidateCount: fusion?.visualCandidate ? 1 : 0,
+              visualTopCandidate: fusion?.visualCandidate ?? null,
+              visualTopSimilarity: fusion?.visualSimilarity ?? null,
+              backendRequests: diagnostics.route === 'append_confirmed' || diagnostics.route === 'append_review' ? liveProofDiagnosticsRef.current.backendRequests + 1 : liveProofDiagnosticsRef.current.backendRequests,
+              backendResponses: outcome.status === 'added' ? liveProofDiagnosticsRef.current.backendResponses + 1 : liveProofDiagnosticsRef.current.backendResponses,
+              lastSuccessfulStage: diagnostics.route === 'append_confirmed' || diagnostics.route === 'append_review'
+                ? 'local_name_match'
+                : diagnostics.failureStage ? 'reading_title' : liveProofDiagnosticsRef.current.lastSuccessfulStage,
+              firstSuccessfulOcrMs: ocrSucceeded ? liveProofDiagnosticsRef.current.firstSuccessfulOcrMs ?? scannerNow() : liveProofDiagnosticsRef.current.firstSuccessfulOcrMs,
+              firstNormalizedTitleMs: diagnostics.normalizedOcrText ? liveProofDiagnosticsRef.current.firstNormalizedTitleMs ?? scannerNow() : liveProofDiagnosticsRef.current.firstNormalizedTitleMs,
+              firstLocalCandidateMs: localMatchCandidate ? liveProofDiagnosticsRef.current.firstLocalCandidateMs ?? scannerNow() : liveProofDiagnosticsRef.current.firstLocalCandidateMs,
+              firstDisplayedCandidateMs: localMatchCandidate ? liveProofDiagnosticsRef.current.firstDisplayedCandidateMs ?? scannerNow() : liveProofDiagnosticsRef.current.firstDisplayedCandidateMs,
+            });
+            const next = updateScannerLiveInference(
+              liveInferenceRef.current,
+              sampleScannerLiveInference({
+                frameId: liveFrame.id,
+                observedAt: liveFrame.capturedAt,
+                fingerprint: liveVision.detection.fingerprint ?? null,
+                recognitionReady: Boolean(rapidLiveNameIndexRef.current),
+                outcome,
+                diagnostics,
+              }),
+            );
+            liveInferenceRef.current = next;
+            setLiveInference(next);
+            if (outcome.status === 'added') {
+              updateLiveProofDiagnostics({
+                lastSuccessfulStage: 'local_name_match',
+                exactPrintingMs: outcome.identityLatencyMs,
+                backendResponses: liveProofDiagnosticsRef.current.backendResponses,
+              });
+            }
+          }
+        }).catch(() => undefined);
+      }
+    }
     const autoDecision = nextAppleVisionAutoCaptureRuntime(autoCaptureRuntimeRef.current, {
       autoEnabled: autoCaptureEnabled,
       cameraReady,
@@ -577,7 +877,7 @@ export default function AutomaticScannerScreen() {
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, context, guideLayout, permission, previewDimensions, scannerProcessing]);
+  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, context, guideLayout, permission, previewDimensions, scannerProcessing, updateLiveProofDiagnostics]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -718,11 +1018,41 @@ export default function AutomaticScannerScreen() {
   }, [context, session]);
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    liveInferenceRef.current = liveInference;
+  }, [liveInference]);
+
+  useEffect(() => {
     if (!context) return;
     void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify(rawCameraDeviceId
       ? { lensMode: 'raw', rawDeviceId: rawCameraDeviceId, autoCaptureEnabled }
       : { lensMode: cameraLensMode, autoCaptureEnabled }));
   }, [autoCaptureEnabled, cameraLensMode, context, rawCameraDeviceId]);
+
+  useEffect(() => {
+    if (!context || rapidLiveNameIndexRef.current) return;
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      const catalog = prewarmMagicNameIndex();
+      if (cancelled) return;
+      rapidLiveNameIndexRef.current = buildRapidMagicNameIndex(catalog.records.map((record) => ({
+        name: record.name,
+        oracleId: record.oracleId,
+        scryfallId: record.scryfallId,
+      })));
+      updateLiveProofDiagnostics({
+        magicNameIndexLoaded: true,
+        magicNameIndexSize: catalog.records.length,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [context, updateLiveProofDiagnostics]);
 
   useEffect(() => {
     if (torchState?.torchEnabled && !torchState.torchSupported) {
@@ -816,18 +1146,23 @@ export default function AutomaticScannerScreen() {
 
   const addCandidateToBatch = useCallback((input: {
     candidate: ScannerCardCandidate;
+    candidates: ScannerCardCandidate[];
     recognition: MagicRecognitionResult | null;
     stableScanId: string;
+    recognitionCycleId: string;
     source: 'assisted_capture' | 'manual_search';
     fingerprint?: string | null;
     timing?: Partial<BatchScannerTimingSnapshot>;
     captureResolution?: { width: number; height: number } | null;
   }) => {
-    if (!session) return null;
+    if (!isActiveRecognitionCycle(input.recognitionCycleId)) return null;
+    const currentSession = sessionRef.current;
+    if (!currentSession) return null;
+    const insertionCycleId = input.recognitionCycleId;
     const startedAt = scannerNow();
     const recognitionReport = createRecognitionPipelineReport({
       detectedGame: scanGame,
-      candidates: [input.candidate, ...candidates.filter((candidate) => candidate.id !== input.candidate.id)],
+      candidates: [input.candidate, ...input.candidates.filter((candidate) => candidate.id !== input.candidate.id)],
       confidence: input.recognition?.ok ? input.recognition.confidence : {
         overall: Math.round(input.candidate.confidence * 100),
         threshold: 82,
@@ -841,36 +1176,43 @@ export default function AutomaticScannerScreen() {
       candidateCount: recognitionReport.topThree.length,
       confidenceState: recognitionReport.confidenceState,
     })) return null;
-    const rate = parseOptionalPercentage(purchaseRate) ?? session.offerConfig.defaultCashPercentage;
+    const rate = parseOptionalPercentage(purchaseRate) ?? currentSession.offerConfig.defaultCashPercentage;
     const candidateFinish = (input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === finish) ?? input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === 'normal' || candidateFinishOption === 'foil' || candidateFinishOption === 'etched') ?? finish) as 'normal' | 'foil' | 'etched';
-    const sessionWithRate = {
-      ...session,
-      offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
-    };
-    const effectiveStorageLocationId = sessionWithRate.defaultDestination === 'binder' ? binderLocationId : storageLocationId;
-    const nextSession: ContinuousScannerSession = addRecognitionToSession(sessionWithRate, {
-      stableScanId: input.stableScanId,
-      candidate: input.candidate,
-      recognition: recognitionReport,
-      quantity,
-      condition,
-      finish: candidateFinish,
-      language: input.candidate.language ?? language,
-      marketPrice: null,
-      priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
-      priceTimestamp: null,
-      storageLocationId: effectiveStorageLocationId,
-      binderId: sessionWithRate.defaultDestination === 'binder' ? binderLocationId : null,
-      binderPage: sessionWithRate.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
-      binderSlot: sessionWithRate.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
-      tradeStatus,
-      destination: sessionWithRate.defaultDestination,
-      notes: recognitionReport.confidenceState === 'high_confidence'
-        ? 'Pricing and final card decisions are handled in the Review List.'
-        : 'Confirm printing. Pricing and final card decisions are handled in the Review List.',
+    let addedLine: ScannerSessionLine | null = null;
+    let nextSession: ContinuousScannerSession | null = null;
+    setSession((currentSession) => {
+      if (!currentSession) return currentSession;
+      const sessionWithRate = {
+        ...currentSession,
+        offerConfig: { ...currentSession.offerConfig, defaultCashPercentage: rate },
+      };
+      const effectiveStorageLocationId = sessionWithRate.defaultDestination === 'binder' ? binderLocationId : storageLocationId;
+      nextSession = addRecognitionToSession(sessionWithRate, {
+        stableScanId: input.stableScanId,
+        candidate: input.candidate,
+        recognition: recognitionReport,
+        quantity,
+        condition,
+        finish: candidateFinish,
+        language: input.candidate.language ?? language,
+        marketPrice: null,
+        priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
+        priceTimestamp: null,
+        storageLocationId: effectiveStorageLocationId,
+        binderId: sessionWithRate.defaultDestination === 'binder' ? binderLocationId : null,
+        binderPage: sessionWithRate.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
+        binderSlot: sessionWithRate.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
+        tradeStatus,
+        destination: sessionWithRate.defaultDestination,
+        notes: recognitionReport.confidenceState === 'high_confidence'
+          ? 'Pricing and final card decisions are handled in the session.'
+          : 'Confirm printing. Pricing and final card decisions are handled in the session.',
+      });
+      addedLine = nextSession.lines[nextSession.lines.length - 1] ?? null;
+      sessionRef.current = nextSession;
+      return nextSession;
     });
-    const addedLine = nextSession.lines[nextSession.lines.length - 1];
-    setSession(nextSession);
+    if (!addedLine || !nextSession) return null;
     setSessionInsertionResult('inserted');
     setAutoScanner((current) => markScanResult(current, {
       printingId: input.candidate.id,
@@ -893,49 +1235,55 @@ export default function AutomaticScannerScreen() {
         captureResolution: input.captureResolution ?? null,
       })));
     }
-    showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
+    if (!addedLine || !nextSession) return null;
+    const insertedLine = addedLine as ScannerSessionLine;
+    const insertedSession = nextSession as ContinuousScannerSession;
+    showBatchNotice({ ...batchScannerNoticeForLine(insertedLine), lineId: insertedLine.id });
     void Promise.resolve().then(async () => {
+      if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       const pricingStartedAt = scannerNow();
       const enrichment = await runScannerParallelEnrichment({
-        session: nextSession,
-        lineId: addedLine.id,
-        stableScanId: addedLine.stableScanId,
+        session: insertedSession,
+        lineId: insertedLine.id,
+        stableScanId: insertedLine.stableScanId,
         tasks: [{
           name: 'pricing',
           run: ({ session: enrichmentSession }) => {
             const pricing = enrichScannerSessionLinePrice({
               session: enrichmentSession,
-              lineId: addedLine.id,
-              stableScanId: addedLine.stableScanId,
+              lineId: insertedLine.id,
+              stableScanId: insertedLine.stableScanId,
               candidate: input.candidate,
               finish: candidateFinish,
               startedAt: pricingStartedAt,
               now: scannerNow,
             });
-            if (diagnosticsEnabled) setLastPricingTrace(pricing.trace);
+            if (diagnosticsEnabled && isActiveRecognitionCycle(insertionCycleId)) setLastPricingTrace(pricing.trace);
             return pricing.session;
           },
         }],
       });
+      if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       setSession((latest) => {
         if (!latest) return latest;
-        const currentLine = latest.lines.find((line) => line.id === addedLine.id);
-        if (!currentLine || currentLine.stableScanId !== addedLine.stableScanId || currentLine.exactPrintingId !== input.candidate.id) return latest;
-        const enrichedLine = enrichment.session.lines.find((line) => line.id === addedLine.id);
+        const currentLine = latest.lines.find((line) => line.id === insertedLine.id);
+        if (!currentLine || currentLine.stableScanId !== insertedLine.stableScanId || currentLine.exactPrintingId !== input.candidate.id) return latest;
+        const enrichedSession = enrichment.session;
+        if (!enrichedSession) return latest;
+        const enrichedLine = enrichedSession.lines.find((line) => line.id === insertedLine.id);
         if (!enrichedLine) return latest;
         return {
           ...latest,
-          lines: latest.lines.map((line) => line.id === addedLine.id ? enrichedLine : line),
+          lines: latest.lines.map((line) => line.id === insertedLine.id ? enrichedLine : line),
         };
       });
     });
     resetScannerForm({ preserveNotice: true });
-    return addedLine;
+    return insertedLine;
   }, [
     binderLocationId,
     binderPage,
     binderSlot,
-    candidates,
     capturedFrame,
     condition,
     diagnosticsEnabled,
@@ -946,7 +1294,7 @@ export default function AutomaticScannerScreen() {
     quantity,
     resetScannerForm,
     scanGame,
-    session,
+    isActiveRecognitionCycle,
     showBatchNotice,
     storageLocationId,
     tradeStatus,
@@ -984,6 +1332,7 @@ export default function AutomaticScannerScreen() {
     setError(null);
     setSuccess(null);
     setSessionInsertionResult('not_attempted');
+    let captureId: string | null = null;
     if (!cameraRef.current || permission !== 'granted') {
       setCaptureState('camera_not_ready');
       setError('Camera is not ready. Grant permission or use manual search.');
@@ -997,7 +1346,7 @@ export default function AutomaticScannerScreen() {
     try {
       const captureStartedAt = scannerNow();
       if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
-      const captureId = createScanId();
+      captureId = nextRecognitionCycleId();
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
@@ -1015,6 +1364,7 @@ export default function AutomaticScannerScreen() {
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       setAutoScanner((current) => markCaptureStarted(current));
       if (scanGame === 'pokemon') {
+        const recognitionStartedAt = scannerNow();
         const preparedImage = await prepareTcgTrackingScanImage({
           imageUri: photo.uri,
           cropPixels: null,
@@ -1039,13 +1389,16 @@ export default function AutomaticScannerScreen() {
         if (batchCandidate) {
           addCandidateToBatch({
             candidate: batchCandidate,
+            candidates: pokemonScan.candidates,
             recognition: null,
+            recognitionCycleId: captureId,
             stableScanId: captureId,
             source: 'assisted_capture',
             fingerprint: frameLabel,
             captureResolution: { width: photo.width, height: photo.height },
             timing: {
               captureMs: cameraCaptureMs,
+              recognitionMs: scannerNow() - recognitionStartedAt,
               ocrMs: null,
               scryfallMs: null,
               totalMs: scannerNow() - captureStartedAt,
@@ -1055,6 +1408,7 @@ export default function AutomaticScannerScreen() {
         }
         return;
       }
+      const recognitionStartedAt = scannerNow();
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
         preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
@@ -1091,13 +1445,16 @@ export default function AutomaticScannerScreen() {
         if (batchCandidate) {
           addCandidateToBatch({
             candidate: batchCandidate,
+            candidates: scan.candidates,
             recognition: scan.recognition,
+            recognitionCycleId: captureId,
             stableScanId: captureId,
             source: 'assisted_capture',
             fingerprint: frameLabel,
             captureResolution: { width: photo.width, height: photo.height },
             timing: {
               captureMs: cameraCaptureMs,
+              recognitionMs: scannerNow() - recognitionStartedAt,
               cropMs: scan.cropDiagnostics ? null : null,
               ocrMs: scan.ocr.latencyMs,
               scryfallMs: scan.lookupLatencyMs,
@@ -1120,11 +1477,13 @@ export default function AutomaticScannerScreen() {
         setRecognitionStage('failed');
         setError(`${scan.reason} Manual search is still available.`);
       }
+      if (activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_complete');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
+      if (!mountedRef.current || !captureId || activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_failed_waiting_for_removal');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
@@ -1152,6 +1511,7 @@ export default function AutomaticScannerScreen() {
     query,
     recognitionStage,
     scanGame,
+    nextRecognitionCycleId,
     userPausedCamera,
   ]);
   useEffect(() => {
@@ -1180,9 +1540,13 @@ export default function AutomaticScannerScreen() {
       newValue: 'ready',
       reason: 'frame_processor',
     });
+    updateLiveProofDiagnostics({
+      cameraReady: true,
+      cameraReadyMs: liveProofDiagnosticsRef.current.cameraReadyMs ?? readyAt,
+    });
     setCameraReady(true);
     setCaptureState('ready');
-  }, [logCameraEvent]);
+  }, [logCameraEvent, updateLiveProofDiagnostics]);
 
   const handleCameraPreviewStopped = useCallback(() => {
     setCameraLifecycleDiagnostics((current) => ({
@@ -1445,7 +1809,7 @@ export default function AutomaticScannerScreen() {
   };
 
   const runSearch = async () => {
-    const searchId = createScanId();
+    const searchId = nextRecognitionCycleId();
     const searchQuery = query.trim();
     const cacheKey = searchQuery.toLowerCase();
     activeSearchIdRef.current = searchId;
@@ -1565,6 +1929,7 @@ export default function AutomaticScannerScreen() {
         platform={Platform.OS}
         latestResultKind={failedResultTray?.kind ?? null}
         userId={context?.userId ?? 'scanner-user'}
+        liveInference={liveInference}
         onPreviewLayout={handlePreviewLayout}
         onCameraReady={handleCameraReady}
         onCameraPreviewStopped={handleCameraPreviewStopped}
@@ -1585,7 +1950,7 @@ export default function AutomaticScannerScreen() {
         hideControls={hideMainControls}
       />
 
-      <ScannerHud
+      <ScannerHudCompact
         header={scannerHeader}
         sessionName={scannerModeLabel(sessionMode)}
         topInset={insets.top}
@@ -1620,6 +1985,13 @@ export default function AutomaticScannerScreen() {
             tone={batchNotice.tone}
             title={batchNotice.title}
             message={batchNotice.message}
+          />
+        ) : null}
+        {showRemovalBanner ? (
+          <ScannerToast
+            tone="info"
+            title="Remove card"
+            message="Swap in the next card to keep scanning."
           />
         ) : null}
 
@@ -1787,11 +2159,15 @@ export default function AutomaticScannerScreen() {
             {!searching && query && !candidates.length && !error ? <TDEmptyState title="No printings yet" message="Run a search to select an exact printing." /> : null}
             {candidates.map((candidate) => (
               <Pressable key={candidate.id} accessibilityRole="button" accessibilityLabel={`Select ${candidate.name}`} accessibilityState={{ selected: selected?.id === candidate.id }} onPress={() => {
+                const manualSearchCycleId = activeSearchIdRef.current ?? nextRecognitionCycleId();
+                if (!activeSearchIdRef.current) activeSearchIdRef.current = manualSearchCycleId;
                 selectCandidate(candidate);
                 addCandidateToBatch({
                   candidate,
+                  candidates,
                   recognition: magicRecognition,
-                  stableScanId: createScanId(),
+                  recognitionCycleId: manualSearchCycleId,
+                  stableScanId: manualSearchCycleId,
                   source: 'manual_search',
                   timing: { fallbackCount: 1 },
                 });
@@ -1889,6 +2265,7 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
               <DiagnosticCell label="Avg scan" value={performanceMs(scannerPerformanceReport.averages.averageScanTimeMs)} />
+              <DiagnosticCell label="Avg recognition" value={performanceMs(scannerPerformanceReport.averages.averageRecognitionTimeMs)} />
               <DiagnosticCell label="Avg OCR" value={performanceMs(scannerPerformanceReport.averages.averageOcrTimeMs)} />
               <DiagnosticCell label="Avg Scryfall" value={performanceMs(scannerPerformanceReport.averages.averageScryfallLookupTimeMs)} />
               <DiagnosticCell label="Avg to session" value={performanceMs(scannerPerformanceReport.averages.averageTotalUntilSessionInsertionMs)} />
@@ -1963,6 +2340,8 @@ export default function AutomaticScannerScreen() {
   );
 }
 
+// Kept for scanner HUD parity until the compact header path is fully deleted.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ScannerHud({
   header,
   sessionName,
@@ -1986,7 +2365,57 @@ function ScannerHud({
       <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
         <View style={s.hudLine}>
           <TDText variant="title" numberOfLines={1} style={s.hudMode}>Scanner</TDText>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards} scanned</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`Session • ${header.line1.cards} cards`}</TDText>
+        </View>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
+      </Pressable>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel="Auto Scan"
+        accessibilityState={{ checked: autoCaptureEnabled }}
+        onPress={onToggleAutoCapture}
+        style={({ pressed }) => [
+          s.headerAutoToggle,
+          autoCaptureEnabled && s.headerAutoToggleOn,
+          pressed && s.settingsRowPressed,
+        ]}
+      >
+        <TDText variant="caption" style={[s.headerAutoToggleLabel, autoCaptureEnabled && s.headerAutoToggleLabelOn]}>
+          Auto
+        </TDText>
+        <TDText variant="caption" style={[s.headerAutoToggleValue, autoCaptureEnabled && s.headerAutoToggleValueOn]}>
+          {autoCaptureEnabled ? 'On' : 'Off'}
+        </TDText>
+      </Pressable>
+      <HeaderIconControl label="Open scanner settings" icon="settings-outline" onPress={onSettings} />
+    </View>
+  );
+}
+
+function ScannerHudCompact({
+  header,
+  sessionName,
+  topInset,
+  autoCaptureEnabled,
+  onClose,
+  onToggleAutoCapture,
+  onSettings,
+}: {
+  header: ReturnType<typeof scanner2HeaderModel>;
+  sessionName: string;
+  topInset: number;
+  autoCaptureEnabled: boolean;
+  onClose: () => void;
+  onToggleAutoCapture: () => void;
+  onSettings: () => void;
+}) {
+  return (
+    <View style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}>
+      <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
+      <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
+        <View style={s.hudLine}>
+          <TDText variant="title" numberOfLines={1} style={s.hudMode}>Scanner</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`Session • ${header.line1.cards} cards`}</TDText>
         </View>
         <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
       </Pressable>
@@ -2035,6 +2464,7 @@ function ScannerViewport({
   platform,
   latestResultKind,
   userId,
+  liveInference,
   onPreviewLayout,
   onCameraReady,
   onCameraPreviewStopped,
@@ -2075,6 +2505,7 @@ function ScannerViewport({
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
   userId: string;
+  liveInference: ScannerLiveInferenceState;
   onPreviewLayout: (event: LayoutChangeEvent) => void;
   onCameraReady: () => void;
   onCameraPreviewStopped: () => void;
@@ -2095,6 +2526,7 @@ function ScannerViewport({
   hideControls: boolean;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
+  const startupState = scannerCameraStartupState(cameraLifecycle, permission, cameraReady);
   const showResume = shouldShowScannerResumeAction(cameraLifecycle);
   return (
     <View style={[s.cameraStage, { height: cameraStageHeight }]}>
@@ -2103,7 +2535,7 @@ function ScannerViewport({
           accessible
           accessibilityRole="button"
           accessibilityLabel="Scanner camera preview. Double tap or tap the card to focus."
-          style={s.cameraViewport}
+          style={[s.cameraViewport, cameraLifecycle === 'ready' ? s.cameraViewportReady : s.cameraViewportPending]}
           onLayout={onPreviewLayout}
           onTouchEnd={onPreviewFocusTap}
         >
@@ -2126,14 +2558,20 @@ function ScannerViewport({
             onSessionConfigChange={onSessionConfigChange}
             onTorchStateChange={onTorchStateChange}
           />
-          <DetectedCardOutline rectangle={detectedRectangle} tone={guidePresentation.tone} />
-          <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
-          {focusReticle ? <FocusReticle point={focusReticle} /> : null}
+          {cameraLifecycle === 'ready' ? (
+            <>
+              <DetectedCardOutline rectangle={detectedRectangle} tone={guidePresentation.tone} />
+              <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
+              {focusReticle ? <FocusReticle point={focusReticle} /> : null}
+            </>
+          ) : null}
+          {cameraLifecycle === 'ready' ? <ScannerStatus headline={liveInference.headline} subtitle={liveInference.subtitle} tone={liveInference.tone} /> : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
         </View>
       ) : (
         <View style={s.cameraEmptyState}>
           <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
+          <TDText variant="caption" tone="muted">{startupState.label}</TDText>
           <TDText variant="title">{cameraLifecycleTitle(cameraLifecycle, permission)}</TDText>
           <TDText variant="small" tone="muted" style={s.centerText}>{cameraLifecycleMessage(cameraLifecycle, permission, platform)}</TDText>
           {showResume ? <TDText variant="small" tone="muted">Use the header play control to resume.</TDText> : null}
@@ -2141,7 +2579,6 @@ function ScannerViewport({
         </View>
       )}
 
-      {latestResultKind !== 'failed' ? <ScannerStatus instruction={instruction} /> : null}
       <ScannerControls
         torchEnabled={torchEnabled}
         torchSupported={torchSupported}
@@ -2154,6 +2591,18 @@ function ScannerViewport({
       />
     </View>
   );
+}
+
+function scannerCameraStartupState(
+  lifecycle: Scanner2CameraLifecycleState,
+  permission: ScannerPermissionState,
+  cameraReady: boolean,
+) {
+  if (lifecycle === 'ready' && cameraReady) return { label: 'READY', tone: 'success' as const };
+  if (lifecycle === 'permission_pending' || permission !== 'granted') return { label: 'REQUESTING_PERMISSION', tone: 'warning' as const };
+  if (lifecycle === 'starting') return { label: 'STARTING_CAMERA', tone: 'info' as const };
+  if (lifecycle === 'error' || lifecycle === 'unavailable') return { label: 'ERROR', tone: 'danger' as const };
+  return { label: 'INITIALIZING', tone: 'info' as const };
 }
 
 function ScannerGuide({
@@ -2225,12 +2674,20 @@ function CameraMountTracker({ onMount, onUnmount }: { onMount: () => void; onUnm
   return null;
 }
 
-function ScannerStatus({ instruction }: { instruction: string }) {
+function ScannerStatus({ headline, subtitle, tone }: { headline: string; subtitle: string | null; tone: 'muted' | 'info' | 'warning' | 'success' }) {
   return (
-    <View style={s.cameraScrimTop}>
-      <TDText variant="title" style={s.guideMessage}>{instruction}</TDText>
+    <View style={[s.cameraLiveStatus, cameraLiveStatusToneStyle(tone)]}>
+      <TDText variant="small" style={s.cameraLiveHeadline} numberOfLines={1}>{headline}</TDText>
+      {subtitle ? <TDText variant="caption" tone="muted" numberOfLines={1}>{subtitle}</TDText> : null}
     </View>
   );
+}
+
+function cameraLiveStatusToneStyle(tone: 'muted' | 'info' | 'warning' | 'success') {
+  if (tone === 'success') return s.cameraLiveStatusSuccess;
+  if (tone === 'warning') return s.cameraLiveStatusWarning;
+  if (tone === 'info') return s.cameraLiveStatusInfo;
+  return s.cameraLiveStatusMuted;
 }
 
 function ScannerControls({
@@ -2450,10 +2907,10 @@ function AutoScanDiagnosticsOverlay({
         state {autoState} - rectangle {rectangleConfidence === null ? 'unavailable' : `${Math.round(rectangleConfidence * 100)}%`}
       </TDText>
       <TDText variant="caption" tone="muted">
-        frame {performanceMs(frameDeltaMs)} - capture {performanceMs(timings?.captureMs ?? null)} - OCR {performanceMs(timings?.ocrMs ?? null)}
+        frame {performanceMs(frameDeltaMs)} - capture {performanceMs(timings?.captureMs ?? null)} - recognition {performanceMs(timings?.recognitionMs ?? null)}
       </TDText>
       <TDText variant="caption" tone="muted">
-        lookup {performanceMs(timings?.scryfallMs ?? null)} - result {performanceMs(timings?.totalMs ?? null)} - rearm {awaitingRemoval ? 'waiting' : 'ready'}
+        OCR {performanceMs(timings?.ocrMs ?? null)} - lookup {performanceMs(timings?.scryfallMs ?? null)} - result {performanceMs(timings?.totalMs ?? null)} - rearm {awaitingRemoval ? 'waiting' : 'ready'}
       </TDText>
     </View>
   );
@@ -2510,7 +2967,7 @@ function cleanupDiagnostic(scan: MagicStillScanResult | null) {
 
 function scanTimingSummary(timing: BatchScannerTimingSnapshot | undefined) {
   if (!timing) return 'unavailable';
-  return `capture ${timing.captureMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
+  return `capture ${timing.captureMs ?? '?'} ms; recognition ${timing.recognitionMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
 }
 
 function performanceMs(value: number | null) {
@@ -2626,9 +3083,15 @@ const s = StyleSheet.create({
   compactStatInfo: { borderColor: color.info + '88' },
   cameraStage: { ...StyleSheet.absoluteFillObject, minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', zIndex: 1 },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
+  cameraViewportPending: { opacity: 0.02 },
+  cameraViewportReady: { opacity: 1 },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
-  cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
-  guideMessage: { textAlign: 'center' },
+  cameraLiveStatus: { position: 'absolute', left: space.md, right: space.md, bottom: 156, alignItems: 'center', gap: 2, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, borderWidth: 1, zIndex: 20 },
+  cameraLiveStatusMuted: { borderColor: color.border + '88', backgroundColor: color.canvas + '22' },
+  cameraLiveStatusInfo: { borderColor: color.info + '44', backgroundColor: color.info + '14' },
+  cameraLiveStatusWarning: { borderColor: color.warning + '44', backgroundColor: color.warning + '14' },
+  cameraLiveStatusSuccess: { borderColor: color.success + '44', backgroundColor: color.success + '14' },
+  cameraLiveHeadline: { textAlign: 'center', color: color.text },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },

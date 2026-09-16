@@ -15,6 +15,18 @@ test("Collector Workspace mutation API does not cap Free-plan quantity checks at
   assert.match(source, /async function totalOwnedCardQuantity/);
   assert.match(source, /\.range\(from, from \+ pageSize - 1\)/);
   assert.doesNotMatch(source, /\.select\("quantity"\)\.eq\("user_id", user\.id\)\.limit\(1000\)/);
+  assert.match(source, /if \(mutation\.type === "quantity"\)/);
+  assert.match(source, /hasFullPlatformAccess: access\.hasFullPlatformAccess/);
+});
+
+test("Collector Workspace metadata edits do not perform quantity-limit scans", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/app/api/collector-workspace/mutations/route.ts"),
+    "utf8",
+  );
+  const quantityBranch = source.match(/if \(mutation\.type === "quantity"\) \{[\s\S]*?currentTotalQuantity = quantityResult\.total;/)?.[0] ?? "";
+  assert.match(quantityBranch, /totalOwnedCardQuantity/);
+  assert.match(source, /let currentTotalQuantity = currentCardQuantity/);
 });
 
 test("Collector Workspace inventory mutations use the transactional ledger RPC", () => {

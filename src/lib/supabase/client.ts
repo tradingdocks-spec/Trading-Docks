@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { DEFAULT_AUTH_COOKIE_OPTIONS } from "@/lib/supabase/auth-cookie-policy";
+import { DEFAULT_AUTH_COOKIE_OPTIONS } from "./auth-cookie-policy";
 
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 

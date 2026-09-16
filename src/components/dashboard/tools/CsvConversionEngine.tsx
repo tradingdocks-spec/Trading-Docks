@@ -696,9 +696,9 @@ export function CsvConversionEngine({
         movements: [...movements, ...movementRows],
       });
       setNotice(
-        `${quantityTotal.toLocaleString()} units saved to ${selectedLocation?.label ?? "Unassigned"}${
+        `Cards imported into inventory: ${quantityTotal.toLocaleString()} units saved to ${selectedLocation?.label ?? "Unassigned"}${
           marketplace === "Unlisted" ? "" : ` and allocated to ${marketplace}`
-        }.`,
+        }. View inventory to confirm the filing.`,
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "The converted inventory could not be saved.");
@@ -728,8 +728,8 @@ export function CsvConversionEngine({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-td-accent-text"><WandSparkles className="h-3.5 w-3.5" />Seller & Store Tools</div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-td-primary">CSV Converter</h1>
-            <p className="mt-1 text-xs text-td-muted">Upload, review, then convert or save your cards.</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-td-primary">Import or convert inventory files</h1>
+            <p className="mt-1 text-xs text-td-muted">Upload file → Review matches → Choose destination → Download or import. Nothing changes until you confirm.</p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-td-success/65"><ShieldCheck className="h-4 w-4 text-td-success" />Nothing changes until you confirm</div>
         </div>
@@ -820,7 +820,7 @@ export function CsvConversionEngine({
                 setLocationName(next?.label ?? "Unassigned");
               }} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option value="__unassigned__">Unassigned</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></div></label>
               <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><Store className="h-4 w-4 text-td-accent-text" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
-              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
+              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}<span className="sr-only">Import into inventory</span>Import {quantityTotal.toLocaleString()} cards</button>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[11px] leading-5 text-td-muted"><strong className="text-td-secondary">Destination:</strong> {importDestinationLabel}. {locationsLoading ? "Loading your storage locations..." : `${availableLocations.length.toLocaleString()} active locations available.`}</p>

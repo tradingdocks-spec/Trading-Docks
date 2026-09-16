@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { TDBadge, TDButton, TDErrorState, TDLoadingState, TDSheet, TDText } from '@/components/design-system';
@@ -30,15 +30,21 @@ export function PrintingSelectorSheet({
   const [error, setError] = useState<string | null>(null);
   const [printings, setPrintings] = useState<ScannerCardCandidate[]>([]);
   const [filter, setFilter] = useState<PrintingFilter>('all');
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    let active = true;
-    if (!visible || !currentCandidate) return undefined;
+    const requestId = ++requestIdRef.current;
+    setPrintings([]);
+    if (!visible || !currentCandidate?.oracleId) {
+      setLoading(Boolean(visible && currentCandidate));
+      setError(null);
+      return undefined;
+    }
     setLoading(true);
     setError(null);
-    void lookupScannerPrintings({ oracleId: currentCandidate.oracleId, name: currentCandidate.name })
+    void lookupScannerPrintings({ oracleId: currentCandidate.oracleId })
       .then((result) => {
-        if (!active) return;
+        if (requestId !== requestIdRef.current) return;
         if (!result.ok) {
           setError(result.reason);
           setPrintings([]);
@@ -47,13 +53,13 @@ export function PrintingSelectorSheet({
         setPrintings(sortPrintings(result.candidates, currentCandidate));
       })
       .catch((lookupError) => {
-        if (active) setError(lookupError instanceof Error ? lookupError.message : 'Printings could not be loaded.');
+        if (requestId === requestIdRef.current) setError(lookupError instanceof Error ? lookupError.message : 'Printings could not be loaded.');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
     };
   }, [currentCandidate, visible]);
 
@@ -77,7 +83,7 @@ export function PrintingSelectorSheet({
               </Pressable>
             ))}
           </View>
-          {loading ? <TDLoadingState title="Loading printings" message="Checking Scryfall for exact printings." /> : null}
+          {loading ? <TDLoadingState title="Loading printings" message={currentCandidate?.oracleId ? 'Checking Scryfall for exact printings.' : 'Resolving printing information.'} /> : null}
           {error ? <TDErrorState title="Printings unavailable" message={error} action={<TDButton label="Close" variant="secondary" onPress={onClose} />} /> : null}
           {!loading && !error ? (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.list}>
@@ -98,7 +104,7 @@ export function PrintingSelectorSheet({
                     {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.image} contentFit="cover" /> : <View style={s.imageMissing}><Ionicons name="image-outline" size={20} color={color.textMuted} /></View>}
                     <View style={s.copy}>
                       <View style={s.titleRow}>
-                        <TDText variant="small" numberOfLines={2} style={s.name}>{candidate.setName ?? candidate.setCode ?? 'Set unavailable'}</TDText>
+                        <TDText variant="small" numberOfLines={2} style={s.name}>{candidate.name}</TDText>
                         {selected ? <TDBadge tone="success">Current</TDBadge> : null}
                       </View>
                       <TDText variant="caption" tone="muted" numberOfLines={1}>{candidate.setCode ?? 'SET'} #{candidate.collectorNumber ?? '?'} {releaseYear(candidate)}</TDText>

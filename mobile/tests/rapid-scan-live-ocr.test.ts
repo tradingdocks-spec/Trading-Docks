@@ -7,6 +7,7 @@ import {
   normalizeLiveOcrRoi,
   rapidTitleRoiForFrame,
   rapidTitleRoiForStage,
+  rapidTitleRoiForVisionFrame,
   runRapidLiveTitleOcr,
   stopRapidLiveOcr,
   visionRoiFromTopLeftRoi,
@@ -38,6 +39,17 @@ const frame: ScannerCameraFrame = {
   previewResolution: { width: 1080, height: 1920 },
 };
 
+const detectedVision = {
+  crop: {
+    bounds: {
+      x: 160,
+      y: 220,
+      width: 640,
+      height: 860,
+    },
+  },
+} as ScannerVisionResult;
+
 const index = buildRapidMagicNameIndex([
   { name: 'Sol Ring', oracleId: 'oracle-sol-ring', scryfallId: 'sf-sol-ring' },
   { name: 'Lightning Bolt', oracleId: 'oracle-lightning-bolt', scryfallId: 'sf-bolt' },
@@ -50,6 +62,15 @@ const goblinVisualRecords: VisualReferenceRecord[] = [{
   setCode: 'SCG',
   collectorNumber: '96',
   descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ff00aa55ff00aa55', source: 'reference_image' },
+}];
+
+const unrelatedVisualRecords: VisualReferenceRecord[] = [{
+  oracleId: 'oracle-mycoloth',
+  scryfallId: 'sf-mycoloth',
+  name: 'Mycoloth',
+  setCode: 'ALA',
+  collectorNumber: '163',
+  descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaaa', source: 'reference_image' },
 }];
 
 test('live OCR request uses normalized title ROI without file or base64 input', () => {
@@ -77,6 +98,14 @@ test('Rapid title ROI stages expand within the detected card zone', () => {
   assert.ok(upper.height > expanded.height);
   assert.ok(upper.x >= 0.18);
   assert.ok(upper.y >= 0.12);
+});
+
+test('vision-aware live OCR ROI prefers the detected card bounds over the fixed zone', () => {
+  const roi = rapidTitleRoiForVisionFrame({ ...frame, width: 1000, height: 1600 }, detectedVision, 'title_primary');
+  assert.ok(Math.abs(roi.x - 0.2112) < 0.001);
+  assert.ok(Math.abs(roi.y - 0.1670625) < 0.001);
+  assert.ok(Math.abs(roi.width - 0.5376) < 0.001);
+  assert.ok(Math.abs(roi.height - 0.059125) < 0.001);
 });
 
 test('ROI normalization clamps expanded regions into frame bounds', () => {
@@ -343,6 +372,34 @@ test('Rapid Scan uses the production default visual index when no test index is 
   if (result.outcome.status !== 'added') return;
   assert.equal(result.outcome.result.cardName, 'Goblin War Strike');
   assert.ok((result.state.lastDiagnostics?.fusion?.visualIndexRecordCount ?? 0) > 10000);
+});
+
+test('Rapid Scan keeps strong OCR authoritative when visual noise points elsewhere', async () => {
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: index,
+    destination: 'collection',
+    createResultId: () => 'rapid-ocr-authoritative',
+    visualIndex: buildVisualReferenceIndex(unrelatedVisualRecords),
+    vision: visionResult('aaaaaaaaaaaaaaaa'),
+    nativeProvider: async (request) => ({
+      ok: true,
+      provider: 'apple_vision',
+      frameId: request.frameId,
+      text: 'Sol Ring',
+      confidence: 96,
+      durationMs: 18,
+      roi: request.roi,
+      warnings: [],
+    }),
+  });
+
+  assert.equal(result.outcome.status, 'added');
+  if (result.outcome.status !== 'added') return;
+  assert.equal(result.outcome.result.cardName, 'Sol Ring');
+  assert.equal(result.outcome.result.exactPrintingId, null);
+  assert.equal(result.state.lastDiagnostics?.fusion?.visualCandidate, null);
 });
 
 test('new-card rearm remains driven by rapid state after live identity', () => {

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import {
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
-} from "@/lib/supabase/auth-cookie-policy";
+} from "./auth-cookie-policy";
 
 export async function createClient() {
   const cookieStore = await cookies();

@@ -11,7 +11,7 @@ const single = readFileSync(join(process.cwd(), 'app', 'scan', 'single.tsx'), 'u
 test('Scan tab opens one unified scanner instead of separate production scanner modes', () => {
   assert.match(scanModes, /Trading Docks Scanner/);
   assert.match(scanModes, /describeScanLockState/);
-  assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
+  assert.match(scanModes, /Open the scanner, keep the camera moving, and review exact printing later\./);
   assert.match(scanModes, /Review List/);
   assert.doesNotMatch(scanModes, /Automatic Scan/);
   assert.doesNotMatch(scanModes, /Single Scan/);
@@ -31,7 +31,7 @@ test('Review List count is loaded from the user-scoped scanner session', () => {
 });
 
 test('unified scanner route reuses the existing native scanner infrastructure', () => {
-  assert.match(automaticRoute, /AutomaticScannerScreen/);
+  assert.match(automaticRoute, /prebuilt-scanner-screen/);
   assert.match(automatic, /ScannerCamera/);
   assert.match(automatic, /recognizeMagicStillCapture/);
   assert.match(automatic, /nextAppleVisionAutoCaptureRuntime/);
@@ -43,7 +43,9 @@ test('unified scanner presents compact batch review UI without split scanner cop
   assert.match(automatic, /label="Capture card"/);
   assert.match(automatic, /ScannerSessionStrip/);
   assert.doesNotMatch(automatic, /Capture fallback/);
-  assert.doesNotMatch(automatic, /runRapidLiveTitleOcr/);
+  assert.match(automatic, /runRapidLiveTitleOcr/);
+  assert.match(automatic, /ScannerStatus/);
+  assert.match(automatic, /cameraLiveStatus/);
   assert.doesNotMatch(automatic, /Market \$|Offer \$/);
   assert.doesNotMatch(automatic, /Market \{compactScannerMoney|Offer \{compactScannerMoney/);
 });
@@ -54,8 +56,8 @@ test('Automatic Scan keeps one visible instruction source', () => {
 });
 
 test('Single Scan route is a compatibility alias to the unified scanner', () => {
-  assert.match(single, /UnifiedScannerScreen/);
-  assert.match(single, /automatic-scanner-screen/);
+  assert.match(single, /prebuilt-scanner-screen/);
+  assert.doesNotMatch(single, /automatic-scanner-screen/);
   assert.doesNotMatch(single, /SingleResultSheet/);
   assert.doesNotMatch(single, /recognizeMagicStillCapture/);
 });

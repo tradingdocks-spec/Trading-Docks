@@ -57,9 +57,11 @@ export type ContinuousConfidenceState =
 
 export type ScannerAutoConfirmSetting = 'suggest_only' | 'auto_confirm_high_confidence';
 export type ScannerLineStatus = 'suggested' | 'needs_review' | 'confirmed' | 'failed' | 'local_only' | 'pending_sync' | 'synced';
+export type ScannerDestinationSyncState = 'local_only' | 'pending_sync' | 'synced' | 'failed' | 'action_required';
 export type ScannerDestinationType =
   | 'collection'
   | 'binder'
+  | 'deck'
   | 'trade_binder'
   | 'storage_location'
   | 'purchase_intake'
@@ -193,7 +195,11 @@ export type ScannerSessionLine = {
   binderId: string | null;
   binderPage: number | null;
   binderSlot: string | null;
+  deckId: string | null;
+  deckName: string | null;
   tradeStatus: Exclude<TradeBinderStatus, 'unknown'>;
+  destinationSyncState: ScannerDestinationSyncState;
+  destinationSyncError: string | null;
   reviewStatus: 'suggested' | 'needs_review' | 'confirmed';
   syncState: Extract<ScannerLineStatus, 'local_only' | 'pending_sync' | 'synced' | 'failed'>;
   notes: string;
@@ -222,6 +228,8 @@ export type ScannerDestinationPreference = {
   binderId: string | null;
   binderPage: number | null;
   binderSlot: string | null;
+  deckId: string | null;
+  deckName: string | null;
   label: string;
 };
 
@@ -240,7 +248,7 @@ export type ScannerSessionTotals = {
 export type BatchScannerReviewChipModel = {
   hidden: boolean;
   summary: string;
-  reviewLabel: 'Review List';
+  reviewLabel: 'Review List' | 'Open session';
   tone: 'info' | 'warning';
 };
 
@@ -255,6 +263,7 @@ export type BatchScannerNoticeModel = {
 export type BatchScannerTimingSnapshot = {
   captureMs: number | null;
   cropMs: number | null;
+  recognitionMs: number | null;
   ocrMs: number | null;
   scryfallMs: number | null;
   sessionWriteMs: number | null;
@@ -609,6 +618,8 @@ export function buildScannerDestinationPreference(input: Partial<ScannerDestinat
     binderId: input.binderId ?? null,
     binderPage: normalizePositiveInteger(input.binderPage),
     binderSlot: input.binderSlot?.trim() || null,
+    deckId: input.deckId ?? null,
+    deckName: input.deckName?.trim() || null,
     label: input.label?.trim() || scannerDestinationLabel(destination),
   };
 }
@@ -627,6 +638,8 @@ export function applyScannerDestinationPreference(session: ContinuousScannerSess
         binderId: preference.destination === 'binder' ? preference.binderId : line.binderId,
         binderPage: preference.destination === 'binder' ? preference.binderPage : line.binderPage,
         binderSlot: preference.destination === 'binder' ? preference.binderSlot : line.binderSlot,
+        deckId: preference.destination === 'deck' ? preference.deckId : line.deckId,
+        deckName: preference.destination === 'deck' ? preference.deckName : line.deckName,
       }, session.offerConfig)),
   };
 }
@@ -636,6 +649,7 @@ export function scannerDestinationLabel(destination: ScannerDestinationType) {
     collection: 'Collection',
     storage_location: 'Storage Location',
     binder: 'Binder',
+    deck: 'Deck',
     trade_binder: 'Trade Binder',
     purchase_intake: 'Purchase Intake',
     trade_evaluation: 'Trade Evaluation',
@@ -646,6 +660,7 @@ export function scannerDestinationLabel(destination: ScannerDestinationType) {
 
 export function normalizeScannerDestination(value: unknown): ScannerDestinationType {
   return value === 'binder' ||
+    value === 'deck' ||
     value === 'trade_binder' ||
     value === 'storage_location' ||
     value === 'purchase_intake' ||
@@ -694,6 +709,8 @@ export function addRecognitionToSession(
     binderId?: string | null;
     binderPage?: number | null;
     binderSlot?: string | null;
+    deckId?: string | null;
+    deckName?: string | null;
     tradeStatus?: Exclude<TradeBinderStatus, 'unknown'>;
     destination?: ScannerDestinationType;
     notes?: string;
@@ -745,7 +762,11 @@ export function addRecognitionToSession(
     binderId: input.binderId ?? null,
     binderPage: normalizePositiveInteger(input.binderPage),
     binderSlot: input.binderSlot?.trim() || null,
+    deckId: input.deckId ?? null,
+    deckName: input.deckName?.trim() || null,
     tradeStatus: input.tradeStatus ?? 'not_for_trade',
+    destinationSyncState: 'local_only',
+    destinationSyncError: null,
     reviewStatus,
     syncState: 'local_only',
     notes: input.notes ?? '',
@@ -770,18 +791,20 @@ export function shouldAddRecognitionToBatch(input: { candidateCount: number; con
 }
 
 export function batchScannerNoticeForLine(line: ScannerSessionLine): BatchScannerNoticeModel {
+  const setLabel = line.setCode ?? 'Set unavailable';
+  const numberLabel = line.collectorNumber ?? '?';
   if (line.reviewStatus === 'needs_review') {
     return {
-      title: 'Added for review',
-      message: `${line.cardName} needs review. Keep scanning.`,
+      title: `✓ ${line.cardName}`,
+      message: `${setLabel} • ${numberLabel}`,
       tone: 'warning',
       undoLabel: 'Undo',
       correctLabel: 'Correct',
     };
   }
   return {
-    title: 'Added',
-    message: `${line.cardName} is in the review list.`,
+    title: `✓ ${line.cardName}`,
+    message: `${setLabel} • ${numberLabel}`,
     tone: 'success',
     undoLabel: 'Undo',
     correctLabel: 'Correct',
@@ -803,11 +826,11 @@ export function batchScannerInstructionForState(state: BatchScannerState) {
 }
 
 export function batchScannerReviewChipModel(input: { cardCount: number; reviewCount: number }): BatchScannerReviewChipModel {
-  const scanned = `${input.cardCount} scanned`;
+  const scanned = `Session • ${input.cardCount} cards`;
   return {
     hidden: false,
     summary: scanned,
-    reviewLabel: 'Review List',
+    reviewLabel: 'Open session',
     tone: input.reviewCount > 0 ? 'warning' : 'info',
   };
 }
@@ -816,6 +839,7 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   return {
     captureMs: normalizeTiming(input.captureMs),
     cropMs: normalizeTiming(input.cropMs),
+    recognitionMs: normalizeTiming(input.recognitionMs),
     ocrMs: normalizeTiming(input.ocrMs),
     scryfallMs: normalizeTiming(input.scryfallMs),
     sessionWriteMs: normalizeTiming(input.sessionWriteMs),
@@ -824,7 +848,7 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   };
 }
 
-export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'cardName' | 'setCode' | 'collectorNumber' | 'exactPrintingId' | 'language' | 'confidence' | 'confidenceScore' | 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'binderPage' | 'binderSlot' | 'reviewStatus' | 'syncState' | 'notes' | 'recognition'>>) {
+export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'cardName' | 'setCode' | 'collectorNumber' | 'exactPrintingId' | 'language' | 'confidence' | 'confidenceScore' | 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'binderPage' | 'binderSlot' | 'deckId' | 'deckName' | 'tradeStatus' | 'destinationSyncState' | 'destinationSyncError' | 'reviewStatus' | 'syncState' | 'notes' | 'recognition'>>) {
   return {
     ...session,
     updatedAt: new Date().toISOString(),
@@ -991,15 +1015,100 @@ export function sessionReviewMetrics(totals: ScannerSessionTotals | null): Sessi
 }
 
 export function sessionFinalizeEligibility(session: ContinuousScannerSession): SessionFinalizeEligibility {
-  const blockingReviewCount = session.lines.filter((line) => line.reviewStatus === 'needs_review').length;
-  const readyCount = session.lines.filter((line) => line.reviewStatus !== 'needs_review').length;
+  const blockingReviewCount = session.lines.filter((line) => line.reviewStatus === 'needs_review').reduce((sum, line) => sum + line.quantity, 0);
+  const readyCount = session.lines.filter((line) => line.reviewStatus !== 'needs_review').reduce((sum, line) => sum + line.quantity, 0);
   if (!session.lines.length) {
     return { canFinalize: false, reason: 'Scan cards before finalizing this session.', readyCount, blockingReviewCount };
   }
-  if (blockingReviewCount > 0) {
+  if (readyCount === 0) {
     return { canFinalize: false, reason: `${blockingReviewCount} card${blockingReviewCount === 1 ? '' : 's'} still need review.`, readyCount, blockingReviewCount };
   }
-  return { canFinalize: true, reason: `${readyCount} reviewed card${readyCount === 1 ? '' : 's'} ready to finalize.`, readyCount, blockingReviewCount };
+  if (blockingReviewCount > 0) {
+    return {
+      canFinalize: true,
+      reason: `${readyCount} ready, ${blockingReviewCount} need confirmation.`,
+      readyCount,
+      blockingReviewCount,
+    };
+  }
+  return { canFinalize: true, reason: `${readyCount} ready to store.`, readyCount, blockingReviewCount };
+}
+
+export function readySessionLines(lines: ScannerSessionLine[]) {
+  return lines.filter((line) => line.reviewStatus !== 'needs_review');
+}
+
+export function updateSessionLineDestination(
+  session: ContinuousScannerSession,
+  lineId: string,
+  input: {
+    destination: ScannerDestinationType;
+    storageLocationId?: string | null;
+    binderId?: string | null;
+    binderPage?: number | null;
+    binderSlot?: string | null;
+    deckId?: string | null;
+    deckName?: string | null;
+    tradeStatus?: Exclude<TradeBinderStatus, 'unknown'>;
+  },
+) {
+  return editScannerSessionLine(session, lineId, {
+    destination: input.destination,
+    storageLocationId: input.destination === 'storage_location' ? input.storageLocationId ?? null : null,
+    binderId: input.destination === 'binder' ? input.binderId ?? null : null,
+    binderPage: input.destination === 'binder' ? input.binderPage ?? null : null,
+    binderSlot: input.destination === 'binder' ? input.binderSlot ?? null : null,
+    deckId: input.destination === 'deck' ? input.deckId ?? null : null,
+    deckName: input.destination === 'deck' ? input.deckName ?? null : null,
+    tradeStatus: input.tradeStatus ?? 'not_for_trade',
+    destinationSyncState: 'local_only',
+    destinationSyncError: null,
+  });
+}
+
+export function bulkUpdateSessionLines(
+  session: ContinuousScannerSession,
+  lineIds: string[],
+  patch: Pick<ScannerSessionLine, 'destination' | 'storageLocationId' | 'binderId' | 'binderPage' | 'binderSlot' | 'deckId' | 'deckName' | 'condition' | 'finish' | 'tradeStatus'>,
+) {
+  const ids = new Set(lineIds);
+  return {
+    ...session,
+    updatedAt: new Date().toISOString(),
+    lines: session.lines.map((line) => (ids.has(line.id)
+      ? recalculateLine({
+        ...line,
+        destination: patch.destination,
+        storageLocationId: patch.destination === 'storage_location' ? patch.storageLocationId : line.storageLocationId,
+        binderId: patch.destination === 'binder' ? patch.binderId : line.binderId,
+        binderPage: patch.destination === 'binder' ? patch.binderPage : line.binderPage,
+        binderSlot: patch.destination === 'binder' ? patch.binderSlot : line.binderSlot,
+        deckId: patch.destination === 'deck' ? patch.deckId : line.deckId,
+        deckName: patch.destination === 'deck' ? patch.deckName : line.deckName,
+        destinationSyncState: 'local_only',
+        destinationSyncError: null,
+        condition: patch.condition ?? line.condition,
+        finish: patch.finish ?? line.finish,
+        tradeStatus: patch.tradeStatus ?? line.tradeStatus,
+      }, session.offerConfig)
+      : line)),
+  };
+}
+
+export function updateSessionLineDestinationSync(
+  session: ContinuousScannerSession,
+  lineId: string,
+  patch: {
+    destinationSyncState: ScannerDestinationSyncState;
+    destinationSyncError?: string | null;
+    syncState?: ScannerSessionLine['syncState'];
+  },
+) {
+  return editScannerSessionLine(session, lineId, {
+    destinationSyncState: patch.destinationSyncState,
+    destinationSyncError: patch.destinationSyncError ?? null,
+    syncState: patch.syncState,
+  });
 }
 
 export function nextReviewLine(lines: ScannerSessionLine[]) {
@@ -1035,6 +1144,14 @@ export function sessionReviewStatusLabel(status: SessionReviewStatusTab | Scanne
   if (status === 'suggested') return 'Suggested';
   if (status === 'confirmed') return 'Done';
   return 'All';
+}
+
+export function destinationSyncStatusLabel(state: ScannerDestinationSyncState) {
+  if (state === 'synced') return 'Synced';
+  if (state === 'pending_sync') return 'Pending';
+  if (state === 'action_required') return 'Needs retry';
+  if (state === 'failed') return 'Failed';
+  return 'Local only';
 }
 
 export function sessionConfidenceLabel(confidence: ContinuousConfidenceState | 'all') {
@@ -1227,6 +1344,7 @@ export function destinationForMode(mode: ContinuousScannerMode): ScannerDestinat
 export function scanDestinationToLegacyDestination(destination: ScannerDestinationType, sessionId: string, sessionName: string): ScanDestination {
   if (destination === 'trade_binder') return { type: 'trade_binder', status: 'available' };
   if (destination === 'binder') return { type: 'binder', binderId: sessionId, binderName: sessionName };
+  if (destination === 'deck') return { type: 'scan_session', sessionId, sessionName };
   if (destination === 'purchase_intake' || destination === 'trade_evaluation' || destination === 'export_only') {
     return { type: 'scan_session', sessionId, sessionName };
   }

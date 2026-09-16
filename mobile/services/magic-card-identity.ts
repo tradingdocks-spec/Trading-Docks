@@ -209,6 +209,11 @@ function candidatePool(index: MagicNameIndex, normalizedQuery: string) {
     for (const record of index.byFirst.get(key) ?? []) records.add(record);
   }
   const firstToken = normalizedQuery.split(' ')[0] ?? '';
+  if (normalizedQuery.length >= 2 && normalizedQuery.length <= 4) {
+    for (const record of index.records) {
+      if (record.normalizedName.includes(normalizedQuery)) records.add(record);
+    }
+  }
   if (firstToken.length >= 4) {
     for (const record of index.records) {
       if (record.normalizedName.includes(firstToken)) records.add(record);

@@ -43,6 +43,7 @@ import {
   shouldAutoCapture,
   undoMostRecentScan,
   updateCardShowOfferRate,
+  updateSessionLineDestination,
   type CardBoundaryObservation,
   type ContinuousScannerSession,
 } from '../services/continuous-offer-scanner.ts';
@@ -250,11 +251,22 @@ test('session review finalization requires all unresolved cards to be reviewed',
   let session: ContinuousScannerSession = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' });
   session = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10 });
   session = addRecognitionToSession(session, { stableScanId: 'scan-2', candidate, recognition: low, marketPrice: 10 });
-  assert.equal(sessionFinalizeEligibility(session).canFinalize, false);
-  session = editScannerSessionLine(session, session.lines[1].id, { reviewStatus: 'confirmed' });
   const eligibility = sessionFinalizeEligibility(session);
   assert.equal(eligibility.canFinalize, true);
-  assert.equal(eligibility.readyCount, 2);
+  assert.equal(eligibility.readyCount, 1);
+  assert.equal(eligibility.blockingReviewCount, 1);
+  assert.equal(eligibility.reason, '1 ready, 1 need confirmation.');
+});
+
+test('session review finalization counts card quantities instead of only rows', () => {
+  const high = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
+  let session: ContinuousScannerSession = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' });
+  session = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10, quantity: 3 });
+  session = addRecognitionToSession(session, { stableScanId: 'scan-2', candidate, recognition: { ...high, confidenceState: 'manual_review_required', overallConfidence: 61, requiresManualConfirmation: true }, marketPrice: 10, quantity: 2 });
+  const eligibility = sessionFinalizeEligibility(session);
+  assert.equal(eligibility.readyCount, 3);
+  assert.equal(eligibility.blockingReviewCount, 2);
+  assert.equal(eligibility.reason, '3 ready, 2 need confirmation.');
 });
 
 test('confirmed collection destination can produce scanner confirmation payload', () => {
@@ -302,6 +314,25 @@ test('scan destination preference applies to unsynced session lines without repe
   assert.equal(next.lines[0].binderId, 'binder-3');
   assert.equal(next.lines[0].binderPage, 2);
   assert.equal(next.lines[0].binderSlot, 'B2');
+});
+
+test('destination updates clear stale destination sync state', () => {
+  const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
+  const session = addRecognitionToSession(
+    createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Deck intake', mode: 'binder_intake' }),
+    { stableScanId: 'scan-1', candidate, recognition, destination: 'deck', deckId: 'deck-1', deckName: 'Atraxa' },
+  );
+  const failed = editScannerSessionLine(session, session.lines[0].id, { destinationSyncState: 'action_required', destinationSyncError: 'Retry me' });
+  const retargeted = updateSessionLineDestination(failed, failed.lines[0].id, { destination: 'collection' });
+  assert.equal(retargeted.lines[0].destinationSyncState, 'local_only');
+  assert.equal(retargeted.lines[0].destinationSyncError, null);
+});
+
+test('deck destination preference preserves deck metadata and label', () => {
+  const preference = buildScannerDestinationPreference({ destination: 'deck', deckId: 'deck-1', deckName: 'Atraxa Infect' });
+  assert.equal(preference.destination, 'deck');
+  assert.equal(preference.deckId, 'deck-1');
+  assert.equal(preference.deckName, 'Atraxa Infect');
 });
 
 test('Card Show percentage preview and session override keep missing prices unavailable', () => {
