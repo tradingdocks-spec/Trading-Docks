@@ -1,12 +1,13 @@
 export const MOBILE_PRODUCTION_IOS_BUNDLE_ID = 'com.tradingdocks.app';
 export const MOBILE_PRODUCTION_ANDROID_PACKAGE = 'com.tradingdocks.app';
-export const MOBILE_CANONICAL_SITE_URL = 'https://www.tradingdocks.com';
+export const MOBILE_CANONICAL_SITE_URL = resolveMobileCanonicalSiteUrl();
 
 export const MOBILE_PUBLIC_ENV_KEYS = {
   supabaseUrl: 'EXPO_PUBLIC_SUPABASE_URL',
   supabaseAnonKey: 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   revenueCatIosApiKey: 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY',
   revenueCatAndroidApiKey: 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY',
+  mobileCanonicalSiteUrl: 'EXPO_PUBLIC_MOBILE_CANONICAL_SITE_URL',
   supportUrl: 'EXPO_PUBLIC_SUPPORT_URL',
   privacyUrl: 'EXPO_PUBLIC_PRIVACY_URL',
   termsUrl: 'EXPO_PUBLIC_TERMS_URL',
@@ -60,6 +61,14 @@ export function isDevelopmentToolEnabled(flagName: string, env: Record<string, s
   return !isProductionRuntime(env) && env[flagName] === 'true';
 }
 
+export function resolveMobileCanonicalSiteUrl(env: Record<string, string | undefined> = process.env) {
+  const override = env.EXPO_PUBLIC_MOBILE_CANONICAL_SITE_URL?.trim() || env.MOBILE_CANONICAL_SITE_URL?.trim();
+  if (!isProductionRuntime(env) && override) {
+    return normalizeMobileCanonicalSiteUrl(override);
+  }
+  return 'https://www.tradingdocks.com';
+}
+
 export function getMobileReleaseLinks(env: Record<string, string | undefined> = process.env): Record<MobileReleaseLinkKey, MobileReleaseLink> {
   return {
     support: releaseLink('support', 'Support', env[MOBILE_PUBLIC_ENV_KEYS.supportUrl], 'mailto:tradingdocks@gmail.com'),
@@ -104,6 +113,14 @@ function releaseLink(
     configuredFromEnv: Boolean(trimmed),
     releaseStatus: trimmed ? 'configured' : 'uses_documented_default',
   };
+}
+
+function normalizeMobileCanonicalSiteUrl(value: string) {
+  const trimmed = value.trim().replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 function loadExpoConstants(): ExpoConstantsShape {

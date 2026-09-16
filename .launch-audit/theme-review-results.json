@@ -1,0 +1,218 @@
+[
+  {
+    "route": "/",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/pricing",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/sign-in",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/sign-up",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/forgot-password",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/privacy",
+    "theme": "dark",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/pricing",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/sign-in",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/sign-up",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/forgot-password",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/privacy",
+    "theme": "dark",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(10, 16, 27)",
+    "fg": "rgb(239, 246, 255)",
+    "themeAttribute": "dark"
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/pricing",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/sign-in",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/sign-up",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/forgot-password",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/privacy",
+    "theme": "light",
+    "width": 1440,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/pricing",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/sign-in",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/sign-up",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/forgot-password",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  },
+  {
+    "route": "/privacy",
+    "theme": "light",
+    "width": 390,
+    "overflow": false,
+    "bg": "rgb(243, 247, 253)",
+    "fg": "rgb(20, 36, 59)",
+    "themeAttribute": "light"
+  }
+]

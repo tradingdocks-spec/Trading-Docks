@@ -1,0 +1,2 @@
+import {chromium} from '@playwright/test';
+const b=await chromium.launch();const p=await b.newPage({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000}});await p.emulateMedia({reducedMotion:'reduce'});await p.goto('https://127.0.0.1:4173/',{waitUntil:'networkidle'});for(const theme of ['dark','light']){await p.getByRole('combobox',{name:'Color theme'}).selectOption(theme);await p.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);await p.locator('#experience').screenshot({path:'.launch-audit/brand-lifecycle-'+theme+'.png'});}await b.close();

@@ -30,14 +30,6 @@ const deckCardImageRoute = readFileSync(
   path.join(repoRoot, "src/app/api/deck-vault/card-image/route.ts"),
   "utf8",
 );
-const deckPersistence = readFileSync(
-  path.join(repoRoot, "src/lib/deck-vault/persistence.ts"),
-  "utf8",
-);
-const legacyDeckVaultHome = readFileSync(
-  path.join(repoRoot, "src/components/dashboard-v2/deck-vault/DeckVaultHome.tsx"),
-  "utf8",
-);
 
 test("Deck Vault keeps Import deck as the primary hero CTA and Create deck available", () => {
   assert.match(deckVaultHome, /Build deeper\. Analyze smarter\. Know every deck\./);
@@ -107,15 +99,6 @@ test("existing import formats remain visible and supported", () => {
   assert.match(deckImportCenter, /Arena export/);
   assert.match(deckImportCenter, /ManaBox export/);
   assert.match(deckImportCenter, /plain-text deck file/);
-});
-
-test("deck deletion cannot be undone by queued saves or demo-data rehydration", () => {
-  assert.match(deckPersistence, /DELETED_PREFIX/);
-  assert.match(deckPersistence, /markDeckDeleted\(userId, deckId\)/);
-  assert.match(deckPersistence, /isDeckDeleted\(userId, deck\.id\)\) return/);
-  assert.match(legacyDeckVaultHome, /DELETED_DECKS_KEY/);
-  assert.match(legacyDeckVaultHome, /!deletedDeckIds\.has\(deck\.id\)/);
-  assert.match(legacyDeckVaultHome, /deletedDeckIds\.add\(deckId\)/);
 });
 
 test("responsive Deck Vault layout uses bounded grids and avoids fixed overflow-prone widths", () => {

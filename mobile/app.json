@@ -77,7 +77,8 @@
           "recordAudioAndroid": false
         }
       ],
-      "./plugins/with-vision-camera-release-workaround"
+      "./plugins/with-vision-camera-release-workaround",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

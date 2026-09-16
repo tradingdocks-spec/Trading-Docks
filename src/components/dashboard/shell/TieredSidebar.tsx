@@ -337,9 +337,8 @@ function NavigationRow({
 }) {
   const allowed = canShowRoute(clientAccess, item.href, process.env.NODE_ENV);
   const requiredPlan = requiredMembershipLabelForRoute(item.href);
-  const active = item.exact
-    ? pathname === item.href
-    : item.href === "/dashboard"
+  const active =
+    item.href === "/dashboard"
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;

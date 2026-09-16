@@ -99,3 +99,4 @@ Heights and CTA positions are pixels. Initial live captures used a 1000px viewpo
 Runtime files: `src/app/page.tsx`; landing `Hero.tsx`, `Header.tsx`, `MarketSection.tsx`, `PricingSection.tsx`; new `CardJourney.tsx`, `LifecycleStory.tsx`, and scoped `Homepage.module.css`. Tests: new `homepage-lifecycle.spec.ts`, adjusted public smoke/source contracts, and two updated homepage image baselines. No dependency was added. Shared Header changes also affect the header on Security, Privacy, and Terms; legal body content and links remain intact.
 
 Logs are in `.launch-audit/homepage-final-{build,types,tests,lint,focused-lint,e2e}.log` (the final browser run also builds production through the existing HTTPS fixture). Existing unrelated checkout changes were preserved. No commit, push, PR, deployment, or production configuration change was performed. A release decision remains separate from this local redesign; underlying production certification gates remain open.
+

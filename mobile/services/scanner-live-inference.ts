@@ -45,7 +45,7 @@ export function createScannerLiveInferenceState(): ScannerLiveInferenceState {
     history: [],
     stage: 'looking',
     tone: 'muted',
-    headline: 'Looking...',
+    headline: 'Looking for card',
     subtitle: null,
     candidateName: null,
     exactPrintingLabel: null,
@@ -169,7 +169,7 @@ export function scannerLiveInferenceCopy(
     };
   }
   return {
-    headline: 'Looking...',
+    headline: 'Looking for card',
     subtitle: null,
     tone: 'muted',
   };

@@ -1,0 +1,1 @@
+import fs from 'node:fs';const p='.launch-audit/theme-fixture-review.mjs';let s=fs.readFileSync(p,'utf8').replace('await page.setContent(',"await page.goto('about:blank');\nawait page.setContent(");fs.writeFileSync(p,s);

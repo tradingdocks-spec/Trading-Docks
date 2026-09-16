@@ -7,12 +7,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { useAudioPlayer } from 'expo-audio';
 
 import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type DocumentDetectionResult, type ImageRef as ScanbotImageRef, type ScanbotDocumentScannerViewHandle } from 'react-native-scanbot-sdk';
 
-import { TDButton, TDCard, TDBadge, TDIconButton, TDSessionStrip, TDSkeleton, TDText } from '@/components/design-system';
+import { TDButton, TDCard, TDBadge, TDIconButton, TDSessionStrip, TDSkeleton, TDText, TDToast } from '@/components/design-system';
 import { color, radius, space } from '@/design';
-import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, scannerDestinationLabel, type ContinuousScannerSession, type ScannerSessionLine } from '@/services/continuous-offer-scanner';
+import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, removeScannerSessionLine, scannerDestinationLabel, type ContinuousScannerSession, type ScannerSessionLine } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import {
   PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
@@ -28,6 +29,8 @@ import { loadScannerContext } from '@/services/scanner-data';
 import { enrichScannerSessionLinePrice, selectScryfallScannerPrice } from '@/services/scanner-price-enrichment';
 import { isScannerDiagnosticsEnabled } from '@/services/native-scanner-calibration';
 import { runPrebuiltScannerBakeoff, type PrebuiltScannerBakeoffReport } from '@/services/scanner-prebuilt-bakeoff';
+import { DEFAULT_SCANNER_FEEDBACK_PREFERENCES, loadScannerFeedbackPreferences, type ScannerFeedbackPreferences } from '@/services/scanner-feedback-preferences';
+import { playScannerSuccessTone, shouldPlayScannerSuccessTone } from '@/services/scanner-audio-feedback';
 import { appStorage } from '@/services/storage/app-storage';
 import type { ScannerCardCandidate } from '@/services/scanner-foundation';
 import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
@@ -35,6 +38,7 @@ import { updateScannerSessionLinePrinting } from '@/services/continuous-offer-sc
 import { scanCardSightImageOnce, scanCardSightWithFallback, type CardSightAttemptTrace, type CardSightMobileScanResult } from '@/services/cardsight-scan-provider';
 
 type ScannerStage = 'initializing' | 'ready' | 'capturing' | 'processing' | 'error';
+type ProductionScanPhase = 'initializing' | 'ready' | 'detected' | 'capturing' | 'identifying' | 'accepted' | 'waiting_for_card_change' | 'error';
 type ScannerMode = 'bakeoff' | 'production';
 type PrebuiltScannerDiagnosticsEvent = {
   scanbotDetected?: string | null;
@@ -127,7 +131,17 @@ type ProductionScanResult = {
   sessionLineId: string | null;
 };
 
+type ProductionScanFeedback = {
+  outcome: 'success' | 'review' | 'duplicate' | 'error';
+  message: string;
+  cardName: string | null;
+  audioEventKey?: string | null;
+  actionLabel?: string;
+  onAction?: () => void;
+};
+
 const SCANBOT_LICENSE_KEY = process.env.EXPO_PUBLIC_SCANBOT_LICENSE_KEY?.trim() ?? '';
+const SCANNER_SUCCESS_SOUND = require('../../assets/audio/scanner-success-ding.wav');
 
 type ScanbotInitResult =
   | { ok: true; licenseLabel: 'configured' | 'trial'; error: null }
@@ -163,21 +177,45 @@ export default function PrebuiltScannerBakeoffScreen({
   const [cardsightProbe, setCardsightProbe] = useState<CardsightDiagnosticsSnapshot | null>(null);
   const [productionResult, setProductionResult] = useState<ProductionScanResult | null>(null);
   const [productionFlashVisible, setProductionFlashVisible] = useState(false);
+  const [scanPhase, setScanPhase] = useState<ProductionScanPhase>('initializing');
+  const [scanFeedback, setScanFeedback] = useState<ProductionScanFeedback | null>(null);
+  const [scannerPreferences, setScannerPreferences] = useState<ScannerFeedbackPreferences>(DEFAULT_SCANNER_FEEDBACK_PREFERENCES);
   const [printingSelectorCandidate, setPrintingSelectorCandidate] = useState<ScannerCardCandidate | null>(null);
   const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
   const lastAcceptedIdentityRef = useRef<string | null>(null);
   const lastAcceptedAtRef = useRef(0);
+  const lastPlayedAudioEventKeyRef = useRef<string | null>(null);
   const lastSessionLineIdRef = useRef<string | null>(null);
   const captureInFlightRef = useRef(false);
   const lastDetectionStatusRef = useRef<string | null>(null);
+  const lastDetectionSignatureRef = useRef<string | null>(null);
+  const lastAcceptedDetectionSignatureRef = useRef<string | null>(null);
+  const waitingForCardChangeRef = useRef(false);
+  const productionFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const productionFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successTonePlayer = useAudioPlayer(SCANNER_SUCCESS_SOUND, { keepAudioSessionActive: true });
 
   useEffect(() => {
     return () => {
+      if (productionFeedbackTimerRef.current) {
+        clearTimeout(productionFeedbackTimerRef.current);
+        productionFeedbackTimerRef.current = null;
+      }
       if (productionFlashTimerRef.current) {
         clearTimeout(productionFlashTimerRef.current);
         productionFlashTimerRef.current = null;
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadScannerFeedbackPreferences().then((preferences) => {
+      if (!active) return;
+      setScannerPreferences(preferences);
+    });
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -233,6 +271,64 @@ export default function PrebuiltScannerBakeoffScreen({
       intelligence: probeIntelligence,
     }));
   }, [captureArtifacts, cardsightDiagnostics?.image, cardsightPreview]);
+
+  const emitScanFeedback = useCallback((feedback: ProductionScanFeedback) => {
+    setScanFeedback(feedback);
+    if (productionFeedbackTimerRef.current) {
+      clearTimeout(productionFeedbackTimerRef.current);
+    }
+    productionFeedbackTimerRef.current = setTimeout(() => {
+      setScanFeedback(null);
+      productionFeedbackTimerRef.current = null;
+    }, feedback.outcome === 'success' ? 760 : 520);
+
+    if (scannerPreferences.hapticConfirmation) {
+      if (feedback.outcome === 'success') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else if (feedback.outcome === 'review') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else if (feedback.outcome === 'error') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } else {
+        void Haptics.selectionAsync();
+      }
+    }
+    if (shouldPlayScannerSuccessTone({
+      outcome: feedback.outcome,
+      audioConfirmation: scannerPreferences.audioConfirmation,
+      audioEventKey: feedback.audioEventKey ?? null,
+      lastPlayedAudioEventKey: lastPlayedAudioEventKeyRef.current,
+    })) {
+      lastPlayedAudioEventKeyRef.current = feedback.audioEventKey ?? null;
+      void playScannerSuccessTone(successTonePlayer);
+    }
+  }, [scannerPreferences.audioConfirmation, scannerPreferences.hapticConfirmation, successTonePlayer]);
+
+  const removeProductionSessionLine = useCallback((lineId: string | null) => {
+    if (!lineId || !session || !sessionUserId) return;
+    const nextSession = removeScannerSessionLine(session, lineId);
+    const removedLine = session.lines.find((line) => line.id === lineId) ?? null;
+    setSession(nextSession);
+    setCapturedCount(nextSession.lines.length);
+    lastSessionLineIdRef.current = null;
+    lastAcceptedIdentityRef.current = null;
+    lastAcceptedAtRef.current = 0;
+    lastAcceptedDetectionSignatureRef.current = null;
+    waitingForCardChangeRef.current = false;
+    setProductionResult(null);
+    setProductionFlashVisible(false);
+    setScanPhase('ready');
+    setSuccess(removedLine ? `Removed ${removedLine.cardName}` : 'Removed card');
+    setTimeout(() => {
+      setSuccess(null);
+    }, 650);
+    if (productionFlashTimerRef.current) {
+      clearTimeout(productionFlashTimerRef.current);
+      productionFlashTimerRef.current = null;
+    }
+    void appStorage.setItem(continuousScannerSessionKey(sessionUserId), JSON.stringify(nextSession));
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  }, [session, sessionUserId]);
 
   const handleOpenPrintingSelector = useCallback((candidate: ScannerCardCandidate) => {
     if (__DEV__) {
@@ -323,22 +419,35 @@ export default function PrebuiltScannerBakeoffScreen({
   const productionStageCopy = useMemo(() => {
     if (success) return success;
     if (error && stage === 'ready') return error;
-    if (!sdkReady || !cameraReady) return 'Opening camera...';
-    if (stage === 'capturing') return 'Reading...';
-    if (stage === 'processing') return 'Matching printing...';
+    if (!sdkReady || !cameraReady || scanPhase === 'initializing') return 'Preparing camera...';
+    if (scanPhase === 'capturing') return 'Capturing...';
+    if (scanPhase === 'identifying') return 'Matching printing...';
+    if (scanPhase === 'accepted') {
+      if (productionResult?.exactPrintingResolved) return 'Matched';
+      if (productionResult?.requiresPrintingReview) return 'Printing review needed';
+      return 'Added';
+    }
+    if (scanPhase === 'waiting_for_card_change') {
+      if (scanFeedback?.outcome === 'duplicate') return scanFeedback.message;
+      return 'Waiting for next card';
+    }
+    if (scanPhase === 'detected') return 'Reading...';
     if (productionResult?.exactPrintingResolved) return 'Matched';
     if (productionResult?.requiresPrintingReview) return 'Printing review needed';
     return 'Looking for card';
-  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, sdkReady, stage, success]);
+  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, scanFeedback?.message, scanFeedback?.outcome, scanPhase, sdkReady, stage, success]);
 
   const productionStageTone = useMemo<'muted' | 'info' | 'warning' | 'success'>(() => {
     if (error && stage === 'ready') return 'warning';
-    if (!sdkReady || !cameraReady) return 'info';
-    if (stage === 'capturing' || stage === 'processing') return 'info';
+    if (!sdkReady || !cameraReady || scanPhase === 'initializing') return 'info';
+    if (scanPhase === 'capturing' || scanPhase === 'identifying' || scanPhase === 'detected') return 'info';
+    if (scanPhase === 'waiting_for_card_change') return 'warning';
+    if (scanPhase === 'accepted' && productionResult?.exactPrintingResolved) return 'success';
+    if (scanPhase === 'accepted' && productionResult?.requiresPrintingReview) return 'warning';
     if (productionResult?.exactPrintingResolved) return 'success';
     if (productionResult?.requiresPrintingReview) return 'warning';
     return 'muted';
-  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, sdkReady, stage]);
+  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, scanPhase, sdkReady, stage]);
 
   const productionSessionLine = useMemo(() => {
     if (!productionResult?.sessionLineId || !session) return null;
@@ -388,16 +497,41 @@ export default function PrebuiltScannerBakeoffScreen({
     setCameraReady(true);
     setDetection(result);
     setStage((current) => current === 'initializing' ? 'ready' : current);
+    const signature = detectionSignature(result);
+    lastDetectionSignatureRef.current = signature;
     if (__DEV__ && result.status !== lastDetectionStatusRef.current) {
       lastDetectionStatusRef.current = result.status;
       logPrebuiltScannerDiagnostics({ scanbotDetected: result.status });
     }
-  }, []);
+    if (captureInFlightRef.current || scanPhase === 'capturing' || scanPhase === 'identifying') return;
+    const changedCard = Boolean(waitingForCardChangeRef.current && (
+      result.status === 'NOT_ACQUIRED' || signature !== lastAcceptedDetectionSignatureRef.current
+    ));
+    if (changedCard) {
+      waitingForCardChangeRef.current = false;
+    }
+    if (waitingForCardChangeRef.current) {
+      setScanPhase('waiting_for_card_change');
+      return;
+    }
+    setScanPhase(result.status === 'NOT_ACQUIRED' ? 'ready' : 'detected');
+  }, [scanPhase]);
 
   const handleSnappedDocumentResult = useCallback(async (originalImage: ScanbotImageRef, documentImage?: ScanbotImageRef) => {
-    if (captureInFlightRef.current || stage === 'processing') return;
+    if (captureInFlightRef.current || scanPhase === 'capturing' || scanPhase === 'identifying') return;
+    if (mode === 'production' && scannerPreferences.blockDuplicateScans && waitingForCardChangeRef.current) {
+      emitScanFeedback({
+        outcome: 'duplicate',
+        message: 'Duplicate skipped',
+        cardName: productionResult?.name ?? null,
+      });
+      setError(null);
+      setScanPhase('waiting_for_card_change');
+      return;
+    }
     captureInFlightRef.current = true;
     setStage('capturing');
+    setScanPhase('capturing');
     setSuccess(null);
     setReport(null);
     setError(null);
@@ -424,6 +558,7 @@ export default function PrebuiltScannerBakeoffScreen({
       setCaptureArtifacts({ raw, cropped });
       logPrebuiltScannerDiagnostics({ scanbotCaptured: `${raw.size.width}x${raw.size.height}` });
       setStage('processing');
+      setScanPhase('identifying');
       if (mode === 'production') {
         const productionOutcome = await runProductionScannerCapture({
           rawImageUri: raw.path,
@@ -432,8 +567,10 @@ export default function PrebuiltScannerBakeoffScreen({
           croppedImageSize: cropped?.size ?? null,
           rawImageBytes: raw.bytes,
           croppedImageBytes: cropped?.bytes ?? null,
+          currentDetectionSignature: lastDetectionSignatureRef.current,
           session,
           sessionUserId,
+          preferences: scannerPreferences,
           onSessionUpdate: setSession,
           onCapturedCountChange: setCapturedCount,
           onSuccess: setSuccess,
@@ -441,45 +578,61 @@ export default function PrebuiltScannerBakeoffScreen({
           onCardsightPreview: setCardsightPreview,
           onCardsightDiagnostics: setCardsightDiagnostics,
           onProductionResult: setProductionResult,
+          onFeedback: emitScanFeedback,
           lastAcceptedIdentityRef,
           lastAcceptedAtRef,
+          lastAcceptedDetectionSignatureRef,
+          waitingForCardChangeRef,
         });
         if (productionOutcome.ok) {
           lastSessionLineIdRef.current = productionOutcome.sessionLineId;
-          setProductionFlashVisible(true);
+          const nextPhase = (scannerPreferences.requireCardChangeBeforeRearm || productionOutcome.needsCardChange) ? 'waiting_for_card_change' : 'ready';
+          waitingForCardChangeRef.current = scannerPreferences.requireCardChangeBeforeRearm || productionOutcome.needsCardChange;
+          setScanPhase('accepted');
+          setProductionFlashVisible(scannerPreferences.visualConfirmation);
           if (productionFlashTimerRef.current) {
             clearTimeout(productionFlashTimerRef.current);
           }
           productionFlashTimerRef.current = setTimeout(() => {
             setProductionFlashVisible(false);
+            setScanPhase(nextPhase);
             productionFlashTimerRef.current = null;
-          }, 700);
-          setStage('ready');
+          }, scannerPreferences.visualConfirmation ? 700 : 0);
+          if (!scannerPreferences.visualConfirmation) {
+            setScanPhase(nextPhase);
+          }
+          return;
+        }
+        if (productionOutcome.outcome === 'duplicate') {
+          setError(null);
+          setScanPhase('waiting_for_card_change');
           return;
         }
         setError(productionOutcome.message);
-        setStage('ready');
+        setScanPhase('ready');
         return;
       }
-        const nextReport = await runPrebuiltScannerBakeoff({
-          rawImageUri: raw.path,
-          croppedImageUri: cropped?.path ?? null,
-          rawImageSize: raw.size,
+      const nextReport = await runPrebuiltScannerBakeoff({
+        rawImageUri: raw.path,
+        croppedImageUri: cropped?.path ?? null,
+        rawImageSize: raw.size,
         croppedImageSize: cropped?.size ?? null,
         online: true,
       });
       setReport(nextReport);
       logDiagnostics(nextReport);
+      setScanPhase('ready');
       setStage('ready');
     } catch (nextError) {
       const message = nextError instanceof Error ? nextError.message : 'The scanner could not process the capture.';
       setError(message);
+      setScanPhase('error');
       setStage('error');
     } finally {
       captureInFlightRef.current = false;
       scannerRef.current?.unfreezeCamera();
     }
-  }, [mode, session, sessionUserId, stage]);
+  }, [emitScanFeedback, mode, productionResult?.name, scanPhase, scannerPreferences, session, sessionUserId]);
 
   if (mode === 'bakeoff' && !diagnosticsEnabled) {
     return (
@@ -596,6 +749,21 @@ export default function PrebuiltScannerBakeoffScreen({
                   onOtherPrintings={() => {
                     handleOpenPrintingSelector(productionResult.candidate);
                   }}
+                  onUndo={productionResult.sessionLineId ? () => removeProductionSessionLine(productionResult.sessionLineId) : undefined}
+                />
+              ) : null}
+              {scanFeedback && scanFeedback.outcome !== 'success' ? (
+                <TDToast
+                  message={scanFeedback.message}
+                  tone={scanFeedback.outcome === 'error' ? 'danger' : scanFeedback.outcome === 'duplicate' ? 'warning' : 'info'}
+                  action={scanFeedback.actionLabel && scanFeedback.onAction ? (
+                    <TDButton
+                      label={scanFeedback.actionLabel}
+                      size="sm"
+                      variant="secondary"
+                      onPress={scanFeedback.onAction}
+                    />
+                  ) : null}
                 />
               ) : null}
               <TDSessionStrip
@@ -771,6 +939,7 @@ function ProductionResultCard({
   compact,
   isLarge,
   onOtherPrintings,
+  onUndo,
 }: {
   result: ProductionScanResult;
   line: ScannerSessionLine | null;
@@ -778,6 +947,7 @@ function ProductionResultCard({
   compact: boolean;
   isLarge: boolean;
   onOtherPrintings: () => void;
+  onUndo?: () => void;
 }) {
   const finishLabel = displayFinish((line?.finish ?? result.finish ?? 'nonfoil') as never);
   const conditionLabel = displayCondition((line?.condition ?? result.condition ?? 'near_mint') as never);
@@ -838,7 +1008,14 @@ function ProductionResultCard({
       </View>
       {result.requiresPrintingReview ? (
         <View style={styles.productionResultFooter}>
-          <TDButton label={result.oracleIdVerified ? 'Other printings' : 'Resolving...'} variant="secondary" size="sm" onPress={onOtherPrintings} disabled={!result.oracleIdVerified} />
+          <View style={styles.productionResultActions}>
+            {onUndo ? <TDButton label="Undo" variant="secondary" size="sm" onPress={onUndo} /> : null}
+            <TDButton label={result.oracleIdVerified ? 'Other printings' : 'Resolving...'} variant="secondary" size="sm" onPress={onOtherPrintings} disabled={!result.oracleIdVerified} />
+          </View>
+        </View>
+      ) : onUndo ? (
+        <View style={styles.productionResultFooter}>
+          <TDButton label="Undo" variant="secondary" size="sm" onPress={onUndo} />
         </View>
       ) : null}
     </TDCard>
@@ -1026,15 +1203,35 @@ async function runProductionScannerCapture(input: {
   onCardsightPreview: (preview: CardsightPreviewArtifact | null) => void;
   onCardsightDiagnostics: (snapshot: CardsightDiagnosticsSnapshot | null) => void;
   onProductionResult: (result: ProductionScanResult | null) => void;
+  onFeedback: (feedback: ProductionScanFeedback) => void;
+  preferences: ScannerFeedbackPreferences;
+  currentDetectionSignature: string | null;
   lastAcceptedIdentityRef: MutableRefObject<string | null>;
   lastAcceptedAtRef: MutableRefObject<number>;
-}): Promise<{ ok: true; sessionLineId: string | null } | { ok: false; message: string }> {
+  lastAcceptedDetectionSignatureRef: MutableRefObject<string | null>;
+  waitingForCardChangeRef: MutableRefObject<boolean>;
+}): Promise<{ ok: true; sessionLineId: string | null; needsCardChange: boolean } | { ok: false; message: string; outcome?: 'duplicate' | 'error' }> {
   const startedAt = Date.now();
   if (!input.session || !input.sessionUserId) {
-    return { ok: false, message: 'Scanner session is still preparing.' };
+    return { ok: false, message: 'Scanner session is still preparing.', outcome: 'error' };
   }
   if (!isCardSightScannerEnabled()) {
-    return { ok: false, message: 'CardSight is unavailable in this build.' };
+    return { ok: false, message: 'CardSight is unavailable in this build.', outcome: 'error' };
+  }
+  const isDuplicatePresentation = Boolean(
+    input.preferences.blockDuplicateScans
+    && input.currentDetectionSignature
+    && input.lastAcceptedDetectionSignatureRef.current === input.currentDetectionSignature
+    && Date.now() - input.lastAcceptedAtRef.current < 1200,
+  );
+  if (isDuplicatePresentation) {
+    input.onFeedback({
+      outcome: 'duplicate',
+      message: 'Duplicate skipped',
+      cardName: null,
+      audioEventKey: null,
+    });
+    return { ok: false, message: 'Duplicate skipped', outcome: 'duplicate' };
   }
   input.onPrebuiltDiagnostics({
     cardsightRequest: 'started',
@@ -1146,8 +1343,14 @@ async function runProductionScannerCapture(input: {
         sessionAppend: null,
       });
     }
+    input.onFeedback({
+      outcome: 'error',
+      message: 'Couldn’t identify card. Try again.',
+      cardName: null,
+      audioEventKey: null,
+    });
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    return { ok: false, message: 'Couldn’t identify card. Try again.' };
+    return { ok: false, message: 'Couldn’t identify card. Try again.', outcome: 'error' };
   }
 
   logCardIntelligenceResult(intelligenceSummary);
@@ -1182,6 +1385,12 @@ async function runProductionScannerCapture(input: {
       ? `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}${marketPrice !== null ? `\n$${marketPrice.toFixed(2)}` : ''}`
       : `✓ ${selection.candidate.name}\nPrinting needs confirmation`;
     input.onSuccess(successMessage);
+    input.onFeedback({
+      outcome: exactPrintingResolved ? 'success' : 'review',
+      message: successMessage,
+      cardName: selection.candidate.name,
+      audioEventKey: null,
+    });
     input.onProductionResult({
       name: selection.candidate.name,
       cardSightId: stringId(selection.candidate.providerIds?.cardsight),
@@ -1221,7 +1430,7 @@ async function runProductionScannerCapture(input: {
     setTimeout(() => {
       input.onSuccess(null);
     }, 650);
-    return { ok: true, sessionLineId: null };
+    return { ok: true, sessionLineId: null, needsCardChange: input.preferences.requireCardChangeBeforeRearm || selection.requiresConfirmation };
   }
   const nextSession = addRecognitionToSession(input.session, {
     stableScanId,
@@ -1255,6 +1464,12 @@ async function runProductionScannerCapture(input: {
     ? `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}${marketPrice !== null ? `\n$${marketPrice.toFixed(2)}` : ''}`
     : `✓ ${selection.candidate.name}\nPrinting needs confirmation`;
   input.onSuccess(successMessage);
+  input.onFeedback({
+    outcome: exactPrintingResolved ? 'success' : 'review',
+    message: successMessage,
+    cardName: selection.candidate.name,
+    audioEventKey: lineId,
+  });
   input.onPrebuiltDiagnostics({
     cardIntelligenceResult: selection.requiresConfirmation ? 'needs_review' : 'exact',
     sessionAppend: 'added',
@@ -1308,7 +1523,7 @@ async function runProductionScannerCapture(input: {
       sessionAppend: 'added',
     });
   }
-  return { ok: true, sessionLineId: lineId };
+  return { ok: true, sessionLineId: lineId, needsCardChange: input.preferences.requireCardChangeBeforeRearm || selection.requiresConfirmation };
 }
 
 function logScannerEnrichmentTrace(input: {
@@ -1327,6 +1542,15 @@ function logScannerEnrichmentTrace(input: {
 
 function stringId(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function detectionSignature(result: DocumentDetectionResult) {
+  const status = result.status ?? 'UNKNOWN';
+  const aspect = typeof result.aspectRatio === 'number' ? result.aspectRatio.toFixed(2) : 'na';
+  const brightness = typeof result.averageBrightness === 'number' ? result.averageBrightness.toFixed(2) : 'na';
+  const score = typeof result.detectionScores?.totalScore === 'number' ? result.detectionScores.totalScore.toFixed(2) : 'na';
+  const points = result.pointsNormalized?.map((point) => `${Math.round(point.x)}:${Math.round(point.y)}`).join('|') ?? '';
+  return [status, aspect, brightness, score, points].join('::');
 }
 
 function chooseProductionCandidate(rawCardsight: CardSightMobileScanResult, croppedCardsight: CardSightMobileScanResult, images: {
@@ -1434,6 +1658,7 @@ const styles = StyleSheet.create({
   productionPriceLoading: { width: 88, paddingVertical: 2 },
   productionPriceSkeleton: { marginVertical: 0 },
   productionResultFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
+  productionResultActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
   reviewReminder: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, backgroundColor: '#07111DEE', paddingVertical: space.xs, paddingHorizontal: space.sm },
   reviewReminderCompact: { paddingVertical: 6, paddingHorizontal: 10 },
   reviewReminderCopy: { flex: 1, minWidth: 0, gap: 1 },

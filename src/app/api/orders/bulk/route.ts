@@ -1,28 +1,28 @@
 import { NextResponse } from "next/server";
 import { requireApiCapability } from "@/lib/platform/server-access";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { executeInventoryCommit, InventoryCommitError, isOrderId } from "@/lib/inventory-commit";
 
 const allowedStatuses = new Set(["new", "processing", "shipped", "delivered", "cancelled", "refunded"]);
 
 export async function PATCH(request: Request) {
   const capability = await requireApiCapability("orders.manage");
   if (!capability.ok) return capability.response;
-  const { supabase } = capability;
-  const user = capability.user!;
-
-  const body = (await request.json().catch(() => null)) as { ids?: string[]; status?: string } | null;
-  const ids = [...new Set((body?.ids ?? []).filter((id) => typeof id === "string"))].slice(0, 250);
-  const status = String(body?.status ?? "").toLowerCase();
-  if (!ids.length || !allowedStatuses.has(status)) {
-    return NextResponse.json({ error: "Choose at least one order and a valid status." }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  if (!Array.isArray(body?.ids) || !body.ids.length || body.ids.length > 250
+    || !body.ids.every(isOrderId) || !allowedStatuses.has(body.status)) {
+    return NextResponse.json({ error: "Choose between 1 and 250 valid orders and a valid status." }, { status: 400 });
   }
-
-  const { data, error } = await supabase
-    .from("marketplace_orders")
-    .update({ normalized_status: status, updated_at: new Date().toISOString() })
-    .eq("user_id", user.id)
-    .in("id", ids)
-    .select("id");
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ updated: data?.length ?? 0 });
+  try {
+    const result = await executeInventoryCommit(createAdminClient(), "commit_order_fulfillment", {
+      actor_id: capability.user!.id,
+      order_ids: [...new Set(body.ids)],
+      requested_action: `status:${body.status}`,
+      details: {},
+    });
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Order updates could not be confirmed. Retry the same orders." },
+      { status: error instanceof InventoryCommitError ? error.status : 500 });
+  }
 }

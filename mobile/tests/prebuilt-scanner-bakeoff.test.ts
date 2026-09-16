@@ -21,6 +21,7 @@ test('prebuilt scanner bakeoff route stays native-only and uses the Scanbot capt
   assert.match(screen, /TD_SCANNER_ENGINE/);
   assert.match(screen, /TD_CARD_INTELLIGENCE_RESULT/);
   assert.match(screen, /TD_PRINTING_IDENTITY/);
+  assert.match(screen, /settings-outline/);
   assert.match(screen, /useWindowDimensions/);
   assert.match(screen, /isCompactProductionLayout/);
   assert.match(screen, /isLargeProductionLayout/);
@@ -28,9 +29,12 @@ test('prebuilt scanner bakeoff route stays native-only and uses the Scanbot capt
   assert.match(screen, /snapDocument/);
   assert.match(screen, /finderAspectRatio/);
   assert.match(screen, /Scanner/);
-  assert.match(screen, /Session • \$\{capturedCount\}/);
+  assert.match(screen, /Session • \$\{capturedCount\} cards/);
   assert.match(screen, /Auto/);
   assert.match(screen, /Test current image with CardSight/);
+  assert.match(screen, /Preparing camera|Opening camera\.\.\./);
+  assert.match(screen, /Looking for card/);
+  assert.match(screen, /Matching printing\.\.\./);
   assert.match(selector, /requestIdRef/);
   assert.match(selector, /setPrintings\(\[\]\)/);
   assert.match(selector, /Resolving printing information\./);

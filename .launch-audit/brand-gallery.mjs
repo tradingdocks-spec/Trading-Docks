@@ -1,0 +1,3 @@
+import fs from 'node:fs';
+let s=fs.readFileSync('.launch-audit/theme-review.html','utf8').replaceAll('Theme review','Logo blue review').replaceAll('theme review','logo blue review').replace("'.png';}","'.png';document.getElementById('preview').src+='?v=brand-20260909';}");fs.writeFileSync('.launch-audit/brand-review.html',s);
+const p='docs/WEB_THEME_POLISH_2026-09-08.md';s=fs.readFileSync(p,'utf8');if(!s.includes('HOMEPAGE_BRAND_REFINEMENT_2026-09-09'))s=s.replace('Status:', '> Palette superseded by the logo-blue refinement on September 9. See `HOMEPAGE_BRAND_REFINEMENT_2026-09-09.md`. This report records the earlier mint/teal iteration.\n\nStatus:');fs.writeFileSync(p,s);

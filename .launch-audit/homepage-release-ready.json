@@ -1,0 +1,27 @@
+{
+  "id": "dpl_6caZuqrDLUuFwCvcT39VYGevJZJG",
+  "name": "trading-docks-346a",
+  "url": "trading-docks-346a-bouog1yhq-tradingdocks-specs-projects.vercel.app",
+  "target": "production",
+  "readyState": "BUILDING",
+  "createdAt": 1788763585369,
+  "aliases": [
+    "trading-docks-346a-tradingdocks-specs-projects.vercel.app"
+  ],
+  "builds": [
+    {
+      "id": "bld_hcngybp2s",
+      "deploymentId": "dpl_6caZuqrDLUuFwCvcT39VYGevJZJG",
+      "entrypoint": ".",
+      "readyState": "READY",
+      "readyStateAt": 1788763584285,
+      "createdAt": 1788763584285,
+      "createdIn": "sfo1",
+      "use": "@vercel/vc-build",
+      "config": {},
+      "output": [],
+      "fingerprint": null
+    }
+  ],
+  "contextName": "tradingdocks-specs-projects"
+}

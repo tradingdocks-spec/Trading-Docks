@@ -94,11 +94,9 @@ export function MobileBottomNav({
     >
       <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5">
         {items.map((item) => {
-          const active = item.exact
+          const active = item.href === "/dashboard"
             ? pathname === item.href
-            : item.href === "/dashboard"
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+            : pathname.startsWith(item.href);
           return (
             <Link
               key={`${item.href}-${item.label}`}

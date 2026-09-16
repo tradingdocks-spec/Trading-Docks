@@ -262,3 +262,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function TrialStat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof TicketCheck }) {
   return <div className="rounded-[22px] border border-td-ink/[0.07] bg-td-surface p-5"><div className="flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-muted">{label}</p><Icon className="h-4 w-4 text-td-warning/60" /></div><p className="mt-4 text-2xl font-semibold text-td-primary">{value}</p></div>;
 }
+

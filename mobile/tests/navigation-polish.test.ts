@@ -48,16 +48,19 @@ test('tab cells use equal-width five-tab geometry', () => {
 
 test('active route state remains stable for primary and nested tab routes', () => {
   assert.equal(isMobileTabSelected('/(tabs)', 'index'), true);
+  assert.equal(isMobileTabSelected('/(tabs)/search', 'search'), true);
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
   assert.equal(isMobileTabSelected('/(tabs)/collection/card-1', 'collection'), true);
   assert.equal(isMobileTabSelected('/(tabs)/profile', 'sell'), false);
 });
 
-test('center action remains Scan for every account type and Deal Desk is contextual', () => {
+test('scan remains prominent and search stays a primary tab for every account type', () => {
+  const collectorSearch = getMobileTabOptions('collector', 'search');
   const collectorScan = getMobileTabOptions('collector', 'scan');
   const sellerScan = getMobileTabOptions('seller', 'scan');
   const storeScan = getMobileTabOptions('store', 'scan');
 
+  assert.equal(collectorSearch.href, undefined);
   assert.equal(collectorScan.href, undefined);
   assert.equal(collectorScan.prominent, true);
   assert.equal(sellerScan.prominent, true);
@@ -67,14 +70,14 @@ test('center action remains Scan for every account type and Deal Desk is context
   }
 });
 
-test('Mobile V3 primary tab labels are Home Collection Scan Decks Account', () => {
+test('Mobile V3 primary tab labels are Home Search Collection Decks Scan', () => {
   for (const accountType of accountTypes) {
     assert.deepEqual(getMobileTabs(accountType).map((tab) => tab.label), [
       'Home',
+      'Search',
       'Collection',
-      'Scan',
       'Decks',
-      'Account',
+      'Scan',
     ]);
   }
 });
@@ -90,7 +93,7 @@ test('Intelligence is not a standalone primary tab', () => {
 test('admin access remains additive and outside primary mobile tabs', () => {
   for (const accountType of accountTypes) {
     const routes = getMobileVisibleTabRoutes(accountType) as string[];
-    assert.equal(routes.includes('profile'), true);
+    assert.equal(routes.includes('profile'), false);
     assert.equal(routes.includes('admin'), false);
   }
 
@@ -130,6 +133,7 @@ test('bottom navigation visual model keeps center action balanced inside the bar
 test('mobile tab bar remains visible on Scan Modes', () => {
   assert.equal(shouldHideMobileTabBarForRoute('scan'), false);
   assert.equal(shouldHideMobileTabBarForRoute('index'), false);
+  assert.equal(shouldHideMobileTabBarForRoute('search'), false);
   assert.equal(shouldHideMobileTabBarForRoute('collection'), false);
   assert.equal(shouldHideMobileTabBarForRoute('sell'), false);
   assert.equal(shouldHideMobileTabBarForRoute('profile'), false);
@@ -139,7 +143,7 @@ test('mobile tab layout structurally registers exactly five production tabs', ()
   const layout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
   const registeredScreens = [...layout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g)].map((match) => match[1]);
 
-  assert.deepEqual(registeredScreens, ['index', 'collection', 'scan', 'sell', 'profile']);
+  assert.deepEqual(registeredScreens, ['index', 'search', 'collection', 'sell', 'scan']);
   assert.equal(registeredScreens.length, MOBILE_PRIMARY_TAB_COUNT);
   assert.doesNotMatch(layout, /name="deal-desk"/);
   assert.doesNotMatch(layout, /getMobileVisibleTabRoutes\(accountType\)/);
@@ -152,6 +156,6 @@ test('Expo Router tabs group contains no Deal Desk route file', () => {
   assert.equal(tabFiles.includes('deal-desk.tsx'), false);
   assert.deepEqual(
     tabFiles.sort(),
-    ['_layout.tsx', 'collection.tsx', 'index.tsx', 'profile.tsx', 'scan.tsx', 'sell.tsx'].sort(),
+    ['_layout.tsx', 'collection.tsx', 'index.tsx', 'profile.tsx', 'scan.tsx', 'search.tsx', 'sell.tsx'].sort(),
   );
 });

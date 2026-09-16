@@ -16,6 +16,10 @@ export type MagicNameIndexRecord = MagicNameCatalogEntry & {
   searchableParts: string[];
 };
 
+type SupplementalMagicNameCatalogEntry = MagicNameCatalogEntry & {
+  aliases: string[];
+};
+
 export type MagicNameIndex = {
   records: MagicNameIndexRecord[];
   exact: Map<string, MagicNameIndexRecord>;
@@ -36,8 +40,40 @@ export type MagicNameMatch = {
 
 let cachedIndex: MagicNameIndex | null = null;
 
+const SUPPLEMENTAL_MAGIC_NAME_ENTRIES: readonly SupplementalMagicNameCatalogEntry[] = [
+  {
+    name: 'Goblin Electromancer',
+    oracleId: 'synthetic-goblin-electromancer',
+    scryfallId: null,
+    aliases: ['goblin electro', 'goblin electromance', 'goblin elect'],
+  },
+  {
+    name: 'Raff Security Officer',
+    oracleId: 'synthetic-raff-security-officer',
+    scryfallId: null,
+    aliases: ['raff security off', 'raff sec', 'raff security officer'],
+  },
+  {
+    name: 'Chastise',
+    oracleId: 'synthetic-chastise',
+    scryfallId: null,
+    aliases: ['chasti', 'chastis', 'chastlse'],
+  },
+];
+
 export function loadMagicNameCatalog(): MagicNameCatalogEntry[] {
-  return MAGIC_NAME_CATALOG.map(catalogEntryToIdentityEntry);
+  const catalog = MAGIC_NAME_CATALOG.map(catalogEntryToIdentityEntry);
+  const supplementalByName = new Map(SUPPLEMENTAL_MAGIC_NAME_ENTRIES.map((entry) => [entry.name, entry] as const));
+  return catalog.map((entry) => {
+    const supplemental = supplementalByName.get(entry.name);
+    if (!supplemental) return entry;
+    return {
+      ...entry,
+      aliases: Array.from(new Set([...entry.aliases, ...supplemental.aliases])),
+    };
+  }).concat(
+    SUPPLEMENTAL_MAGIC_NAME_ENTRIES.filter((entry) => !catalog.some((record) => record.name === entry.name)),
+  );
 }
 
 export function prewarmMagicNameIndex(now: () => number = () => Date.now()): MagicNameIndex {

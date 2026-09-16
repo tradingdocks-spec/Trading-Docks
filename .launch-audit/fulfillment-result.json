@@ -1,0 +1,11 @@
+{
+  "reproduced": true,
+  "injectedFailure": "inventory_items UPDATE",
+  "actualStatus": 200,
+  "actualBody": {
+    "stage": "shipped"
+  },
+  "lineMarkedDeductedDespiteFailure": true,
+  "expected": "Reject shipping and roll back all writes",
+  "limitation": "Route-level database double; no real database or production mutation"
+}

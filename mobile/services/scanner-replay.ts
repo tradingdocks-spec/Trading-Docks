@@ -335,14 +335,7 @@ async function inventoryItemExists(userId: string, inventoryItemId: string) {
 async function insertInventoryItem(payload: ScannerAddPayload) {
   const { supabase } = await import('../lib/supabase.ts');
   if (!supabase) throw new Error('Supabase scanner replay is not configured.');
-  const inventoryItemId = String(payload.id ?? '');
-  const { error } = await supabase.rpc('create_inventory_item_with_event', {
-    p_inventory: payload,
-    p_source: 'scanner_replay',
-    p_idempotency_key: inventoryItemId ? `scanner-replay:${inventoryItemId}` : null,
-    p_related_entity_type: 'scanner_queue_entry',
-    p_related_entity_id: inventoryItemId || null,
-  });
+  const { error } = await supabase.from('inventory_items').insert(payload);
   if (!error) return;
   const classified = classifyScannerReplayError(error);
   if (classified.code === 'unknown' && /duplicate|unique/i.test(error.message)) return;

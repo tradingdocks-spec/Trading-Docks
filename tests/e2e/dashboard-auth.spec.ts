@@ -40,8 +40,7 @@ async function openAuthenticatedPage(
   account: QaAccount,
 ) {
   const context = await browser.newContext({
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173",
-    ignoreHTTPSErrors: !process.env.PLAYWRIGHT_BASE_URL,
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173",
     storageState: account.statePath,
   });
   const page = await context.newPage();

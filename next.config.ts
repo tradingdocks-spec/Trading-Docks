@@ -35,10 +35,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "images.pokemontcg.io", pathname: "/**" },
-      { protocol: "https", hostname: "assets.tcgdex.net", pathname: "/ja/**" },
-      { protocol: "https", hostname: "cards.lorcast.io", pathname: "/card/digital/**" },
-      { protocol: "https", hostname: "optcgapi.com", pathname: "/media/static/Card_Images/**" },
       {
         protocol: "https",
         hostname: "api.scryfall.com",
@@ -49,9 +45,21 @@ const nextConfig: NextConfig = {
         hostname: "cards.scryfall.io",
         pathname: "/**",
       },
-      { protocol: "https", hostname: "cdn.tcgtracking.com", pathname: "/**" },
-      { protocol: "https", hostname: "tcgplayer-cdn.tcgplayer.com", pathname: "/**" },
-      { protocol: "https", hostname: "product-images.tcgplayer.com", pathname: "/**" },
+      {
+        protocol: "https",
+        hostname: "cdn.tcgtracking.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "tcgplayer-cdn.tcgplayer.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "product-images.tcgplayer.com",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -102,46 +102,65 @@ async function executeOnlineMutation(
   if (!validation.ok) throw new Error(validation.reason);
 
   if (mutation.type === 'quantity') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: 'quantity',
-      p_quantity: mutation.quantity,
-      p_condition: null,
-      p_finish: null,
-      p_location_id: null,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
+    const { error } = await supabase
+      .from('inventory_items')
+      .update({ quantity: mutation.quantity, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('id', mutation.inventoryItemId);
     if (error) throw new Error(error.message);
     return;
   }
 
   if (mutation.type === 'condition' || mutation.type === 'finish') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: mutation.type,
-      p_quantity: null,
-      p_condition: mutation.type === 'condition' ? mutation.condition : null,
-      p_finish: mutation.type === 'finish' ? mutation.finish : null,
-      p_location_id: null,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
+    const { data: item, error: loadError } = await supabase
+      .from('inventory_items')
+      .select('data')
+      .eq('user_id', userId)
+      .eq('id', mutation.inventoryItemId)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    const previousData = isRecord(item?.data) ? item.data : {};
+    const data = {
+      ...previousData,
+      [mutation.type]: mutation.type === 'condition' ? mutation.condition : mutation.finish,
+    };
+    const { error } = await supabase
+      .from('inventory_items')
+      .update({ data, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('id', mutation.inventoryItemId);
     if (error) throw new Error(error.message);
     return;
   }
 
   if (mutation.type === 'storage') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: 'storage',
-      p_quantity: null,
-      p_condition: null,
-      p_finish: null,
-      p_location_id: mutation.storageLocationId,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
+    const { data: item, error: loadError } = await supabase
+      .from('inventory_items')
+      .select('data')
+      .eq('user_id', userId)
+      .eq('id', mutation.inventoryItemId)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    const previousData = isRecord(item?.data) ? item.data : {};
+    if (mutation.storageLocationId) {
+      const { data: location, error: locationError } = await supabase
+        .from('inventory_locations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('id', mutation.storageLocationId)
+        .maybeSingle();
+      if (locationError) throw new Error(locationError.message);
+      if (!location) throw new Error('Choose one of your storage locations.');
+    }
+    const { error } = await supabase
+      .from('inventory_items')
+      .update({
+        location_id: mutation.storageLocationId,
+        data: { ...previousData, locationId: mutation.storageLocationId },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('id', mutation.inventoryItemId);
     if (error) throw new Error(error.message);
     return;
   }
@@ -241,4 +260,8 @@ async function loadMutationQuantityContext(userId: string, inventoryItemId: stri
   if (cardResult.error) throw new Error(cardResult.error.message);
   const currentCardQuantity = Number(cardResult.data?.quantity ?? 0);
   return { currentTotalQuantity, currentCardQuantity };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

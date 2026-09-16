@@ -34,7 +34,7 @@ create trigger showcase_request_item_reservation after insert on public.showcase
 create or replace function public.get_kiosk_context(input_token text)
 returns table (device_id uuid, workspace_id uuid, showcase_slug text)
 language sql security definer stable set search_path = public
-as $$ select d.id, d.workspace_id, p.slug from public.showcase_kiosk_devices d join public.showcase_profiles p on p.workspace_id = d.workspace_id where d.token_hash = encode(extensions.digest(convert_to(input_token, 'UTF8'), 'sha256'), 'hex') and d.enabled and d.revoked_at is null and p.enabled and p.kiosk_enabled; $$;
+as $$ select d.id, d.workspace_id, p.slug from public.showcase_kiosk_devices d join public.showcase_profiles p on p.workspace_id = d.workspace_id where d.token_hash = encode(digest(input_token, 'sha256'), 'hex') and d.enabled and d.revoked_at is null and p.enabled and p.kiosk_enabled; $$;
 revoke all on function public.get_kiosk_context(text) from public; grant execute on function public.get_kiosk_context(text) to anon, authenticated;
 
 create or replace function public.update_showcase_request_status(requested_id uuid, next_status text, actor_id uuid default null)

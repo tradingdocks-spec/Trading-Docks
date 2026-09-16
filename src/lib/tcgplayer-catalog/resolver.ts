@@ -175,10 +175,6 @@ export async function resolveTcgplayerVariant(
   const identities = input.setIdentities ?? fallbackMtgSetIdentities();
   const sourceSet = input.setCode?.trim() || input.setName?.trim() || "";
   const translated = resolveMtgSetIdentity(sourceSet, identities);
-  if (translated.status === "matched" && exactDirect.status === "ambiguous") {
-    const narrowed = narrowToTranslatedSet(exactDirect, translated.name);
-    if (narrowed.status === "matched") return narrowed;
-  }
   const isList = [sourceSet, input.setName].some((value) => /^(plst|list|the list|the list reprints)$/i.test(value?.trim() ?? "")) || (translated.status === "matched" && translated.code === "plst");
   const compound = isList ? parseListCollector(input.collectorNumber) : null;
   let exactTranslated: ResolveTcgplayerVariantResult = exactDirect;
@@ -202,22 +198,7 @@ export async function resolveTcgplayerVariant(
     }
     return unresolved("PLST_COMPOUND_COLLECTOR_UNRESOLVED", `The List printing could not be linked to a catalog product (source ${compound.sourceSetCode.toUpperCase()} #${compound.sourceCollectorNumber}).`, specialDiagnostics);
   }
-  if (exactTranslated.status === "ambiguous") {
-    const narrowed = translated.status === "matched"
-      ? narrowToTranslatedSet(exactTranslated, translated.name)
-      : exactTranslated;
-    if (narrowed.status === "matched") return narrowed;
-    return narrowed;
-  }
-  if (translated.status === "matched") {
-    const fallback = await matchByProductAndCollector(client, translated.name, input, normalized.normalizedCondition, normalized.normalizedFinish, {
-      ...diagnostics,
-      stage: "printing-identity",
-      sourceSet,
-      translatedSetName: translated.name,
-    });
-    if (fallback) return fallback;
-  }
+  if (exactTranslated.status === "ambiguous") return exactTranslated;
   if (translated.status === "unknown") {
     return unresolved("UNKNOWN_SET_CODE", `Unknown Magic set code or set alias: ${sourceSet}.`, {
       stage: "set-code-bridge",
@@ -238,52 +219,6 @@ export async function resolveTcgplayerVariant(
     normalizedCondition: normalized.normalizedCondition,
     normalizedFinish: normalized.normalizedFinish,
   });
-}
-
-function narrowToTranslatedSet(
-  result: Extract<ResolveTcgplayerVariantResult, { status: "ambiguous" }>,
-  translatedSetName: string,
-): ResolveTcgplayerVariantResult {
-  const wanted = normalizeSetName(translatedSetName);
-  const candidates = result.candidates.filter((candidate) => matchesTranslatedSet(candidate.set_name, wanted));
-  if (!candidates.length) return result;
-  return selectCandidates(candidates, {
-    ...result.diagnostics,
-    translatedSetName,
-  });
-}
-
-async function matchByProductAndCollector(
-  client: SupabaseCatalogResolverClient,
-  translatedSetName: string,
-  input: ResolveTcgplayerVariantInput,
-  normalizedCondition: string,
-  normalizedFinish: string,
-  diagnostics: TcgplayerResolveDiagnostics,
-) {
-  const productName = normalizeProductName(input.productName);
-  const collectorNumber = normalizeCollectorNumber(input.collectorNumber);
-  if (!productName || !collectorNumber) return null;
-
-  const rows = await fetchCandidates(client, { normalized_product_name: productName }, 1000);
-  const printingRows = rows.filter((row) => printingNumber(row.collector_number) === printingNumber(collectorNumber));
-  const wanted = normalizeSetName(translatedSetName);
-  const setRows = printingRows.filter((row) => matchesTranslatedSet(row.set_name, wanted));
-  const genericDuelDeckRows = printingRows.filter((row) => normalizeSetName(row.set_name) === "duel decks");
-  if (!setRows.length && genericDuelDeckRows.length === 1 && wanted.includes("duel decks")) setRows.push(genericDuelDeckRows[0]);
-  if (!setRows.length) return null;
-  return selectCandidates(setRows, { ...diagnostics, collectorNumber: input.collectorNumber, translatedSetName });
-}
-
-function matchesTranslatedSet(candidateSetName: string, wantedSetName: string) {
-  const candidate = normalizeSetName(candidateSetName);
-  if (candidate === wantedSetName) return true;
-  if (!candidate.includes("duel decks") || !wantedSetName.includes("duel decks")) return false;
-  if (wantedSetName.includes("anthology") && candidate.includes("anthology")) return true;
-  const distinctiveTokens = wantedSetName
-    .split(" ")
-    .filter((token) => token.length > 2 && token !== "duel" && token !== "decks" && token !== "the" && token !== "vs");
-  return distinctiveTokens.length > 0 && distinctiveTokens.every((token) => candidate.includes(token));
 }
 
 function isMagicResolverGame(value: string | number | null | undefined) {
@@ -397,59 +332,20 @@ async function diagnoseUnresolved(
   const normalizedSetName = normalizeSetName(setName);
   const normalizedProductName = normalizeProductName(input.productName);
   const normalizedCollectorNumber = normalizeCollectorNumber(input.collectorNumber);
-  let productInSet = await fetchCandidates(client, {
+  const productInSet = await fetchCandidates(client, {
     normalized_set_name: normalizedSetName,
     normalized_product_name: normalizedProductName,
   }, 1000);
-
-  // ManaBox preserves the Scryfall display spelling while TCGplayer often
-  // stores a compact product name (for example `C.A.M.P.` vs `CAMP`). When
-  // the indexed exact name misses, use the set and collector number as a
-  // bounded second lookup, then compare a compact identity locally. This is
-  // deliberately constrained to one set and one printing identity so it
-  // cannot silently select a card from another set.
-  if (productInSet.length === 0 && normalizedCollectorNumber) {
-    const byCardIdentity = (await Promise.all(nameLookupVariants(input.productName).map((normalizedName) =>
-      fetchCandidates(client, {
-        normalized_product_name: normalizedName,
-        normalized_collector_number: normalizedCollectorNumber,
-      }, 50),
-    ))).flat();
-    productInSet = uniqueCatalogRows(byCardIdentity).filter((row) => cardNamesEquivalent(row.product_name, input.productName));
-  }
-
-  if (productInSet.length === 0) {
-    const bySet = await fetchCandidates(client, { normalized_set_name: normalizedSetName }, 500);
-    productInSet = bySet.filter((row) =>
-      cardNamesEquivalent(row.product_name, input.productName)
-      && (!normalizedCollectorNumber || collectorNumbersEquivalent(row.collector_number, input.collectorNumber)),
-    );
-  }
 
   if (productInSet.length === 0) {
     return unresolved("SET_MAPPED_NO_PRODUCT", `Set translated to ${setName}, but the product was not found in the TCGplayer catalog for that set.`, diagnostics);
   }
 
   const printingCandidates = normalizedCollectorNumber
-    ? productInSet.filter((row: TcgplayerCatalogVariant) => collectorNumbersEquivalent(row.collector_number, input.collectorNumber) || printingNumber(row.collector_number) === printingNumber(input.collectorNumber))
+    ? productInSet.filter((row: TcgplayerCatalogVariant) => printingNumber(row.collector_number) === printingNumber(input.collectorNumber))
     : productInSet;
 
   if (normalizedCollectorNumber && printingCandidates.length === 0) {
-    // Some TCGplayer exports omit a collector suffix or use a different
-    // numbering scheme for otherwise unique products. Accept that case only
-    // when the set, card name, finish, and condition identify one SKU.
-    const uniqueVariant = productInSet
-      .filter((row) => normalizeSetName(row.finish) === normalizedFinish)
-      .filter((row) => normalizeSetName(row.condition) === normalizedCondition);
-    if (uniqueVariant.length === 1) {
-      const [row] = uniqueVariant;
-      return {
-        status: "matched",
-        row,
-        tcgplayerId: row.tcgplayer_id,
-        diagnostics: { ...diagnostics, collectorNumber: row.collector_number ?? input.collectorNumber },
-      };
-    }
     return unresolved("COLLECTOR_NUMBER_MISMATCH", `Product was found in ${setName}, but collector number ${input.collectorNumber} did not match a TCGplayer catalog printing.`, diagnostics);
   }
 
@@ -464,53 +360,6 @@ async function diagnoseUnresolved(
   }
 
   return selectCandidates(conditionCandidates, diagnostics);
-}
-
-function compactProductName(value: unknown) {
-  return normalizeProductName(value).replace(/[^a-z0-9]/g, "");
-}
-
-function cardNamesEquivalent(left: unknown, right: unknown) {
-  const leftVariants = nameVariants(left);
-  const rightVariants = nameVariants(right);
-  return leftVariants.some((value) => rightVariants.includes(value));
-}
-
-function nameVariants(value: unknown) {
-  const text = String(value ?? "");
-  return [...new Set([
-    compactProductName(text),
-    ...text.split("//").map((face) => compactProductName(face)),
-  ].filter(Boolean))];
-}
-
-function nameLookupVariants(value: unknown) {
-  const text = String(value ?? "");
-  return [...new Set([
-    normalizeProductName(text),
-    ...text.split("//").map((face) => normalizeProductName(face)),
-  ].filter(Boolean))];
-}
-
-function uniqueCatalogRows(rows: TcgplayerCatalogVariant[]) {
-  return [...new Map(rows.map((row) => [row.tcgplayer_id, row])).values()];
-}
-
-function collectorNumbersEquivalent(left: unknown, right: unknown) {
-  const a = normalizeCollectorNumber(left);
-  const b = normalizeCollectorNumber(right);
-  if (!a || !b) return a === b;
-  if (a === b) return true;
-
-  // Catalog exports occasionally append a foil/variant marker (for example
-  // `391★`) or a leading hash. Only treat those as equivalent when both
-  // values reduce to the same numeric collector number; lettered variants
-  // such as `12a` and `12b` remain distinct.
-  const numeric = (value: string) => value.replace(/^#/, "").replace(/[★*]+$/, "");
-  const numericA = numeric(a);
-  const numericB = numeric(b);
-  return /^\d+$/.test(numericA) && /^\d+$/.test(numericB)
-    && Number.parseInt(numericA, 10) === Number.parseInt(numericB, 10);
 }
 
 async function fetchCandidates(

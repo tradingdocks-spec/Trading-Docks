@@ -10,7 +10,6 @@ const LIST_KEY = "deck-vault:list";
 const DECK_PREFIX = "deck-vault:deck:";
 const UNRESOLVED_PREFIX = "deck-vault:unresolved:";
 const RECOVERY_PREFIX = "deck-vault:recovery:";
-const DELETED_PREFIX = "deck-vault:deleted:";
 
 type RecoveryDeck = {
   deck: DeckRecord;
@@ -39,9 +38,7 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
 
   const rows = (data ?? []) as DeckDataRow[];
   if (rows.length) {
-    const remoteDecks: DeckRecord[] = rows
-      .map((row) => row.deck_data)
-      .filter((deck) => !isDeckDeleted(userId, deck.id));
+    const remoteDecks: DeckRecord[] = rows.map((row) => row.deck_data);
     const recovered = loadRecoveryDecks(userId);
     const merged = new Map(remoteDecks.map((deck) => [deck.id, deck]));
     for (const item of recovered) {
@@ -50,13 +47,13 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
         merged.set(item.id, cached.deck);
       }
     }
-    return Array.from(merged.values()).filter((deck) => !isDeckDeleted(userId, deck.id));
+    return Array.from(merged.values());
   }
 
   const recovered = loadRecoveryDecks(userId);
-  if (recovered.length) return recovered.filter((deck) => !isDeckDeleted(userId, deck.id));
+  if (recovered.length) return recovered;
 
-  const legacyDecks = await loadLegacyDeckVault(userId);
+  const legacyDecks = await loadLegacyDeckVault();
   for (const deck of legacyDecks) {
     await saveDeckRow(deck);
   }
@@ -65,7 +62,6 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
 
 export async function loadDeckRecord(deckId: string) {
   const { supabase, userId } = await authenticatedClient();
-  if (isDeckDeleted(userId, deckId)) return null;
   const recovery = loadRecoveryDeck(userId, deckId);
   const { data, error } = await supabase
     .from("deck_vault_decks")
@@ -102,16 +98,12 @@ export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
 
 export async function deleteDeckRecord(deckId: string) {
   const { supabase, userId } = await authenticatedClient();
-  markDeckDeleted(userId, deckId);
   const { error } = await supabase
     .from("deck_vault_decks")
     .delete()
     .eq("user_id", userId)
     .eq("deck_key", deckId);
-  if (error) {
-    clearDeckDeleted(userId, deckId);
-    throw deckStorageError("The deck could not be deleted", error.message);
-  }
+  if (error) throw deckStorageError("The deck could not be deleted", error.message);
   removeRecoveryDeck(userId, deckId);
 }
 
@@ -144,20 +136,15 @@ async function migrateLegacyDecks() {
   return ids;
 }
 
-async function loadLegacyDeckVault(userId: string): Promise<DeckRecord[]> {
+async function loadLegacyDeckVault(): Promise<DeckRecord[]> {
   let ids = await loadAccountDocument<string[]>(LIST_KEY);
   if (ids === null) ids = await migrateLegacyDecks();
-  const decks = await Promise.all(
-    ids.filter((id) => !isDeckDeleted(userId, id)).map((id) => loadAccountDocument<DeckRecord>(deckKey(id))),
-  );
+  const decks = await Promise.all(ids.map((id) => loadAccountDocument<DeckRecord>(deckKey(id))));
   return decks.filter((deck): deck is DeckRecord => Boolean(deck));
 }
 
 async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
   const { supabase, userId } = await authenticatedClient();
-  // A detail page may still have an autosave queued when the user deletes it.
-  // Keep the deletion marker authoritative so that queued work cannot recreate it.
-  if (isDeckDeleted(userId, deck.id)) return;
   saveRecoveryDeck(userId, deck);
   const { data, error } = await supabase.from("deck_vault_decks").upsert(
     {
@@ -217,22 +204,6 @@ function removeRecoveryDeck(userId: string, deckId: string) {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(recoveryKey(userId, deckId));
   }
-}
-
-function deletedKey(userId: string, deckId: string) {
-  return `${DELETED_PREFIX}${userId}:${deckId}`;
-}
-
-function isDeckDeleted(userId: string, deckId: string) {
-  return typeof window !== "undefined" && window.localStorage.getItem(deletedKey(userId, deckId)) === "1";
-}
-
-function markDeckDeleted(userId: string, deckId: string) {
-  if (typeof window !== "undefined") window.localStorage.setItem(deletedKey(userId, deckId), "1");
-}
-
-function clearDeckDeleted(userId: string, deckId: string) {
-  if (typeof window !== "undefined") window.localStorage.removeItem(deletedKey(userId, deckId));
 }
 
 async function authenticatedClient() {

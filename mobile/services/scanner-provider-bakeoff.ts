@@ -1,3 +1,4 @@
+import { MOBILE_CANONICAL_SITE_URL } from './mobile-release-config.ts';
 import type { MagicBenchmarkFixtureManifestEntry } from './magic-recognition-provider.ts';
 import { runScannerRecognitionLab, type ScannerRecognitionLabReport } from './scanner-recognition-lab.ts';
 import { buildScannerProviderManifest, resolveScannerProviderFlags, type ScannerProviderAvailability, type ScannerProviderKind, type ScannerProviderManifest } from './scanner-provider-stack.ts';
@@ -35,6 +36,7 @@ export type ScannerProviderBakeoffResult = {
   exactPrintingMatch: boolean;
   latencyMs: number | null;
   notes: string[];
+  details?: Record<string, unknown>;
 };
 
 export type ScannerProviderBakeoffAdapterContext = {
@@ -84,10 +86,12 @@ export type ScannerProviderBakeoffReport = {
 export function createScannerProviderBakeoffAdapters(options: {
   includeBaseline?: boolean;
   includeTcgTracking?: boolean;
+  includeCardSight?: boolean;
 } = {}): ScannerProviderBakeoffAdapter[] {
   const adapters: ScannerProviderBakeoffAdapter[] = [];
   if (options.includeBaseline ?? true) adapters.push(createCurrentScannerBaselineAdapter());
   if (options.includeTcgTracking ?? true) adapters.push(createTcgTrackingBakeoffAdapter());
+  if (options.includeCardSight ?? true) adapters.push(createCardSightBakeoffAdapter());
   return adapters;
 }
 
@@ -214,6 +218,137 @@ export function createTcgTrackingBakeoffAdapter(deps: {
         };
       } catch (error) {
         return adapterError('tcgtracking', 'TCGTracking scan provider', 'recognition', error, Date.now() - started);
+      }
+    },
+  };
+}
+
+type PrepareCardSightScanImage = (input: {
+  imageUri: string;
+  targetLongEdge?: number;
+}) => Promise<{
+  image: string;
+  width: number;
+  height: number;
+  bytes: number;
+  mimeType: 'image/jpeg';
+}>;
+type CardSightRequestMode = 'raw' | 'cropped';
+type CardSightRouteCandidate = {
+  printingId?: string | null;
+  canonicalCardId?: string | null;
+  name?: string | null;
+  setCode?: string | null;
+  setName?: string | null;
+  collectorNumber?: string | null;
+  language?: string | null;
+  finish?: string | null;
+  confidence?: number | null;
+  latencyMs?: number | null;
+  providerIds?: Record<string, string | number>;
+};
+type CardSightRouteResponse = {
+  status?: string;
+  mode?: CardSightRequestMode;
+  candidates?: CardSightRouteCandidate[];
+  topCandidate?: CardSightRouteCandidate | null;
+  intelligence?: {
+    selectedPrintingId?: string | null;
+    requiresConfirmation?: boolean;
+    candidates?: Array<{ printingId?: string | null; name?: string | null; confidence?: number | null }>;
+  } | null;
+  fallbackRecommended?: boolean;
+  latencyMs?: number | null;
+  totalLatencyMs?: number | null;
+  error?: string;
+};
+
+export function createCardSightBakeoffAdapter(deps: {
+  prepareCardSightScanImage?: PrepareCardSightScanImage;
+  getAccessToken?: () => Promise<string | null> | string | null;
+  fetcher?: typeof fetch;
+} = {}): ScannerProviderBakeoffAdapter {
+  const prepareScanImage = deps.prepareCardSightScanImage ?? prepareCardSightScanImage;
+  return {
+    id: 'cardsight',
+    name: 'CardSight AI',
+    kind: 'recognition',
+    async evaluate(fixture, context) {
+      const started = Date.now();
+      if (!context.flags.cardsightEnabled) {
+        return unavailableAdapterResult('cardsight', 'CardSight AI', 'recognition', 'disabled', ['Feature flag is off.']);
+      }
+      if (!context.allowNetwork) {
+        return unavailableAdapterResult('cardsight', 'CardSight AI', 'recognition', 'not_configured', ['Network access is disabled for this bake-off run.']);
+      }
+      const session = await loadScannerSessionToken(deps.getAccessToken);
+      if (!session) {
+        return unavailableAdapterResult('cardsight', 'CardSight AI', 'recognition', 'not_configured', ['Scanner authentication is not available for the CardSight request.']);
+      }
+
+      try {
+        const [rawImage, croppedImage] = await Promise.all([
+          prepareScanImage({ imageUri: fixture.localImagePath, targetLongEdge: 1440 }),
+          prepareScanImage({ imageUri: fixture.localImagePath, targetLongEdge: 720 }),
+        ]);
+        const [rawResult, croppedResult] = await Promise.all([
+          requestCardSightScan({
+            image: rawImage.image,
+            mode: 'raw',
+            fetcher: deps.fetcher,
+            accessToken: session.accessToken,
+          }),
+          requestCardSightScan({
+            image: croppedImage.image,
+            mode: 'cropped',
+            fetcher: deps.fetcher,
+            accessToken: session.accessToken,
+          }),
+        ]);
+        const winner = chooseCardSightWinner(rawResult, croppedResult);
+        const topCandidate = winner?.topCandidate ?? null;
+        const selectedPrintingId = winner?.intelligence?.selectedPrintingId ?? null;
+        const exactPrintingMatch = Boolean(
+          fixture.expectedScryfallId &&
+          (selectedPrintingId === fixture.expectedScryfallId || topCandidate?.printingId === fixture.expectedScryfallId || topCandidate?.canonicalCardId === fixture.expectedScryfallId),
+        );
+        const exactNameMatch = Boolean(topCandidate?.name && topCandidate.name === fixture.expectedCardName);
+        const status = winner
+          ? classifyAdapterStatus({
+            expectedName: fixture.expectedCardName,
+            topCandidate: topCandidate?.name ?? null,
+            exactPrinting: exactPrintingMatch,
+          })
+          : 'partial';
+        return {
+          providerId: 'cardsight',
+          providerName: 'CardSight AI',
+          kind: 'recognition',
+          status: winner ? status : 'partial',
+          topCandidate: topCandidate ? {
+            name: topCandidate.name ?? null,
+            setCode: topCandidate.setCode ?? null,
+            collectorNumber: topCandidate.collectorNumber ?? null,
+            scryfallId: topCandidate.printingId ?? topCandidate.canonicalCardId ?? null,
+            confidence: topCandidate.confidence ?? null,
+          } : null,
+          expectedNameMatch: exactNameMatch,
+          exactPrintingMatch,
+          latencyMs: winner?.latencyMs ?? Math.max(0, Date.now() - started),
+          notes: [
+            winner?.mode === 'raw' ? 'CardSight raw image performed best in this run.' : 'CardSight cropped image performed best in this run.',
+            summarizeCardSightMode('raw', rawResult),
+            summarizeCardSightMode('cropped', croppedResult),
+          ].filter(Boolean),
+          details: {
+            raw: rawResult,
+            cropped: croppedResult,
+            selectedMode: winner?.mode ?? null,
+            selectedPrintingId,
+          },
+        };
+      } catch (error) {
+        return adapterError('cardsight', 'CardSight AI', 'recognition', error, Date.now() - started);
       }
     },
   };
@@ -418,6 +553,122 @@ function adapterError(
     latencyMs,
     notes: [error instanceof Error ? error.message : String(error)],
   };
+}
+
+async function loadScannerSessionToken(getAccessToken?: () => Promise<string | null> | string | null) {
+  if (getAccessToken) {
+    const accessToken = await getAccessToken();
+    return accessToken ? { accessToken } : null;
+  }
+  const { supabase } = await import('../lib/supabase.ts');
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  return accessToken ? { accessToken } : null;
+}
+
+async function requestCardSightScan(input: {
+  image: string;
+  mode: CardSightRequestMode;
+  fetcher?: typeof fetch;
+  accessToken: string;
+}): Promise<CardSightRouteResponse> {
+  const response = await (input.fetcher ?? fetch)(`${MOBILE_CANONICAL_SITE_URL}/api/scanner/cardsight`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${input.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      image: input.image,
+      game: 'magic',
+      limit: 5,
+      mode: input.mode,
+    }),
+  });
+  const payload = await response.json().catch(() => ({})) as CardSightRouteResponse;
+  if (!response.ok || payload.status === 'provider_failed' || payload.status === 'timeout' || payload.status === 'unavailable') {
+    return {
+      status: payload.status ?? 'provider_failed',
+      mode: input.mode,
+      candidates: [],
+      topCandidate: null,
+      intelligence: null,
+      fallbackRecommended: true,
+      latencyMs: payload.latencyMs ?? null,
+      totalLatencyMs: payload.totalLatencyMs ?? null,
+      error: payload.error ?? `CardSight returned HTTP ${response.status}.`,
+    };
+  }
+  return {
+    status: payload.status ?? 'candidates',
+    mode: input.mode,
+    candidates: Array.isArray(payload.candidates) ? payload.candidates : [],
+    topCandidate: payload.topCandidate ?? payload.candidates?.[0] ?? null,
+    intelligence: payload.intelligence ?? null,
+    fallbackRecommended: payload.fallbackRecommended ?? false,
+    latencyMs: payload.latencyMs ?? null,
+    totalLatencyMs: payload.totalLatencyMs ?? null,
+    error: payload.error,
+  };
+}
+
+function chooseCardSightWinner(raw: CardSightRouteResponse, cropped: CardSightRouteResponse) {
+  const rawCandidate = raw.topCandidate ?? raw.candidates?.[0] ?? null;
+  const croppedCandidate = cropped.topCandidate ?? cropped.candidates?.[0] ?? null;
+  const rawScore = scoreCardSightResult(raw, rawCandidate);
+  const croppedScore = scoreCardSightResult(cropped, croppedCandidate);
+  if (!rawCandidate && !croppedCandidate) return null;
+  return rawScore >= croppedScore ? { ...raw, mode: 'raw' as const } : { ...cropped, mode: 'cropped' as const };
+}
+
+function scoreCardSightResult(result: CardSightRouteResponse, candidate: CardSightRouteCandidate | null) {
+  if (!candidate) return -Infinity;
+  const selected = result.intelligence?.selectedPrintingId ? 3 : 0;
+  const exact = candidate.printingId ? 2 : candidate.canonicalCardId ? 1.5 : 0;
+  const confidence = typeof candidate.confidence === 'number' && Number.isFinite(candidate.confidence) ? candidate.confidence : 0;
+  const latency = typeof result.latencyMs === 'number' && Number.isFinite(result.latencyMs) ? Math.max(0, 1 - (result.latencyMs / 10_000)) : 0;
+  return selected + exact + confidence + latency;
+}
+
+function summarizeCardSightMode(mode: CardSightRequestMode, result: CardSightRouteResponse) {
+  const candidate = result.topCandidate ?? result.candidates?.[0] ?? null;
+  if (!candidate) return `CardSight ${mode}: no candidate.`;
+  const selected = result.intelligence?.selectedPrintingId ? `selected=${result.intelligence.selectedPrintingId}` : 'selected=none';
+  const confidence = typeof candidate.confidence === 'number' ? candidate.confidence.toFixed(2) : 'n/a';
+  return `CardSight ${mode}: ${candidate.name ?? 'unknown'} (${selected}, confidence=${confidence}, latency=${result.latencyMs ?? 'n/a'} ms).`;
+}
+
+async function prepareCardSightScanImage(input: {
+  imageUri: string;
+  targetLongEdge?: number;
+}): Promise<{ image: string; width: number; height: number; bytes: number; mimeType: 'image/jpeg' }> {
+  const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+  const result = await manipulateAsync(input.imageUri, [{
+    resize: input.targetLongEdge
+      ? { width: input.targetLongEdge }
+      : { width: 1280 },
+  }], {
+    compress: 0.75,
+    format: SaveFormat.JPEG,
+    base64: true,
+  });
+  const image = result.base64 ?? '';
+  return {
+    image,
+    width: result.width,
+    height: result.height,
+    bytes: decodedBase64Bytes(image),
+    mimeType: 'image/jpeg',
+  };
+}
+
+function decodedBase64Bytes(image: string) {
+  const clean = image.includes(',') ? image.split(',').pop() ?? '' : image;
+  const normalized = clean.replace(/\s+/g, '');
+  const padding = normalized.endsWith('==') ? 2 : normalized.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
 }
 
 function average(values: readonly (number | null)[]) {

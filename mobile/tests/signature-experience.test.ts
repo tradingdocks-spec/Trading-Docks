@@ -44,13 +44,13 @@ test('five-tab navigation remains frozen without Intelligence or Deal Desk prima
   for (const accountType of ['free', 'collector', 'seller', 'store']) {
     const tabs = getMobileTabs(accountType);
     assert.equal(tabs.length, MOBILE_PRIMARY_TAB_COUNT);
-    assert.deepEqual(tabs.map((tab) => tab.label), ['Home', 'Collection', 'Scan', 'Decks', 'Account']);
+    assert.deepEqual(tabs.map((tab) => tab.label), ['Home', 'Search', 'Collection', 'Decks', 'Scan']);
     assert.equal(tabs.some((tab) => tab.label === 'Intelligence' || tab.route === 'deal-desk' as never), false);
   }
 
   const tabLayout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
   const tabScreens = Array.from(tabLayout.matchAll(/<Tabs\.Screen name="([^"]+)"/g)).map((match) => match[1]);
-  assert.deepEqual(tabScreens, ['index', 'collection', 'scan', 'sell', 'profile']);
+  assert.deepEqual(tabScreens, ['index', 'search', 'collection', 'sell', 'scan']);
 });
 
 test('LocationBreadcrumb is adopted by active collection and storage surfaces', () => {

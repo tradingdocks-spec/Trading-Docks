@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Box, Check, ChevronDown, CircleDollarSign, Download,
   FileUp, Filter, Link2, MoreHorizontal, PackageCheck, PackageOpen, RefreshCw,
@@ -9,18 +9,17 @@ import {
 } from "lucide-react";
 
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
+import { requestInventoryCommit } from "@/lib/inventory-commit-client";
 import {
   channelLabel,
   normalizeOrderStatus,
   summarizeCanonicalOrders,
 } from "@/lib/orders/order-metrics";
-import type { PhysicalLocation } from "@/lib/orders/pick-domain";
 
 export type OrderItemRecord = {
   id: string; title: string; quantity: number; unit_price: number | null; image_url?: string | null;
   condition?: string | null; language?: string | null; finish?: string | null; match_status?: string | null;
   external_sku?: string | null; unit_cost?: number | null; realized_profit?: number | null;
-  physical_location?: PhysicalLocation | null;
 };
 
 export type OrderRecord = {
@@ -57,6 +56,8 @@ export function UniversalOrdersCenter({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [commitFailed, setCommitFailed] = useState(false);
+  const commitPending = useRef(false);
 
   const channels = useMemo(
     () =>
@@ -97,15 +98,24 @@ export function UniversalOrdersCenter({
   }
 
   async function updateStatus(next: Exclude<Status, "all">) {
-    if (!selected.length) return;
-    setBusy(true); setNotice(null);
-    const response = await fetch("/api/orders/bulk", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: selected, status: next }) });
-    const result = await response.json().catch(() => ({}));
-    if (response.ok) {
-      setOrders((current) => current.map((order) => selected.includes(order.id) ? { ...order, normalized_status: next } : order));
-      setNotice(`${selected.length} order${selected.length === 1 ? "" : "s"} moved to ${next}.`); setSelected([]);
-    } else setNotice(result.error ?? "The orders could not be updated.");
-    setBusy(false);
+    if (!selected.length || commitPending.current) return;
+    commitPending.current = true;
+    setBusy(true); setNotice(null); setCommitFailed(false);
+    try {
+      const result = await requestInventoryCommit<{ orders: OrderRecord[]; updated: number }>("/api/orders/bulk", "PATCH", { ids: selected, status: next });
+      if (!Array.isArray(result.orders) || result.updated !== selected.length) throw new Error("The order commit could not be confirmed. Retry the same selection.");
+      setOrders((current) => current.map((order) => {
+        const committed = result.orders.find((entry) => entry.id === order.id);
+        return committed ? { ...order, ...committed } : order;
+      }));
+      setNotice(`${result.updated} order${result.updated === 1 ? "" : "s"} updated.`); setSelected([]);
+    } catch (error) {
+      setCommitFailed(true);
+      setNotice(error instanceof Error ? error.message : "Fulfillment could not be confirmed. Retry the same selection.");
+    } finally {
+      commitPending.current = false;
+      setBusy(false);
+    }
   }
 
   const allVisibleSelected = filtered.length > 0 && filtered.every((order) => selected.includes(order.id));
@@ -138,7 +148,7 @@ export function UniversalOrdersCenter({
       </div>
 
       {selected.length ? <div className="flex flex-wrap items-center gap-2 border-b border-td-accent/[0.12] bg-td-accent/[0.035] px-4 py-3"><span className="mr-2 text-[13px] font-bold text-td-accent-text">{selected.length} selected</span>{(["processing", "shipped", "delivered", "cancelled", "refunded"] as const).map((item) => <button disabled={busy} onClick={() => updateStatus(item)} key={item} className="rounded-lg border border-td-ink/[0.08] bg-td-ink/[0.035] px-3 py-1.5 text-xs font-semibold capitalize text-td-secondary hover:text-td-primary disabled:opacity-40">Mark {item}</button>)}<button onClick={() => setSelected([])} className="ml-auto p-1.5 text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button></div> : null}
-      {notice ? <div className="border-b border-td-ink/[0.06] px-4 py-2.5 text-[13px] text-td-accent-text">{notice}</div> : null}
+      {notice ? <div role={commitFailed ? "alert" : "status"} className="border-b border-td-ink/[0.06] px-4 py-2.5 text-[13px] text-td-accent-text">{notice}</div> : null}
 
       {filtered.length ? <div className="overflow-x-auto"><div className="min-w-[1050px]">
         <div className="grid grid-cols-[38px_1.25fr_.72fr_.8fr_.75fr_.72fr_.72fr_42px] items-center gap-4 border-b border-td-ink/[0.06] bg-td-ink/[0.018] px-5 py-3 text-[0.68rem] font-semibold uppercase tracking-[.12em] text-td-muted"><input type="checkbox" aria-label="Select all visible orders" checked={allVisibleSelected} onChange={() => setSelected(allVisibleSelected ? selected.filter((id) => !filtered.some((order) => order.id === id)) : [...new Set([...selected, ...filtered.map((order) => order.id)])])} className="accent-td-accent" /><span>Order</span><span>Channel</span><span>Status</span><span>Items</span><span>Total</span><span>Profit</span><span /></div>
@@ -154,7 +164,7 @@ export function UniversalOrdersCenter({
 function OrderRow({ order, checked, expanded, onCheck, onExpand }: { order: OrderRecord; checked: boolean; expanded: boolean; onCheck: () => void; onExpand: () => void }) {
   const items = order.marketplace_order_items ?? []; const state = normalized(order); const units = items.reduce((n, item) => n + Number(item.quantity || 0), 0); const unmatched = items.filter((item) => !item.match_status || item.match_status === "unmatched").length;
   return <div className="border-b border-td-ink/[0.052] last:border-0"><div className="grid grid-cols-[38px_1.25fr_.72fr_.8fr_.75fr_.72fr_.72fr_42px] items-center gap-4 px-5 py-3.5 transition hover:bg-td-ink/[0.022]"><input type="checkbox" aria-label={`Select order ${order.external_order_id}`} checked={checked} onChange={onCheck} className="accent-td-accent" /><button type="button" onClick={onExpand} className="min-w-0 text-left"><div className="flex items-center gap-2"><span className="truncate text-sm font-semibold text-td-primary">#{order.external_order_id}</span>{unmatched ? <span title={`${unmatched} unmatched line items`} className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-td-warning/[0.08]"><AlertTriangle className="h-3 w-3 text-td-warning" /></span> : null}</div><p className="mt-1 truncate text-[0.8rem] text-td-muted">{order.buyer_alias || "Marketplace customer"} · {formatDate(order.ordered_at)}</p></button><ChannelBadge name={order.marketplace_id} /><StatusBadge status={state} /><div><p className="text-[13px] font-semibold text-td-secondary">{units} unit{units === 1 ? "" : "s"}</p><p className="mt-1 text-[0.8rem] text-td-muted">{items.length} line item{items.length === 1 ? "" : "s"}</p></div><div><p className="text-sm font-semibold text-td-primary">{money.format(Number(order.total ?? 0))}</p><p className="mt-1 text-[0.8rem] text-td-muted">incl. shipping</p></div><div><p className={`text-sm font-semibold ${Number(order.net_profit ?? 0) > 0 ? "text-td-success" : "text-td-secondary"}`}>{money.format(Number(order.net_profit ?? 0))}</p><p className="mt-1 text-[0.8rem] text-td-muted">after costs</p></div><button type="button" onClick={onExpand} aria-label={`${expanded ? "Collapse" : "Expand"} order ${order.external_order_id}`} className="grid h-8 w-8 place-items-center rounded-lg text-td-muted hover:bg-td-ink/[0.05] hover:text-td-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/30"><MoreHorizontal className="h-4 w-4" /></button></div>
-    {expanded ? <div className="border-t border-td-ink/[0.05] bg-black/[0.12] px-5 py-4"><div className="grid gap-4 lg:grid-cols-[1fr_320px]"><div><div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-[.14em] text-td-muted">Line items</p><Link href={`/dashboard/orders/${encodeURIComponent(order.id)}/pick`} className="td-button-primary px-3 py-2 text-xs">Start Pick Mode</Link></div>{items.length ? <div className="space-y-2">{items.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.02] p-2.5"><div className="grid h-12 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-td-ink/[0.04]">{item.image_url ? <img src={item.image_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : <PackageOpen className="h-4 w-4 text-td-muted" />}</div><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-td-primary">{item.quantity}× {item.title}</p><p className="mt-1 truncate text-xs text-td-muted">{[item.condition, item.language, item.finish, item.external_sku].filter(Boolean).join(" · ") || "Details unavailable"}</p>{item.physical_location ? <p className="mt-2 text-xs font-bold uppercase tracking-[.12em] text-td-accent-text">{item.physical_location.pathLabel}</p> : <p className="mt-2 text-xs font-bold uppercase tracking-[.12em] text-td-warning">LOCATION UNKNOWN</p>}</div><div className="text-right"><p className="text-[13px] font-semibold text-td-primary">{money.format(Number(item.unit_price ?? 0) * item.quantity)}</p><p className={`mt-1 text-xs font-bold uppercase ${item.match_status === "matched" ? "text-td-success" : "text-td-warning"}`}>{item.match_status ?? "unmatched"}</p></div></div>)}</div> : <p className="text-[13px] text-td-muted">No line items were supplied by this channel.</p>}</div><div className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.018] p-4"><p className="text-xs font-bold uppercase tracking-[.14em] text-td-muted">Profit breakdown</p><Breakdown label="Order total" value={order.total} /><Breakdown label="Marketplace fees" value={order.marketplace_fees} negative /><Breakdown label="Shipping cost" value={order.shipping_cost} negative /><Breakdown label="Cost of goods" value={order.cost_of_goods} negative /><Breakdown label="Refunds" value={order.refund_amount} negative /><div className="mt-3 border-t border-td-ink/[0.07] pt-3"><Breakdown label="Realized profit" value={order.net_profit} strong /></div>{order.tracking_number ? <div className="mt-4 rounded-xl bg-td-accent/[0.045] p-3"><p className="text-xs font-bold uppercase text-td-accent-text">{order.shipping_carrier || "Tracking"}</p><p className="mt-1 truncate text-[11px] text-td-secondary">{order.tracking_number}</p></div> : null}</div></div></div> : null}
+    {expanded ? <div className="border-t border-td-ink/[0.05] bg-black/[0.12] px-5 py-4"><div className="grid gap-4 lg:grid-cols-[1fr_320px]"><div><p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-td-muted">Line items</p>{items.length ? <div className="space-y-2">{items.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.02] p-2.5"><div className="grid h-12 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-td-ink/[0.04]">{item.image_url ? <img src={item.image_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : <PackageOpen className="h-4 w-4 text-td-muted" />}</div><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-td-primary">{item.quantity}× {item.title}</p><p className="mt-1 truncate text-xs text-td-muted">{[item.condition, item.language, item.finish, item.external_sku].filter(Boolean).join(" · ") || "Details unavailable"}</p></div><div className="text-right"><p className="text-[13px] font-semibold text-td-primary">{money.format(Number(item.unit_price ?? 0) * item.quantity)}</p><p className={`mt-1 text-xs font-bold uppercase ${item.match_status === "matched" ? "text-td-success" : "text-td-warning"}`}>{item.match_status ?? "unmatched"}</p></div></div>)}</div> : <p className="text-[13px] text-td-muted">No line items were supplied by this channel.</p>}</div><div className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.018] p-4"><p className="text-xs font-bold uppercase tracking-[.14em] text-td-muted">Profit breakdown</p><Breakdown label="Order total" value={order.total} /><Breakdown label="Marketplace fees" value={order.marketplace_fees} negative /><Breakdown label="Shipping cost" value={order.shipping_cost} negative /><Breakdown label="Cost of goods" value={order.cost_of_goods} negative /><Breakdown label="Refunds" value={order.refund_amount} negative /><div className="mt-3 border-t border-td-ink/[0.07] pt-3"><Breakdown label="Realized profit" value={order.net_profit} strong /></div>{order.tracking_number ? <div className="mt-4 rounded-xl bg-td-accent/[0.045] p-3"><p className="text-xs font-bold uppercase text-td-accent-text">{order.shipping_carrier || "Tracking"}</p><p className="mt-1 truncate text-[11px] text-td-secondary">{order.tracking_number}</p></div> : null}</div></div></div> : null}
   </div>;
 }
 

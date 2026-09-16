@@ -8,7 +8,7 @@ Status: **Partially Implemented** — implementation and automated regressions p
 - Direct and translated set/name/collector matches precede the special printing bridge. Magic collector comparison supports zero padding and printed set-size suffixes without mutating the input.
 - PLST compound identifiers retain their complete source value. The special resolver validates the embedded original printing through Scryfall, follows the **List printing's** TCGplayer product link, and obtains the catalog set/name/number from TCGCSV. It never exports the original set's product as a substitute for a List reprint.
 - Candidate resolution groups canonical set/name/number/product identities after applying finish and condition. Duplicate rows for the same identity select the lowest catalog SKU ID deterministically. Different known product IDs remain ambiguous. The existing catalog does not store a separate language or product-ID column; product links can be recovered from trusted TCGplayer photo URLs. No schema changes were made.
-- Existing main-branch fallback behavior is preserved, including compact/double-faced card names, translated set identities, collector markers, and a unique SKU fallback for alternate collector numbering. PLST compound rows use their special printing relationship before those weaker fallbacks.
+- Name/set and name-only resolution retain supplied printing constraints. A contradictory collector or unknown supplied set is not discarded merely to obtain a name-only match.
 - `PLST_COMPOUND_COLLECTOR_UNRESOLVED` includes `sourceSetCode`, `sourceCollectorNumber`, the complete imported `collectorNumber`, and a metadata lookup error when applicable. Review UI shows the reason code and parsed source parts.
 - The converter stores catalog printing fields separately and applies them only to TCGplayer export. Source/import and other export formats retain the compound collector number.
 
@@ -39,7 +39,3 @@ Final local validation: 47/47 converter/catalog tests and 598/598 repository tes
 ## Pending acceptance
 
 The exact user file was not present among repository samples, and its local path has been requested. No converter browser tab was available. Local Supabase configuration has no service-role credential, and the public role cannot read `tcgplayer_magic_catalog`. Final acceptance requires replaying the original file against the actual catalog and verifying the four List rows resolve and Azorius Herald selects the correct SKU. In particular, the actual cause of its duplicate private catalog rows cannot yet be inspected. Do not interpret synthetic SKU test success as completion of this gate.
-
-## Release branch validation
-
-Rebased onto current main (`c425b05`) while preserving the existing converter fallback and marketplace-price fixes. The focused release branch passes 50/50 converter/catalog tests, TypeScript, changed-file ESLint, and the Next.js production build. Full repository tests: 649/652 passed. The three failures (inventory table typography and two API access registry checks for the employee invite route) were reproduced on unchanged main. The original-file/private-catalog acceptance limitation above remains open.

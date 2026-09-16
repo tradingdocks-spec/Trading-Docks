@@ -37,7 +37,6 @@ const baseCard: CollectionCard = {
   tradeBinderStatus: 'not_for_trade',
   wishlistStatus: 'not_wishlisted',
   marketPrice: { amount: null, currency: 'USD', source: 'unavailable' },
-  costBasisKnown: false,
 };
 
 test('collector mutation validation rejects cross-user ownership attempts', () => {

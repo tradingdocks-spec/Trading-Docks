@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Boxes,
   Check,
+  CheckCircle2,
   ChevronDown,
   CircleHelp,
   Download,
@@ -21,15 +23,13 @@ import {
 } from "lucide-react";
 
 import {
-  loadInventorySnapshot,
-  persistInventorySnapshotDiff,
-  type InventoryPersistenceRecord,
-} from "@/lib/inventory-persistence";
-import {
-  createWebStorageLocation,
-  loadWebStorageLocationManager,
-} from "@/lib/storage-location-client-data";
-import type { StorageLocationType } from "@/lib/storage-location-manager";
+  ContextHelp,
+  EmptyState,
+  FeatureIntro,
+  WorkflowSteps,
+} from "@/components/dashboard/help/HelpPrimitives";
+
+import { requestInventoryCommit } from "@/lib/inventory-commit-client";
 import {
   CANONICAL_FIELDS,
   CSV_TEMPLATES,
@@ -39,20 +39,23 @@ import {
   type CanonicalKey,
   type CanonicalRow,
 } from "@/lib/csv-conversion/templates";
-import { reviewCollectionLocationImportRow } from "@/lib/collection-location-import";
 
 type CsvRow = Record<string, string>;
 type TcgplayerCandidate = {
   tcgplayerId: string;
+  productLine?: string;
   setName: string;
   productName: string;
+  title?: string;
   collectorNumber: string;
+  rarity?: string;
   condition?: string;
   finish?: string;
   marketPrice?: string;
   directLowPrice?: string;
   lowPrice?: string;
   marketplacePrice?: string;
+  photoUrl?: string;
 };
 type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerResolveReason?: string;
@@ -62,14 +65,6 @@ type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerSourceCollectorNumber?: string;
   tcgplayerPrinting?: { name: string; setName: string; collectorNumber: string };
   tcgplayerCandidates?: TcgplayerCandidate[];
-};
-type LocationRecord = {
-  id: string;
-  name: string;
-  type: "chaos" | "binder" | "sealed-local" | "sealed-warehouse" | "custom";
-  description: string;
-  itemCount: number;
-  estimatedValue: number;
 };
 const TCGPLAYER_HEADERS =
   CSV_TEMPLATES.find((template) => template.id === "tcgplayer")?.headers ?? [];
@@ -89,21 +84,13 @@ const TCGPLAYER_REASON_LABELS: Record<string, string> = {
   FINISH_NOT_FOUND: "Finish was not found",
   PRINTING_NOT_FOUND: "Printing was not found",
   SET_NOT_FOUND: "Set could not be identified",
-  SET_MAPPED_NO_PRODUCT: "SET_MAPPED_NO_PRODUCT",
-  PLST_COMPOUND_COLLECTOR_UNRESOLVED: "PLST_COMPOUND_COLLECTOR_UNRESOLVED",
+  SET_MAPPED_NO_PRODUCT: "The set was found, but the exact card was not.",
+  PLST_COMPOUND_COLLECTOR_UNRESOLVED: "The collector number needs a manual check.",
   SKU_NOT_FOUND: "Exact TCGplayer SKU was not found",
   UNKNOWN_SET_CODE: "Set could not be identified",
 };
 
-export function CsvConversionEngine({
-  initialDestination = "download",
-  initialLocationName = "Bulk Box 001",
-  initialLocationId = "",
-}: {
-  initialDestination?: "download" | "inventory";
-  initialLocationName?: string;
-  initialLocationId?: string;
-} = {}) {
+export function CsvConversionEngine() {
   const fileRef = useRef<HTMLInputElement>(null);
   const tcgplayerReferenceRef = useRef<HTMLInputElement>(null);
   const [rawText, setRawText] = useState("");
@@ -116,27 +103,22 @@ export function CsvConversionEngine({
   const [detectedTemplate, setDetectedTemplate] = useState("Unknown / Generic");
   const [outputTemplateId, setOutputTemplateId] = useState("trading-docks");
   const [enrichedRows, setEnrichedRows] = useState<Record<number, EnrichedRow>>({});
-  const [destination, setDestination] = useState<"download" | "inventory">(initialDestination);
-  const [locationName, setLocationName] = useState(initialLocationName || "Unassigned");
-  const [locationId, setLocationId] = useState(initialLocationId);
-  const [availableLocations, setAvailableLocations] = useState<Array<{ id: string; name: string; type: StorageLocationType; label: string; assignedQuantity: number }>>([]);
-  const [locationsLoading, setLocationsLoading] = useState(false);
-  const [showCreateLocation, setShowCreateLocation] = useState(false);
-  const [newLocationName, setNewLocationName] = useState("");
-  const [newLocationType, setNewLocationType] = useState<StorageLocationType>("box");
-  const [newLocationParentId, setNewLocationParentId] = useState("");
+  const [destination, setDestination] = useState<"download" | "inventory">("download");
+  const [locationName, setLocationName] = useState("Bulk Box 001");
   const [marketplace, setMarketplace] = useState("Unlisted");
   const [defaultCondition, setDefaultCondition] = useState("Near Mint");
   const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
   const [notice, setNotice] = useState("");
+  const [completion, setCompletion] = useState<{ units: number; locationName: string; duplicate: boolean } | null>(null);
   const [working, setWorking] = useState(false);
+  const [commitFailed, setCommitFailed] = useState(false);
+  const importPending = useRef(false);
   const [showPaste, setShowPaste] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const [showBridgeHelp, setShowBridgeHelp] = useState(false);
   const [tcgplayerReferenceName, setTcgplayerReferenceName] = useState("");
   const [tcgplayerReferenceRows, setTcgplayerReferenceRows] = useState<CsvRow[]>([]);
-  const autoTcgplayerMatchKeyRef = useRef("");
 
   const converted = useMemo(() => {
     const normalized = rows.flatMap((sourceRow) => {
@@ -183,66 +165,6 @@ export function CsvConversionEngine({
     );
   const allTcgplayerMatched = tcgplayerMode && validRows.length > 0 && missingTcgplayerSkuCount === 0;
   const unresolvedTcgplayerRows = validRows.filter((row) => !row.tcgplayerId.trim());
-  const selectedLocation = locationId ? availableLocations.find((location) => location.id === locationId) ?? null : null;
-  const importDestinationLabel = selectedLocation?.label ?? "Unassigned";
-
-  useEffect(() => {
-    if (destination === "inventory") void refreshLocations(locationId);
-    // Location loading intentionally follows the selected workflow/destination.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destination]);
-
-  async function refreshLocations(selectLocationId = locationId) {
-    setLocationsLoading(true);
-    try {
-      const state = await loadWebStorageLocationManager();
-      const options = state.summaries
-        .filter((location) => !location.archivedAt)
-        .map((location) => ({
-          id: location.id,
-          name: location.name,
-          type: location.type,
-          label: location.path.label,
-          assignedQuantity: location.assignedQuantity,
-        }))
-        .filter((location) => location.type !== "unknown");
-      setAvailableLocations(options);
-      const selected = selectLocationId ? options.find((location) => location.id === selectLocationId) : null;
-      if (selected) {
-        setLocationId(selected.id);
-        setLocationName(selected.label);
-      } else if (!selectLocationId) {
-        setLocationId("");
-        setLocationName("Unassigned");
-      }
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Storage locations could not be loaded.");
-    } finally {
-      setLocationsLoading(false);
-    }
-  }
-
-  async function createImportLocation() {
-    const cleanName = newLocationName.trim();
-    if (!cleanName) return setNotice("Name the storage location before creating it.");
-    setWorking(true);
-    try {
-      const result = await createWebStorageLocation({
-        name: cleanName,
-        type: newLocationType,
-        parentId: newLocationParentId || null,
-      });
-      setNewLocationName("");
-      setNewLocationParentId("");
-      setShowCreateLocation(false);
-      await refreshLocations(result.id);
-      setNotice(`${cleanName} is ready as the import destination.`);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Storage location could not be created.");
-    } finally {
-      setWorking(false);
-    }
-  }
 
   function loadCsv(text: string, name = "pasted-data.csv") {
     const matrix = parseCsv(text);
@@ -269,6 +191,7 @@ export function CsvConversionEngine({
     setEnrichedRows({});
     setFileName(name);
     setNotice(`${nextRows.length.toLocaleString()} rows loaded. Review the field mapping below.`);
+    setCompletion(null);
     setShowAdvanced(detection.score < 0.45);
     setShowAllRows(false);
   }
@@ -480,46 +403,10 @@ export function CsvConversionEngine({
         };
         if (!response.ok || !payload.results) throw new Error(payload.error ?? "TCGplayer catalog resolution failed.");
 
-        const missingPriceRows = payload.results
-          .map((result, index) => ({ result, index }))
-          .filter(({ result }) => result.status === "matched" && !(
-            result.marketplacePrice || result.marketPrice || result.lowPrice || result.directLowPrice
-          ));
-        const fallbackPrices = new Map<number, { marketPrice: string; lowPrice: string; directLowPrice: string }>();
-        if (missingPriceRows.length) {
-          const fallbackResponse = await fetch("/api/tools/csv/tcgplayer-enrich", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rows: missingPriceRows.map(({ result, index }) => ({
-                name: result.productName ?? chunk[index]?.name,
-                setName: result.setName ?? chunk[index]?.setName,
-                collectorNumber: result.collectorNumber ?? chunk[index]?.collectorNumber,
-              })),
-            }),
-          });
-          const fallbackPayload = await fallbackResponse.json() as {
-            results?: Array<{ matched?: boolean; marketPrice?: string; lowPrice?: string; directLowPrice?: string }>;
-          };
-          if (fallbackResponse.ok && fallbackPayload.results) {
-            missingPriceRows.forEach(({ index }, fallbackIndex) => {
-              const fallback = fallbackPayload.results?.[fallbackIndex];
-              if (fallback?.matched && (fallback.marketPrice || fallback.lowPrice || fallback.directLowPrice)) {
-                fallbackPrices.set(offset + index, {
-                  marketPrice: fallback.marketPrice ?? "",
-                  lowPrice: fallback.lowPrice ?? "",
-                  directLowPrice: fallback.directLowPrice ?? "",
-                });
-              }
-            });
-          }
-        }
-
         payload.results.forEach((result, index) => {
           const rowIndex = offset + index;
           if (result.status === "matched") {
             const finish = result.finish === "Foil" ? "Foil" : "Nonfoil";
-            const fallback = fallbackPrices.get(rowIndex);
             matched += 1;
             next[rowIndex] = {
               ...(next[rowIndex] ?? {}),
@@ -534,9 +421,9 @@ export function CsvConversionEngine({
               rarity: result.rarity ?? converted[rowIndex]?.rarity ?? "",
               condition: finish === "Foil" && result.condition ? `${result.condition} Foil` : result.condition ?? converted[rowIndex]?.condition ?? "",
               finish,
-              marketPrice: result.marketplacePrice || result.marketPrice || fallback?.marketPrice || converted[rowIndex]?.marketPrice || "",
-              directLowPrice: result.directLowPrice || fallback?.directLowPrice || converted[rowIndex]?.directLowPrice || "",
-              lowPrice: result.lowPrice || fallback?.lowPrice || converted[rowIndex]?.lowPrice || "",
+              marketPrice: result.marketplacePrice || result.marketPrice || converted[rowIndex]?.marketPrice || "",
+              directLowPrice: result.directLowPrice || converted[rowIndex]?.directLowPrice || "",
+              lowPrice: result.lowPrice || converted[rowIndex]?.lowPrice || "",
               imageUrl: result.photoUrl || converted[rowIndex]?.imageUrl || "",
               tcgplayerResolveReason: "",
               tcgplayerResolveReasonCode: "",
@@ -597,14 +484,23 @@ export function CsvConversionEngine({
       [rowIndex]: {
         ...(current[rowIndex] ?? {}),
         tcgplayerId: candidate.tcgplayerId,
+        productLine: candidate.productLine ?? "Magic",
+        name: candidate.productName || converted[rowIndex]?.name,
+        setName: candidate.setName || converted[rowIndex]?.setName,
+        title: candidate.title ?? converted[rowIndex]?.title ?? "",
+        collectorNumber: candidate.collectorNumber || converted[rowIndex]?.collectorNumber,
+        rarity: candidate.rarity ?? converted[rowIndex]?.rarity ?? "",
+        condition: candidate.condition ?? converted[rowIndex]?.condition ?? "",
+        finish: candidate.finish === "Foil" ? "Foil" : "Nonfoil",
+        marketPrice: candidate.marketplacePrice || candidate.marketPrice || converted[rowIndex]?.marketPrice || "",
+        directLowPrice: candidate.directLowPrice ?? converted[rowIndex]?.directLowPrice ?? "",
+        lowPrice: candidate.lowPrice ?? converted[rowIndex]?.lowPrice ?? "",
+        imageUrl: candidate.photoUrl ?? converted[rowIndex]?.imageUrl ?? "",
         tcgplayerPrinting: {
           name: candidate.productName,
           setName: candidate.setName,
           collectorNumber: candidate.collectorNumber,
         },
-        marketPrice: candidate.marketplacePrice || candidate.marketPrice || candidate.lowPrice || "",
-        lowPrice: candidate.lowPrice || "",
-        directLowPrice: candidate.directLowPrice || "",
         tcgplayerResolveReason: "",
         tcgplayerResolveReasonCode: "",
         tcgplayerCandidates: [],
@@ -613,100 +509,29 @@ export function CsvConversionEngine({
     setNotice(`${candidate.productName} · ${candidate.setName} #${candidate.collectorNumber} selected.`);
   }
 
-  useEffect(() => {
-    if (!tcgplayerMode || !validRows.length || working || hasAttemptedTcgplayerMatch) return;
-    const matchKey = `${fileName}:${validRows.length}:${validRows.map((row) => `${row.name}|${row.set}|${row.setName}|${row.collectorNumber}|${row.condition}|${row.finish}`).join("\u001f")}`;
-    if (autoTcgplayerMatchKeyRef.current === matchKey) return;
-    autoTcgplayerMatchKeyRef.current = matchKey;
-    void resolveExactTcgplayerIds();
-  }, [fileName, hasAttemptedTcgplayerMatch, resolveExactTcgplayerIds, tcgplayerMode, validRows, working]);
-
   async function saveToInventory() {
+    if (importPending.current) return;
     if (!validRows.length) return setNotice("Map a card or product name before saving.");
-    if (locationId && !selectedLocation) return setNotice("Choose one of your active storage locations or use Unassigned.");
-    setWorking(true);
+    if (!locationName.trim()) return setNotice("Choose or enter a storage location.");
+    importPending.current = true;
+    setWorking(true); setCommitFailed(false); setNotice("");
     try {
-      const currentSnapshot = await loadInventorySnapshot();
-      const locations = currentSnapshot.locations as unknown as LocationRecord[];
-      const items = currentSnapshot.items;
-      const movements = currentSnapshot.movements;
-      const location = selectedLocation ? locations.find((item) => item.id === selectedLocation.id) ?? {
-        id: selectedLocation.id,
-        name: selectedLocation.label,
-        type: selectedLocation.type === "binder" ? "binder" : selectedLocation.type === "bulk" ? "chaos" : "custom",
-        description: "Existing Trading Docks storage location",
-        itemCount: 0,
-        estimatedValue: 0,
-      } : null;
-      if (location && !locations.some((item) => item.id === location.id)) locations.push(location);
-      const now = new Date().toISOString();
-      const newItems = validRows.map((row) => {
-        const reviewed = reviewCollectionLocationImportRow({
-          name: row.name,
-          set: row.set,
-          collectorNumber: row.collectorNumber,
-          condition: row.condition,
-          finish: row.finish,
-          quantity: row.quantity,
-          storagePath: selectedLocation?.label ?? null,
-          tcgplayerId: row.tcgplayerId,
-        });
-        const quantity = reviewed.quantity || 1;
-        const price = Math.max(0, Number.parseFloat(row.marketPrice) || 0);
-        return {
-          id: crypto.randomUUID(),
-          name: reviewed.name || row.name.trim(),
-          sku: row.sku.trim() || `TD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-          category: "Single",
-          quantity,
-          locationId: location?.id ?? null,
-          condition: reviewed.condition,
-          set: reviewed.setCode ?? row.set.trim().toUpperCase(),
-          collectorNumber: reviewed.collectorNumber ?? row.collectorNumber.trim(),
-          language: row.language.trim() || "English",
-          finish: reviewed.finish,
-          scryfallId: row.scryfallId.trim() || undefined,
-          tcgplayerId: reviewed.tcgplayerId ?? (row.tcgplayerId.trim() || undefined),
-          costBasis: Math.max(0, Number.parseFloat(row.costBasis) || 0),
-          unitMarketValue: price,
-          value: price * quantity,
-          storagePath: selectedLocation?.label ?? "Unassigned",
-          updatedAt: now,
-          marketplaceListings:
-            marketplace === "Unlisted"
-              ? []
-              : [{ platform: marketplace, status: "Active", quantity, price, updatedAt: now }],
-        };
-      });
-      if (location) {
-        location.itemCount += newItems.reduce((sum, item) => sum + item.quantity, 0);
-        location.estimatedValue += newItems.reduce((sum, item) => sum + item.value, 0);
-      }
-      const movementRows = newItems.map((item) => ({
-        id: crypto.randomUUID(),
-        itemName: item.name,
-        to: selectedLocation?.label ?? "Unassigned",
-        quantity: item.quantity,
-        action: "filed",
-        timestamp: now,
-      }));
-      await persistInventorySnapshotDiff(currentSnapshot, {
-        locations: locations as unknown as InventoryPersistenceRecord[],
-        items: [...items, ...newItems],
-        movements: [...movements, ...movementRows],
-      });
-      setNotice(
-        `Cards imported into inventory: ${quantityTotal.toLocaleString()} units saved to ${selectedLocation?.label ?? "Unassigned"}${
-          marketplace === "Unlisted" ? "" : ` and allocated to ${marketplace}`
-        }. View inventory to confirm the filing.`,
+      const result = await requestInventoryCommit<{ units: number; locationName: string; duplicate: boolean }>(
+        "/api/collector-workspace/import", "POST", { rows: validRows.map((row) => ({ ...row, finish: normalizeFinish(row.finish) })), locationName, marketplace },
       );
+      if (!Number.isFinite(result.units) || typeof result.locationName !== "string") throw new Error("The import could not be confirmed. Retry the same CSV and destination.");
+      setNotice(result.duplicate
+        ? `This import was already saved: ${result.units.toLocaleString()} units in ${result.locationName}. No duplicates were added.`
+        : `${result.units.toLocaleString()} units saved to ${result.locationName}.`);
+      setCompletion(result);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "The converted inventory could not be saved.");
+      setCommitFailed(true);
+      setNotice(error instanceof Error ? error.message : "The import could not be confirmed. Retry the same CSV and destination.");
     } finally {
+      importPending.current = false;
       setWorking(false);
     }
   }
-
   function reset() {
     setRawText("");
     setFileName("");
@@ -715,6 +540,7 @@ export function CsvConversionEngine({
     setDetectedTemplate("Unknown / Generic");
     setEnrichedRows({});
     setNotice("");
+    setCompletion(null);
     setShowPaste(false);
     setShowAdvanced(false);
     setShowAllRows(false);
@@ -729,14 +555,22 @@ export function CsvConversionEngine({
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-td-accent-text"><WandSparkles className="h-3.5 w-3.5" />Seller & Store Tools</div>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-td-primary">Import or convert inventory files</h1>
-            <p className="mt-1 text-xs text-td-muted">Upload file → Review matches → Choose destination → Download or import. Nothing changes until you confirm.</p>
+            <p className="mt-1 text-xs text-td-muted">Bring cards in from another system, review what Trading Docks found, then download a new file or add the cards to inventory.</p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-td-success/65"><ShieldCheck className="h-4 w-4 text-td-success" />Nothing changes until you confirm</div>
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
-        <SectionTitle step="1" title="Upload your CSV" detail="We automatically detect supported marketplace and collection formats." />
+      <FeatureIntro
+        eyebrow="How it works"
+        title="Your file stays unchanged until you choose an outcome."
+        description="Trading Docks reads the columns, matches card details where it can, and shows you anything that needs attention before an inventory import."
+      >
+        <WorkflowSteps steps={["Upload file", "Review matches", "Choose destination", "Download or import"]} />
+      </FeatureIntro>
+
+      <section id="csv-upload" className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
+        <SectionTitle step="1" title="Upload your CSV" detail="CSV files from supported marketplaces or inventory apps work best. A generic card list can be mapped manually." />
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file); }} />
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <button type="button" onClick={() => fileRef.current?.click()} className="flex h-14 flex-1 items-center justify-center gap-3 rounded-2xl border border-dashed border-td-accent/25 bg-td-accent/[.035] text-xs font-semibold text-td-accent-text transition hover:bg-td-accent/[.07]"><Upload className="h-4 w-4 text-td-accent-text" />{headers.length ? "Choose a different CSV" : "Choose CSV file"}</button>
@@ -744,20 +578,24 @@ export function CsvConversionEngine({
           {headers.length ? <button type="button" onClick={reset} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-td-ink/[.08] px-4 text-xs font-semibold text-td-muted hover:text-td-primary"><RefreshCw className="h-4 w-4" />Reset</button> : null}
         </div>
         {showPaste ? <div className="mt-3 space-y-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-3"><textarea value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder={"Name,Set,Collector Number,Condition,Quantity\nSol Ring,CMM,396,Near Mint,2"} className="min-h-36 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas p-4 font-mono text-[11px] leading-5 text-td-secondary outline-none placeholder:text-td-muted focus:border-td-accent/25" /><button type="button" onClick={() => loadCsv(rawText)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-[11px] font-bold text-td-on-accent"><FileSpreadsheet className="h-4 w-4" />Read pasted CSV</button></div> : null}
-        {headers.length ? <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-td-success/10 bg-td-success/[.025] px-4 py-3 text-[11px]"><Check className="h-4 w-4 text-td-success" /><strong className="text-td-primary">{fileName}</strong><span className="text-td-muted">•</span><span className="text-td-secondary">{rows.length.toLocaleString()} rows</span><span className="text-td-muted">•</span><span className="text-td-success">{detectedTemplate}</span></div> : null}
+        {headers.length ? <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-td-success/10 bg-td-success/[.025] px-4 py-3 text-[11px]"><Check className="h-4 w-4 text-td-success" /><strong className="text-td-primary">{fileName}</strong><span className="text-td-muted">•</span><span className="text-td-secondary">{rows.length.toLocaleString()} rows</span><span className="text-td-muted">•</span><span className={detectedTemplate === "Unknown / Generic" ? "text-td-warning" : "text-td-success"}>{detectedTemplate === "Unknown / Generic" ? "Format not recognized yet — map the columns below" : `Detected: ${detectedTemplate.replace(/ \(.*\)$/, "")}`}</span></div> : null}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <ContextHelp label="What files can I upload?">Upload a CSV export from a marketplace or inventory app, or a simple file with card name and quantity. Trading Docks currently detects the formats listed in the destination selector; other files can use manual column mapping.</ContextHelp>
+          <ContextHelp label="What does importing change?">Downloading a converted file changes nothing in Trading Docks. Choosing “Import into inventory” writes the reviewed rows to the storage location you provide, and combines duplicates according to the import result.</ContextHelp>
+        </div>
       </section>
 
       <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
-        <SectionTitle step="2" title="Choose the result" detail="Pick where the reviewed cards should go." />
+        <SectionTitle step="2" title="Choose the result" detail="Download a file for another platform, or import these cards into Trading Docks inventory." />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setDestination("download")} className={`rounded-2xl border p-4 text-left ${destination === "download" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Download className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Download converted CSV</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Create a clean file for another platform without changing inventory.</p></button>
-          <button type="button" onClick={() => setDestination("inventory")} className={`rounded-2xl border p-4 text-left ${destination === "inventory" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Boxes className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Save into Trading Docks</p><p className="mt-1 text-[11px] leading-4 text-td-muted">File cards into a Bulk Box or another named storage location.</p></button>
+          <button type="button" onClick={() => setDestination("inventory")} className={`rounded-2xl border p-4 text-left ${destination === "inventory" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Boxes className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Import into inventory</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Add reviewed cards to a named storage location. Nothing is written before you confirm.</p></button>
         </div>
       </section>
 
       <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
         <SectionTitle step="3" title="Review and finish" detail={headers.length ? `${validRows.length.toLocaleString()} valid rows · ${quantityTotal.toLocaleString()} total cards` : "Upload a CSV to continue."} />
-        {!headers.length ? <div className="mt-4 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-td-ink/[.07] text-center"><FileSpreadsheet className="h-6 w-6 text-td-muted" /><p className="mt-2 text-xs font-semibold text-td-muted">Waiting for a CSV</p></div> : <>
+          {!headers.length ? <div className="mt-4"><EmptyState title="No file to review yet" description="Upload a CSV export or paste a few rows to see the detected format, field mapping, and cards that will be affected." action={{ label: "Choose a CSV file", href: "/dashboard/tools/csv-converter?start=upload" }} /></div> : <>
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-4 lg:flex-row lg:items-end">
             <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default condition if missing</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></label>
             <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default finish if missing</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Nonfoil</option><option>Foil</option><option>Etched</option></select></label>
@@ -802,8 +640,8 @@ export function CsvConversionEngine({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[.2em] text-td-accent-text/70">Step 2</p>
-                    <h3 className="mt-1 text-sm font-semibold text-td-primary">{allTcgplayerMatched ? `All ${validRows.length.toLocaleString()} cards matched` : hasAttemptedTcgplayerMatch ? `${missingTcgplayerSkuCount.toLocaleString()} cards need review` : working ? "Preparing cards for TCGplayer" : "Prepare for TCGplayer"}</h3>
-                    <p className="mt-1 max-w-2xl text-[11px] leading-5 text-td-secondary">{allTcgplayerMatched ? "Your cards have been matched to the correct TCGplayer printing, condition, and finish." : hasAttemptedTcgplayerMatch ? "Review the unmatched rows below, adjust set, number, condition, or finish, then match again." : "Trading Docks automatically detects the incoming CSV and matches exact TCGplayer IDs. No ManaBox conversion or reference spreadsheet is required."}</p>
+                    <h3 className="mt-1 text-sm font-semibold text-td-primary">{allTcgplayerMatched ? `All ${validRows.length.toLocaleString()} cards matched` : hasAttemptedTcgplayerMatch ? `${missingTcgplayerSkuCount.toLocaleString()} cards need review` : "Match to TCGplayer"}</h3>
+                    <p className="mt-1 max-w-2xl text-[11px] leading-5 text-td-secondary">{allTcgplayerMatched ? "Your cards have been matched to the correct TCGplayer printing, condition, and finish." : hasAttemptedTcgplayerMatch ? "Review the unmatched rows below, adjust set, number, condition, or finish, then match again." : "Use the Trading Docks catalog to attach exact TCGplayer IDs before downloading."}</p>
                   </div>
                   {allTcgplayerMatched ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40"><Download className="h-4 w-4" />Download TCGplayer CSV</button> : <button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match to TCGplayer</button>}
                 </div>
@@ -811,31 +649,29 @@ export function CsvConversionEngine({
               </div>
               {hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount ? <div className="rounded-xl border border-td-warning/10 bg-td-warning/[.025] p-3 text-[11px] leading-5 text-td-warning/65"><strong className="text-td-warning">Review unmatched cards.</strong><span className="mt-1 block">{unresolvedTcgplayerRows.slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)}) — ${tcgplayerReasonLabel(row)}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span></div> : null}
             </> : null}
-          </div> : <div className="mt-4 space-y-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-              <label className="flex-[1.5]"><span className="text-[11px] font-semibold text-td-muted">Import into</span><div className="mt-1.5 flex min-h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><MapPin className="h-4 w-4 text-td-accent-text" /><select value={locationId || "__unassigned__"} onFocus={() => void refreshLocations(locationId)} onChange={(event) => {
-                const nextId = event.target.value === "__unassigned__" ? "" : event.target.value;
-                const next = availableLocations.find((location) => location.id === nextId);
-                setLocationId(nextId);
-                setLocationName(next?.label ?? "Unassigned");
-              }} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option value="__unassigned__">Unassigned</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></div></label>
-              <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><Store className="h-4 w-4 text-td-accent-text" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
-              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}<span className="sr-only">Import into inventory</span>Import {quantityTotal.toLocaleString()} cards</button>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-5 text-td-muted"><strong className="text-td-secondary">Destination:</strong> {importDestinationLabel}. {locationsLoading ? "Loading your storage locations..." : `${availableLocations.length.toLocaleString()} active locations available.`}</p>
-              <button type="button" onClick={() => setShowCreateLocation((value) => !value)} className="inline-flex h-9 items-center justify-center rounded-xl border border-td-accent/15 px-3 text-[11px] font-bold text-td-accent-text">{showCreateLocation ? "Cancel" : "Create location"}</button>
-            </div>
-            {showCreateLocation ? <div className="grid gap-3 rounded-2xl border border-td-accent/10 bg-td-accent/[.025] p-3 sm:grid-cols-[1fr_160px_1fr_auto] sm:items-end">
-              <label><span className="text-[11px] font-semibold text-td-muted">Name</span><input value={newLocationName} onChange={(event) => setNewLocationName(event.target.value)} placeholder="Bulk Box Three" className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-primary outline-none" /></label>
-              <label><span className="text-[11px] font-semibold text-td-muted">Type</span><select value={newLocationType} onChange={(event) => setNewLocationType(event.target.value as StorageLocationType)} className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary outline-none"><option value="area">Area</option><option value="shelf">Shelf</option><option value="box">Box</option><option value="binder">Binder</option><option value="section">Section</option><option value="slot">Slot</option><option value="bulk">Bulk</option><option value="custom">Custom</option></select></label>
-              <label><span className="text-[11px] font-semibold text-td-muted">Parent location</span><select value={newLocationParentId} onChange={(event) => setNewLocationParentId(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary outline-none"><option value="">No parent</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></label>
-              <button type="button" onClick={() => void createImportLocation()} disabled={!newLocationName.trim() || working} className="inline-flex h-10 items-center justify-center rounded-xl bg-td-accent px-4 text-[11px] font-bold text-td-on-accent disabled:opacity-40">Create</button>
-            </div> : null}
+          </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <label><span className="text-[11px] font-semibold text-td-muted">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><MapPin className="h-4 w-4 text-td-accent-text" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-td-primary outline-none" /></div></label>
+            <label><span className="text-[11px] font-semibold text-td-muted">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><Store className="h-4 w-4 text-td-accent-text" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
+            <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Import {quantityTotal.toLocaleString()} cards</button>
           </div>}
         </>}
       </section>
-      {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-td-accent/15 bg-td-surface px-4 py-3 text-xs leading-5 text-td-accent-text shadow-2xl">{notice}</div> : null}
+      {completion ? (
+        <section className="rounded-[24px] border border-td-success/15 bg-td-success/[.035] p-5" aria-live="polite">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-td-success" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-td-primary">{completion.duplicate ? "Import already completed" : "Cards imported into inventory"}</h2>
+              <p className="mt-1 text-xs leading-5 text-td-secondary">{completion.units.toLocaleString()} cards {completion.duplicate ? "were already saved" : "saved"} in <strong>{completion.locationName}</strong>. {completion.duplicate ? "No duplicates were added." : "Your original file was not changed."}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href="/dashboard/inventory" className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-td-accent px-3 text-[11px] font-bold text-td-on-accent">View inventory</Link>
+                <button type="button" onClick={reset} className="inline-flex min-h-9 items-center rounded-lg border border-td-ink/[.08] px-3 text-[11px] font-semibold text-td-secondary">Start another import</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+      {notice ? <div role={commitFailed ? "alert" : "status"} className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-td-accent/15 bg-td-surface px-4 py-3 text-xs leading-5 text-td-accent-text shadow-2xl">{notice}</div> : null}
     </div>
   );
 }
@@ -887,20 +723,17 @@ function matchTcgplayerReference(
 ): Partial<CanonicalRow> {
   if (!referenceRows.length || !row.name.trim()) return {};
   const desiredCondition = tcgplayerCondition(row.condition, row.finish);
-  const identityCandidates = referenceRows.filter((reference) => {
-    const nameMatches = compactLookup(reference["Product Name"]) === compactLookup(row.name);
-    const numberMatches = collectorNumbersEquivalent(reference.Number, row.collectorNumber);
+  const candidates = referenceRows.filter((reference) => {
+    const nameMatches = normalizedLookup(reference["Product Name"]) === normalizedLookup(row.name);
+    const numberMatches =
+      normalizedLookup(reference.Number) === normalizedLookup(row.collectorNumber);
+    const setMatches =
+      !row.setName.trim() ||
+      normalizedLookup(reference["Set Name"]) === normalizedLookup(row.setName);
     const conditionMatches =
       normalizedLookup(reference.Condition) === normalizedLookup(desiredCondition);
-    return nameMatches && numberMatches && conditionMatches;
+    return nameMatches && numberMatches && setMatches && conditionMatches;
   });
-  const setCandidates = identityCandidates.filter((reference) =>
-    !row.setName.trim() || setNamesEquivalent(reference["Set Name"], row.setName),
-  );
-  // Set names differ between Scryfall/ManaBox and TCGplayer (for example
-  // Fallout naming). Accept a set-name translation only when the full
-  // name/collector/condition identity is unique in the reference export.
-  const candidates = setCandidates.length ? setCandidates : identityCandidates.length === 1 ? identityCandidates : [];
   if (candidates.length !== 1) return {};
   const reference = candidates[0];
   return {
@@ -928,26 +761,6 @@ function tcgplayerCondition(condition: string, finish: string) {
 }
 function normalizedLookup(value = "") {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-function compactLookup(value = "") {
-  const base = value.trim().toLowerCase()
-    .replace(/\s*\/\/.*$/, "")
-    .replace(/\s*\([^)]*\)\s*$/, "");
-  return normalizedLookup(base).replace(/^(the|a|an)/, "");
-}
-function setNamesEquivalent(left = "", right = "") {
-  const normalizeSet = (value: string) => normalizedLookup(value.replace(/\s*\([^)]*\)\s*$/, ""));
-  return normalizeSet(left) === normalizeSet(right);
-}
-function collectorNumbersEquivalent(left = "", right = "") {
-  const a = normalizedLookup(left);
-  const b = normalizedLookup(right);
-  if (!a || !b) return a === b;
-  if (a === b) return true;
-  const numeric = (value: string) => value.replace(/[★*]+$/, "");
-  const numericA = numeric(a);
-  const numericB = numeric(b);
-  return /^\d+$/.test(numericA) && /^\d+$/.test(numericB) && Number(numericA) === Number(numericB);
 }
 function normalizeFinish(value: string) {
   const clean = value.trim().toLowerCase();
@@ -992,11 +805,11 @@ function normalizeFinishValue(value: string, fallback: string) {
   const clean = value.trim().toLowerCase();
   if (!clean) return fallback;
   if (clean.includes("etched")) return "Etched";
-  if (["0", "false", "no", "normal", "regular", "nonfoil", "non-foil"].includes(clean)) {
-    return "Nonfoil";
-  }
   if (["1", "true", "yes", "foil", "premium"].includes(clean) || clean.includes("foil")) {
     return "Foil";
+  }
+  if (["0", "false", "no", "normal", "regular", "nonfoil", "non-foil"].includes(clean)) {
+    return "Nonfoil";
   }
   return value.trim();
 }

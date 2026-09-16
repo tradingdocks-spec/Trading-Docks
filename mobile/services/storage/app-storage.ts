@@ -1,5 +1,18 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+let asyncStorageModule: typeof import('@react-native-async-storage/async-storage') | null = null;
+
+async function loadAsyncStorage() {
+  if (asyncStorageModule) return asyncStorageModule;
+  asyncStorageModule = await import('@react-native-async-storage/async-storage');
+  return asyncStorageModule;
+}
+
+function isWebRuntime() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function isReactNativeRuntime() {
+  return typeof navigator !== 'undefined' && (navigator as Navigator & { product?: string }).product === 'ReactNative';
+}
 
 /**
  * Cross-platform storage adapter that is safe during Expo Router web SSR.
@@ -8,28 +21,35 @@ import { Platform } from 'react-native';
  */
 export const appStorage = {
   async getItem(key: string): Promise<string | null> {
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined') return null;
+    if (isWebRuntime()) {
       return window.localStorage.getItem(key);
     }
-    return AsyncStorage.getItem(key);
+    if (isReactNativeRuntime()) {
+      const { default: AsyncStorage } = await loadAsyncStorage();
+      return AsyncStorage.getItem(key);
+    }
+    return null;
   },
 
   async setItem(key: string, value: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined') return;
+    if (isWebRuntime()) {
       window.localStorage.setItem(key, value);
       return;
     }
-    await AsyncStorage.setItem(key, value);
+    if (isReactNativeRuntime()) {
+      const { default: AsyncStorage } = await loadAsyncStorage();
+      await AsyncStorage.setItem(key, value);
+    }
   },
 
   async removeItem(key: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      if (typeof window === 'undefined') return;
+    if (isWebRuntime()) {
       window.localStorage.removeItem(key);
       return;
     }
-    await AsyncStorage.removeItem(key);
+    if (isReactNativeRuntime()) {
+      const { default: AsyncStorage } = await loadAsyncStorage();
+      await AsyncStorage.removeItem(key);
+    }
   },
 };

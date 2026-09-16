@@ -32,16 +32,6 @@ const FORMATS = [
   "Pauper",
 ];
 
-const DELETED_DECKS_KEY = "trading-docks-deleted-decks";
-
-function loadDeletedDeckIds() {
-  try {
-    return new Set<string>(JSON.parse(localStorage.getItem(DELETED_DECKS_KEY) ?? "[]") as string[]);
-  } catch {
-    return new Set<string>();
-  }
-}
-
 export function DeckVaultHome() {
   const [format, setFormat] = useState("All Formats");
   const [savedDecks, setSavedDecks] =
@@ -51,7 +41,6 @@ export function DeckVaultHome() {
 
   useEffect(() => {
     try {
-      const deletedDeckIds = loadDeletedDeckIds();
       const importedIds = JSON.parse(
         localStorage.getItem(
           "trading-docks-imported-decks",
@@ -74,9 +63,9 @@ export function DeckVaultHome() {
 
       const byId = new Map<string, DeckRecord>();
 
-      [...sampleDecks, ...importedDecks].forEach((deck) => {
-        if (!deletedDeckIds.has(deck.id)) byId.set(deck.id, deck);
-      });
+      [...sampleDecks, ...importedDecks].forEach(
+        (deck) => byId.set(deck.id, deck),
+      );
 
       setSavedDecks(Array.from(byId.values()));
     } catch {
@@ -124,10 +113,6 @@ export function DeckVaultHome() {
     localStorage.removeItem(
       `trading-docks-unresolved:${deckId}`,
     );
-
-    const deletedDeckIds = loadDeletedDeckIds();
-    deletedDeckIds.add(deckId);
-    localStorage.setItem(DELETED_DECKS_KEY, JSON.stringify([...deletedDeckIds]));
 
     const importedIds = JSON.parse(
       localStorage.getItem(

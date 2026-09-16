@@ -283,7 +283,7 @@ export function HomepageClosing() {
         Your next card deserves
         <br />a better home.
       </h2>
-      <Link href="/sign-up?plan=free" className={styles.primary}>
+      <Link href="/sign-up?plan=free" className={`${styles.primary} td-button-primary h-12 px-5 text-sm`}>
         Create your free account <ArrowRight size={16} />
       </Link>
       <p>500 cards. 5 decks. Room to grow.</p>

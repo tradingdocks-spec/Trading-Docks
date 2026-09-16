@@ -2,13 +2,13 @@ import type { AccountType } from '@/providers/account';
 import type { WorkSession } from '@/features/sessions/session-provider';
 import { displayCondition, displayFinish, displayPrinting, priceLabel, type CollectionCard, type CollectionSummary } from './collector-workspace.ts';
 
-export type HomeActionKey = 'scan' | 'collection' | 'find' | 'binder' | 'review';
+export type HomeActionKey = 'scan' | 'search' | 'collection' | 'decks' | 'review';
 
 export type HomeAction = {
   key: HomeActionKey;
   label: string;
   helper: string;
-  route: '/(tabs)/scan' | '/(tabs)/collection' | '/storage-locations' | '/physical-binders' | '/deal-desk' | '/scanner-session';
+  route: '/(tabs)/scan' | '/(tabs)/search' | '/(tabs)/collection' | '/(tabs)/sell' | '/deal-desk' | '/scanner-session';
   icon: string;
 };
 
@@ -168,9 +168,9 @@ function actionsForAccount(accountType: AccountType): HomeAction[] {
 
   return [
     { key: 'scan', label: 'Scan', helper: 'Add cards', route: '/(tabs)/scan', icon: 'scan-outline' },
-    { key: 'collection', label: 'Collection', helper: 'Browse cards', route: '/(tabs)/collection', icon: 'albums-outline' },
-    { key: 'find', label: 'Find Card', helper: 'Storage map', route: '/storage-locations', icon: 'search-outline' },
-    { key: 'binder', label: 'Binder', helper: 'Physical pages', route: '/physical-binders', icon: 'book-outline' },
+    { key: 'search', label: 'Search', helper: 'Find exact cards', route: '/(tabs)/search', icon: 'search-outline' },
+    { key: 'collection', label: 'Collection', helper: 'Browse cards', route: '/(tabs)/collection', icon: 'layers-outline' },
+    { key: 'decks', label: 'Decks', helper: 'Build lists', route: '/(tabs)/sell', icon: 'albums-outline' },
     reviewAction,
   ];
 }

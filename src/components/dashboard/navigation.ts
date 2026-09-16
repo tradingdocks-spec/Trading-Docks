@@ -14,11 +14,7 @@ import {
   Gem,
   History,
   LayoutDashboard,
-  Layers3,
   LibraryBig,
-  MapPinned,
-  Mail,
-  Megaphone,
   MonitorSmartphone,
   PackageCheck,
   PackageOpen,
@@ -27,7 +23,6 @@ import {
   Rocket,
   Percent,
   MessageSquarePlus,
-  PlugZap,
   Scale,
   Settings,
   ShoppingBag,
@@ -51,13 +46,11 @@ import {
   type AccountType,
 } from "../../../mobile/services/platform-access.ts";
 import { LABEL_STUDIO_ROUTE } from "../../lib/label-studio/routes.ts";
-import { isDeckArchitectRoute, shouldShowDeckArchitectEntry } from "../../lib/product-visibility.ts";
 
 export type NavigationItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  exact?: boolean;
 };
 
 export type NavigationSection = {
@@ -80,20 +73,19 @@ export const PRIMARY_NAV: NavigationItem[] = [
     icon: Boxes,
   },
   {
-    href: "/dashboard/deck-vault",
-    label: "Deck Vault",
-    icon: LibraryBig,
-  },
-  {
     href: "/dashboard/showcase",
     label: "Showcase",
     icon: MonitorSmartphone,
-    exact: true,
   },
   {
-    href: "/dashboard/showcase/kiosks",
-    label: "Kiosk",
-    icon: MonitorSmartphone,
+    href: "/dashboard/collector-portfolio",
+    label: "Collector Portfolio",
+    icon: Palette,
+  },
+  {
+    href: "/dashboard/deck-vault",
+    label: "Deck Vault",
+    icon: LibraryBig,
   },
 ];
 
@@ -103,31 +95,6 @@ export const CRM_NAV: NavigationItem[] = [
     label: "Customer CRM",
     icon: ContactRound,
   },
-];
-
-export const CHAOS_SORT_NAV: NavigationSection = {
-  id: "chaos-sort",
-  label: "Chaos Sort",
-  icon: Layers3,
-  href: "/dashboard/inventory/chaos-sort",
-  children: [
-    {
-      href: "/dashboard/inventory/chaos-sort",
-      label: "Chaos Sort",
-      icon: Layers3,
-    },
-  ],
-};
-
-export const MARKETING_NAV: NavigationItem[] = [
-  { href: "/dashboard/marketing", label: "Campaigns", icon: Megaphone },
-  { href: "/dashboard/marketing/audiences", label: "Audiences", icon: Users },
-  { href: "/dashboard/marketing/templates", label: "Templates", icon: FileBarChart2 },
-  { href: "/dashboard/marketing/suppression", label: "Suppression", icon: ShieldCheck },
-];
-
-export const INTEGRATIONS_NAV: NavigationItem[] = [
-  { href: "/dashboard/integrations/discord", label: "Discord", icon: PlugZap },
 ];
 
 export const PURCHASING_NAV: NavigationSection = {
@@ -143,8 +110,13 @@ export const PURCHASING_NAV: NavigationSection = {
     },
     {
       href: "/dashboard/card-photo-scanner",
-      label: "Image Lookup",
+      label: "Card Image Lookup",
       icon: ScanLine,
+    },
+    {
+      href: "/dashboard/inventory/chaos-sort",
+      label: "Chaos Sort",
+      icon: ScanSearch,
     },
     {
       href: "/dashboard/collection-buying",
@@ -278,7 +250,7 @@ export const TOOLS_NAV: NavigationItem[] = [
   },
   {
     href: "/dashboard/tools/csv-converter",
-    label: "CSV Conversion Engine",
+    label: "Import & Export",
     icon: FileSpreadsheet,
   },
 ];
@@ -348,9 +320,6 @@ const ICON_BY_LABEL = {
   Analytics: BarChart3,
   Employees: Users,
   Customers: ContactRound,
-  Marketing: Megaphone,
-  Campaigns: Megaphone,
-  Audiences: Users,
   Operations: BriefcaseBusiness,
   "Label Studio": Tags,
   "Command Center": ShieldCheck,
@@ -376,26 +345,16 @@ const TIER_RANK: Record<AccountType, number> = {
   store: 3,
 };
 
-const INVENTORY_WORKSPACE_NAV: NavigationItem[] = [
+const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/inventory", label: "Inventory", icon: Boxes },
-  { href: "/dashboard/inventory/inbox", label: "Inventory Inbox", icon: ClipboardList },
+  { href: "/dashboard/inventory", label: "Collection", icon: Boxes },
   { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
-  { href: "/dashboard/showcase", label: "Showcase", icon: MonitorSmartphone, exact: true },
-  { href: "/dashboard/showcase/kiosks", label: "Kiosk", icon: MonitorSmartphone },
-  ...CHAOS_SORT_NAV.children,
+  { href: "/dashboard/collector-portfolio", label: "Portfolio", icon: Palette },
 ];
 
 const ADMIN_NAV: NavigationItem[] = [
   { href: "/dashboard/admin", label: "Command Center", icon: ShieldCheck },
   { href: "/dashboard/admin/catalog/tcgplayer", label: "TCGplayer Catalog", icon: DatabaseZap },
-  { href: "/dashboard/admin/marketing", label: "Marketing Overview", icon: Megaphone },
-  { href: "/dashboard/admin/marketing/store-finder", label: "Store Finder", icon: MapPinned },
-  { href: "/dashboard/admin/marketing/prospects", label: "Prospects", icon: Users },
-  { href: "/dashboard/admin/marketing/campaigns", label: "Campaigns", icon: Mail },
-  { href: "/dashboard/admin/marketing/templates", label: "Email Templates", icon: Mail },
-  { href: "/dashboard/admin/marketing/sequences", label: "Sequences", icon: History },
-  { href: "/dashboard/admin/marketing/analytics", label: "Marketing Analytics", icon: BarChart3 },
 ];
 
 function isAtLeast(tier: AccountType, minimum: AccountType) {
@@ -416,11 +375,9 @@ function isAccessibleOrOwner(
   item: NavigationItem,
   clientAccess?: ClientSafePlatformAccess,
 ) {
-  if (isDeckArchitectRoute(item.href)) return shouldShowDeckArchitectEntry();
   if (!clientAccess) return true;
   if (hasTrustedFullPlatformAccess(clientAccess)) return true;
   if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
-  if (item.href.startsWith("/dashboard/marketing")) return hasCapability(clientAccess, "crm.manage");
   return true;
 }
 
@@ -446,15 +403,13 @@ export function getAccountAwareNavigationGroups(
     ? hasCapability(clientAccess, "platform.admin")
     : isOwner;
   const groups: Array<AccountAwareNavigationGroup | null> = [
-    group("collector", "Inventory", INVENTORY_WORKSPACE_NAV, clientAccess),
+    group("collector", "Collection", COLLECTOR_WORKSPACE_NAV, clientAccess),
   ];
 
   if (isAtLeast(effectiveTier, "seller")) {
     groups.push(
       group("purchasing", PURCHASING_NAV.label, PURCHASING_NAV.children, clientAccess),
       group("selling", SELLING_NAV.label, SELLING_NAV.children, clientAccess),
-      group("marketing", "Marketing", MARKETING_NAV, clientAccess),
-      group("integrations", "Integrations", INTEGRATIONS_NAV, clientAccess),
       group("insights", INSIGHTS_NAV.label, INSIGHTS_NAV.children, clientAccess),
       group(
         "operations",

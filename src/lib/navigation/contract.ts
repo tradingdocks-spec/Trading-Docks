@@ -1,5 +1,4 @@
-import { normalizeAccountTier, type AccountTier } from "../plan-entitlements.ts";
-import { isDeckArchitectRoute, shouldShowDeckArchitectEntry } from "../product-visibility.ts";
+import { normalizeAccountTier, type AccountTier } from "@/lib/plan-entitlements";
 
 export type WebNavigationAudience = AccountTier | "admin";
 
@@ -36,7 +35,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
     { label: "Inventory", href: "/dashboard/inventory", status: "implemented" },
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },
     { label: "Buying Sessions", href: "/dashboard/collection-buying", status: "implemented" },
-    { label: "Marketing", href: "/dashboard/marketing", status: "partially-implemented" },
     { label: "Exports", href: "/dashboard/tools/csv-converter", status: "implemented" },
     { label: "Analytics", href: "/dashboard/analytics", status: "implemented" },
     { label: "Settings", href: "/dashboard/settings", status: "implemented" },
@@ -47,7 +45,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },
     { label: "Employees", href: "/dashboard/employees", status: "implemented" },
     { label: "Customers", href: "/dashboard/customers", status: "implemented" },
-    { label: "Marketing", href: "/dashboard/marketing", status: "partially-implemented" },
     { label: "Operations", href: "/dashboard/tasks", status: "partially-implemented" },
     { label: "Analytics", href: "/dashboard/analytics", status: "implemented" },
     { label: "Settings", href: "/dashboard/settings", status: "implemented" },
@@ -65,9 +62,7 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
 };
 
 export function getWebNavigationContract(accountType: unknown) {
-  return WEB_NAVIGATION_CONTRACT[normalizeAccountTier(accountType)].filter((item) =>
-    !isDeckArchitectRoute(item.href) || shouldShowDeckArchitectEntry(),
-  );
+  return WEB_NAVIGATION_CONTRACT[normalizeAccountTier(accountType)];
 }
 
 export function isWebNavigationActive(pathname: string, href: string) {

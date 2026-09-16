@@ -1,0 +1,4 @@
+import {chromium} from '@playwright/test';
+const b=await chromium.launch();const p=await b.newPage({ignoreHTTPSErrors:true});await p.emulateMedia({reducedMotion:'reduce'});
+for(const mode of ['dark','light'])for(const width of [1440,390]){await p.setViewportSize({width,height:1000});await p.goto('https://127.0.0.1:4173/',{waitUntil:'networkidle'});await p.getByRole('combobox',{name:'Color theme'}).first().selectOption(mode);await p.waitForFunction(mode=>document.documentElement.dataset.theme===mode,mode);await p.screenshot({path:'.launch-audit/theme-'+mode+'-home-'+width+'.png',fullPage:true});if(width===1440){await p.locator('#platform').screenshot({path:'.launch-audit/design-platform-'+mode+'.png'});await p.locator('#pricing').screenshot({path:'.launch-audit/design-pricing-'+mode+'.png'});}}
+await b.close();

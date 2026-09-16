@@ -1002,9 +1002,6 @@ export function DeckDetailWorkspace({
   async function permanentlyDeleteDeck() {
     if (deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()) return;
     setDeckActionBusy(true);
-    // Drain any debounced/autosaved edits before deleting. Otherwise an edit
-    // already queued on this page can finish after the delete and recreate it.
-    await saveQueueRef.current.catch(() => undefined);
     await deleteDeckRecord(deck.id);
     router.push("/dashboard/deck-vault");
   }

@@ -943,6 +943,34 @@ export function removeScannerSessionLine(session: ContinuousScannerSession, line
   };
 }
 
+export function removeScannerSessionLines(session: ContinuousScannerSession, lineIds: string[]) {
+  const ids = new Set(lineIds);
+  if (!ids.size) return session;
+  return lineIds.reduce((current, lineId) => removeScannerSessionLine(current, lineId), session);
+}
+
+export function restoreRemovedScannerSessionLine(session: ContinuousScannerSession, lineId?: string | null) {
+  if (!session.undoneLines.length) return session;
+  const index = lineId ? session.undoneLines.findIndex((line) => line.id === lineId) : 0;
+  const removed = index >= 0 ? session.undoneLines[index] : null;
+  if (!removed) return session;
+  const remaining = [...session.undoneLines];
+  remaining.splice(index, 1);
+  if (session.lines.some((line) => line.id === removed.id)) {
+    return {
+      ...session,
+      updatedAt: new Date().toISOString(),
+      undoneLines: remaining,
+    };
+  }
+  return {
+    ...session,
+    updatedAt: new Date().toISOString(),
+    lines: [...session.lines, removed],
+    undoneLines: remaining,
+  };
+}
+
 export function bulkConfirmReviewedCards(session: ContinuousScannerSession) {
   return {
     ...session,

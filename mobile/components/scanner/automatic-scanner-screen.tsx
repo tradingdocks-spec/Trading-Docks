@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -51,10 +51,12 @@ import {
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
-import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
+import { buildGuideAssistedCropMapping, deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
 import { loadScannerContext, loadScannerDraft, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import { createRapidLiveOcrState, runRapidLiveTitleOcr } from '@/services/rapid-scan-live-ocr';
+import { AUTOMATIC_SNAPSHOT_FALLBACK_DEADLINE_MS, resolveScannerLiveFallbackDecision } from '@/services/scanner-live-fallback';
+import { isCardSightScannerEnabled, scanCardSightWithFallback } from '@/services/cardsight-scan-provider';
 import { prewarmMagicNameIndex } from '@/services/magic-card-identity';
 import {
   createInterruptedScanDraft,
@@ -214,6 +216,18 @@ type ScannerLiveProofDiagnostics = {
   emptyOcrResults: number;
   nameLookupMisses: number;
   qualityRejects: number;
+  fallbackCaptures: number;
+  snapshotOcrAttempts: number;
+  snapshotOcrSuccesses: number;
+  providerFallbackRequests: number;
+  providerFallbackResults: number;
+  latestFailureReason: string | null;
+  latestCaptureWidth: number | null;
+  latestCaptureHeight: number | null;
+  latestTitleCropWidth: number | null;
+  latestTitleCropHeight: number | null;
+  latestOcrObservationCount: number;
+  latestOcrLatencyMs: number | null;
 };
 const INITIAL_SESSION_MODE: ContinuousScannerMode = 'card_show_purchase';
 
@@ -264,6 +278,18 @@ function createScannerLiveProofDiagnostics(): ScannerLiveProofDiagnostics {
     emptyOcrResults: 0,
     nameLookupMisses: 0,
     qualityRejects: 0,
+    fallbackCaptures: 0,
+    snapshotOcrAttempts: 0,
+    snapshotOcrSuccesses: 0,
+    providerFallbackRequests: 0,
+    providerFallbackResults: 0,
+    latestFailureReason: null,
+    latestCaptureWidth: null,
+    latestCaptureHeight: null,
+    latestTitleCropWidth: null,
+    latestTitleCropHeight: null,
+    latestOcrObservationCount: 0,
+    latestOcrLatencyMs: null,
   };
 }
 
@@ -277,7 +303,17 @@ export default function AutomaticScannerScreen() {
   const activeSearchIdRef = useRef<string | null>(null);
   const nextRecognitionCycleRef = useRef(0);
   const autoCaptureInFlightRef = useRef(false);
-  const captureStillRef = useRef<() => Promise<void>>(async () => undefined);
+  const captureStillRef = useRef<(options?: { source?: 'manual' | 'automatic_fallback' }) => Promise<void>>(async () => undefined);
+  const liveRecognitionPresenceStartedAtRef = useRef<number | null>(null);
+  const lastAutomaticFallbackAtRef = useRef<number | null>(null);
+  const automaticFallbackCaptureInFlightRef = useRef(false);
+  const liveOcrInFlightRef = useRef(false);
+  const liveRecognitionOverrideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [liveRecognitionOverride, setLiveRecognitionOverride] = useState<{
+    headline: string;
+    subtitle: string | null;
+    tone: 'muted' | 'info' | 'warning' | 'success';
+  } | null>(null);
   const lastLiveFrameAcceptedAtRef = useRef(0);
   const autoCaptureRuntimeRef = useRef(createAppleVisionAutoCaptureRuntime());
   const visionEngineRef = useRef<ReturnType<typeof createScannerVisionEngine> | null>(null);
@@ -417,6 +453,10 @@ export default function AutomaticScannerScreen() {
       next.visualTopCandidate ?? '',
       next.visualTopSimilarity ?? '',
       next.latestQualityRejectReason ?? '',
+      next.fallbackCaptures,
+      next.snapshotOcrAttempts,
+      next.providerFallbackRequests,
+      next.latestFailureReason ?? '',
       next.lastSuccessfulStage ?? '',
     ].join('|');
     if (signature === lastLiveProofLogRef.current) return;
@@ -467,7 +507,42 @@ export default function AutomaticScannerScreen() {
       emptyOcrResults: next.emptyOcrResults,
       nameLookupMisses: next.nameLookupMisses,
       qualityRejects: next.qualityRejects,
+      fallbackCaptures: next.fallbackCaptures,
+      snapshotOcrAttempts: next.snapshotOcrAttempts,
+      snapshotOcrSuccesses: next.snapshotOcrSuccesses,
+      providerFallbackRequests: next.providerFallbackRequests,
+      providerFallbackResults: next.providerFallbackResults,
+      latestFailureReason: next.latestFailureReason,
+      latestCaptureWidth: next.latestCaptureWidth,
+      latestCaptureHeight: next.latestCaptureHeight,
+      latestTitleCropWidth: next.latestTitleCropWidth,
+      latestTitleCropHeight: next.latestTitleCropHeight,
+      latestOcrObservationCount: next.latestOcrObservationCount,
+      latestOcrLatencyMs: next.latestOcrLatencyMs,
     });
+  }, []);
+  const clearLiveRecognitionOverride = useCallback(() => {
+    if (liveRecognitionOverrideTimerRef.current) {
+      clearTimeout(liveRecognitionOverrideTimerRef.current);
+      liveRecognitionOverrideTimerRef.current = null;
+    }
+    setLiveRecognitionOverride(null);
+  }, []);
+  const setTimedLiveRecognitionOverride = useCallback((next: {
+    headline: string;
+    subtitle: string | null;
+    tone: 'muted' | 'info' | 'warning' | 'success';
+  } | null, durationMs = 650) => {
+    if (liveRecognitionOverrideTimerRef.current) {
+      clearTimeout(liveRecognitionOverrideTimerRef.current);
+      liveRecognitionOverrideTimerRef.current = null;
+    }
+    setLiveRecognitionOverride(next);
+    if (!next) return;
+    liveRecognitionOverrideTimerRef.current = setTimeout(() => {
+      liveRecognitionOverrideTimerRef.current = null;
+      setLiveRecognitionOverride(null);
+    }, durationMs);
   }, []);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
@@ -641,6 +716,7 @@ export default function AutomaticScannerScreen() {
           : 'failed',
     )
     : appleVisionStateInstruction(autoCaptureRuntime.state, autoCaptureReadiness.instruction);
+  const scannerLiveStatus = liveRecognitionOverride ?? liveInference;
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -742,6 +818,42 @@ export default function AutomaticScannerScreen() {
     }
     const result = visionEngineRef.current.analyzeFrame(frame);
     setLiveVisionResult(result);
+    const frameFingerprint = result.detection.fingerprint ?? null;
+    if (!result.detection.cardPresent) {
+      liveRecognitionPresenceStartedAtRef.current = null;
+      if (liveInferenceRef.current.candidateName || liveInferenceRef.current.exactPrintingId) {
+        liveInferenceRef.current = {
+          ...createScannerLiveInferenceState(),
+          latestFrameId: frame.id,
+          latestObservedAt: now,
+          fingerprint: frameFingerprint,
+        };
+        setLiveInference(liveInferenceRef.current);
+      }
+      if (!automaticFallbackCaptureInFlightRef.current) clearLiveRecognitionOverride();
+    } else {
+      if (liveRecognitionPresenceStartedAtRef.current === null || liveInferenceRef.current.fingerprint !== frameFingerprint) {
+        liveRecognitionPresenceStartedAtRef.current = now;
+        liveInferenceRef.current = {
+          ...createScannerLiveInferenceState(),
+          latestFrameId: frame.id,
+          latestObservedAt: now,
+          fingerprint: frameFingerprint,
+        };
+        setLiveInference(liveInferenceRef.current);
+      }
+      const hasCredibleCandidate = Boolean(
+        liveInferenceRef.current.candidateName
+        && (liveInferenceRef.current.stage === 'likely' || liveInferenceRef.current.stage === 'matching_printing' || liveInferenceRef.current.stage === 'exact'),
+      );
+      if (!hasCredibleCandidate && !automaticFallbackCaptureInFlightRef.current) {
+        setTimedLiveRecognitionOverride({
+          headline: 'Reading...',
+          subtitle: 'Keep scanning',
+          tone: 'muted',
+        }, 400);
+      }
+    }
     updateLiveProofDiagnostics({
       cameraReady,
       framesObserved: liveProofDiagnosticsRef.current.framesObserved + 1,
@@ -759,6 +871,44 @@ export default function AutomaticScannerScreen() {
     });
     const liveOcrEligible = cameraReady && permission === 'granted' && cameraActive && !autoCaptureInFlightRef.current;
     const liveOcrDue = scannerNow() - lastLiveOcrAttemptAtRef.current >= 140;
+    const hasCredibleLiveCandidate = Boolean(
+      liveInferenceRef.current.candidateName
+      && (liveInferenceRef.current.stage === 'likely' || liveInferenceRef.current.stage === 'matching_printing' || liveInferenceRef.current.stage === 'exact'),
+    );
+    const fallbackDecision = resolveScannerLiveFallbackDecision({
+      cardPresent: result.detection.cardPresent,
+      hasCredibleCandidate: hasCredibleLiveCandidate,
+      fallbackInFlight: automaticFallbackCaptureInFlightRef.current || autoCaptureInFlightRef.current,
+      liveOcrInFlight: liveOcrInFlightRef.current,
+      cardPresentSinceAt: liveRecognitionPresenceStartedAtRef.current,
+      lastFallbackAt: lastAutomaticFallbackAtRef.current,
+      now,
+      deadlineMs: AUTOMATIC_SNAPSHOT_FALLBACK_DEADLINE_MS,
+    });
+    if (fallbackDecision.shouldTrigger && liveOcrEligible && cameraLifecycle === 'ready' && !scannerProcessing) {
+      lastAutomaticFallbackAtRef.current = now;
+      automaticFallbackCaptureInFlightRef.current = true;
+      setTimedLiveRecognitionOverride({
+        headline: 'Checking image...',
+        subtitle: 'Reading snapshot',
+        tone: 'info',
+      });
+      void captureStillRef.current({ source: 'automatic_fallback' }).finally(() => {
+        setTimeout(() => {
+          automaticFallbackCaptureInFlightRef.current = false;
+          if (!mountedRef.current) return;
+          if (liveRecognitionPresenceStartedAtRef.current !== null) {
+            setTimedLiveRecognitionOverride({
+              headline: 'Reading...',
+              subtitle: 'Keep scanning',
+              tone: 'muted',
+            }, 400);
+          } else {
+            clearLiveRecognitionOverride();
+          }
+        }, 180);
+      });
+    }
     if (liveOcrEligible && liveOcrDue) {
       lastLiveOcrAttemptAtRef.current = scannerNow();
       if (!rapidLiveNameIndexRef.current) {
@@ -777,6 +927,7 @@ export default function AutomaticScannerScreen() {
       const liveVision = result;
       const liveNameIndex = rapidLiveNameIndexRef.current;
       if (liveNameIndex) {
+        liveOcrInFlightRef.current = true;
         updateLiveProofDiagnostics({
           framesSampled: liveProofDiagnosticsRef.current.framesSampled + 1,
           recognitionSamplesStarted: liveProofDiagnosticsRef.current.recognitionSamplesStarted + 1,
@@ -841,6 +992,15 @@ export default function AutomaticScannerScreen() {
             );
             liveInferenceRef.current = next;
             setLiveInference(next);
+            if (next.candidateName && (next.stage === 'likely' || next.stage === 'matching_printing' || next.stage === 'exact')) {
+              clearLiveRecognitionOverride();
+            } else if (!automaticFallbackCaptureInFlightRef.current && liveVision.detection.cardPresent) {
+              setTimedLiveRecognitionOverride({
+                headline: 'Reading...',
+                subtitle: 'Keep scanning',
+                tone: 'muted',
+              }, 400);
+            }
             if (outcome.status === 'added') {
               updateLiveProofDiagnostics({
                 lastSuccessfulStage: 'local_name_match',
@@ -849,7 +1009,15 @@ export default function AutomaticScannerScreen() {
               });
             }
           }
-        }).catch(() => undefined);
+        }).catch((error) => {
+          if (mountedRef.current) {
+            updateLiveProofDiagnostics({
+              latestFailureReason: error instanceof Error ? error.message : 'Live OCR failed.',
+            });
+          }
+        }).finally(() => {
+          liveOcrInFlightRef.current = false;
+        });
       }
     }
     const autoDecision = nextAppleVisionAutoCaptureRuntime(autoCaptureRuntimeRef.current, {
@@ -877,7 +1045,21 @@ export default function AutomaticScannerScreen() {
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, context, guideLayout, permission, previewDimensions, scannerProcessing, updateLiveProofDiagnostics]);
+  }, [
+    autoCaptureEnabled,
+    autoScanner.duplicateProtection.awaitingCardRemoval,
+    cameraActive,
+    cameraLifecycle,
+    cameraReady,
+    clearLiveRecognitionOverride,
+    context,
+    guideLayout,
+    permission,
+    previewDimensions,
+    scannerProcessing,
+    setTimedLiveRecognitionOverride,
+    updateLiveProofDiagnostics,
+  ]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -970,6 +1152,7 @@ export default function AutomaticScannerScreen() {
 
   useEffect(() => () => {
     if (diagnosticCaptureUri) void deleteCapturedStill(diagnosticCaptureUri);
+    if (liveRecognitionOverrideTimerRef.current) clearTimeout(liveRecognitionOverrideTimerRef.current);
   }, [diagnosticCaptureUri]);
 
   useEffect(() => {
@@ -1313,6 +1496,11 @@ export default function AutomaticScannerScreen() {
     activeSearchIdRef.current = null;
     setLastCaptureId(null);
     setCapturedFrame(null);
+    liveRecognitionPresenceStartedAtRef.current = null;
+    lastAutomaticFallbackAtRef.current = null;
+    automaticFallbackCaptureInFlightRef.current = false;
+    liveOcrInFlightRef.current = false;
+    clearLiveRecognitionOverride();
     void cleanupDiagnosticCapture();
     setMagicStillScan(null);
     setMagicRecognition(null);
@@ -1327,7 +1515,8 @@ export default function AutomaticScannerScreen() {
     setCameraActive(appForegrounded);
   };
 
-  const captureStill = useCallback(async () => {
+  const captureStill = useCallback(async (options: { source?: 'manual' | 'automatic_fallback' } = {}) => {
+    const isAutomaticFallback = options.source === 'automatic_fallback';
     if (shouldBlockScannerCapture({ lifecycle: cameraLifecycle, captureState, recognitionStage })) return;
     setError(null);
     setSuccess(null);
@@ -1350,6 +1539,13 @@ export default function AutomaticScannerScreen() {
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
+      if (isAutomaticFallback) {
+        setTimedLiveRecognitionOverride({
+          headline: 'Checking image...',
+          subtitle: 'Reading snapshot',
+          tone: 'info',
+        });
+      }
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'CAPTURING', 'capture_still_started');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       const cameraCaptureStartedAt = scannerNow();
@@ -1363,90 +1559,142 @@ export default function AutomaticScannerScreen() {
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'READING', 'still_captured_reading');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       setAutoScanner((current) => markCaptureStarted(current));
-      if (scanGame === 'pokemon') {
-        const recognitionStartedAt = scannerNow();
-        const preparedImage = await prepareTcgTrackingScanImage({
-          imageUri: photo.uri,
-          cropPixels: null,
-        });
-        const pokemonScan = await scanPreparedImageWithTcgTracking({
-          preparedImage,
-          gameId: tcgTrackingScanGameId(scanGame),
-          limit: 5,
-        });
-        if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
-        if (diagnosticsEnabled) setDiagnosticCaptureUri(photo.uri);
-        setCaptureState('ready');
-        setRecognitionStage(pokemonScan.ok ? 'review_ready' : 'failed');
-        if (!pokemonScan.ok) {
-          setError(`${pokemonScan.reason} Manual search is still available.`);
-          return;
-        }
-        setCandidates(pokemonScan.candidates);
-        const batchCandidate = pokemonScan.candidates[0] ?? null;
-        setSelected(batchCandidate);
-        setQuery(batchCandidate?.name ?? query);
-        if (batchCandidate) {
-          addCandidateToBatch({
-            candidate: batchCandidate,
-            candidates: pokemonScan.candidates,
-            recognition: null,
-            recognitionCycleId: captureId,
-            stableScanId: captureId,
-            source: 'assisted_capture',
-            fingerprint: frameLabel,
-            captureResolution: { width: photo.width, height: photo.height },
-            timing: {
-              captureMs: cameraCaptureMs,
-              recognitionMs: scannerNow() - recognitionStartedAt,
-              ocrMs: null,
-              scryfallMs: null,
-              totalMs: scannerNow() - captureStartedAt,
-              fallbackCount: 0,
-            },
-          });
-        }
-        return;
-      }
       const recognitionStartedAt = scannerNow();
-      const scan = await recognizeMagicStillCapture({
+      const localScan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
         preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
         image: { width: photo.width, height: photo.height },
         guide: guideLayout,
         online: true,
+        sequentialTitleOcr: isAutomaticFallback,
+        includeCollectorOcr: isAutomaticFallback,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
-        deferCleanup: diagnosticsEnabled,
-        enhancedProductScan: async ({ imageUri, mapping }) => {
-          const preparedImage = await prepareTcgTrackingScanImage({
-            imageUri,
-            cropPixels: mapping.cardCropPixels,
-          });
-          return scanPreparedImageWithTcgTracking({
-            preparedImage,
-            gameId: tcgTrackingScanGameId(scanGame),
-            limit: 5,
-          });
-        },
+        deferCleanup: true,
         onStage: (stage) => {
           if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
         },
       });
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       if (diagnosticsEnabled) setDiagnosticCaptureUri(photo.uri);
-      setMagicStillScan(scan);
-      if (scan.ok) {
+      const previewMapping = localScan.mapping ?? buildGuideAssistedCropMapping({
+        preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
+        image: { width: photo.width, height: photo.height },
+        guide: guideLayout,
+      });
+      const ocrObservationCount = localScan.ocr && 'observations' in localScan.ocr ? localScan.ocr.observations.length : 0;
+      const ocrLatencyMs = localScan.ocr && 'latencyMs' in localScan.ocr ? localScan.ocr.latencyMs : null;
+      const localStrong = Boolean(localScan.ok && localScan.selected && !localScan.recognition.confidence.requiresConfirmation);
+      let resolvedCandidates = localScan.ok ? localScan.candidates : [];
+      let resolvedCandidate = localScan.ok ? localScan.selected ?? localScan.candidates[0] ?? null : null;
+      let resolvedRecognition: MagicRecognitionResult | null = localScan.ok ? localScan.recognition : null;
+      let providerFallbackRequested = false;
+      let providerFallbackResolved = false;
+      const cardsightEnabled = isCardSightScannerEnabled();
+      let cardsightRequestStarted = false;
+      let cardsightResponseStatus: string | null = null;
+      let cardsightCandidate: string | null = null;
+      let cardsightLatencyMs: number | null = null;
+      let escalationStage: 'local recognition' | 'cardsight' | 'tcgtracking' | 'existing fallback' = 'local recognition';
+      let fallbackProvider: 'CardSight AI' | 'TCGTracking' | 'existing fallback' = 'existing fallback';
+
+      if (scanGame === 'magic' && !localStrong) {
+        if (cardsightEnabled) {
+          cardsightRequestStarted = true;
+          escalationStage = 'cardsight';
+          providerFallbackRequested = true;
+          const cardsightScan = await scanCardSightWithFallback({
+            imageUri: photo.uri,
+            mapping: previewMapping,
+            online: true,
+          });
+          cardsightResponseStatus = cardsightScan.ok ? cardsightScan.status : cardsightScan.reason;
+          cardsightLatencyMs = cardsightScan.latencyMs ?? null;
+          cardsightCandidate = cardsightScan.ok ? cardsightScan.candidates[0]?.name ?? null : null;
+          if (cardsightScan.ok && cardsightScan.candidates.length) {
+            resolvedCandidates = cardsightScan.candidates;
+            resolvedCandidate = cardsightScan.candidates[0] ?? null;
+            resolvedRecognition = buildProviderRecognitionReport({
+              providerName: 'CardSight AI',
+              providerLabel: 'CardSight image match',
+              candidates: cardsightScan.candidates,
+              topConfidence: cardsightScan.topConfidence,
+              confidenceBand: cardsightScan.confidenceBand,
+              fallbackRecommended: cardsightScan.fallbackRecommended,
+            });
+            providerFallbackResolved = true;
+            fallbackProvider = 'CardSight AI';
+          }
+        }
+        if (!providerFallbackResolved) {
+          escalationStage = cardsightEnabled ? 'tcgtracking' : 'existing fallback';
+          providerFallbackRequested = true;
+          const preparedImage = await prepareTcgTrackingScanImage({
+            imageUri: photo.uri,
+            cropPixels: previewMapping.cardCropPixels,
+          });
+          const tcgTrackingScan = await scanPreparedImageWithTcgTracking({
+            preparedImage,
+            gameId: tcgTrackingScanGameId(scanGame),
+            limit: 5,
+          });
+          if (tcgTrackingScan.ok && tcgTrackingScan.candidates.length) {
+            resolvedCandidates = tcgTrackingScan.candidates;
+            resolvedCandidate = tcgTrackingScan.candidates[0] ?? null;
+            resolvedRecognition = buildProviderRecognitionReport({
+              providerName: 'TCGTracking',
+              providerLabel: 'TCGTracking product scan',
+              candidates: tcgTrackingScan.candidates,
+              topConfidence: tcgTrackingScan.topConfidence,
+              confidenceBand: tcgTrackingScan.confidenceBand,
+              fallbackRecommended: tcgTrackingScan.fallbackRecommended,
+            });
+            providerFallbackResolved = true;
+            fallbackProvider = 'TCGTracking';
+          }
+        }
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.info('TD_SCANNER_PROVIDER', {
+          cardsightEnabled,
+          escalationStage,
+          cardsightRequestStarted,
+          cardsightResponseStatus,
+          cardsightCandidate,
+          cardsightLatencyMs,
+          fallbackProvider,
+        });
+      }
+
+      setMagicStillScan(localScan);
+      updateLiveProofDiagnostics({
+        fallbackCaptures: isAutomaticFallback ? liveProofDiagnosticsRef.current.fallbackCaptures + 1 : liveProofDiagnosticsRef.current.fallbackCaptures,
+        snapshotOcrAttempts: isAutomaticFallback ? liveProofDiagnosticsRef.current.snapshotOcrAttempts + 1 : liveProofDiagnosticsRef.current.snapshotOcrAttempts,
+        snapshotOcrSuccesses: isAutomaticFallback && localScan.ok && Boolean(localScan.signals.normalizedTitle) ? liveProofDiagnosticsRef.current.snapshotOcrSuccesses + 1 : liveProofDiagnosticsRef.current.snapshotOcrSuccesses,
+        providerFallbackRequests: providerFallbackRequested ? liveProofDiagnosticsRef.current.providerFallbackRequests + 1 : liveProofDiagnosticsRef.current.providerFallbackRequests,
+        providerFallbackResults: providerFallbackResolved ? liveProofDiagnosticsRef.current.providerFallbackResults + 1 : liveProofDiagnosticsRef.current.providerFallbackResults,
+        latestFailureReason: localScan.ok ? null : localScan.reason,
+        latestCaptureWidth: photo.width,
+        latestCaptureHeight: photo.height,
+        latestTitleCropWidth: localScan.cropDiagnostics ? Math.round(localScan.cropDiagnostics.titleCropPixels.width) : null,
+        latestTitleCropHeight: localScan.cropDiagnostics ? Math.round(localScan.cropDiagnostics.titleCropPixels.height) : null,
+        latestOcrObservationCount: ocrObservationCount,
+        latestOcrLatencyMs: ocrLatencyMs,
+      });
+
+      if (resolvedCandidate) {
+        const recognition = resolvedRecognition ?? (localScan.ok ? localScan.recognition : null);
         setCaptureState('ready');
-        setCandidates(scan.candidates);
-        const batchCandidate = scan.selected ?? scan.candidates[0] ?? null;
-        setSelected(batchCandidate);
-        setMagicRecognition(scan.recognition);
-        setQuery(scan.signals.normalizedTitle ?? query);
-        if (batchCandidate) {
+        setCandidates(resolvedCandidates);
+        setSelected(resolvedCandidate);
+        setMagicRecognition(recognition);
+        setQuery(resolvedCandidate.name ?? localScan.signals?.normalizedTitle ?? query);
+        if (recognition) {
+          setSuccess(`✓ ${resolvedCandidate.name}\n${resolvedCandidate.setCode ?? 'Set'} • ${resolvedCandidate.collectorNumber ?? '?'}`);
           addCandidateToBatch({
-            candidate: batchCandidate,
-            candidates: scan.candidates,
-            recognition: scan.recognition,
+            candidate: resolvedCandidate,
+            candidates: resolvedCandidates,
+            recognition,
             recognitionCycleId: captureId,
             stableScanId: captureId,
             source: 'assisted_capture',
@@ -1455,27 +1703,71 @@ export default function AutomaticScannerScreen() {
             timing: {
               captureMs: cameraCaptureMs,
               recognitionMs: scannerNow() - recognitionStartedAt,
-              cropMs: scan.cropDiagnostics ? null : null,
-              ocrMs: scan.ocr.latencyMs,
-              scryfallMs: scan.lookupLatencyMs,
+              cropMs: null,
+              ocrMs: localScan.ok ? localScan.ocr.latencyMs : null,
+              scryfallMs: localScan.ok ? localScan.lookupLatencyMs : null,
               totalMs: scannerNow() - captureStartedAt,
-              fallbackCount: Math.max(0, scan.signals.titleAttempts.length - 1),
+              fallbackCount: Math.max(0, localScan.ok ? localScan.signals.titleAttempts.length - 1 : 0) + (providerFallbackResolved ? 1 : 0),
             },
           });
           autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'IDENTIFIED', 'session_line_added');
           setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
           setRecognitionStage('idle');
-        } else {
-          setSessionInsertionResult('failed');
-          setRecognitionStage('failed');
-          setError('No Magic printing was selected. Retake or search manually.');
+          setTimedLiveRecognitionOverride({
+            headline: `✓ ${resolvedCandidate.name}`,
+            subtitle: resolvedCandidate.setCode && resolvedCandidate.collectorNumber ? `${resolvedCandidate.setCode} • ${resolvedCandidate.collectorNumber}` : 'Added to session',
+            tone: recognition && 'confidence' in recognition && recognition.confidence.requiresConfirmation ? 'info' : 'success',
+          }, 500);
+          if (soundEnabled) {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          if (hapticsEnabled) {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          setTimeout(() => {
+            if (!mountedRef.current) return;
+            setCaptureState('ready');
+            setRecognitionStage('idle');
+            setSuccess(null);
+            autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'rearm_after_match');
+            setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
+            clearLiveRecognitionOverride();
+            activeCaptureIdRef.current = null;
+          }, 520);
+          if (activeCaptureIdRef.current === captureId) {
+            activeCaptureIdRef.current = null;
+            autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_complete');
+            setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
+          }
+          if (!diagnosticsEnabled) {
+            void deleteCapturedStill(photo.uri);
+          }
+          return;
         }
-      } else {
-        setCaptureState('ready');
-        setMagicRecognition(scan.ocr?.ok === false ? { ok: false, reason: scan.reason, offline: false } : null);
-        setSessionInsertionResult('failed');
-        setRecognitionStage('failed');
-        setError(`${scan.reason} Manual search is still available.`);
+      }
+
+      setCaptureState('ready');
+      setMagicRecognition(localScan.ok ? localScan.recognition : null);
+      setCandidates(localScan.ok ? localScan.candidates : []);
+      setSelected(localScan.ok ? localScan.selected ?? localScan.candidates[0] ?? null : null);
+      if (localScan.ok) {
+        setQuery(localScan.signals?.normalizedTitle ?? query);
+      }
+      setSessionInsertionResult('failed');
+      setRecognitionStage('failed');
+      setSuccess(null);
+      if (!localScan.ok) {
+        setError(`${localScan.reason} Manual search is still available.`);
+        if (isAutomaticFallback) {
+          setTimedLiveRecognitionOverride({
+            headline: 'Reading...',
+            subtitle: 'Keep scanning',
+            tone: 'muted',
+          }, 400);
+        }
+      }
+      if (!diagnosticsEnabled) {
+        void deleteCapturedStill(photo.uri);
       }
       if (activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
@@ -1512,6 +1804,7 @@ export default function AutomaticScannerScreen() {
     recognitionStage,
     scanGame,
     nextRecognitionCycleId,
+    setTimedLiveRecognitionOverride,
     userPausedCamera,
   ]);
   useEffect(() => {
@@ -1671,6 +1964,11 @@ export default function AutomaticScannerScreen() {
     setCameraReady(false);
     setCaptureState('camera_not_ready');
     setLiveVisionResult(null);
+    liveRecognitionPresenceStartedAtRef.current = null;
+    lastAutomaticFallbackAtRef.current = null;
+    automaticFallbackCaptureInFlightRef.current = false;
+    liveOcrInFlightRef.current = false;
+    clearLiveRecognitionOverride();
     setFocusReticle(null);
     setLastCameraSwitchDurationMs(null);
     setRawCameraDeviceId(null);
@@ -1694,6 +1992,11 @@ export default function AutomaticScannerScreen() {
     setCameraReady(false);
     setCaptureState('camera_not_ready');
     setLiveVisionResult(null);
+    liveRecognitionPresenceStartedAtRef.current = null;
+    lastAutomaticFallbackAtRef.current = null;
+    automaticFallbackCaptureInFlightRef.current = false;
+    liveOcrInFlightRef.current = false;
+    clearLiveRecognitionOverride();
     setFocusReticle(null);
     setLastCameraSwitchDurationMs(null);
     setRawCameraDeviceId(deviceId);
@@ -2247,6 +2550,16 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="OCR stage" value={recognitionStage.replaceAll('_', ' ')} />
               <DiagnosticCell label="OCR latency" value={magicStillScan?.ok ? `${magicStillScan.ocr.latencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Scryfall" value={magicStillScan?.ok ? `${magicStillScan.lookupLatencyMs} ms` : 'unavailable'} />
+              <DiagnosticCell label="Fallback captures" value={String(liveProofDiagnosticsRef.current.fallbackCaptures)} />
+              <DiagnosticCell label="Snapshot OCR attempts" value={String(liveProofDiagnosticsRef.current.snapshotOcrAttempts)} />
+              <DiagnosticCell label="Snapshot OCR successes" value={String(liveProofDiagnosticsRef.current.snapshotOcrSuccesses)} />
+              <DiagnosticCell label="Provider fallback req" value={String(liveProofDiagnosticsRef.current.providerFallbackRequests)} />
+              <DiagnosticCell label="Provider fallback res" value={String(liveProofDiagnosticsRef.current.providerFallbackResults)} />
+              <DiagnosticCell label="Failure reason" value={liveProofDiagnosticsRef.current.latestFailureReason ?? 'none'} />
+              <DiagnosticCell label="Capture size" value={liveProofDiagnosticsRef.current.latestCaptureWidth && liveProofDiagnosticsRef.current.latestCaptureHeight ? `${liveProofDiagnosticsRef.current.latestCaptureWidth} x ${liveProofDiagnosticsRef.current.latestCaptureHeight}` : 'unavailable'} />
+              <DiagnosticCell label="Title crop size" value={liveProofDiagnosticsRef.current.latestTitleCropWidth && liveProofDiagnosticsRef.current.latestTitleCropHeight ? `${liveProofDiagnosticsRef.current.latestTitleCropWidth} x ${liveProofDiagnosticsRef.current.latestTitleCropHeight}` : 'unavailable'} />
+              <DiagnosticCell label="OCR observations" value={String(liveProofDiagnosticsRef.current.latestOcrObservationCount)} />
+              <DiagnosticCell label="OCR latency live" value={performanceMs(liveProofDiagnosticsRef.current.latestOcrLatencyMs)} />
               <DiagnosticCell label="Cleanup" value={cleanupDiagnostic(magicStillScan)} />
               <DiagnosticCell label="OCR module" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.moduleLinked ? 'linked' : 'unavailable'} ${ocrRuntimeDiagnostics.nativeModuleVersion}` : 'checking'} />
               <DiagnosticCell label="OCR runtime" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.runtimeModuleName} ${ocrRuntimeDiagnostics.platform}` : 'checking'} />
@@ -2992,6 +3305,41 @@ function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate)
     legalFinishes: candidate.finishes,
     layout: null,
     colorIdentity: [],
+  };
+}
+
+function buildProviderRecognitionReport(input: {
+  providerName: string;
+  providerLabel: string;
+  candidates: ScannerCardCandidate[];
+  topConfidence: number | null;
+  confidenceBand: 'high' | 'medium' | 'low';
+  fallbackRecommended: boolean;
+}): MagicRecognitionResult & { ok: true } {
+  const recognitionCandidates = input.candidates.map(scannerCandidateToRecognitionCandidate);
+  const overall = Math.max(0, Math.min(100, Math.round((input.topConfidence ?? input.candidates[0]?.confidence ?? 0) * 100)));
+  return {
+    ok: true,
+    selected: recognitionCandidates[0] ?? null,
+    candidates: recognitionCandidates,
+    source: 'injected',
+    confidence: {
+      overall,
+      threshold: input.fallbackRecommended || input.confidenceBand !== 'high' ? 82 : 78,
+      requiresConfirmation: input.fallbackRecommended || input.confidenceBand !== 'high',
+      signals: [{
+        key: 'artwork',
+        label: input.providerLabel,
+        score: overall,
+        weight: 1,
+        evidence: `${input.providerName} supplied a provider-backed candidate.`,
+      }],
+      conflicts: input.confidenceBand === 'low' ? [`${input.providerName} confidence was too low for automatic selection.`] : [],
+    },
+    explanation: [
+      `${input.providerName} supplied ranked card candidates.`,
+      'Trading Docks still requires exact printing, condition, finish, and language confirmation before inventory mutation.',
+    ],
   };
 }
 

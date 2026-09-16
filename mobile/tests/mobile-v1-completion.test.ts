@@ -91,7 +91,10 @@ test('mobile v1 production surfaces avoid unfinished visible controls', () => {
   assert.match(decks, /loadMobileDeckVault/);
   assert.doesNotMatch(decks, /Current signals|Inventory Intelligence/);
   assert.doesNotMatch(decks, /value="Soon"|Coming soon|will appear only after/);
-  assert.doesNotMatch(settings, /Switch|useState\(initialValues\)|foundation preferences/);
+  assert.match(settings, /Scanner feedback/);
+  assert.match(settings, /Visual confirmation/);
+  assert.match(settings, /Audio confirmation/);
+  assert.match(settings, /Haptic feedback/);
   assert.match(settings, /Settings only show production-backed behavior/);
   assert.match(adminLayout, /Command Center is web-only/);
   assert.match(adminLayout, /Open Headquarters/);

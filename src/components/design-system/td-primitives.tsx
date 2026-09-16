@@ -62,13 +62,13 @@ const cardVariant: Record<TDCardVariant, string> = {
 };
 
 const textVariant: Record<TDTextVariant, string> = {
-  display: "text-[2.375rem] leading-[1.1] font-semibold tracking-normal",
-  heading: "text-[1.625rem] leading-tight font-semibold tracking-normal",
-  title: "text-lg leading-snug font-semibold tracking-normal",
+  display: "text-[2.375rem] leading-[1.1] font-black tracking-normal",
+  heading: "text-[1.625rem] leading-tight font-black tracking-normal",
+  title: "text-lg leading-snug font-black tracking-normal",
   body: "text-sm leading-6 font-medium tracking-normal",
-  small: "text-xs leading-5 font-medium tracking-normal",
-  caption: "text-[11px] leading-4 font-medium tracking-normal",
-  label: "text-[11px] leading-4 font-semibold uppercase tracking-[0.1em]",
+  small: "text-xs leading-5 font-semibold tracking-normal",
+  caption: "text-[11px] leading-4 font-semibold tracking-normal",
+  label: "text-[11px] leading-4 font-black uppercase tracking-[0.1em]",
 };
 
 const textTone: Record<TDTextTone, string> = {
@@ -109,7 +109,7 @@ export function TDButton({
       data-slot="td-button"
       disabled={isDisabled}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--td-background-primary)] disabled:pointer-events-none disabled:opacity-55",
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border font-black transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--td-background-primary)] disabled:pointer-events-none disabled:opacity-55",
         buttonVariant[variant],
         buttonSize[size],
         className,
@@ -146,7 +146,7 @@ export function TDInput({
   return (
     <div className={cn("space-y-2", containerClassName)}>
       {label ? (
-        <label htmlFor={inputId} className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--td-text-muted)]">
+        <label htmlFor={inputId} className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">
           {label}
         </label>
       ) : null}
@@ -175,7 +175,7 @@ export function TDBadge({ className, tone = "neutral", ...props }: ComponentProp
   return (
     <span
       data-slot="td-badge"
-      className={cn("inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]", badgeTone[tone], className)}
+      className={cn("inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em]", badgeTone[tone], className)}
       {...props}
     />
   );

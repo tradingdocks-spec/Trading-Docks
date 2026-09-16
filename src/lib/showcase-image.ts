@@ -1,3 +1,5 @@
+import { tcgTrackingProductImageUrl } from "./card-image-authority.ts";
+
 export type ShowcaseImageCard = {
   game?: string | null;
   image_url?: string | null;
@@ -10,11 +12,6 @@ export type ShowcaseImageCard = {
 };
 
 const TRUSTED_IMAGE_HOSTS = new Set(["api.scryfall.com", "cards.scryfall.io", "cdn.tcgtracking.com", "tcgplayer-cdn.tcgplayer.com", "product-images.tcgplayer.com"]);
-
-function tcgTrackingProductImageUrl(value: number | string | null | undefined) {
-  const id = String(value ?? "").trim();
-  return /^\d+$/.test(id) ? `https://cdn.tcgtracking.com/product/${id}_200w.jpg` : null;
-}
 
 function safeImageUrl(value: string | null | undefined) {
   const raw = value?.trim();

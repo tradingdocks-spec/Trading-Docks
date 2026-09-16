@@ -53,6 +53,9 @@ const eslintConfig = defineConfig([
     // Generated output that is not product source.
     "dist/**",
     "coverage/**",
+    "playwright-report/**",
+    ".playwright-results/**",
+    "test-results/**",
     "mobile/dist/**",
     "mobile/.expo/**",
   ]),

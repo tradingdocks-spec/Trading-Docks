@@ -12,13 +12,13 @@ test('homepage sample is useful without a market provider and controls work', as
   await page.goto('/');
   const market = page.locator('#market');
   await expect(market).toContainText('sample market snapshot');
-  await expect(market.locator('tbody tr')).toHaveCount(3);
+  await expect(market.locator('tbody tr')).toHaveCount(5);
   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');
   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {
     const button = market.getByRole('button', { name: game, exact: true });
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'true');
-    await expect(market.locator('tbody tr')).toHaveCount(3);
+    await expect(market.locator('tbody tr')).toHaveCount(5);
   }
   await market.getByRole('button', { name: 'Spread', exact: true }).click();
   await expect(market.locator('tbody tr').first()).toContainText('Sample rare');
@@ -35,8 +35,6 @@ test('pricing cycles display canonical totals and preserve selection into signup
   await page.goto('/pricing');
   await expect(page.getByRole('combobox', {name:'Color theme'})).toBeEnabled();
   await expect(page.getByRole('main')).toBeVisible();
-  // Wait for the page entrance to finish before clicking a moving control.
-  await expect(page.locator('.td-route-enter')).toHaveCSS('transform', 'none');
   for (const cycle of ['annual', 'monthly'] as const) {
     const button = page.getByRole('group', { name: 'Billing cycle' }).getByRole('button', { name: cycle, exact: true });
     await button.click();
@@ -59,3 +57,4 @@ test('pricing cycles display canonical totals and preserve selection into signup
   await expect(page.locator('input[name="plan"]')).toHaveValue('seller');
   await expect(page.locator('input[name="billing"]')).toHaveValue('annual');
 });
+

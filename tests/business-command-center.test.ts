@@ -88,7 +88,6 @@ test("seller summary uses real user-scoped order and item rows", () => {
         id: "order-1",
         marketplace_id: "TCGPlayer",
         total: 100,
-        cost_of_goods: 58,
         net_profit: 42,
         normalized_status: "new",
         marketplace_order_items: [{ marketplace_order_id: "order-1", quantity: 2, inventory_item_id: "item-1", match_status: "matched" }],
@@ -97,7 +96,6 @@ test("seller summary uses real user-scoped order and item rows", () => {
         id: "order-2",
         marketplace_id: "eBay",
         total: "50.50",
-        cost_of_goods: 40.25,
         net_profit: "10.25",
         normalized_status: "shipped",
         marketplace_order_items: [{ marketplace_order_id: "order-2", quantity: "3", match_status: "unmatched" }],
@@ -113,9 +111,6 @@ test("seller summary uses real user-scoped order and item rows", () => {
   assert.equal(summary.itemsSold, 5);
   assert.equal(summary.averageOrderValue, 75.25);
   assert.equal(summary.realizedProfit, 52.25);
-  assert.equal(summary.profitKnownUnits, 5);
-  assert.equal(summary.profitTotalUnits, 5);
-  assert.equal(summary.profitCoverageRatio, 1);
   assert.equal(summary.openFulfillmentCount, 1);
   assert.equal(summary.listingIssues, 1);
   assert.equal(summary.syncIssues, 1);
@@ -257,8 +252,6 @@ test("business date range controls support today 7D 30D and this month windows",
   const today = getBusinessDateWindow("today", now);
   const sevenDays = getBusinessDateWindow("7d", now);
   const thirtyDays = getBusinessDateWindow("30d", now);
-  const ninetyDays = getBusinessDateWindow("90d", now);
-  const twelveMonths = getBusinessDateWindow("12m", now);
   const month = getBusinessDateWindow("month", now);
 
   assert.equal(today.start.getMonth(), 7);
@@ -267,66 +260,10 @@ test("business date range controls support today 7D 30D and this month windows",
   assert.equal(sevenDays.start.getDate(), 5);
   assert.equal(thirtyDays.start.getMonth(), 6);
   assert.equal(thirtyDays.start.getDate(), 13);
-  assert.equal(ninetyDays.start.getMonth(), 4);
-  assert.equal(ninetyDays.start.getDate(), 14);
-  assert.equal(twelveMonths.start.getMonth(), 8);
-  assert.equal(twelveMonths.start.getFullYear(), 2025);
-  assert.equal(twelveMonths.start.getDate(), 1);
   assert.equal(month.start.getMonth(), 7);
   assert.equal(month.start.getDate(), 1);
   assert.equal(today.end.getHours(), 23);
   assert.equal(sevenDays.end.getHours(), 23);
-});
-
-test("business summary builds truthful revenue chart series for 90D and 12M ranges", () => {
-  const ninetyDaySummary = buildBusinessCommandCenterSummary({
-    access: access({ tier: "seller" }),
-    range: "90d",
-    now: new Date("2026-08-11T16:00:00.000Z"),
-    orders: [
-      {
-        id: "order-1",
-        marketplace_id: "tcgplayer",
-        total: 120,
-        cost_of_goods: 70,
-        net_profit: 50,
-        ordered_at: "2026-06-01T12:00:00.000Z",
-        marketplace_order_items: [{ quantity: 2, match_status: "matched", inventory_item_id: "item-1" }],
-      },
-      {
-        id: "order-2",
-        marketplace_id: "tcgplayer",
-        total: 60,
-        ordered_at: "2026-08-01T12:00:00.000Z",
-        marketplace_order_items: [{ quantity: 1, match_status: "matched", inventory_item_id: "item-2" }],
-      },
-    ],
-  });
-  const twelveMonthSummary = buildBusinessCommandCenterSummary({
-    access: access({ tier: "seller" }),
-    range: "12m",
-    now: new Date("2026-08-11T16:00:00.000Z"),
-    orders: [
-      {
-        id: "order-3",
-        marketplace_id: "ebay",
-        total: 42,
-        cost_of_goods: 20,
-        net_profit: 22,
-        ordered_at: "2025-09-12T12:00:00.000Z",
-        marketplace_order_items: [{ quantity: 1, match_status: "matched", inventory_item_id: "item-3" }],
-      },
-    ],
-  });
-
-  assert.equal(ninetyDaySummary.revenueSeries.length, 13);
-  assert.equal(ninetyDaySummary.revenueSeries.reduce((sum, point) => sum + point.revenue, 0), 180);
-  assert.equal(ninetyDaySummary.revenueSeries.reduce((sum, point) => sum + (point.profitEstimate ?? 0), 0), 50);
-  assert.ok(ninetyDaySummary.revenueSeries.some((point) => point.axisLabel.includes("May")));
-  assert.equal(twelveMonthSummary.revenueSeries.length, 12);
-  assert.deepEqual(twelveMonthSummary.revenueSeries.slice(0, 4).map((point) => point.axisLabel), ["Sep", "Oct", "Nov", "Dec"]);
-  assert.equal(twelveMonthSummary.revenueSeries.reduce((sum, point) => sum + point.revenue, 0), 42);
-  assert.equal(twelveMonthSummary.revenueSeries.find((point) => point.axisLabel === "Sep")?.profitEstimate, 22);
 });
 
 test("canonical date filtering includes orders with null ordered_at and created_at fallback", () => {
@@ -369,28 +306,6 @@ test("imported orders count toward gross sales even when item matching is incomp
   assert.equal(summary.inventoryAttribution.coveragePercent, 0);
   assert.equal(summary.profitConfidence.level, "Low");
   assert.ok(summary.signals.some((signal) => signal.type === "inventory-attribution"));
-});
-
-test("orders without known cost basis do not fabricate realized profit", () => {
-  const metrics = summarizeCanonicalOrders([
-    {
-      id: "missing-cost",
-      marketplace_id: "tcgplayer",
-      total: 120,
-      marketplace_fees: 12,
-      shipping_cost: 4,
-      normalized_status: "shipped",
-      marketplace_order_items: [
-        { quantity: 2, unit_price: 60, match_status: "matched", inventory_item_id: "item-1" },
-      ],
-    },
-  ]);
-
-  assert.equal(metrics.grossSales, 120);
-  assert.equal(metrics.realizedProfit, null);
-  assert.equal(metrics.profitKnownUnits, 0);
-  assert.equal(metrics.profitTotalUnits, 2);
-  assert.equal(metrics.profitCoverageRatio, 0);
 });
 
 test("disconnected marketplaces are distinct from connected channels with zero activity", () => {
@@ -454,16 +369,6 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(component, /Marketplace matrix/);
   assert.match(component, /Today's Docks Brief/);
   assert.match(component, /Revenue & Profit/);
-  assert.match(component, /RevenueProfitChart/);
-  assert.match(component, /Revenue trend/);
-  assert.match(component, /Profit is only plotted when cost basis exists/);
-  assert.match(component, /Profit is not plotted yet/);
-  assert.match(component, /aria-label="Revenue and profit chart"/);
-  assert.match(component, /value:\s*"90d"/);
-  assert.match(component, /value:\s*"12m"/);
-  assert.match(component, /Profit estimate/);
-  assert.match(component, /Pending cost basis/);
-  assert.match(component, /Cost basis coverage/);
   assert.match(component, /Trading Docks Signals/);
   assert.match(component, /Inventory Capital/);
   assert.match(component, /What Changed/);

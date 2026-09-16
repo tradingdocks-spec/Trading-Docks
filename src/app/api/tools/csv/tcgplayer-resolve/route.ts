@@ -97,17 +97,21 @@ export async function POST(request: Request) {
           reasonCode: result.reasonCode,
           diagnostics: result.diagnostics,
           candidates: result.status === "ambiguous"
-            ? result.candidates.map((candidate) => ({
+              ? result.candidates.map((candidate) => ({
               tcgplayerId: String(candidate.tcgplayer_id),
+              productLine: candidate.product_line,
               setName: candidate.set_name,
               productName: candidate.product_name,
+              title: candidate.title ?? "",
               collectorNumber: candidate.collector_number ?? "",
+              rarity: candidate.rarity ?? "",
               condition: candidate.condition,
               finish: candidate.finish,
               marketPrice: money(candidate.tcg_market_price),
               directLowPrice: money(candidate.tcg_direct_low),
               lowPrice: money(candidate.tcg_low_price_with_shipping ?? candidate.tcg_low_price),
               marketplacePrice: money(candidate.tcg_marketplace_price),
+              photoUrl: candidate.photo_url ?? "",
             }))
             : [],
         });

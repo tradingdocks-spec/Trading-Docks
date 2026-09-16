@@ -1,0 +1,1 @@
+import fs from 'node:fs';let s=fs.readFileSync('.launch-audit/brand-review.html','utf8').replaceAll('Logo blue review','Design review').replaceAll('brand-20260909','design-20260909');fs.writeFileSync('.launch-audit/design-review.html',s);

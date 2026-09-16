@@ -1,7 +1,7 @@
 # Trading Docks — First-Time User UX / Clarity Audit
 
-Status: Audit completed; P0/P1 implementation in progress
-Audience: a new card-store owner using the authenticated web dashboard for the first time
+Status: Audit completed; P0/P1 implementation in progress  
+Audience: a new card-store owner using the authenticated web dashboard for the first time  
 Scope: authenticated dashboard routes and the active web navigation in `src/app/dashboard` and `src/components/dashboard`
 
 ## Executive summary

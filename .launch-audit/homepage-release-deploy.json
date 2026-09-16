@@ -1,0 +1,26 @@
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_6caZuqrDLUuFwCvcT39VYGevJZJG",
+    "url": "https://trading-docks-346a-bouog1yhq-tradingdocks-specs-projects.vercel.app",
+    "inspectorUrl": "https://vercel.com/tradingdocks-specs-projects/trading-docks-346a/6caZuqrDLUuFwCvcT39VYGevJZJG",
+    "readyState": "INITIALIZING",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_6caZuqrDLUuFwCvcT39VYGevJZJG"
+  },
+  "message": "Deployment trading-docks-346a-bouog1yhq-tradingdocks-specs-projects.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel curl https://trading-docks-346a-bouog1yhq-tradingdocks-specs-projects.vercel.app",
+      "when": "Verify deployment, including when Deployment Protection is enabled"
+    },
+    {
+      "command": "vercel inspect trading-docks-346a-bouog1yhq-tradingdocks-specs-projects.vercel.app",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod",
+      "when": "Promote to production"
+    }
+  ]
+}

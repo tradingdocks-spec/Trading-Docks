@@ -232,7 +232,7 @@ export async function recognizeMagicStillCapture(input: {
       };
     }
   }
-  if (enhancedScan?.ok && !enhancedScan.fallbackRecommended && enhancedScan.candidates.length) {
+  if (enhancedScan?.ok && !enhancedScan.fallbackRecommended && enhancedScan.candidates.length && !input.sequentialTitleOcr) {
     const cleanupResult = await cleanupCapture();
     const signals = emptySignals();
     const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, [], null);
@@ -278,6 +278,32 @@ export async function recognizeMagicStillCapture(input: {
   if (!ocr.ok) {
     const cleanupResult = await cleanupCapture();
     const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, [], null);
+    if (enhancedScan?.ok && enhancedScan.candidates.length) {
+      const lookupDiagnostics = createStillLookupDiagnostics(emptySignals(), {
+        queryString: null,
+        httpStatus: 200,
+        responseItemCount: enhancedScan.candidates.length,
+        errorCode: null,
+        latencyMs: enhancedScan.latencyMs ?? 0,
+        topThreeCandidateNames: enhancedScan.candidates.slice(0, 3).map((candidate) => candidate.name),
+      });
+      const recognition = recognitionFromEnhancedProductScan(enhancedScan.candidates, enhancedScan.confidenceBand);
+      return {
+        ok: true,
+        ocr: { ok: true, provider: 'apple_vision', fullText: '', observations: [], latencyMs: ocr.latencyMs, orientationUsed: 'unavailable', warnings: ['OCR failed; provider image fallback supplied identity.'] },
+        signals: emptySignals(),
+        recognition,
+        candidates: enhancedScan.candidates,
+        selected: enhancedScan.candidates[0] ?? null,
+        confidenceLabel: confidenceLabel(recognition),
+        mapping,
+        cropDiagnostics,
+        lookupLatencyMs: enhancedScan.latencyMs ?? 0,
+        lookupDiagnostics,
+        multiSignal: null,
+        cleanup: cleanupResult,
+      };
+    }
     const multiSignal = input.vision ? recognizeScannerFrameWithFusion({
       vision: input.vision,
       rawOcrText: null,

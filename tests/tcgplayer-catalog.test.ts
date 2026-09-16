@@ -913,7 +913,7 @@ test("catalog resolver translates Scryfall set codes before exact TCGplayer matc
   assert.equal(one.status === "matched" ? one.diagnostics.translatedSetName : null, "Phyrexia: All Will Be One");
 });
 
-test("catalog resolver reports unavailable finishes and safely resolves unique collector mismatches", async () => {
+test("catalog resolver reports unavailable finish and collector-number mismatches without guessing", async () => {
   const rows: TcgplayerMagicCatalogRecord[] = [
     mappedRecord(700056, "Starter Commander Decks", "Laboratory Drudge", "56", "Lightly Played"),
     mappedRecord(111075, "Phyrexia: All Will Be One", "Unctus, Grand Metatect", "75", "Lightly Played Foil"),
@@ -937,42 +937,8 @@ test("catalog resolver reports unavailable finishes and safely resolves unique c
     condition: "Lightly Played",
     finish: "foil",
   });
-  assert.equal(collectorMismatch.status, "matched");
-  assert.equal(collectorMismatch.status === "matched" ? collectorMismatch.tcgplayerId : null, 111075);
-});
-
-test("catalog resolver tolerates ManaBox punctuation and catalog collector markers safely", async () => {
-  const rows: TcgplayerMagicCatalogRecord[] = [
-    mappedRecord(900129, "Fallout", "CAMP", "129", "Moderately Played"),
-    mappedRecord(900391, "Innistrad: Midnight Hunt", "Join the Dance", "391★", "Moderately Played"),
-  ];
-  const client = new FakeResolverClient(rows);
-  const identities = [
-    { code: "pip", name: "Fallout" },
-    { code: "mid", name: "Innistrad: Midnight Hunt" },
-  ];
-
-  const camp = await resolveTcgplayerVariant(client, {
-    productName: "C.A.M.P.",
-    setCode: "pip",
-    collectorNumber: "129",
-    condition: "Moderately Played",
-    finish: "normal",
-    setIdentities: identities,
-  });
-  assert.equal(camp.status, "matched");
-  assert.equal(camp.status === "matched" ? camp.tcgplayerId : null, 900129);
-
-  const join = await resolveTcgplayerVariant(client, {
-    productName: "Join the Dance",
-    setCode: "mid",
-    collectorNumber: "391",
-    condition: "Moderately Played",
-    finish: "normal",
-    setIdentities: identities,
-  });
-  assert.equal(join.status, "matched");
-  assert.equal(join.status === "matched" ? join.tcgplayerId : null, 900391);
+  assert.equal(collectorMismatch.status, "unresolved");
+  assert.equal(collectorMismatch.status === "unresolved" ? collectorMismatch.reasonCode : null, "COLLECTOR_NUMBER_MISMATCH");
 });
 
 test("catalog resolver reports unknown sets missing products and ambiguous printings", async () => {
@@ -1010,39 +976,6 @@ test("catalog resolver reports unknown sets missing products and ambiguous print
   });
   assert.equal(ambiguous.status, "ambiguous");
   assert.equal(ambiguous.status === "ambiguous" ? ambiguous.reasonCode : null, "AMBIGUOUS_PRINTING");
-});
-
-test("authoritative set-code mapping narrows generic Duel Decks labels", async () => {
-  const rows = [
-    { ...mappedRecord(403168, "Duel Decks: Anthology", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
-    { ...mappedRecord(403174, "Duel Decks: Divine vs. Demonic", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
-  ];
-  const result = await resolveTcgplayerVariant(new FakeResolverClient(rows), {
-    productName: "Icatian Priest",
-    setName: "Duel Decks",
-    setCode: "dvd",
-    collectorNumber: "2",
-    condition: "Moderately Played",
-    finish: "normal",
-    setIdentities: [{ code: "dvd", name: "Duel Decks Anthology: Divine vs. Demonic" }],
-  });
-  assert.equal(result.status, "matched");
-  assert.equal(result.status === "matched" ? result.tcgplayerId : null, 403168);
-});
-
-test("catalog fallback resolves a Duel Decks product when the catalog set label is generic", async () => {
-  const row = { ...mappedRecord(403200, "Duel Decks", "Mausoleum Guard", "13", "Moderately Played"), normalized_set_name: "duel decks" };
-  const result = await resolveTcgplayerVariant(new FakeResolverClient([row]), {
-    productName: "Mausoleum Guard",
-    setName: "Duel Decks: Venser vs. Koth",
-    setCode: "ddk",
-    collectorNumber: "13",
-    condition: "Moderately Played",
-    finish: "normal",
-    setIdentities: [{ code: "ddk", name: "Duel Decks: Venser vs. Koth" }],
-  });
-  assert.equal(result.status, "matched");
-  assert.equal(result.status === "matched" ? result.tcgplayerId : null, 403200);
 });
 
 test("only trusted Owner/Admin platform users may mutate the canonical TCGplayer catalog", () => {
@@ -1125,24 +1058,12 @@ test("CSV converter presents a clean TCGplayer match and download workflow", () 
   assert.match(converter, /Match product details/);
   assert.match(converter, /How TCGplayer matching works/);
   assert.match(converter, /TCGPLAYER_REASON_LABELS/);
-  assert.match(converter, /collectorNumbersEquivalent/);
-  assert.match(converter, /setNamesEquivalent/);
-  assert.match(converter, /identityCandidates\.length === 1/);
   assert.match(converter, /Set could not be identified/);
   assert.match(converter, /hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount/);
   assert.match(converter, /\["Card", "Set", "#", "Condition", "Finish", "Qty"/);
   assert.doesNotMatch(converter, /TCGplayer ID reference export/);
   assert.doesNotMatch(converter, /How ID verification works/);
   assert.doesNotMatch(converter, /Download ManaBox bridge instead/);
-});
-
-test("CSV converter keeps Nonfoil distinct from Foil during normalization", () => {
-  const converter = readFileSync(path.join(repoRoot, "src/components/dashboard/tools/CsvConversionEngine.tsx"), "utf8");
-  const nonfoilGuard = converter.indexOf('["0", "false", "no", "normal", "regular", "nonfoil", "non-foil"]');
-  const foilGuard = converter.indexOf('["1", "true", "yes", "foil", "premium"]');
-  assert.ok(nonfoilGuard >= 0, "Nonfoil aliases must be explicit");
-  assert.ok(foilGuard >= 0, "Foil aliases must be explicit");
-  assert.ok(nonfoilGuard < foilGuard, "Nonfoil must be checked before the broad foil substring match");
 });
 
 test("admin catalog UI requires storage verification before importing all parts", () => {

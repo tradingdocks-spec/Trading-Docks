@@ -205,11 +205,12 @@ test('protected route guard waits for session restoration before redirecting', (
 test('mobile collector navigation uses canonical release labels and selected state', () => {
   assert.deepEqual(getMobileTabs('collector').map((tab) => tab.label), [
     'Home',
+    'Search',
     'Collection',
-    'Scan',
     'Decks',
-    'Account',
+    'Scan',
   ]);
+  assert.equal(getMobileTabOptions('collector', 'search').href, undefined);
   assert.equal(getMobileTabOptions('collector', 'scan').href, undefined);
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
 });
@@ -217,11 +218,12 @@ test('mobile collector navigation uses canonical release labels and selected sta
 test('mobile seller navigation keeps Scan primary and Deal Desk contextual', () => {
   assert.deepEqual(getMobileTabs('seller').map((tab) => tab.label), [
     'Home',
+    'Search',
     'Collection',
-    'Scan',
     'Decks',
-    'Account',
+    'Scan',
   ]);
+  assert.equal(getMobileTabOptions('seller', 'search').href, undefined);
   assert.equal(getMobileTabOptions('seller', 'scan').href, undefined);
   assert.equal(getMobileTabOptions('seller', 'scan').prominent, true);
 });
@@ -229,10 +231,10 @@ test('mobile seller navigation keeps Scan primary and Deal Desk contextual', () 
 test('mobile store navigation keeps the same five primary destinations', () => {
   assert.deepEqual(getMobileTabs('store').map((tab) => tab.label), [
     'Home',
+    'Search',
     'Collection',
-    'Scan',
     'Decks',
-    'Account',
+    'Scan',
   ]);
 });
 
@@ -262,9 +264,9 @@ test('admin Command Center access is additive and protected', () => {
 test('missing mobile account type falls back to collector-safe free navigation', () => {
   assert.deepEqual(getMobileTabs(undefined).map((tab) => tab.label), [
     'Home',
+    'Search',
     'Collection',
-    'Scan',
     'Decks',
-    'Account',
+    'Scan',
   ]);
 });

@@ -268,6 +268,44 @@ test('sequential OCR falls back through expanded, upper-card, and full-card regi
   assert.deepEqual(calls, ['title_primary', 'title_expanded', 'upper_card', 'full_card']);
 });
 
+test('automatic snapshot can fall back to provider image recognition when OCR is empty', async () => {
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    sequentialTitleOcr: true,
+    includeCollectorOcr: true,
+    recognize: async () => ({
+      ok: false,
+      provider: 'apple_vision',
+      code: 'empty_result',
+      message: 'No OCR text.',
+      latencyMs: 9,
+      warnings: [],
+    }),
+    enhancedProductScan: async () => ({
+      ok: true,
+      provider: 'tcgtracking',
+      candidates: [rhystic],
+      latencyMs: 17,
+      confidenceBand: 'high',
+      topConfidence: 95,
+      fallbackRecommended: false,
+      image: { width: 3024, height: 4032, bytes: 0, retained: false },
+    }),
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.selected?.name, 'Rhystic Study');
+    assert.equal(result.recognition.source, 'injected');
+    assert.equal(result.lookupDiagnostics.responseItemCount, 1);
+  }
+});
+
 test('collector OCR parses set code, collector number suffix, and language', () => {
   const parsed = parseMagicCollectorOcr('WOT 25a EN *');
   assert.equal(parsed.setCode, 'WOT');

@@ -1,5 +1,7 @@
 # Trading Docks Production Launch Certification
 
+Historical checkpoint: see the [September 6, 2026 refresh](PRODUCTION_LAUNCH_CERTIFICATION_2026-09-06.md) for fresh results and reproduced blockers. Configuration observations below remain dated August 22.
+
 ## Decision
 
 NO-GO

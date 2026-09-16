@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import styles from "./BusinessCommandCenter.module.css";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  Boxes,
   CheckCircle2,
   CircleDollarSign,
   Clock3,
@@ -25,7 +25,6 @@ import type {
   BusinessCommandCenterSummary,
   BusinessDateRange,
   BusinessNextAction,
-  BusinessRevenueSeriesPoint,
 } from "@/lib/dashboard/business-command-center";
 import type {
   BusinessOpportunity,
@@ -37,8 +36,6 @@ const RANGE_OPTIONS: Array<{ value: BusinessDateRange; label: string }> = [
   { value: "today", label: "Today" },
   { value: "7d", label: "7D" },
   { value: "30d", label: "30D" },
-  { value: "90d", label: "90D" },
-  { value: "12m", label: "12M" },
   { value: "month", label: "This month" },
 ];
 
@@ -52,13 +49,13 @@ export function BusinessCommandCenter({
   const hasActivity = summary.grossSales > 0 || summary.orderCount > 0;
 
   return (
-    <main className={`${styles.dashboard} min-h-screen bg-td-canvas px-4 py-4 text-td-primary sm:px-6 lg:px-8 lg:py-6`}>
+    <main className="min-h-screen bg-td-canvas px-4 py-4 text-td-primary sm:px-6 lg:px-8 lg:py-6">
       <div className="mx-auto max-w-[1560px] space-y-4">
-        <section className="rounded-2xl bg-td-surface px-5 py-4 ring-1 ring-td-ink/[0.055] sm:px-6">
-          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
+        <section className="rounded-[26px] bg-td-surface px-5 py-4 shadow-[0_22px_80px_rgb(var(--td-shadow-rgb)/calc(.3*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055] sm:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-td-accent/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
+                <span className="inline-flex items-center gap-2 rounded-full bg-td-accent/[0.08] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text">
                   <Store className="h-3.5 w-3.5" />
                   Trading Docks HQ
                 </span>
@@ -71,15 +68,16 @@ export function BusinessCommandCenter({
               </div>
 
               <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <h1 className="max-w-4xl text-2xl font-semibold leading-snug tracking-[-0.03em] text-td-primary lg:text-3xl">
+                <h1 className="max-w-5xl text-2xl font-semibold leading-tight tracking-[-0.03em] text-td-primary sm:text-4xl">
                   {summary.executiveBrief.headline}
                 </h1>
+                <TrendPill value={summary.salesChangePercent} />
               </div>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-td-secondary">
                 {summary.executiveBrief.metricsLine}
               </p>
               {summary.executiveBrief.explanation ? (
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-td-secondary">
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-td-muted">
                   {summary.executiveBrief.explanation}
                 </p>
               ) : null}
@@ -152,16 +150,16 @@ export function BusinessCommandCenter({
 
 function DateRangeControls({ active }: { active: BusinessDateRange }) {
   return (
-    <nav aria-label="Business dashboard date range" className="grid w-full grid-cols-3 gap-1 rounded-xl bg-black/20 p-1 ring-1 ring-td-ink/[0.06] sm:flex sm:w-fit sm:shrink-0">
+    <nav aria-label="Business dashboard date range" className="flex rounded-2xl bg-black/20 p-1 ring-1 ring-td-ink/[0.06]">
       {RANGE_OPTIONS.map((option) => (
         <Link
           key={option.value}
           href={`/dashboard?range=${option.value}`}
           aria-current={active === option.value ? "page" : undefined}
-          className={`flex min-h-11 items-center justify-center whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-td-accent/45 ${
+          className={`flex h-9 items-center rounded-xl px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-td-accent/45 ${
             active === option.value
-              ? `bg-td-accent ${styles.primaryLink}`
-              : "text-td-secondary hover:bg-td-ink/[0.04] hover:text-td-primary"
+              ? "bg-td-accent text-td-on-accent"
+              : "text-td-muted hover:bg-td-ink/[0.04] hover:text-td-primary"
           }`}
         >
           {option.label}
@@ -173,18 +171,18 @@ function DateRangeControls({ active }: { active: BusinessDateRange }) {
 
 function TradingDocksBrief({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">{"Today's Docks Brief"}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Today's Docks Brief</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-td-primary">Operating intelligence</h2>
         </div>
         <Radar className="h-5 w-5 text-td-accent-text" />
       </div>
-      <p className="mt-3 max-w-5xl text-sm leading-6 text-td-secondary">
+      <p className="mt-4 max-w-5xl text-sm leading-7 text-td-secondary">
         {summary.docksBrief}
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <CoveragePill label="Inventory attribution" value={summary.inventoryAttribution.coveragePercent} />
         <CoveragePill label="Cost-basis confidence" value={summary.profitConfidence.coveragePercent} />
         <CoveragePill label="Inventory value coverage" value={summary.inventoryCapital.coveragePercent} />
@@ -194,58 +192,39 @@ function TradingDocksBrief({ summary }: { summary: BusinessCommandCenterSummary 
 }
 
 function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummary }) {
-  const hasProfit = summary.revenueSeries.some((point) => point.profitEstimate !== null);
-  const profitLabel = summary.profitConfidence.level === "High" ? "Profit estimate" : "Profit estimate - low confidence";
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055] lg:p-6">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">Revenue & Profit</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Revenue & Profit</p>
           <p className="mt-2 text-5xl font-semibold tracking-[-0.05em] text-td-primary [font-variant-numeric:tabular-nums]">
             {money(summary.grossSales)}
           </p>
-          <p className="mt-2 text-sm text-td-secondary">
+          <p className="mt-2 text-sm text-td-muted">
             {summary.orderCount.toLocaleString()} orders · {summary.averageOrderValue === null ? "AOV unavailable" : `${money(summary.averageOrderValue)} AOV`}
           </p>
         </div>
-        <div className="flex flex-col items-start gap-2 rounded-2xl bg-black/15 p-4 sm:items-end">
-          <p className="text-[11px] font-semibold tracking-wide text-td-secondary">Current vs prior</p>
-          <TrendPill value={summary.salesChangePercent} />
-          <p className="text-xs text-td-secondary">{money(summary.previousGrossSales)} prior period</p>
-        </div>
+        <TrendBlock current={summary.grossSales} previous={summary.previousGrossSales} change={summary.salesChangePercent} />
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-3 2xl:grid-cols-4">
+      <div className="mt-5 grid gap-2 sm:grid-cols-4">
         <CompactMetric label="Orders" value={summary.orderCount.toLocaleString()} detail={`${summary.previousOrderCount.toLocaleString()} prior`} icon={<ShoppingBag className="h-3.5 w-3.5" />} />
         <CompactMetric label="AOV" value={summary.averageOrderValue === null ? "No data" : money(summary.averageOrderValue)} detail="Average order value" icon={<BarChart3 className="h-3.5 w-3.5" />} />
-        <CompactMetric
-          label={hasProfit ? "Profit estimate" : "Profit pending"}
-          value={summary.realizedProfit === null ? "Pending cost basis" : money(summary.realizedProfit)}
-          detail={`${summary.profitConfidence.level} confidence`}
-          icon={<CircleDollarSign className="h-3.5 w-3.5" />}
-        />
+        <CompactMetric label="Profit estimate" value={summary.realizedProfit === null ? "Unavailable" : money(summary.realizedProfit)} detail={`${summary.profitConfidence.level} confidence`} icon={<CircleDollarSign className="h-3.5 w-3.5" />} />
         <CompactMetric label="Prior period" value={money(summary.previousGrossSales)} detail="Comparable range" icon={<Clock3 className="h-3.5 w-3.5" />} />
       </div>
-      <RevenueProfitChart
-        points={summary.revenueSeries}
-        range={summary.range}
-        profitLabel={profitLabel}
-        showProfit={hasProfit}
-      />
+      <PeriodBars current={summary.grossSales} previous={summary.previousGrossSales} />
     </section>
   );
 }
 
 function ProfitConfidenceModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Profit Confidence</p>
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Profit Confidence</p>
+      <div className="mt-3 flex items-end justify-between gap-4">
         <div>
           <p className="text-3xl font-semibold text-td-primary">{summary.profitConfidence.level}</p>
-          <p className="mt-1 text-xs leading-5 text-td-secondary">{summary.profitConfidence.reason}</p>
-          <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-td-secondary">
-            Cost basis coverage · {summary.profitKnownUnits.toLocaleString()} / {summary.profitTotalUnits.toLocaleString()} sold units
-          </p>
+          <p className="mt-1 text-xs leading-5 text-td-muted">{summary.profitConfidence.reason}</p>
         </div>
         <span className="text-sm font-semibold text-td-accent-text">{Math.round(summary.profitConfidence.coveragePercent)}%</span>
       </div>
@@ -256,12 +235,12 @@ function ProfitConfidenceModule({ summary }: { summary: BusinessCommandCenterSum
 
 function InventoryAttributionModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Inventory Attribution</p>
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Inventory Attribution</p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
           <p className="text-3xl font-semibold text-td-primary">{Math.round(summary.inventoryAttribution.coveragePercent)}% matched</p>
-          <p className="mt-1 text-xs leading-5 text-td-secondary">{summary.inventoryAttribution.reason}</p>
+          <p className="mt-1 text-xs leading-5 text-td-muted">{summary.inventoryAttribution.reason}</p>
         </div>
         <Link href="/dashboard/orders" className="shrink-0 rounded-xl bg-td-ink/[0.04] px-3 py-2 text-xs font-semibold text-td-secondary transition hover:bg-td-accent/[0.08] hover:text-td-accent-text">
           Match items
@@ -274,10 +253,10 @@ function InventoryAttributionModule({ summary }: { summary: BusinessCommandCente
 
 function TradingDocksSignals({ signals }: { signals: TradingDocksSignal[] }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">Trading Docks Signals</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Trading Docks Signals</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-td-primary">What the business is telling you</h2>
         </div>
         <LineChart className="h-5 w-5 text-td-accent-text" />
@@ -291,11 +270,11 @@ function TradingDocksSignals({ signals }: { signals: TradingDocksSignal[] }) {
                   <PriorityBadge priority={signal.priority} />
                   <p className="text-sm font-semibold text-td-primary">{signal.title}</p>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-td-secondary">{signal.description}</p>
+                <p className="mt-2 text-xs leading-5 text-td-muted">{signal.description}</p>
               </div>
               <p className="text-lg font-semibold text-td-accent-text [font-variant-numeric:tabular-nums]">{signal.metric}</p>
             </div>
-            <p className="mt-2 text-xs text-td-secondary">{signal.impact}</p>
+            <p className="mt-2 text-xs text-td-muted">{signal.impact}</p>
           </Link>
         )) : (
           <EmptyPanel title="No supported signals yet" detail="Signals appear only when real orders, inventory, listings, syncs, or pricing reviews provide enough evidence." />
@@ -312,10 +291,10 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
   const reviewCount = summary.listingIssues;
   const readyToPack = Math.max(0, summary.openFulfillmentCount - matchingCount - reviewCount);
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-warning/75">Fulfillment</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-warning/75">Fulfillment</p>
           <h2 className="mt-1 text-lg font-semibold text-td-primary">{summary.openFulfillmentCount.toLocaleString()} orders need action</h2>
         </div>
         <p className="text-sm font-semibold text-td-success">{Math.round(percent)}% clear</p>
@@ -326,7 +305,7 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
         <MiniStat label="Need matching" value={matchingCount} />
         <MiniStat label="Require review" value={reviewCount} />
       </div>
-      <Link href="/dashboard/orders" className={`${styles.primaryLink} mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent`}>
+      <Link href="/dashboard/orders" className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent">
         Review fulfillment
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -336,10 +315,10 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
 
 function InventoryCapitalModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Inventory Capital</p>
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Inventory Capital</p>
       <p className="mt-3 text-3xl font-semibold text-td-primary">{money(summary.inventoryCapital.totalValue)}</p>
-      <p className="mt-1 text-xs leading-5 text-td-secondary">
+      <p className="mt-1 text-xs leading-5 text-td-muted">
         {Math.round(summary.inventoryCapital.coveragePercent)}% of sampled inventory rows have value coverage.
       </p>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -362,10 +341,10 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
   const rows = connected.length ? connected : channels.slice(0, 2);
 
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">Channel Performance 2.0</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Channel Performance 2.0</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-td-primary">Marketplace matrix</h2>
         </div>
         {disconnectedCount > 0 ? (
@@ -377,7 +356,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-2xl bg-black/15">
-        <div className="grid min-w-[820px] grid-cols-[minmax(120px,1.2fr)_1fr_.8fr_.8fr_.8fr_.9fr_92px] gap-3 px-4 py-3 text-[11px] font-semibold tracking-wide text-td-secondary">
+        <div className="grid min-w-[820px] grid-cols-[minmax(120px,1.2fr)_1fr_.8fr_.8fr_.8fr_.9fr_92px] gap-3 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">
           <span>Channel</span>
           <span>Sales</span>
           <span>Orders</span>
@@ -394,7 +373,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
             <span className="text-td-secondary [font-variant-numeric:tabular-nums]">{channel.averageOrderValue === null ? "—" : money(channel.averageOrderValue)}</span>
             <span className="text-td-secondary [font-variant-numeric:tabular-nums]">{channel.connected ? `${Math.round(channel.revenueSharePercent)}%` : "—"}</span>
             <span className={deltaTone(channel.salesChangePercent)}>{formatPercentChange(channel.salesChangePercent)}</span>
-            <span className={channel.connected ? "text-td-success" : "text-td-secondary"}>{channel.connected ? "Active" : "Not connected"}</span>
+            <span className={channel.connected ? "text-td-success" : "text-td-muted"}>{channel.connected ? "Active" : "Not connected"}</span>
             {channel.connected ? (
               <div className="col-span-7">
                 <ProgressBar value={channel.revenueSharePercent} tone="brand" compact />
@@ -404,7 +383,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
         ))}
       </div>
       {disconnectedCount > 0 ? (
-        <p className="mt-3 text-xs text-td-secondary">
+        <p className="mt-3 text-xs text-td-muted">
           {disconnectedCount.toLocaleString()} supported {disconnectedCount === 1 ? "channel is" : "channels are"} not connected. Disconnected channels stay neutral until configured.
         </p>
       ) : null}
@@ -414,11 +393,11 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
 
 function WhatChanged({ deltas }: { deltas: PeriodDelta[] }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">What Changed</p>
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">What Changed</p>
       <div className="mt-4 space-y-2">
         {deltas.map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-4 border-l-2 border-td-accent/20 px-3 py-1.5">
+          <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-black/15 px-3 py-2.5">
             <span className="text-sm font-semibold text-td-primary">{item.label}</span>
             <span className={`text-sm font-semibold [font-variant-numeric:tabular-nums] ${deltaTone(item.delta)}`}>
               {formatDelta(item)}
@@ -432,10 +411,10 @@ function WhatChanged({ deltas }: { deltas: PeriodDelta[] }) {
 
 function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity[] }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">Opportunity Feed</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Opportunity Feed</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-td-primary">Where to act next</h2>
         </div>
         <Link href="/dashboard/market-intelligence" className="text-xs font-semibold text-td-secondary transition hover:text-td-accent-text">View all opportunities</Link>
@@ -447,7 +426,7 @@ function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity
             <div className="mt-2 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-td-primary">{item.title}</p>
-                <p className="mt-1 text-xs leading-5 text-td-secondary">{item.detail}</p>
+                <p className="mt-1 text-xs leading-5 text-td-muted">{item.detail}</p>
               </div>
               <p className="shrink-0 text-lg font-semibold text-td-primary">{item.metric}</p>
             </div>
@@ -460,16 +439,16 @@ function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity
 
 function ActivityFeed({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Business Activity</p>
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Business Activity</p>
       <div className="mt-4 space-y-2">
         {summary.activityFeed.length ? summary.activityFeed.map((event) => (
           <div key={event.id} className="rounded-2xl bg-black/15 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-td-primary">{event.label}</p>
-              <p className="text-[11px] text-td-secondary">{shortDate(event.occurredAt)}</p>
+              <p className="text-[11px] text-td-muted">{shortDate(event.occurredAt)}</p>
             </div>
-            <p className="mt-1 text-xs text-td-secondary">{event.detail}</p>
+            <p className="mt-1 text-xs text-td-muted">{event.detail}</p>
           </div>
         )) : <EmptyPanel title="No reliable activity stream" detail="Activity appears when orders or marketplace sync events have meaningful timestamps." />}
       </div>
@@ -480,23 +459,23 @@ function ActivityFeed({ summary }: { summary: BusinessCommandCenterSummary }) {
 function PriorityAction({ action }: { action: BusinessNextAction | null }) {
   if (!action) {
     return (
-      <article className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Next best action</p>
+      <article className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Next best action</p>
         <p className="mt-3 text-lg font-semibold text-td-primary">Business systems are quiet.</p>
-        <p className="mt-2 text-sm leading-6 text-td-secondary">No urgent order, sync, listing, or store actions are waiting right now.</p>
+        <p className="mt-2 text-sm leading-6 text-td-muted">No urgent order, sync, listing, or store actions are waiting right now.</p>
       </article>
     );
   }
 
   return (
-    <article className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <article className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Next best action</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Next best action</p>
         <SeverityDot severity={action.severity} />
       </div>
       <p className="mt-3 text-xl font-semibold tracking-[-0.02em] text-td-primary">{action.label}</p>
-      <p className="mt-2 text-sm leading-6 text-td-secondary">{action.detail}</p>
-      <Link href={action.href} className={`${styles.primaryLink} mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent`}>
+      <p className="mt-2 text-sm leading-6 text-td-muted">{action.detail}</p>
+      <Link href={action.href} className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent">
         Open workflow
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -506,18 +485,18 @@ function PriorityAction({ action }: { action: BusinessNextAction | null }) {
 
 function OnboardingGuidance({ connectedChannelCount }: { connectedChannelCount: number }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text/75">Activation path</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text/75">Activation path</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-td-primary">
             {connectedChannelCount ? "Waiting for first imported order." : "Connect real sales data to activate HQ."}
           </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-td-secondary">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-td-muted">
             Trading Docks does not fill this surface with demo revenue. Once orders arrive, this page switches from setup guidance to operational intelligence.
           </p>
         </div>
-        <Link href="/dashboard/marketplaces" className={`${styles.primaryLink} inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-sm font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent`}>
+        <Link href="/dashboard/marketplaces" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-sm font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent">
           Connect another channel
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -544,10 +523,10 @@ function ActionSection({
   tone: "attention" | "neutral";
 }) {
   return (
-    <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
+    <section className="rounded-[24px] bg-td-surface p-5 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${tone === "attention" ? "text-td-warning/80" : "text-td-secondary"}`}>{eyebrow}</p>
+          <p className={`text-[11px] font-bold uppercase tracking-[0.15em] ${tone === "attention" ? "text-td-warning/80" : "text-td-muted"}`}>{eyebrow}</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-td-primary">{title}</h2>
         </div>
         <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${tone === "attention" ? "bg-td-warning/[0.08] text-td-warning" : "bg-td-ink/[0.04] text-td-secondary"}`}>
@@ -570,7 +549,7 @@ function ActionRow({ action }: { action: BusinessNextAction }) {
       <SeverityDot severity={action.severity} />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-td-primary group-hover:text-td-primary">{action.label}</span>
-        <span className="mt-1 block text-xs leading-5 text-td-secondary">{action.detail}</span>
+        <span className="mt-1 block text-xs leading-5 text-td-muted">{action.detail}</span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0 text-td-muted transition group-hover:text-td-accent-text" />
     </Link>
@@ -602,11 +581,11 @@ function CompactMetric({
   return (
     <div className="rounded-2xl bg-black/15 p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold tracking-wide text-td-secondary">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
         <span className="text-td-accent-text/80">{icon}</span>
       </div>
       <p className="mt-2 text-lg font-semibold text-td-primary [font-variant-numeric:tabular-nums]">{value}</p>
-      {detail ? <p className="mt-0.5 text-[11px] text-td-secondary">{detail}</p> : null}
+      {detail ? <p className="mt-0.5 text-[11px] text-td-muted">{detail}</p> : null}
     </div>
   );
 }
@@ -623,13 +602,13 @@ function StoreMetric({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-[20px] bg-td-surface p-4 ring-1 ring-td-ink/[0.055]">
+    <article className="rounded-[20px] bg-td-surface p-4 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] ring-1 ring-td-ink/[0.055]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold tracking-wide text-td-secondary">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
         <span className="text-td-secondary">{icon}</span>
       </div>
       <p className="mt-3 text-2xl font-semibold text-td-primary [font-variant-numeric:tabular-nums]">{value}</p>
-      <p className="mt-1 text-xs text-td-secondary">{detail}</p>
+      <p className="mt-1 text-xs text-td-muted">{detail}</p>
     </article>
   );
 }
@@ -637,7 +616,7 @@ function StoreMetric({
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-black/15 p-3">
-      <p className="text-[11px] font-semibold tracking-wide text-td-secondary">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
       <p className="mt-2 text-lg font-semibold text-td-primary [font-variant-numeric:tabular-nums]">{typeof value === "number" ? value.toLocaleString() : value}</p>
     </div>
   );
@@ -647,7 +626,7 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="rounded-2xl bg-black/15 p-4">
       <p className="text-sm font-semibold text-td-primary">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-td-secondary">{detail}</p>
+      <p className="mt-1 text-xs leading-5 text-td-muted">{detail}</p>
     </div>
   );
 }
@@ -696,169 +675,45 @@ function TrendPill({ value }: { value: number | null }) {
   );
 }
 
-function RevenueProfitChart({
-  points,
-  range,
-  profitLabel,
-  showProfit,
-}: {
-  points: BusinessRevenueSeriesPoint[];
-  range: BusinessDateRange;
-  profitLabel: string;
-  showProfit: boolean;
-}) {
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const activePoint = points.find((point) => point.key === hoveredKey) ?? points.at(-1) ?? null;
-  const maxValue = Math.max(
-    1,
-    ...points.map((point) => point.revenue),
-    ...points.map((point) => point.profitEstimate ?? 0),
-  );
-  const profitPoints = points.filter((point) => point.profitEstimate !== null);
-  const profitPath = buildLinePath(profitPoints, points, maxValue);
-  const revenuePath = buildLinePath(points, points, maxValue, "revenue");
-  const hasRevenue = points.some((point) => point.revenue > 0);
-  const axisLabels = points.filter((point) => point.axisLabel);
-
+function TrendBlock({ current, previous, change }: { current: number; previous: number; change: number | null }) {
   return (
-    <div className="mt-5 rounded-2xl bg-black/20 p-4 ring-1 ring-td-ink/[0.04]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-td-primary">Revenue trend</p>
-          <p className="mt-1 text-xs leading-5 text-td-secondary">
-            {range === "12m" ? "Monthly" : range === "90d" ? "Weekly" : "Daily"} revenue. Profit is only plotted when cost basis exists.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-          <span className="inline-flex items-center gap-2 rounded-full bg-td-accent/[0.08] px-3 py-1.5 text-td-accent-text"><span className="h-2 w-2 rounded-full bg-td-accent" />Revenue</span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-td-success/[0.08] px-3 py-1.5 text-td-success"><span className="h-2 w-2 rounded-full bg-td-success" />{profitLabel}</span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-td-ink/[0.04] px-3 py-1.5 text-td-secondary"><ShoppingBag className="h-3 w-3" />Orders</span>
-        </div>
+    <div className="min-w-[180px] rounded-2xl bg-black/15 p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">Current vs prior</p>
+      <div className="mt-3 flex h-16 items-end gap-2" aria-hidden="true">
+        <TrendBar value={previous} max={Math.max(current, previous, 1)} muted />
+        <TrendBar value={current} max={Math.max(current, previous, 1)} />
       </div>
-
-      <div className="relative mt-4 min-h-[310px] overflow-hidden rounded-2xl bg-td-surface px-3 pb-10 pt-4 ring-1 ring-td-ink/[0.035]">
-        {hasRevenue ? (
-          <svg role="img" aria-label="Revenue and profit chart" viewBox="0 0 100 100" preserveAspectRatio="none" className="h-72 w-full overflow-visible">
-            <defs>
-              <linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="rgb(var(--td-accent-rgb)/0.32)" />
-                <stop offset="100%" stopColor="rgb(var(--td-accent-rgb)/0)" />
-              </linearGradient>
-            </defs>
-            {[20, 40, 60, 80].map((y) => (
-              <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="rgb(var(--td-accent-rgb)/0.12)" strokeWidth="0.35" vectorEffect="non-scaling-stroke" />
-            ))}
-            {points.map((point, index) => {
-              const width = Math.max(1.2, 58 / Math.max(points.length, 1));
-              const x = xPosition(index, points.length);
-              const height = chartHeight(point.revenue, maxValue);
-              return (
-                <rect
-                  key={point.key}
-                  x={x - width / 2}
-                  y={90 - height}
-                  width={width}
-                  height={height}
-                  rx="0.9"
-                  fill="rgb(var(--td-accent-rgb)/0.28)"
-                  stroke={point.key === activePoint?.key ? "rgb(var(--td-accent-rgb)/0.9)" : "rgb(var(--td-accent-rgb)/0.22)"}
-                  strokeWidth="0.35"
-                  vectorEffect="non-scaling-stroke"
-                />
-              );
-            })}
-            <path d={`${revenuePath} L 100 90 L 0 90 Z`} fill="url(#revenue-fill)" />
-            <path d={revenuePath} fill="none" stroke="rgb(34,211,238)" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
-            {showProfit && profitPath ? <path d={profitPath} fill="none" stroke="rgb(110,231,183)" strokeWidth="1" strokeDasharray={profitLabel.includes("low") ? "2 2" : undefined} vectorEffect="non-scaling-stroke" /> : null}
-            {points.map((point, index) => {
-              const x = xPosition(index, points.length);
-              const value = point.profitEstimate;
-              return value === null || !showProfit ? null : (
-                <circle key={`${point.key}-profit`} cx={x} cy={90 - chartHeight(value, maxValue)} r={point.key === activePoint?.key ? 1.4 : 0.9} fill="rgb(110,231,183)" vectorEffect="non-scaling-stroke" />
-              );
-            })}
-            {points.map((point, index) => {
-              const x = xPosition(index, points.length);
-              return (
-                <rect
-                  key={`${point.key}-hit`}
-                  x={Math.max(0, x - 100 / Math.max(points.length, 1) / 2)}
-                  y="0"
-                  width={100 / Math.max(points.length, 1)}
-                  height="100"
-                  fill="transparent"
-                  onMouseEnter={() => setHoveredKey(point.key)}
-                  onFocus={() => setHoveredKey(point.key)}
-                  tabIndex={0}
-                />
-              );
-            })}
-          </svg>
-        ) : (
-          <div className="flex h-72 flex-col items-center justify-center text-center">
-            <BarChart3 className="h-7 w-7 text-td-muted" />
-            <p className="mt-3 text-sm font-semibold text-td-primary">No revenue in this range yet</p>
-            <p className="mt-1 max-w-md text-xs leading-5 text-td-secondary">Connect or import orders and this panel becomes a month-aware revenue and profit chart.</p>
-          </div>
-        )}
-
-        {activePoint && hasRevenue ? (
-          <div className="relative mt-3 w-full sm:absolute sm:right-4 sm:top-4 sm:mt-0 sm:w-56 rounded-2xl bg-td-surface/95 p-3 text-xs shadow-2xl ring-1 ring-td-accent/[0.12] backdrop-blur">
-            <p className="font-semibold text-td-primary">{activePoint.label}</p>
-            <div className="mt-2 space-y-1.5">
-              <TooltipRow label="Revenue" value={money(activePoint.revenue)} tone="cyan" />
-              <TooltipRow label="Profit estimate" value={activePoint.profitEstimate === null ? "Cost basis pending" : money(activePoint.profitEstimate)} tone="emerald" />
-              <TooltipRow label="Orders" value={activePoint.orders.toLocaleString()} />
-              <TooltipRow label="Profit coverage" value={`${Math.round(activePoint.profitCoverageRatio * 100)}%`} />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="absolute inset-x-3 bottom-3 grid" style={{ gridTemplateColumns: `repeat(${Math.max(axisLabels.length, 1)}, minmax(0, 1fr))` }}>
-          {axisLabels.map((point) => (
-            <span key={`${point.key}-axis`} className="truncate text-center text-[11px] font-medium text-td-secondary">{point.axisLabel}</span>
-          ))}
-        </div>
-      </div>
-
-      {!showProfit ? (
-        <p className="mt-3 rounded-2xl bg-td-warning/[0.055] px-3 py-2 text-xs leading-5 text-td-warning/80">
-          Profit is not plotted yet because sold inventory lacks enough known cost basis. Revenue remains authoritative.
-        </p>
-      ) : null}
+      <p className={`mt-2 text-sm font-semibold ${deltaTone(change)}`}>{formatPercentChange(change)}</p>
     </div>
   );
 }
 
-function xPosition(index: number, total: number) {
-  if (total <= 1) return 50;
-  return 4 + (index / (total - 1)) * 92;
+function TrendBar({ value, max, muted = false }: { value: number; max: number; muted?: boolean }) {
+  return <span className={`w-8 rounded-t-lg ${muted ? "bg-td-surface" : "bg-td-accent"}`} style={{ height: `${Math.max(8, (value / max) * 100)}%` }} />;
 }
 
-function chartHeight(value: number, maxValue: number) {
-  return Math.max(0, Math.min(80, (value / Math.max(1, maxValue)) * 78));
-}
-
-function buildLinePath(
-  visiblePoints: BusinessRevenueSeriesPoint[],
-  allPoints: BusinessRevenueSeriesPoint[],
-  maxValue: number,
-  valueKey: "revenue" | "profitEstimate" = "profitEstimate",
-) {
-  if (!visiblePoints.length) return "";
-  return visiblePoints.map((point) => {
-    const index = allPoints.findIndex((candidate) => candidate.key === point.key);
-    const value = valueKey === "revenue" ? point.revenue : point.profitEstimate ?? 0;
-    return `${point === visiblePoints[0] ? "M" : "L"} ${xPosition(Math.max(0, index), allPoints.length).toFixed(2)} ${(90 - chartHeight(value, maxValue)).toFixed(2)}`;
-  }).join(" ");
-}
-
-function TooltipRow({ label, value, tone }: { label: string; value: string; tone?: "cyan" | "emerald" }) {
-  const toneClass = tone === "cyan" ? "text-td-accent-text" : tone === "emerald" ? "text-td-success" : "text-td-secondary";
+function PeriodBars({ current, previous }: { current: number; previous: number }) {
+  const max = Math.max(current, previous, 1);
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-td-secondary">{label}</span>
-      <span className={`font-semibold ${toneClass}`}>{value}</span>
+    <div className="mt-5 rounded-2xl bg-black/15 p-4">
+      <div className="grid gap-3">
+        <PeriodBar label="Current period" value={current} max={max} tone="brand" />
+        <PeriodBar label="Prior period" value={previous} max={max} tone="neutral" />
+      </div>
+    </div>
+  );
+}
+
+function PeriodBar({ label, value, max, tone }: { label: string; value: number; max: number; tone: "brand" | "neutral" }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="text-td-muted">{label}</span>
+        <span className="font-semibold text-td-primary">{money(value)}</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-td-ink/[0.06]">
+        <div className={`h-full rounded-full ${tone === "brand" ? "bg-td-accent" : "bg-td-raised"}`} style={{ width: `${Math.max(0, Math.min(100, (value / max) * 100))}%` }} />
+      </div>
     </div>
   );
 }
@@ -866,7 +721,7 @@ function TooltipRow({ label, value, tone }: { label: string; value: string; tone
 function CoveragePill({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-black/15 px-3 py-2">
-      <p className="text-[11px] font-semibold tracking-wide text-td-secondary">{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</p>
       <p className="mt-1 text-sm font-semibold text-td-primary">{Math.round(value)}%</p>
     </div>
   );
@@ -905,7 +760,7 @@ function formatPercentChange(value: number | null) {
 }
 
 function deltaTone(value: number | null) {
-  if (value === null || value === 0) return "text-td-secondary";
+  if (value === null || value === 0) return "text-td-muted";
   return value > 0 ? "text-td-success" : "text-td-danger";
 }
 

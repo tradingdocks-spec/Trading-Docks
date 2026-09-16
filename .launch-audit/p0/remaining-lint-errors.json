@@ -1,0 +1,107 @@
+[
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2553:71",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2554:75",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2555:76",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2556:75",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2557:75",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2558:61",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2558:61",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2559:59",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2559:59",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2559:170",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2559:226",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2560:62",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2560:62",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2560:177",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2560:235",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2561:70",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\automatic-scanner-screen.tsx",
+    "position": "2562:77",
+    "message": "Error: Cannot access refs during render"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\prebuilt-scanner-bakeoff-screen.native.tsx",
+    "position": "144:31",
+    "message": "A `require()` style import is forbidden                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-require-imports"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\prebuilt-scanner-bakeoff-screen.native.tsx",
+    "position": "419:39",
+    "message": "Compilation Skipped: Existing memoization could not be preserved"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\components\\scanner\\prebuilt-scanner-bakeoff-screen.native.tsx",
+    "position": "1043:19",
+    "message": "Expected a `const` assertion instead of a literal type annotation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/prefer-as-const"
+  },
+  {
+    "file": "C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\mobile\\services\\mobile-deck-vault.ts",
+    "position": "226:3",
+    "message": "Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable"
+  }
+]

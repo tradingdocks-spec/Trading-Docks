@@ -3,7 +3,6 @@ import {
   displayFinish,
   displayPrinting,
   displayStorageLocation,
-  isPhysicalTradeBinderCard,
   normalizeCardCondition,
   normalizeCardFinish,
   normalizeTradeBinderStatus,
@@ -155,12 +154,11 @@ export function buildTradeBinderWishlistState({
 
 export function buildTradeBinderItem(userId: string, card: CollectionCard, row?: RawTradeBinderRow): TradeBinderItem {
   const status = normalizeTradeBinderStatus(row?.status ?? card.tradeBinderStatus);
-  const physicalTradeBinderStatus = status === 'not_for_trade' && isPhysicalTradeBinderCard(card) ? 'available' : status;
   return {
     id: card.id,
     userId,
     card,
-    status: physicalTradeBinderStatus === 'unknown' ? 'not_for_trade' : physicalTradeBinderStatus,
+    status: status === 'unknown' ? 'not_for_trade' : status,
     quantityAvailable: Math.max(0, card.quantityOwned),
     tradeValue: numberValue(row?.trade_value),
     notes: stringValue(row?.notes),

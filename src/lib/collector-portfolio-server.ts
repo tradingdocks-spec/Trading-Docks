@@ -16,19 +16,6 @@ type PortfolioSupabaseClient = Awaited<ReturnType<typeof createClient>> | Return
 
 type DataRow = { data: unknown };
 
-type InventoryRow = {
-  id: string;
-  card_name: string | null;
-  quantity: number | null;
-  location_id: string | null;
-  inventory_value: number | null;
-  game_id: string | null;
-  product_type: string | null;
-  set_code: string | null;
-  variant: string | null;
-  data: unknown;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -46,31 +33,24 @@ function locationFrom(value: unknown): PortfolioInventoryLocation | null {
   };
 }
 
-function itemFrom(value: InventoryRow): PortfolioInventoryItem | null {
-  const payload = isRecord(value.data) ? value.data : {};
-  const name = value.card_name?.trim() || (typeof payload.name === "string" ? payload.name.trim() : "");
-  const locationId = value.location_id || (typeof payload.locationId === "string" ? payload.locationId : "");
-  const quantity = Number(value.quantity ?? payload.quantity ?? 0);
-  if (!value.id || !name || !locationId || !Number.isFinite(quantity) || quantity <= 0) return null;
-  const marketValue = Number(value.inventory_value ?? payload.value ?? payload.marketValue ?? 0);
-  const gameId = value.game_id ?? payload.gameId ?? payload.game_id ?? payload.game;
-  const productType = value.product_type ?? payload.productType ?? payload.product_type ?? payload.itemKind ?? payload.item_kind;
+function itemFrom(value: unknown): PortfolioInventoryItem | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string" || typeof value.locationId !== "string") return null;
   return {
     id: value.id,
-    name,
-    gameId: normalizePortfolioGameId(gameId),
-    game: portfolioGameLabel(gameId),
-    productType: normalizePortfolioProductType(productType),
-    quantity,
-    locationId,
-    value: Number.isFinite(marketValue) ? marketValue : 0,
-    unitMarketValue: quantity > 0 && Number.isFinite(marketValue) ? marketValue / quantity : undefined,
-    imageUrl: typeof payload.imageUrl === "string" ? payload.imageUrl : undefined,
-    set: value.set_code ?? (typeof payload.set === "string" ? payload.set : undefined),
-    condition: typeof payload.condition === "string" ? payload.condition : undefined,
-    finish: value.variant ?? (typeof payload.finish === "string" ? payload.finish : undefined),
-    binderPage: typeof payload.binderPage === "number" ? payload.binderPage : undefined,
-    binderSlot: typeof payload.binderSlot === "string" ? payload.binderSlot : undefined,
+    name: value.name,
+    gameId: normalizePortfolioGameId(value.gameId ?? value.game_id ?? value.game),
+    game: portfolioGameLabel(value.gameId ?? value.game_id ?? value.game),
+    productType: normalizePortfolioProductType(value.productType ?? value.product_type ?? value.itemKind ?? value.item_kind),
+    quantity: typeof value.quantity === "number" ? value.quantity : 1,
+    locationId: value.locationId,
+    value: typeof value.value === "number" ? value.value : 0,
+    unitMarketValue: typeof value.unitMarketValue === "number" ? value.unitMarketValue : undefined,
+    imageUrl: typeof value.imageUrl === "string" ? value.imageUrl : undefined,
+    set: typeof value.set === "string" ? value.set : undefined,
+    condition: typeof value.condition === "string" ? value.condition : undefined,
+    finish: typeof value.finish === "string" ? value.finish : undefined,
+    binderPage: typeof value.binderPage === "number" ? value.binderPage : undefined,
+    binderSlot: typeof value.binderSlot === "string" ? value.binderSlot : undefined,
   };
 }
 
@@ -90,7 +70,7 @@ async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSup
     supabase.from("collector_profiles").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("portfolio_binders").select("*").eq("user_id", user.id).order("portfolio_order"),
     supabase.from("inventory_locations").select("data").eq("user_id", user.id),
-    supabase.from("inventory_items").select("id,card_name,quantity,location_id,inventory_value,game_id,product_type,set_code,variant,data").eq("user_id", user.id).gt("quantity", 0),
+    supabase.from("inventory_items").select("data").eq("user_id", user.id),
     supabase.from("portfolio_featured_cards").select("*").eq("user_id", user.id).order("sort_order"),
     supabase.from("binder_card_trade_status").select("*").eq("user_id", user.id),
     supabase.from("trade_requests").select("*").or(`portfolio_owner_id.eq.${user.id},requester_user_id.eq.${user.id}`).order("updated_at", { ascending: false }),
@@ -100,8 +80,8 @@ async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSup
   const locations = ((locationsResult.data ?? []) as DataRow[])
     .map((row) => locationFrom(row.data))
     .filter((value): value is PortfolioInventoryLocation => Boolean(value));
-  const items = ((itemsResult.data ?? []) as InventoryRow[])
-    .map((row) => itemFrom(row))
+  const items = ((itemsResult.data ?? []) as DataRow[])
+    .map((row) => itemFrom(row.data))
     .filter((value): value is PortfolioInventoryItem => Boolean(value));
   const binderLocations = locations.filter((location) => location.type === "binder");
 

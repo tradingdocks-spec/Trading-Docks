@@ -1,11 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { TDBadge, TDButton, TDIconButton, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, space } from '@/design';
 import { getMobileAppVersionInfo, getMobileReleaseLinks, isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
+import {
+  DEFAULT_SCANNER_FEEDBACK_PREFERENCES,
+  loadScannerFeedbackPreferences,
+  saveScannerFeedbackPreferences,
+  type ScannerFeedbackPreferences,
+} from '@/services/scanner-feedback-preferences';
 
 const settingRows: {
   title: string;
@@ -27,6 +34,26 @@ export default function Settings() {
   const diagnosticsEnabled = isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.scannerDiagnostics);
   const links = getMobileReleaseLinks();
   const version = getMobileAppVersionInfo();
+  const [scannerPreferences, setScannerPreferences] = useState<ScannerFeedbackPreferences>(DEFAULT_SCANNER_FEEDBACK_PREFERENCES);
+
+  useEffect(() => {
+    let active = true;
+    void loadScannerFeedbackPreferences().then((preferences) => {
+      if (!active) return;
+      setScannerPreferences(preferences);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const updatePreference = (key: keyof ScannerFeedbackPreferences, value: boolean) => {
+    setScannerPreferences((current) => {
+      const next = { ...current, [key]: value };
+      void saveScannerFeedbackPreferences(next);
+      return next;
+    });
+  };
 
   const visibleRows = settingRows.filter((row) => !row.devOnly || diagnosticsEnabled);
 
@@ -44,6 +71,44 @@ export default function Settings() {
         <View style={s.hero}>
           <TDStatusIndicator label="Membership visible from Profile and Plans" tone="info" />
           <TDStatusIndicator label="Scanner diagnostics hidden unless explicitly enabled" tone={diagnosticsEnabled ? 'warning' : 'success'} />
+        </View>
+
+        <View style={s.section}>
+          <TDSectionHeader title="Scanner feedback" />
+          <TDListRow
+            title="Visual confirmation"
+            description="Show a compact card acknowledgement after a successful scan."
+            iconName="scan-outline"
+            right={<Switch value={scannerPreferences.visualConfirmation} onValueChange={(value) => updatePreference('visualConfirmation', value)} trackColor={{ false: color.border, true: color.primary }} thumbColor={color.text} />}
+          />
+          <TDListRow
+            title="Audio confirmation"
+            description="Play a short success tone after accepted scans. Requires a native audio dependency."
+            iconName="musical-notes-outline"
+            right={<Switch value={scannerPreferences.audioConfirmation} onValueChange={(value) => updatePreference('audioConfirmation', value)} trackColor={{ false: color.border, true: color.primary }} thumbColor={color.text} />}
+          />
+          <TDListRow
+            title="Haptic feedback"
+            description="Use restrained native haptics for success, review, and error states."
+            iconName="phone-portrait-outline"
+            right={<Switch value={scannerPreferences.hapticConfirmation} onValueChange={(value) => updatePreference('hapticConfirmation', value)} trackColor={{ false: color.border, true: color.primary }} thumbColor={color.text} />}
+          />
+        </View>
+
+        <View style={s.section}>
+          <TDSectionHeader title="Scanner behavior" />
+          <TDListRow
+            title="Prevent duplicate scans"
+            description="Block repeated captures of the same card presentation while it remains in frame."
+            iconName="scan-circle-outline"
+            right={<Switch value={scannerPreferences.blockDuplicateScans} onValueChange={(value) => updatePreference('blockDuplicateScans', value)} trackColor={{ false: color.border, true: color.primary }} thumbColor={color.text} />}
+          />
+          <TDListRow
+            title="Require next card"
+            description="Wait for a meaningful card change before rearming the scanner."
+            iconName="copy-outline"
+            right={<Switch value={scannerPreferences.requireCardChangeBeforeRearm} onValueChange={(value) => updatePreference('requireCardChangeBeforeRearm', value)} trackColor={{ false: color.border, true: color.primary }} thumbColor={color.text} />}
+          />
         </View>
 
         {(['Security', 'Preferences', 'Scanner'] as const).map((section) => {
@@ -79,7 +144,7 @@ export default function Settings() {
           <TDListRow title="Trading Docks" description={`Version ${version.version} - Build ${version.build}`} iconName="information-circle-outline" right={<TDBadge tone="neutral">{version.name}</TDBadge>} />
         </View>
 
-        <TDButton label="Return to profile" variant="secondary" iconName="person-outline" onPress={() => router.push('/(tabs)/profile' as never)} />
+        <TDButton label="Return to account" variant="secondary" iconName="person-outline" onPress={() => router.push('/(tabs)/profile' as never)} />
         <TDText variant="caption" tone="muted" style={s.note}>
           Settings only show production-backed behavior. Configuration that belongs to Headquarters or iOS Settings stays outside mobile V1.
         </TDText>

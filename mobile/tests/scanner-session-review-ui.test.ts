@@ -18,7 +18,6 @@ test('scanner session route exposes compact batch-session components', () => {
     'SessionReviewHeader',
     'SessionSummary',
     'SessionStatusTabs',
-    'SessionBatchActions',
     'SessionCardRow',
     'SessionFinalizeBar',
     'SessionEmptyState',
@@ -32,19 +31,18 @@ test('scanner session route exposes compact batch-session components', () => {
 
 test('batch session header and actions stay compact', () => {
   const header = section('SessionReviewHeader');
-  const actions = section('SessionBatchActions');
   assert.match(header, /Session/);
-  assert.match(header, /Select all/);
-  assert.match(actions, /Collection/);
-  assert.match(actions, /Trade Binder/);
-  assert.match(actions, /Deck/);
-  assert.match(actions, /Storage/);
+  assert.match(header, /Select/);
+  assert.match(source, /Collection/);
+  assert.match(source, /Trade Binder/);
+  assert.match(source, /Deck/);
+  assert.match(source, /Storage/);
 });
 
 test('session row renders compact destination and selection affordances', () => {
   const row = section('SessionCardRow');
   assert.match(row, /checkbox|square-outline/);
-  assert.match(row, /cardBadges/);
+  assert.match(row, /cardFooterBadges/);
   assert.match(row, /destinationSyncStatusLabel/);
   assert.equal(row.includes('Finalize reviewed cards'), false);
 });
@@ -71,7 +69,7 @@ test('card review sheet preserves printing correction and transient remove behav
   assert.match(sheet, /Cash percentage/);
   assert.match(sheet, /View other printings/);
   assert.match(sheet, /Remove card/);
-  assert.match(sheet, /Tap again to remove/);
+  assert.doesNotMatch(sheet, /Tap again to remove/);
   assert.equal(sheet.includes('FilterChips'), false);
   assert.equal(sheet.includes('Finalize reviewed cards'), false);
 });

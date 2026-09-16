@@ -30,6 +30,7 @@ export function Hero() {
         <p className={styles.heroFine}>
           Free for up to 500 cards. No credit card required.
         </p>
+        <p className={styles.heroFine}>Follow every card from scan to sale.</p>
         <div className={styles.heroStatement}>
           <span>One card. One connected record.</span>
           <p>Identity, cost, location, and selling context stay together.</p>

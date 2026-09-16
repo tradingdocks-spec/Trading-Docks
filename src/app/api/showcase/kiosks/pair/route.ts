@@ -1,49 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createHash, randomInt } from "node:crypto";
 import { SHOWCASE_KIOSK_COOKIE } from "@/lib/showcase-kiosk";
-
-type DatabaseError = { code?: string; message?: string; details?: string; hint?: string };
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { action?: string; code?: string; name?: string } | null;
-  if (body?.action !== "consume") {
-    return NextResponse.json({ error: "Pairing code consumption requires action=consume." }, { status: 400 });
-  }
-
   const supabase = await createClient();
-  const normalizedCode = body.code ? String(body.code).replace(/[^0-9]/g, "") : "";
-  const { data, error } = await supabase.rpc("consume_showcase_pairing_code", {
-    input_code: normalizedCode,
-    device_name: body.name ?? "Front Counter",
-  });
-  if (error || !data?.token) {
-    const databaseError = error as DatabaseError | null;
-    console.error("Showcase kiosk pairing consume failed", {
-      operation: "consume_pairing_code",
-      rpc: "consume_showcase_pairing_code",
-      normalizedCodeLength: normalizedCode.length,
-      code: databaseError?.code,
-      message: databaseError?.message,
-      details: databaseError?.details,
-      hint: databaseError?.hint,
-      returnedToken: Boolean(data?.token),
-    });
-    const errorCode = databaseError?.code;
-    if (errorCode === "42883") {
-      return NextResponse.json({ error: "PAIRING_CODE_CONSUME_FAILED", message: "Kiosk pairing database function is out of date." }, { status: 503 });
-    }
-    if (errorCode === "P0003") return NextResponse.json({ error: "PAIRING_CODE_EXPIRED", message: "Pairing code is invalid or expired." }, { status: 400 });
-    if (errorCode === "P0004") return NextResponse.json({ error: "PAIRING_CODE_ALREADY_USED", message: "Pairing code is invalid or expired." }, { status: 400 });
-    return NextResponse.json({ error: "PAIRING_CODE_INVALID_OR_EXPIRED", message: "Pairing code is invalid or expired." }, { status: 400 });
+  if (body?.action === "consume") {
+    const { data, error } = await supabase.rpc("consume_showcase_pairing_code", { input_code: body.code ?? "", device_name: body.name ?? "Front Counter" });
+    if (error || !data?.token) return NextResponse.json({ error: "Pairing code is invalid or expired." }, { status: 400 });
+    const response = NextResponse.json({ paired: true });
+    response.cookies.set(SHOWCASE_KIOSK_COOKIE, String(data.token), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+    return response;
   }
-
-  const response = NextResponse.json({ paired: true });
-  response.cookies.set(SHOWCASE_KIOSK_COOKIE, String(data.token), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  return response;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  const { data: preference } = await supabase.from("user_preferences").select("active_workspace_id").eq("user_id", user.id).maybeSingle();
+  if (!preference?.active_workspace_id) return NextResponse.json({ error: "No active workspace." }, { status: 403 });
+  const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", preference.active_workspace_id).eq("user_id", user.id).maybeSingle();
+  if (!membership || !["owner", "admin"].includes(String(membership.role))) return NextResponse.json({ error: "Workspace admin access required." }, { status: 403 });
+  const code = String(randomInt(100000, 1000000)); const hash = createHash("sha256").update(code).digest("hex");
+  const { error } = await supabase.from("showcase_kiosk_pairing_codes").insert({ workspace_id: preference.active_workspace_id, code_hash: hash, created_by: user.id, expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() });
+  return error ? NextResponse.json({ error: "Could not create pairing code." }, { status: 400 }) : NextResponse.json({ code: `${code.slice(0, 3)} ${code.slice(3)}`, expiresInMinutes: 10 });
 }

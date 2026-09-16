@@ -232,7 +232,7 @@ test("public market sample renders without a provider request and live API remai
   const marketSection = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
   const marketRoute = readFileSync(path.join(repoRoot, "src/app/api/multi-game-market/route.ts"), "utf8");
 
-  assert.match(marketSection, /useDemoMarketTicks\(game, regionRef, paused\)/);
+  assert.match(marketSection, /sampleCards\(activeGame\)/);
   assert.match(marketSection, /Illustrative sample/);
   assert.doesNotMatch(marketSection, /fetch\(|useEffect|Connecting|Loading market/);
   assert.doesNotMatch(marketSection, /cache: "no-store"/);
@@ -271,7 +271,7 @@ test("dashboard design foundation uses Trading Docks workflow language", () => {
   assert.match(globals, /\.td-button-primary/);
   assert.match(audit, /TCG intelligence and operations system/);
   assert.match(audit, /Do not fabricate business, collection, order, price, or marketplace data/);
-  assert.match(navigation, /label:\s*"Inventory"/);
+  assert.match(navigation, /label:\s*"Collection"/);
   assert.match(navigation, /label:\s*"Acquire"/);
   assert.match(navigation, /label:\s*"Sell"/);
   assert.match(navigation, /label:\s*"Intelligence"/);
@@ -320,8 +320,8 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   const footer = readFileSync(path.join(repoRoot, "src/components/landing/Footer.tsx"), "utf8");
 
   assert.match(hero, /CardJourney/);
-  assert.match(hero, /Every card\./);
-  assert.match(hero, /One system\./);
+  assert.match(hero, /Follow every card/);
+  assert.match(hero, /scan to sale/);
   assert.match(hero, /Start free/);
   assert.doesNotMatch(hero, /DashboardPreview/);
   assert.doesNotMatch(hero, /rounded-full bg-blue|orbitField|floating dashboard/i);

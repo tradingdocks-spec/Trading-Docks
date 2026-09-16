@@ -2,6 +2,7 @@ import type { MobileAccountType } from './auth-routing.ts';
 
 export type MobileTabRouteName =
   | 'index'
+  | 'search'
   | 'collection'
   | 'scan'
   | 'sell'
@@ -22,10 +23,10 @@ export type ProtectedRouteResolution =
 
 const COLLECTOR_TABS: MobileTabDefinition[] = [
   { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
+  { route: 'search', label: 'Search', icon: 'search', inactiveIcon: 'search-outline' },
   { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
-  { route: 'scan', label: 'Scan', icon: 'scan', inactiveIcon: 'scan-outline', prominent: true },
   { route: 'sell', label: 'Decks', icon: 'albums', inactiveIcon: 'albums-outline' },
-  { route: 'profile', label: 'Account', icon: 'person', inactiveIcon: 'person-outline' },
+  { route: 'scan', label: 'Scan', icon: 'scan', inactiveIcon: 'scan-outline', prominent: true },
 ];
 
 export const MOBILE_TABS_BY_ACCOUNT: Record<MobileAccountType, MobileTabDefinition[]> = {

@@ -1,0 +1,9 @@
+{
+  "reproduced": true,
+  "writtenTables": [
+    "inventory_items"
+  ],
+  "locationWriteOmitted": true,
+  "expected": "Persist location before referencing it from inventory",
+  "limitation": "Real persistence helper, modeled CSV caller, in-memory database; production constraints not exercised"
+}

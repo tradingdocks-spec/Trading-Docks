@@ -12,6 +12,5 @@ export default async function ShowcasePage({ searchParams }: { searchParams: Pro
   const workspaceId = preference?.active_workspace_id;
   const { data: profile } = workspaceId ? await supabase.from("showcase_profiles").select("*").eq("workspace_id", workspaceId).maybeSingle() : { data: null };
   const { count } = workspaceId ? await supabase.from("inventory_items").select("id", { count: "exact", head: true }).eq("user_id", user.id).gt("quantity", 0) : { count: 0 };
-  const { count: pairedKioskCount } = workspaceId ? await supabase.from("showcase_kiosk_devices").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("enabled", true).is("revoked_at", null) : { count: 0 };
-  return <ShowcaseDashboard profile={profile} inventoryCount={count ?? 0} pairedKioskCount={pairedKioskCount ?? 0} activeTab={tab} />;
+  return <ShowcaseDashboard profile={profile} inventoryCount={count ?? 0} activeTab={tab} />;
 }

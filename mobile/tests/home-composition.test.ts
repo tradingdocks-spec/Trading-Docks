@@ -45,8 +45,8 @@ test('Free Home composition focuses scan and collection without fake portfolio v
   assert.equal(home.portfolioState, 'ready');
   assert.equal(home.hero.title, 'Collection value');
   assert.match(home.portfolioMessage, /Value unavailable/);
-  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'collection', 'find', 'binder', 'review']);
-  assert.deepEqual(home.actions.map((action) => action.route), ['/(tabs)/scan', '/(tabs)/collection', '/storage-locations', '/physical-binders', '/scanner-session']);
+  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'search', 'collection', 'decks', 'review']);
+  assert.deepEqual(home.actions.map((action) => action.route), ['/(tabs)/scan', '/(tabs)/search', '/(tabs)/collection', '/(tabs)/sell', '/scanner-session']);
 });
 
 test('Collector Home composition emphasizes portfolio and storage', () => {
@@ -171,7 +171,6 @@ function collectionCard({
     storageLocation: null,
     tradeBinderStatus: 'not_for_trade',
     wishlistStatus: 'not_wishlisted',
-    costBasisKnown: false,
     marketPrice: {
       amount: price,
       currency: 'USD',

@@ -11,6 +11,7 @@ This directory is the engineering foundation baseline for the current Trading Do
 
 ## Documents
 
+- [PRODUCTION_LAUNCH_CERTIFICATION_2026-09-06.md](./PRODUCTION_LAUNCH_CERTIFICATION_2026-09-06.md): Latest launch audit, reproduced inventory blockers, fresh test results, and remaining certification gates.
 - [PRODUCT_BIBLE.md](./PRODUCT_BIBLE.md): Product surface and status map.
 - [ARCHITECTURE.md](./ARCHITECTURE.md): Web, mobile, backend, and integration architecture.
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md): Current visual systems and duplication.

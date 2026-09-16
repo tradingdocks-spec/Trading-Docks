@@ -1,0 +1,566 @@
+diff --git a/src/app/api/tools/csv/tcgplayer-resolve/route.ts b/src/app/api/tools/csv/tcgplayer-resolve/route.ts
+index 3c1cd71..a1f00f1 100644
+--- a/src/app/api/tools/csv/tcgplayer-resolve/route.ts
++++ b/src/app/api/tools/csv/tcgplayer-resolve/route.ts
+@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
+ import { getScryfallMtgSetIdentities } from "@/lib/mtg/set-identity";
+ import { resolveTcgplayerVariant } from "@/lib/tcgplayer-catalog";
+ import type { SupabaseCatalogResolverClient } from "@/lib/tcgplayer-catalog";
++import { createPrintingLookup } from "@/lib/tcgplayer-catalog/printing-identity";
+ 
+ export const runtime = "nodejs";
+ export const dynamic = "force-dynamic";
+@@ -16,6 +17,10 @@ type InputRow = {
+   collectorNumber?: unknown;
+   condition?: unknown;
+   finish?: unknown;
++  tcgplayerId?: unknown;
++  tcgplayerProductId?: unknown;
++  scryfallId?: unknown;
++  gameId?: unknown;
+ };
+ 
+ export async function POST(request: Request) {
+@@ -31,13 +36,14 @@ export async function POST(request: Request) {
+   const rows = body.rows.map(cleanRow);
+   const setIdentities = await getScryfallMtgSetIdentities();
+   const results = [];
++  const lookupPrinting = createPrintingLookup();
+ 
+   for (const row of rows) {
+-    const setName = row.setName || row.set;
+-    if (!row.name || !setName || !row.collectorNumber || !row.condition || !row.finish) {
++    if ((!row.name && !row.tcgplayerId) || !row.condition || !row.finish) {
+       results.push({
+         status: "unresolved",
+-        reason: "Name, set, collector number, condition, and foil status are required.",
++        reason: "Name or TCGplayer SKU ID, condition, and foil status are required.",
++        reasonCode: "MISSING_REQUIRED_FIELD",
+       });
+       continue;
+     }
+@@ -57,6 +63,11 @@ export async function POST(request: Request) {
+         collectorNumber: row.collectorNumber,
+         condition: row.condition,
+         finish: row.finish,
++        gameId: row.gameId,
++        tcgplayerId: row.tcgplayerId,
++        tcgplayerProductId: row.tcgplayerProductId,
++        scryfallId: row.scryfallId,
++        lookupPrinting,
+         setIdentities,
+       });
+ 
+@@ -116,6 +127,10 @@ function cleanRow(row: InputRow) {
+     collectorNumber: stringValue(row.collectorNumber, 60),
+     condition: stringValue(row.condition, 80),
+     finish: normalizeFinish(stringValue(row.finish, 40)),
++    gameId: stringValue(row.gameId, 40),
++    tcgplayerId: stringValue(row.tcgplayerId, 40),
++    tcgplayerProductId: stringValue(row.tcgplayerProductId, 40),
++    scryfallId: stringValue(row.scryfallId, 80),
+   };
+ }
+ 
+diff --git a/src/lib/csv-conversion/templates.ts b/src/lib/csv-conversion/templates.ts
+index 0b154ef..68a21f5 100644
+--- a/src/lib/csv-conversion/templates.ts
++++ b/src/lib/csv-conversion/templates.ts
+@@ -191,13 +191,14 @@ export function mappingForTemplate(headers: string[], selected?: CsvTemplate) {
+   return mapped;
+ }
+ 
+-export function outputForTemplate(rows: CanonicalRow[], templateId: string) {
++export function outputForTemplate(rows: Array<CanonicalRow & { tcgplayerPrinting?: Pick<CanonicalRow, "name" | "setName" | "collectorNumber"> }>, templateId: string) {
+   const selected = CSV_TEMPLATES.find((item) => item.id === templateId) ?? CSV_TEMPLATES.at(-1)!;
+   return {
+     headers: selected.headers,
+-    values: rows.map((row) =>
+-      selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header)),
+-    ),
++    values: rows.map((source) => {
++      const row = selected.id === "tcgplayer" ? { ...source, ...source.tcgplayerPrinting } : source;
++      return selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header));
++    }),
+   };
+ }
+ 
+diff --git a/src/lib/mtg/set-identity.ts b/src/lib/mtg/set-identity.ts
+index c2662df..75372e3 100644
+--- a/src/lib/mtg/set-identity.ts
++++ b/src/lib/mtg/set-identity.ts
+@@ -13,6 +13,11 @@ export type MtgSetIdentityMatch =
+ const SCRYFALL_SETS_URL = "https://api.scryfall.com/sets";
+ 
+ const FALLBACK_SET_IDENTITIES: MtgSetIdentity[] = [
++  { code: "plst", name: "The List Reprints", aliases: ["The List", "LIST"] },
++  { code: "gk1", name: "Guilds of Ravnica: Guild Kits", aliases: ["GR1"] },
++  { code: "gk2", name: "Ravnica Allegiance: Guild Kits" },
++  { code: "e01", name: "Archenemy: Nicol Bolas" },
++  { code: "ddg", name: "Duel Decks: Knights vs. Dragons" },
+   { code: "mh1", name: "Modern Horizons" },
+   { code: "scd", name: "Starter Commander Decks" },
+   { code: "one", name: "Phyrexia: All Will Be One", aliases: ["All Will Be One"] },
+diff --git a/src/lib/tcgplayer-catalog/resolver.ts b/src/lib/tcgplayer-catalog/resolver.ts
+index e691b65..4c9e514 100644
+--- a/src/lib/tcgplayer-catalog/resolver.ts
++++ b/src/lib/tcgplayer-catalog/resolver.ts
+@@ -9,6 +9,7 @@ import {
+   normalizeProductName,
+   normalizeSetName,
+ } from "./normalization.ts";
++import { catalogProductId, normalizeExternalId, parseListCollector, type CatalogPrinting, type PrintingLookupInput } from "./printing-identity.ts";
+ 
+ export type TcgplayerCatalogVariant = {
+   tcgplayer_id: number;
+@@ -38,12 +39,16 @@ export type ResolveTcgplayerVariantInput = {
+   condition: string;
+   finish?: string | null;
+   scryfallId?: string | null;
++  tcgplayerId?: string | null;
++  tcgplayerProductId?: string | null;
++  lookupPrinting?: (input: PrintingLookupInput) => Promise<CatalogPrinting | null>;
+   setIdentities?: MtgSetIdentity[];
+ };
+ 
+ export type TcgplayerResolveReasonCode =
+   | "UNSUPPORTED_GAME"
+   | "UNKNOWN_SET_CODE"
++  | "PLST_COMPOUND_COLLECTOR_UNRESOLVED"
+   | "SET_MAPPED_NO_PRODUCT"
+   | "COLLECTOR_NUMBER_MISMATCH"
+   | "PRINTING_NOT_FOUND"
+@@ -55,12 +60,16 @@ export type TcgplayerResolveReasonCode =
+   | "MISSING_REQUIRED_FIELD";
+ 
+ export type TcgplayerResolveDiagnostics = {
+-  stage: "direct" | "set-code-bridge" | "printing-identity";
++  stage: "direct" | "set-code-bridge" | "printing-identity" | "special-printing" | "external-id" | "name-fallback";
+   sourceSet?: string | null;
+   translatedSetName?: string | null;
+   collectorNumber?: string | null;
+   normalizedCondition?: string;
+   normalizedFinish?: string;
++  sourceSetCode?: string;
++  sourceCollectorNumber?: string;
++  tcgplayerProductId?: string;
++  lookupError?: string;
+ };
+ 
+ export type ResolveTcgplayerVariantResult =
+@@ -102,15 +111,50 @@ export async function resolveTcgplayerVariant(
+   }
+ 
+   const normalizedProductName = normalizeProductName(input.productName);
+-  const normalizedCollectorNumber = normalizeCollectorNumber(input.collectorNumber);
+   const normalized = normalizeConditionFinish(
+     input.finish?.toLowerCase() === "foil" && !/\bfoil\b/i.test(input.condition)
+       ? `${input.condition} Foil`
+       : input.condition,
+   );
+ 
+-  if (!normalizedProductName || !(input.setName || input.setCode)) {
+-    return unresolved("MISSING_REQUIRED_FIELD", "Product name and set name or set code are required.", {
++  const diagnostics: TcgplayerResolveDiagnostics = {
++    stage: "direct", sourceSet: input.setCode || input.setName,
++    collectorNumber: input.collectorNumber,
++    normalizedCondition: normalized.normalizedCondition, normalizedFinish: normalized.normalizedFinish,
++  };
++  const skuId = normalizeExternalId(input.tcgplayerId);
++  if (skuId) {
++    const rows = await fetchCandidates(client, { tcgplayer_id: skuId }, 1000);
++    if (rows.length) return selectCandidates(rows, { ...diagnostics, stage: "external-id" });
++  }
++  const productId = normalizeExternalId(input.tcgplayerProductId);
++  if (productId) {
++    const byPhoto = await fetchCandidates(client, { photo_url: `https://tcgplayer-cdn.tcgplayer.com/product/${productId}_200w.jpg` }, 1000);
++    if (byPhoto.length) return selectCandidates(byPhoto, { ...diagnostics, stage: "external-id", tcgplayerProductId: productId });
++  }
++  if (productId && normalizedProductName) {
++    const rows = await fetchCandidates(client, { normalized_product_name: normalizedProductName }, 1000);
++    const linked = rows.filter((row) => catalogProductId(row.photo_url) === productId);
++    if (linked.length) return selectCandidates(linked, { ...diagnostics, stage: "external-id", tcgplayerProductId: productId });
++  }
++  if ((input.scryfallId || productId) && input.lookupPrinting) {
++    let printing: CatalogPrinting | null = null;
++    try {
++      printing = await input.lookupPrinting(input);
++    } catch (error) {
++      diagnostics.lookupError = error instanceof Error ? error.message : "Printing metadata unavailable.";
++    }
++    if (printing) {
++      const result = await matchLinkedPrinting(client, printing, input, { ...diagnostics, stage: "external-id" });
++      const compound = /^(plst|list|the list|the list reprints)$/i.test(input.setCode?.trim() || input.setName?.trim() || "") ? parseListCollector(input.collectorNumber) : null;
++      if (compound && result.status === "unresolved" && result.reasonCode === "PRINTING_NOT_FOUND") {
++        return unresolved("PLST_COMPOUND_COLLECTOR_UNRESOLVED", "The List product link was found, but its seller catalog row is unavailable.", { ...result.diagnostics, ...compound });
++      }
++      return result;
++    }
++  }
++  if (!normalizedProductName) {
++    return unresolved("MISSING_REQUIRED_FIELD", "Product name or a resolvable external identifier is required.", {
+       stage: "direct",
+       sourceSet: input.setCode || input.setName,
+       collectorNumber: input.collectorNumber,
+@@ -119,13 +163,42 @@ export async function resolveTcgplayerVariant(
+     });
+   }
+ 
++  if (!(input.setName || input.setCode)) {
++    const candidates = await fetchCandidates(client, { normalized_product_name: normalizedProductName }, 1000);
++    return selectCandidates(candidates.filter((row) => !input.collectorNumber || normalizeCollectorNumber(row.collector_number) === normalizeCollectorNumber(input.collectorNumber)), { ...diagnostics, stage: "name-fallback" });
++  }
++
+   const directSetName = input.setName?.trim() || input.setCode?.trim() || "";
+   const exactDirect = await exactMatch(client, directSetName, input, normalized.normalizedCondition, normalized.normalizedFinish);
+-  if (exactDirect.status !== "unresolved") return exactDirect;
++  if (exactDirect.status === "matched") return exactDirect;
+ 
+   const identities = input.setIdentities ?? fallbackMtgSetIdentities();
+   const sourceSet = input.setCode?.trim() || input.setName?.trim() || "";
+   const translated = resolveMtgSetIdentity(sourceSet, identities);
++  const isList = [sourceSet, input.setName].some((value) => /^(plst|list|the list|the list reprints)$/i.test(value?.trim() ?? "")) || (translated.status === "matched" && translated.code === "plst");
++  const compound = isList ? parseListCollector(input.collectorNumber) : null;
++  let exactTranslated: ResolveTcgplayerVariantResult = exactDirect;
++  if (translated.status === "matched" && normalizeSetName(translated.name) !== normalizeSetName(directSetName)) {
++    exactTranslated = await exactMatch(client, translated.name, input, normalized.normalizedCondition, normalized.normalizedFinish, {
++      stage: "set-code-bridge", sourceSet, translatedSetName: translated.name,
++    });
++    if (exactTranslated.status === "matched") return exactTranslated;
++  }
++  if (compound) {
++    const specialDiagnostics: TcgplayerResolveDiagnostics = { ...diagnostics, stage: "special-printing", ...compound };
++    let printing: CatalogPrinting | null | undefined;
++    try {
++      printing = await input.lookupPrinting?.({ ...input, setCode: "plst" });
++    } catch (error) {
++      specialDiagnostics.lookupError = error instanceof Error ? error.message : "Printing metadata unavailable.";
++    }
++    if (printing) {
++      const result = await matchLinkedPrinting(client, printing, input, specialDiagnostics);
++      if (result.status !== "unresolved" || ["FINISH_NOT_AVAILABLE", "CONDITION_NOT_AVAILABLE"].includes(result.reasonCode)) return result;
++    }
++    return unresolved("PLST_COMPOUND_COLLECTOR_UNRESOLVED", `The List printing could not be linked to a catalog product (source ${compound.sourceSetCode.toUpperCase()} #${compound.sourceCollectorNumber}).`, specialDiagnostics);
++  }
++  if (exactTranslated.status === "ambiguous") return exactTranslated;
+   if (translated.status === "unknown") {
+     return unresolved("UNKNOWN_SET_CODE", `Unknown Magic set code or set alias: ${sourceSet}.`, {
+       stage: "set-code-bridge",
+@@ -137,14 +210,6 @@ export async function resolveTcgplayerVariant(
+   }
+ 
+   const translatedSetName = translated.name;
+-  if (normalizeSetName(translatedSetName) !== normalizeSetName(directSetName)) {
+-    const exactTranslated = await exactMatch(client, translatedSetName, input, normalized.normalizedCondition, normalized.normalizedFinish, {
+-      stage: "set-code-bridge",
+-      sourceSet,
+-      translatedSetName,
+-    });
+-    if (exactTranslated.status !== "unresolved") return exactTranslated;
+-  }
+ 
+   return diagnoseUnresolved(client, translatedSetName, input, normalized.normalizedCondition, normalized.normalizedFinish, {
+     stage: "printing-identity",
+@@ -162,6 +227,14 @@ function isMagicResolverGame(value: string | number | null | undefined) {
+   return normalized === "magic" || normalized === "mtg" || normalized === "1" || normalized === "magic: the gathering";
+ }
+ 
++// Compare Magic's printed number (optionally zero padded or followed by set size).
++// Compound List identifiers retain their prefix and are resolved separately.
++function printingNumber(value: string | null | undefined) {
++  const number = normalizeCollectorNumber(value);
++  const numeric = number?.match(/^0*(\d+)([a-z★]?)(?:\/\d+)?$/);
++  return numeric ? `${Number(numeric[1])}${numeric[2]}` : number;
++}
++
+ async function exactMatch(
+   client: SupabaseCatalogResolverClient,
+   setName: string,
+@@ -196,54 +269,58 @@ async function exactMatch(
+     query = query.eq("normalized_collector_number", normalizedCollectorNumber);
+   }
+ 
+-  const { data, error } = await query.limit(4);
++  const { data, error } = await query.limit(1000);
+   if (error) throw new Error(error.message ?? "Could not resolve TCGplayer variant.");
+-  const candidates = data ?? [];
+-  if (candidates.length === 1) {
+-    const [row] = candidates;
+-    return {
+-      status: "matched",
+-      row,
+-      tcgplayerId: row.tcgplayer_id,
+-      diagnostics: {
+-        stage: diagnostics.stage ?? "direct",
+-        sourceSet: diagnostics.sourceSet ?? setName,
+-        translatedSetName: diagnostics.translatedSetName ?? row.set_name,
+-        collectorNumber: input.collectorNumber,
+-        normalizedCondition,
+-        normalizedFinish,
+-      },
+-    };
+-  }
+-  if (candidates.length > 1) {
+-    return {
+-      status: "ambiguous",
+-      candidates,
+-      reasonCode: "AMBIGUOUS_PRINTING",
+-      reason: normalizedCollectorNumber
+-        ? "Multiple TCGplayer variants matched the exact printing."
+-        : "Collector number is required to disambiguate matching TCGplayer variants.",
+-      diagnostics: {
+-        stage: diagnostics.stage ?? "direct",
+-        sourceSet: diagnostics.sourceSet ?? setName,
+-        translatedSetName: diagnostics.translatedSetName,
+-        collectorNumber: input.collectorNumber,
+-        normalizedCondition,
+-        normalizedFinish,
+-      },
+-    };
+-  }
++  return selectCandidates(data ?? [], {
++    stage: diagnostics.stage ?? "direct", sourceSet: diagnostics.sourceSet ?? setName,
++    translatedSetName: diagnostics.translatedSetName, collectorNumber: input.collectorNumber,
++    normalizedCondition, normalizedFinish,
++  });
++}
+ 
+-  return unresolved("PRINTING_NOT_FOUND", "No TCGplayer Magic catalog row matched the requested printing, condition, and finish.", {
+-    stage: diagnostics.stage ?? "direct",
+-    sourceSet: diagnostics.sourceSet ?? setName,
+-    translatedSetName: diagnostics.translatedSetName,
+-    collectorNumber: input.collectorNumber,
+-    normalizedCondition,
+-    normalizedFinish,
++async function matchLinkedPrinting(
++  client: SupabaseCatalogResolverClient,
++  printing: CatalogPrinting,
++  input: ResolveTcgplayerVariantInput,
++  diagnostics: TcgplayerResolveDiagnostics,
++) {
++  const rows = await fetchCandidates(client, {
++    normalized_set_name: normalizeSetName(printing.setName),
++    normalized_product_name: normalizeProductName(printing.productName),
++  }, 1000);
++  const linked = rows.filter((row) => {
++    const id = catalogProductId(row.photo_url);
++    return id ? id === printing.productId : normalizeCollectorNumber(row.collector_number) === normalizeCollectorNumber(printing.collectorNumber);
++  });
++  return selectCandidates(linked, {
++    ...diagnostics, collectorNumber: input.collectorNumber,
++    translatedSetName: printing.setName, tcgplayerProductId: printing.productId,
+   });
+ }
+ 
++function selectCandidates(rows: TcgplayerCatalogVariant[], diagnostics: TcgplayerResolveDiagnostics): ResolveTcgplayerVariantResult {
++  if (!rows.length) return unresolved("PRINTING_NOT_FOUND", "No catalog printing matched the source identity.", diagnostics);
++  const finish = rows.filter((row) => normalizeSetName(row.finish) === diagnostics.normalizedFinish);
++  if (!finish.length) return unresolved("FINISH_NOT_AVAILABLE", "Printing found, but the requested finish is unavailable.", diagnostics);
++  const condition = finish.filter((row) => normalizeSetName(row.condition) === diagnostics.normalizedCondition);
++  if (!condition.length) return unresolved("CONDITION_NOT_AVAILABLE", "Printing found, but the requested condition is unavailable.", diagnostics);
++  const identities = new Map<string, TcgplayerCatalogVariant[]>();
++  for (const row of condition) {
++    const key = JSON.stringify([
++      normalizeSetName(row.set_name), normalizeProductName(row.product_name),
++      printingNumber(row.collector_number), catalogProductId(row.photo_url),
++    ]);
++    identities.set(key, [...(identities.get(key) ?? []), row]);
++  }
++  const candidates = [...identities.values()].map((variants) => variants.sort((a, b) => a.tcgplayer_id - b.tcgplayer_id)[0]);
++  if (candidates.length > 1) return {
++    status: "ambiguous", candidates, reasonCode: "AMBIGUOUS_PRINTING",
++    reason: "Multiple distinct catalog printing identities remain after source constraints.", diagnostics,
++  };
++  const row = candidates[0];
++  return { status: "matched", row, tcgplayerId: row.tcgplayer_id, diagnostics: { ...diagnostics, translatedSetName: row.set_name } };
++}
++
+ async function diagnoseUnresolved(
+   client: SupabaseCatalogResolverClient,
+   setName: string,
+@@ -258,14 +335,14 @@ async function diagnoseUnresolved(
+   const productInSet = await fetchCandidates(client, {
+     normalized_set_name: normalizedSetName,
+     normalized_product_name: normalizedProductName,
+-  }, 8);
++  }, 1000);
+ 
+   if (productInSet.length === 0) {
+     return unresolved("SET_MAPPED_NO_PRODUCT", `Set translated to ${setName}, but the product was not found in the TCGplayer catalog for that set.`, diagnostics);
+   }
+ 
+   const printingCandidates = normalizedCollectorNumber
+-    ? productInSet.filter((row: TcgplayerCatalogVariant) => normalizeCollectorNumber(row.collector_number) === normalizedCollectorNumber)
++    ? productInSet.filter((row: TcgplayerCatalogVariant) => printingNumber(row.collector_number) === printingNumber(input.collectorNumber))
+     : productInSet;
+ 
+   if (normalizedCollectorNumber && printingCandidates.length === 0) {
+@@ -282,7 +359,7 @@ async function diagnoseUnresolved(
+     return unresolved("CONDITION_NOT_AVAILABLE", "Printing and finish were found, but the requested condition is not available in the TCGplayer catalog.", diagnostics);
+   }
+ 
+-  return unresolved("PRINTING_NOT_FOUND", "No exact TCGplayer condition and finish SKU matched this source printing.", diagnostics);
++  return selectCandidates(conditionCandidates, diagnostics);
+ }
+ 
+ async function fetchCandidates(
+diff --git a/tests/csv-converter.test.ts b/tests/csv-converter.test.ts
+index 13304f5..c8e586e 100644
+--- a/tests/csv-converter.test.ts
++++ b/tests/csv-converter.test.ts
+@@ -1,5 +1,6 @@
+ import assert from "node:assert/strict";
+ import test from "node:test";
++import { CANONICAL_FIELDS, outputForTemplate, type CanonicalRow } from "../src/lib/csv-conversion/templates.ts";
+ 
+ import {
+   blockingIssues,
+@@ -9,6 +10,17 @@ import {
+   unsupportedExportIssues,
+ } from "../src/lib/csv-converter.ts";
+ 
++test("review exporter uses catalog printing fields only for TCGplayer and retains compound import identity", () => {
++  const base = Object.fromEntries(CANONICAL_FIELDS.map(({ key }) => [key, ""])) as CanonicalRow;
++  const row = { ...base, name: "Belfry Spirit", set: "plst", setName: "The List", collectorNumber: "GK2-29", tcgplayerId: "900030", tcgplayerPrinting: { name: "Belfry Spirit", setName: "The List Reprints", collectorNumber: "029/133" } };
++  const tcg = outputForTemplate([row], "tcgplayer");
++  assert.equal(tcg.values[0][tcg.headers.indexOf("Number")], "029/133");
++  assert.equal(tcg.values[0][tcg.headers.indexOf("Set Name")], "The List Reprints");
++  const manabox = outputForTemplate([row], "manabox");
++  assert.equal(manabox.values[0][manabox.headers.indexOf("Collector number")], "GK2-29");
++  assert.equal(row.collectorNumber, "GK2-29");
++});
++
+ test("CSV converter keeps Magic rows on the existing TCGplayer export path", () => {
+   const rows = normalizeRows(parseCsv([
+     "Game,Name,Set Code,Collector Number,Quantity,Condition,Finish,Language,TCGplayer Id",
+diff --git a/tests/tcgplayer-catalog.test.ts b/tests/tcgplayer-catalog.test.ts
+index 9e2ddfd..110303f 100644
+--- a/tests/tcgplayer-catalog.test.ts
++++ b/tests/tcgplayer-catalog.test.ts
+@@ -22,12 +22,126 @@ import {
+   type TcgplayerMagicCsvHeader,
+ } from "../src/lib/tcgplayer-catalog/index.ts";
+ import { serializeError } from "../src/lib/tcgplayer-catalog/error-serialization.ts";
++import { createPrintingLookup, parseListCollector, catalogProductId } from "../src/lib/tcgplayer-catalog/printing-identity.ts";
++import { normalizeRows, parseCsv, exportCsv } from "../src/lib/csv-converter.ts";
+ import {
+   hasCapability,
+   resolvePlatformAccessContext,
+ } from "../mobile/services/platform-access.ts";
+ 
+ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++
++const printingFixture = JSON.parse(readFileSync(path.join(repoRoot, "tests/fixtures/converter-printing-families.json"), "utf8")) as {
++  fixtures: Array<[string, string, string, number]>;
++  responses: Record<string, unknown>;
++};
++
++function fixtureLookup(responses = printingFixture.responses) {
++  return createPrintingLookup((async (url) => {
++    const response = responses[String(url)];
++    return new Response(JSON.stringify(response ?? {}), { status: response ? 200 : 404 });
++  }) as typeof fetch);
++}
++
++test("all five review regressions resolve through public printing relationships without changing imported identifiers", async () => {
++  const lookupPrinting = fixtureLookup();
++  const rows = normalizeRows(parseCsv(readFileSync(path.join(repoRoot, "tests/fixtures/converter-review-regressions.csv"), "utf8")), "generic");
++  const original = structuredClone(rows);
++  const catalog: TcgplayerMagicCatalogRecord[] = [];
++  for (const [index, row] of rows.entries()) {
++    const printing = await lookupPrinting({ productName: row.name, setCode: row.setCode, collectorNumber: row.collectorNumber });
++    assert.ok(printing);
++    // SKU IDs here are deliberately synthetic; product identities are captured public metadata.
++    for (const [variant, condition] of ["Near Mint", "Lightly Played", "Near Mint Foil"].entries()) {
++      catalog.push({ ...mappedRecord(900000 + index * 10 + variant, printing.setName, printing.productName, printing.collectorNumber, condition), photo_url: `https://tcgplayer-cdn.tcgplayer.com/product/${printing.productId}_200w.jpg` });
++    }
++    if (row.setCode === "gk2") catalog.push({ ...catalog[catalog.length - 3], tcgplayer_id: 999999 });
++  }
++  const client = new FakeResolverClient(catalog.reverse());
++  const results = [];
++  for (const row of rows) results.push(await resolveTcgplayerVariant(client, {
++    productName: row.name, setCode: row.setCode, collectorNumber: row.collectorNumber,
++    condition: row.condition, finish: row.finish, lookupPrinting,
++  }));
++  assert.equal(results.filter((result) => result.status !== "matched").length, 0);
++  assert.deepEqual(rows, original);
++  results.forEach((result, index) => {
++    assert.equal(result.status, "matched");
++    if (result.status !== "matched") return;
++    assert.equal(result.tcgplayerId, 900000 + index * 10);
++    assert.equal(catalogProductId(result.row.photo_url), String(printingFixture.fixtures[index][3]));
++    const exported = parseCsv(exportCsv([{ ...rows[index], tcgplayerId: String(result.tcgplayerId), setName: result.row.set_name, name: result.row.product_name, collectorNumber: result.row.collector_number! }], "tcgplayer"));
++    assert.equal(exported.rows[0]["Number"], result.row.collector_number);
++    assert.equal(exported.rows[0]["Set Name"], result.row.set_name);
++    if (index < 4) {
++      assert.equal(result.diagnostics.stage, "special-printing");
++      assert.equal(result.diagnostics.collectorNumber, rows[index].collectorNumber);
++    }
++  });
++});
++
++test("List diagnostics expose compound parts and never substitute the original printing", async () => {
++  const client = new FakeResolverClient([mappedRecord(1, "Guilds of Ravnica: Guild Kits", "Darkblast", "51", "Near Mint")]);
++  const result = await resolveTcgplayerVariant(client, { productName: "Darkblast", setCode: "plst", collectorNumber: "GK1-51", condition: "NM", lookupPrinting: fixtureLookup() });
++  assert.equal(result.status, "unresolved");
++  assert.equal(result.status === "unresolved" && result.reasonCode, "PLST_COMPOUND_COLLECTOR_UNRESOLVED");
++  assert.equal(result.diagnostics.sourceSetCode, "gk1");
++  assert.equal(result.diagnostics.sourceCollectorNumber, "51");
++  assert.equal(result.diagnostics.collectorNumber, "GK1-51");
++  assert.deepEqual(parseListCollector(" gK1–51 "), { sourceSetCode: "gk1", sourceCollectorNumber: "51" });
++});
++
++test("a compound prefix must reference the same original card", async () => {
++  const responses = { ...printingFixture.responses, "https://api.scryfall.com/cards/gk1/51": { name: "Different card" } };
++  assert.equal(await fixtureLookup(responses)({ productName: "Darkblast", setCode: "plst", collectorNumber: "GK1-51" }), null);
++});
++
++test("exact SKU and product IDs precede conflicting textual printing metadata", async () => {
++  const client = new FakeResolverClient([{ ...mappedRecord(123, "Set A", "Card A", "1", "Near Mint"), photo_url: "https://tcgplayer-cdn.tcgplayer.com/product/456_200w.jpg" }]);
++  const sku = await resolveTcgplayerVariant(client, { productName: "Wrong name", setCode: "zzz", condition: "NM", tcgplayerId: " 000123 " });
++  assert.equal(sku.status === "matched" && sku.tcgplayerId, 123);
++  const product = await resolveTcgplayerVariant(client, { productName: "Wrong name", setCode: "zzz", condition: "NM", tcgplayerProductId: "000456" });
++  assert.equal(product.status === "matched" && product.tcgplayerId, 123);
++  assert.equal(catalogProductId("https://example.com/product/456_200w.jpg"), null);
++});
++
++test("different product IDs at the same name set and collector remain genuinely ambiguous", async () => {
++  const rows = [1, 2].map((id) => ({ ...mappedRecord(id, "Ravnica Allegiance: Guild Kits", "Azorius Herald", "2", "Near Mint"), photo_url: `https://tcgplayer-cdn.tcgplayer.com/product/${id}_200w.jpg` }));
++  const result = await resolveTcgplayerVariant(new FakeResolverClient(rows), { productName: "Azorius Herald", setCode: "gk2", collectorNumber: "2", condition: "NM" });
++  assert.equal(result.status, "ambiguous");
++});
++
++test("name-only fallback resolves a unique identity and retains ambiguity across sets", async () => {
++  const input = { productName: "Card A", condition: "NM" };
++  const row = mappedRecord(1, "Set A", "Card A", "1", "Near Mint");
++  assert.equal((await resolveTcgplayerVariant(new FakeResolverClient([row]), input)).status, "matched");
++  assert.equal((await resolveTcgplayerVariant(new FakeResolverClient([row, mappedRecord(2, "Set B", "Card A", "1", "Near Mint")]), input)).status, "ambiguous");
++});
++
++test("normalized Magic collector resolution accepts padding and set-size suffixes without editing input", async () => {
++  const input = { productName: "Azorius Herald", setCode: "gk2", collectorNumber: "2", condition: "NM" };
++  const result = await resolveTcgplayerVariant(new FakeResolverClient([mappedRecord(1, "Ravnica Allegiance: Guild Kits", "Azorius Herald", "002/133", "Near Mint")]), input);
++  assert.equal(result.status, "matched");
++  assert.equal(input.collectorNumber, "2");
++});
++
++test("unavailable List metadata retains structured compound diagnostics", async () => {
++  const result = await resolveTcgplayerVariant(new FakeResolverClient([]), {
++    productName: "Darkblast", setCode: "plst", collectorNumber: "GK1-51", condition: "NM",
++    lookupPrinting: async () => { throw new Error("Printing metadata lookup failed (503)."); },
++  });
++  assert.equal(result.status === "unresolved" && result.reasonCode, "PLST_COMPOUND_COLLECTOR_UNRESOLVED");
++  assert.match(result.diagnostics.lookupError!, /503/);
++  assert.equal(result.diagnostics.sourceSetCode, "gk1");
++});
++
++test("a linked external List product missing from the SKU catalog keeps compound diagnostics", async () => {
++  const result = await resolveTcgplayerVariant(new FakeResolverClient([]), {
++    productName: "Darkblast", setCode: "plst", collectorNumber: "GK1-51", condition: "NM", tcgplayerProductId: "203631", lookupPrinting: fixtureLookup(),
++  });
++  assert.equal(result.status === "unresolved" && result.reasonCode, "PLST_COMPOUND_COLLECTOR_UNRESOLVED");
++  assert.equal(result.diagnostics.sourceSetCode, "gk1");
++});
+ const CSV_HEADER = [
+   "TCGplayer Id",
+   "Product Line",

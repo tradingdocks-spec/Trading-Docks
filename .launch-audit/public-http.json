@@ -1,0 +1,62 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/pricing",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/sign-up?plan=seller",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/security",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/privacy",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/terms",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/sitemap.xml",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/robots.txt",
+    "status": 200,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/dashboard",
+    "status": 307,
+    "location": "/sign-in?next=%2Fdashboard",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  },
+  {
+    "path": "/api/health",
+    "status": 401,
+    "location": "",
+    "permissions": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+  }
+]

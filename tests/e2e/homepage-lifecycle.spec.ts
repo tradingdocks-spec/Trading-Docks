@@ -52,3 +52,4 @@ test('mobile menu supports escape and restores keyboard focus', async ({ page })
   await expect(page.getByRole('navigation', { name: 'Primary site navigation' })).toBeVisible();
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
 });
+

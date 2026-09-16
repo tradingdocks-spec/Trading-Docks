@@ -1,0 +1,32 @@
+[
+  {
+    "width": 1728,
+    "height": 5586,
+    "overflow": false,
+    "ctaBottom": 593.359375
+  },
+  {
+    "width": 1440,
+    "height": 5562,
+    "overflow": false,
+    "ctaBottom": 579.03125
+  },
+  {
+    "width": 1024,
+    "height": 5505,
+    "overflow": false,
+    "ctaBottom": 522.75
+  },
+  {
+    "width": 768,
+    "height": 7037,
+    "overflow": false,
+    "ctaBottom": 457.96875
+  },
+  {
+    "width": 390,
+    "height": 9037,
+    "overflow": false,
+    "ctaBottom": 417.65625
+  }
+]

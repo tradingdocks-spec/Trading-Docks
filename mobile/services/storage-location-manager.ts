@@ -162,32 +162,6 @@ export function cardsInLocation(cards: CollectionCard[], locationId: string) {
   return cards.filter((card) => card.storageLocation?.id === locationId);
 }
 
-export function cardsInLocationTree(cards: CollectionCard[], locationId: string, locations: StorageLocation[]) {
-  const ids = descendantLocationIds(locationId, locations);
-  return cards.filter((card) => card.storageLocation?.id && ids.has(card.storageLocation.id));
-}
-
-export function descendantLocationIds(locationId: string, locations: StorageLocation[]) {
-  const childrenByParent = new Map<string, string[]>();
-  for (const location of locations) {
-    if (!location.parentId) continue;
-    const current = childrenByParent.get(location.parentId) ?? [];
-    current.push(location.id);
-    childrenByParent.set(location.parentId, current);
-  }
-  const ids = new Set<string>([locationId]);
-  const queue = [locationId];
-  while (queue.length) {
-    const current = queue.shift() as string;
-    for (const childId of childrenByParent.get(current) ?? []) {
-      if (ids.has(childId)) continue;
-      ids.add(childId);
-      queue.push(childId);
-    }
-  }
-  return ids;
-}
-
 export function validateLocationOwnership({
   requestedUserId,
   authenticatedUserId,

@@ -12,3 +12,21 @@ test('partial OCR fragments resolve local Magic name candidates', () => {
   assert.equal(matchMagicCardName(index, 'Slav').entry?.name, 'Slave of Bolas');
   assert.ok(matchMagicCardName(index, 'Slay').entry, 'expected a candidate for exact short title fragment');
 });
+
+test('required real-device acceptance names exist in the local index', () => {
+  resetMagicNameIndexForTests();
+  const index = prewarmMagicNameIndex();
+
+  assert.ok(index.records.some((record) => record.name === 'Goblin Electromancer'));
+  assert.ok(index.records.some((record) => record.name === 'Raff Security Officer'));
+  assert.ok(index.records.some((record) => record.name === 'Chastise'));
+});
+
+test('fuzzy title fragments resolve the observed acceptance cards', () => {
+  resetMagicNameIndexForTests();
+  const index = prewarmMagicNameIndex();
+
+  assert.equal(matchMagicCardName(index, 'Goblin Electro').entry?.name, 'Goblin Electromancer');
+  assert.equal(matchMagicCardName(index, 'Raff Security Off').entry?.name, 'Raff Security Officer');
+  assert.equal(matchMagicCardName(index, 'Chasti').entry?.name, 'Chastise');
+});

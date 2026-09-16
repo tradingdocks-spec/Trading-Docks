@@ -30,7 +30,6 @@ export async function loadWebStorageLocationManager() {
       .from("inventory_items")
       .select("id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
       .eq("user_id", userId)
-      .gt("quantity", 0)
       .order("updated_at", { ascending: false })
       .limit(500),
   ]);
@@ -95,16 +94,23 @@ export async function assignWebStorageLocation(assignment: LocationAssignment) {
   const validation = validateLocationAssignment({ assignment, authenticatedUserId: userId, locations });
   if (!validation.ok) throw new Error(validation.reason);
   if (!rawItems.some((item) => item.id === assignment.inventoryItemId)) throw new Error("Choose one of your collection records.");
-  const { error } = await supabase.rpc("apply_collector_inventory_mutation", {
-    p_inventory_item_id: assignment.inventoryItemId,
-    p_mutation_type: "storage",
-    p_quantity: null,
-    p_condition: null,
-    p_finish: null,
-    p_location_id: assignment.toLocationId,
-    p_idempotency_key: `storage:${assignment.inventoryItemId}:${assignment.toLocationId ?? "unassigned"}:${new Date().toISOString()}`,
-    p_source: "collector_workspace",
-  });
+  const { data: item, error: itemError } = await supabase
+    .from("inventory_items")
+    .select("data")
+    .eq("user_id", userId)
+    .eq("id", assignment.inventoryItemId)
+    .maybeSingle();
+  if (itemError) throw new Error(itemError.message);
+  const previousData = isRecord(item?.data) ? item.data : {};
+  const { error } = await supabase
+    .from("inventory_items")
+    .update({
+      location_id: assignment.toLocationId,
+      data: locationDataPatch(previousData, { locationId: assignment.toLocationId, locationMovedAt: new Date().toISOString() }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("id", assignment.inventoryItemId);
   if (error) throw new Error(error.message);
 }
 
@@ -119,4 +125,8 @@ async function authLocationContext() {
   ]);
   const locations = ((rawLocations ?? []) as RawInventoryLocation[]).map((location) => buildStorageLocation(userId, location));
   return { supabase, userId, rawLocations: (rawLocations ?? []) as RawInventoryLocation[], rawItems: (rawItems ?? []) as RawInventoryItem[], locations };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText, TDToast } from '@/components/design-system';
 import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
@@ -14,30 +14,26 @@ import { finishLabel, supportedVisibleFinishes } from '@/services/exact-printing
 import { supabase } from '@/lib/supabase';
 import { addScannerCardsToMobileDeck, loadMobileDeckVault, type DeckRecord } from '@/services/mobile-deck-vault';
 import {
-  applyScannerDestinationPreference,
   buildScannerCollectionConfirmation,
-  buildScannerDestinationPreference,
   bulkUpdateSessionLines,
   calculateSessionTotals,
-  cardShowOfferPreview,
   continuousScannerSessionKey,
   defaultSessionReviewFilters,
   editScannerSessionLine,
   filterSessionReviewLines,
   formatSessionReviewMoney,
   readySessionLines,
-  removeScannerSessionLine,
+  removeScannerSessionLines,
+  restoreRemovedScannerSessionLine,
   scannerDestinationLabel,
   sessionFinalizeEligibility,
   sessionGameLabel,
   sessionReviewStatusLabel,
   destinationSyncStatusLabel,
-  updateCardShowOfferRate,
   updateScannerSessionLineFinish,
   updateScannerSessionLinePrinting,
   updateSessionLineDestinationSync,
   type ContinuousScannerSession,
-  type ScannerDestinationType,
   type ScannerSessionLine,
   type SessionReviewFilterState,
 } from '@/services/continuous-offer-scanner';
@@ -63,6 +59,13 @@ export default function ScannerSessionReview() {
   const [storageLocations, setStorageLocations] = useState<LocationSummary[]>([]);
   const [destinationsLoading, setDestinationsLoading] = useState(true);
   const [destinationPicker, setDestinationPicker] = useState<null | { kind: 'deck' | 'storage_location'; lineIds: string[] }>(null);
+  const [sessionToast, setSessionToast] = useState<null | {
+    message: string;
+    tone: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+    actionLabel?: string;
+    onAction?: () => void;
+  }>(null);
+  const sessionToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -93,6 +96,15 @@ export default function ScannerSessionReview() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (sessionToastTimerRef.current) {
+        clearTimeout(sessionToastTimerRef.current);
+        sessionToastTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!userId || !session) return;
     void appStorage.setItem(continuousScannerSessionKey(userId), JSON.stringify(session));
   }, [session, userId]);
@@ -114,6 +126,17 @@ export default function ScannerSessionReview() {
   const selectedLines = session?.lines.filter((line) => selectedLineIds.includes(line.id)) ?? [];
   const selectedCardCount = selectedLines.reduce((sum, line) => sum + line.quantity, 0);
   const selectedReadyCardCount = selectedLines.filter((line) => line.reviewStatus !== 'needs_review').reduce((sum, line) => sum + line.quantity, 0);
+
+  const showSessionToast = (toast: NonNullable<typeof sessionToast>) => {
+    setSessionToast(toast);
+    if (sessionToastTimerRef.current) {
+      clearTimeout(sessionToastTimerRef.current);
+    }
+    sessionToastTimerRef.current = setTimeout(() => {
+      setSessionToast(null);
+      sessionToastTimerRef.current = null;
+    }, 2600);
+  };
 
   const finalizeSession = async () => {
     if (!session || !finalize?.canFinalize || !userId || finalizing) return;
@@ -200,6 +223,31 @@ export default function ScannerSessionReview() {
   };
   const selectAllVisible = () => setSelectedLineIds(visibleLines.map((line) => line.id));
 
+  const removeLines = (lineIds: string[]) => {
+    if (!session || !lineIds.length) return;
+    const removedLines = session.lines.filter((line) => lineIds.includes(line.id));
+    if (!removedLines.length) return;
+    setSession(removeScannerSessionLines(session, lineIds));
+    setSelectedLineIds((current) => current.filter((lineId) => !lineIds.includes(lineId)));
+    if (selectedLineId && lineIds.includes(selectedLineId)) {
+      setSelectedLineId(null);
+    }
+    showSessionToast({
+      message: removedLines.length === 1 ? `Removed ${removedLines[0].cardName}` : `Removed ${removedLines.length} cards`,
+      tone: 'warning',
+      actionLabel: 'Undo',
+      onAction: () => {
+        setSession((current) => {
+          if (!current) return current;
+          return lineIds.reduce((acc, lineId) => restoreRemovedScannerSessionLine(acc, lineId), current);
+        });
+        setSessionToast(null);
+      },
+    });
+  };
+
+  const removeLine = (lineId: string) => removeLines([lineId]);
+
   const updateSelectedLines = (patch: Parameters<typeof bulkUpdateSessionLines>[2]) => {
     if (!session || !selectedLineIds.length) return;
     setSession(bulkUpdateSessionLines(session, selectedLineIds, patch));
@@ -259,22 +307,7 @@ export default function ScannerSessionReview() {
                 reviewCount={reviewCardCount}
                 offerTotal={totals?.cashOffer ?? null}
               />
-              <SessionDestinationPanel
-                session={session}
-                onDestinationChange={(destination) => setSession(applyScannerDestinationPreference(session, buildScannerDestinationPreference({ destination })))}
-                onOfferRateChange={(rate) => setSession(updateCardShowOfferRate(session, rate))}
-              />
               <SessionStatusTabs value={filters.status} onChange={(status) => setFilters((current) => ({ ...current, status }))} />
-              <SessionBatchActions
-                selectedCount={selectedLineIds.length}
-                totalCount={visibleLines.length}
-                onAssignCollection={assignCollection}
-                onAssignTradeBinder={assignTradeBinder}
-                onAssignDeck={() => setDestinationPicker({ kind: 'deck', lineIds: selectedLineIds.slice() })}
-                onAssignStorage={() => setDestinationPicker({ kind: 'storage_location', lineIds: selectedLineIds.slice() })}
-                onSelectAll={selectAllVisible}
-                onClear={clearSelection}
-              />
               <SessionDestinationSummary summary={destinationSummary} reviewCount={reviewCardCount} readyCount={readyCardCount} />
               {syncNotice ? <SessionNotice tone="info" icon="cloud-offline-outline" message={syncNotice} /> : null}
               {syncError ? <SessionNotice tone="warning" icon="alert-circle-outline" message={syncError} /> : null}
@@ -287,6 +320,7 @@ export default function ScannerSessionReview() {
               selected={selectedLineIds.includes(item.id)}
               onPress={() => (selectedLineIds.length ? toggleSelectedLine(item.id) : setSelectedLineId(item.id))}
               onToggleSelect={() => toggleSelectedLine(item.id)}
+              onRemove={() => removeLine(item.id)}
             />
           )}
           ListEmptyComponent={(
@@ -303,14 +337,33 @@ export default function ScannerSessionReview() {
             onAssignTradeBinder={assignTradeBinder}
             onAssignDeck={() => setDestinationPicker({ kind: 'deck', lineIds: selectedLineIds.slice() })}
             onAssignStorage={() => setDestinationPicker({ kind: 'storage_location', lineIds: selectedLineIds.slice() })}
+            onRemove={() => removeLines(selectedLineIds.slice())}
             onClear={clearSelection}
           />
+        ) : null}
+        {sessionToast ? (
+          <View style={s.toastWrap}>
+            <TDToast
+              message={sessionToast.message}
+              tone={sessionToast.tone}
+              action={sessionToast.actionLabel && sessionToast.onAction ? (
+                <TDButton
+                  label={sessionToast.actionLabel}
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => {
+                    sessionToast.onAction?.();
+                    setSessionToast(null);
+                  }}
+                />
+              ) : null}
+            />
+          </View>
         ) : null}
         <SessionFinalizeBar
           bottomInset={insets.bottom}
           canFinalize={Boolean(finalize?.canFinalize)}
           finalizeReason={finalize?.reason ?? ''}
-          destinationSummary={destinationSummary}
           readyCount={readyCardCount}
           reviewCount={reviewCardCount}
           finalizing={finalizing}
@@ -326,8 +379,7 @@ export default function ScannerSessionReview() {
           setSession(editScannerSessionLine(session, lineId, patch));
         }}
         onRemove={(lineId) => {
-          if (!session) return;
-          setSession(removeScannerSessionLine(session, lineId));
+          removeLine(lineId);
           setSelectedLineId(null);
         }}
       />
@@ -396,12 +448,12 @@ function SessionReviewHeader({
     <View style={s.header}>
       <TDIconButton label="Back to scanner" iconName="chevron-back" onPress={onBack} size="sm" />
       <View style={s.headerCopy}>
-        <TDText variant="heading" numberOfLines={1}>Scanner session</TDText>
-        <TDText variant="small" tone="muted" numberOfLines={1}>{`Session • ${cardCount} cards • ${readyCount} ready`}</TDText>
+        <TDText variant="heading" numberOfLines={1}>Session</TDText>
+        <TDText variant="small" tone="muted" numberOfLines={1}>{`${cardCount} cards • ${reviewCount} review`}</TDText>
       </View>
       {selectedCount > 0 ? <TDBadge tone="info">{selectedCount} selected</TDBadge> : <TDBadge tone={reviewCount ? 'warning' : 'success'}>{readyCount} ready</TDBadge>}
       <View style={s.headerActions}>
-        <TDButton label="Select all" size="sm" variant="secondary" onPress={onSelectAll} />
+        <TDButton label="Select" size="sm" variant="secondary" onPress={onSelectAll} />
         <TDButton label="Clear" size="sm" variant="secondary" onPress={onClearSelection} />
       </View>
     </View>
@@ -456,98 +508,6 @@ function SummaryItem({ label, value, tone = 'muted' }: { label: string; value: s
   );
 }
 
-function SessionDestinationPanel({
-  session,
-  onDestinationChange,
-  onOfferRateChange,
-}: {
-  session: ContinuousScannerSession;
-  onDestinationChange: (destination: ScannerDestinationType) => void;
-  onOfferRateChange: (rate: number) => void;
-}) {
-  const [rateText, setRateText] = useState(String(session.offerConfig.defaultCashPercentage));
-  useEffect(() => setRateText(String(session.offerConfig.defaultCashPercentage)), [session.offerConfig.defaultCashPercentage]);
-  const previewLine = session.lines.find((line) => line.marketPrice !== null) ?? session.lines[0] ?? null;
-  const preview = cardShowOfferPreview({
-    marketPrice: previewLine?.marketPrice ?? null,
-    quantity: previewLine?.quantity ?? 1,
-    offerRate: Number(rateText),
-  });
-  return (
-    <View style={s.destinationPanel}>
-      <View style={s.destinationHeader}>
-        <View style={s.flex}>
-          <TDText variant="small">Scan into: {scannerDestinationLabel(session.defaultDestination)}</TDText>
-          <TDText variant="caption" tone="muted">New scans inherit this destination until changed.</TDText>
-        </View>
-        <TDBadge tone={session.mode === 'card_show_purchase' ? 'success' : 'info'}>{session.mode === 'card_show_purchase' ? 'Card Show' : 'Session'}</TDBadge>
-      </View>
-      <View style={s.destinationButtons}>
-        {(['collection', 'trade_binder', 'deck', 'storage_location'] as ScannerDestinationType[]).map((destination) => (
-          <TDButton
-            key={destination}
-            label={scannerDestinationLabel(destination)}
-            size="sm"
-            variant={session.defaultDestination === destination ? 'primary' : 'secondary'}
-            onPress={() => onDestinationChange(destination)}
-          />
-        ))}
-      </View>
-      <View style={s.cardShowPanel}>
-        <View style={s.flex}>
-          <TDText variant="small">Card Show Mode</TDText>
-          <TDText variant="caption" tone="muted">{preview.marketLabel} - Offer @ {preview.rate}%: {preview.offerLabel}</TDText>
-        </View>
-        <TDInput
-          label="Offer %"
-          value={rateText}
-          keyboardType="numeric"
-          onChangeText={(value) => {
-            setRateText(value);
-            const parsed = Number(value);
-            if (Number.isFinite(parsed)) onOfferRateChange(parsed);
-          }}
-          containerStyle={s.rateInput}
-        />
-      </View>
-    </View>
-  );
-}
-
-function SessionBatchActions({
-  selectedCount,
-  totalCount,
-  onAssignCollection,
-  onAssignTradeBinder,
-  onAssignDeck,
-  onAssignStorage,
-  onSelectAll,
-  onClear,
-}: {
-  selectedCount: number;
-  totalCount: number;
-  onAssignCollection: () => void;
-  onAssignTradeBinder: () => void;
-  onAssignDeck: () => void;
-  onAssignStorage: () => void;
-  onSelectAll: () => void;
-  onClear: () => void;
-}) {
-  return (
-    <View style={s.batchActions}>
-      <TDText variant="caption" tone="muted">{selectedCount ? `${selectedCount} selected` : `${totalCount} visible`}</TDText>
-      <View style={s.batchButtons}>
-        <TDButton label="Select all" size="sm" variant="secondary" onPress={onSelectAll} />
-        <TDButton label="Collection" size="sm" variant="secondary" onPress={onAssignCollection} />
-        <TDButton label="Trade Binder" size="sm" variant="secondary" onPress={onAssignTradeBinder} />
-        <TDButton label="Deck" size="sm" variant="secondary" onPress={onAssignDeck} />
-        <TDButton label="Storage" size="sm" variant="secondary" onPress={onAssignStorage} />
-        <TDButton label="Clear" size="sm" variant="secondary" onPress={onClear} />
-      </View>
-    </View>
-  );
-}
-
 type SessionDestinationSummaryModel = {
   collection: number;
   tradeBinder: number;
@@ -573,12 +533,14 @@ function SessionCardRow({
   selected,
   onPress,
   onToggleSelect,
+  onRemove,
 }: {
   line: ScannerSessionLine;
   storageLocations: LocationSummary[];
   selected: boolean;
   onPress: () => void;
   onToggleSelect: () => void;
+  onRemove: () => void;
 }) {
   const imageUrl = line.recognition.topCandidate?.imageUrl ?? null;
   const destination = destinationLabelForLine(line, storageLocations);
@@ -599,25 +561,28 @@ function SessionCardRow({
         {selected ? <Ionicons name="checkbox" size={20} color={color.primaryBright} /> : <Ionicons name="square-outline" size={20} color={color.textMuted} />}
         {imageUrl ? <Image source={{ uri: imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.cardImageMissing}><Ionicons name="image-outline" size={22} color={color.textMuted} /></View>}
       </View>
-        <View style={s.cardCopy}>
-          <View style={s.cardTopLine}>
-            <TDText variant="title" numberOfLines={1} style={s.cardName}>{line.cardName}</TDText>
-            <View style={s.cardBadges}>
-              <TDBadge tone="info">{destination}</TDBadge>
-              {line.destinationSyncState !== 'local_only' ? <TDBadge tone={destinationSyncTone}>{destinationSyncStatusLabel(line.destinationSyncState)}</TDBadge> : null}
-            </View>
-          </View>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} • #{line.collectorNumber ?? '?'}</TDText>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)} • x{line.quantity}</TDText>
-          <View style={s.cardValues}>
-            <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
-            <ValuePair label="Condition" value={displayCondition(line.condition)} />
-            <ValuePair label="Finish" value={displayFinish(String(line.finish) as never)} />
-            <ValuePair label="Status" value={sessionReviewStatusLabel(line.reviewStatus)} />
-          </View>
+      <View style={s.cardCopy}>
+        <View style={s.cardTopLine}>
+          <TDText variant="small" numberOfLines={2} style={s.cardName}>{line.cardName}</TDText>
+          {selected ? <TDBadge tone="info">Selected</TDBadge> : null}
         </View>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{line.setCode ?? 'Set unavailable'} • #{line.collectorNumber ?? '?'}</TDText>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)} • x{line.quantity}</TDText>
+        <View style={s.cardValues}>
+          <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
+          <ValuePair label="Destination" value={destination} />
+          <ValuePair label="Status" value={sessionReviewStatusLabel(line.reviewStatus)} />
+        </View>
+        <View style={s.cardFooterBadges}>
+          {line.destinationSyncState !== 'local_only' ? <TDBadge tone={destinationSyncTone}>{destinationSyncStatusLabel(line.destinationSyncState)}</TDBadge> : null}
+          <TDBadge tone={line.reviewStatus === 'needs_review' ? 'warning' : 'success'}>{line.reviewStatus === 'needs_review' ? 'Printing review needed' : 'Ready'}</TDBadge>
+        </View>
+      </View>
+      <View style={s.cardActions}>
+        <TDIconButton label={`Remove ${line.cardName}`} iconName="trash-outline" onPress={onRemove} size="sm" tone="danger" />
         <Ionicons name="chevron-forward" size={18} color={color.textMuted} />
-      </Pressable>
+      </View>
+    </Pressable>
   );
 }
 
@@ -647,6 +612,7 @@ function SessionBulkBar({
   onAssignTradeBinder,
   onAssignDeck,
   onAssignStorage,
+  onRemove,
   onClear,
 }: {
   count: number;
@@ -655,6 +621,7 @@ function SessionBulkBar({
   onAssignTradeBinder: () => void;
   onAssignDeck: () => void;
   onAssignStorage: () => void;
+  onRemove: () => void;
   onClear: () => void;
 }) {
   return (
@@ -665,6 +632,7 @@ function SessionBulkBar({
         <TDButton label="Trade Binder" size="sm" variant="secondary" onPress={onAssignTradeBinder} />
         <TDButton label="Deck" size="sm" variant="secondary" onPress={onAssignDeck} />
         <TDButton label="Storage" size="sm" variant="secondary" onPress={onAssignStorage} />
+        <TDButton label="Remove" size="sm" variant="danger" onPress={onRemove} />
         <TDButton label="Clear" size="sm" variant="secondary" onPress={onClear} />
       </View>
     </View>
@@ -699,7 +667,6 @@ function SessionFinalizeBar({
   bottomInset,
   canFinalize,
   finalizeReason,
-  destinationSummary,
   readyCount,
   reviewCount,
   finalizing,
@@ -708,7 +675,6 @@ function SessionFinalizeBar({
   bottomInset: number;
   canFinalize: boolean;
   finalizeReason: string;
-  destinationSummary: SessionDestinationSummaryModel | null;
   readyCount: number;
   reviewCount: number;
   finalizing: boolean;
@@ -717,14 +683,15 @@ function SessionFinalizeBar({
   return (
     <View style={[s.finalizeBar, { paddingBottom: Math.max(bottomInset, space.sm) }]}>
       <View style={s.finalizeAction}>
-        <TDText variant="small">{`${readyCount} ready cards`}</TDText>
-        {destinationSummary ? (
-          <View style={s.finalizeSummaryWrap}>
-            <SessionDestinationSummary summary={destinationSummary} readyCount={readyCount} reviewCount={reviewCount} />
-          </View>
-        ) : null}
-        <TDButton label={`Store ${readyCount} ready cards`} size="sm" loading={finalizing} disabled={!canFinalize || finalizing} onPress={onFinalize} />
-        <TDText variant="caption" tone={canFinalize ? 'success' : 'muted'} numberOfLines={1}>{finalizeReason}</TDText>
+        {readyCount > 0 ? (
+          <>
+            <TDText variant="small">{`${readyCount} ready cards`}</TDText>
+            <TDButton label={`Store ${readyCount} cards`} size="sm" loading={finalizing} disabled={!canFinalize || finalizing} onPress={onFinalize} />
+            <TDText variant="caption" tone={canFinalize ? 'success' : 'muted'} numberOfLines={1}>{finalizeReason}</TDText>
+          </>
+        ) : (
+          <TDText variant="small" tone="muted" numberOfLines={2}>{reviewCount > 0 ? `${reviewCount} cards still need printing review.` : finalizeReason}</TDText>
+        )}
       </View>
     </View>
   );
@@ -807,8 +774,6 @@ function CardReviewSheet({
   const [marketPrice, setMarketPrice] = useState('');
   const [purchasePercentage, setPurchasePercentage] = useState('70');
   const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
-  const [removeArmed, setRemoveArmed] = useState(false);
-  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!line) return;
@@ -816,7 +781,6 @@ function CardReviewSheet({
     setMarketPrice(line.marketPrice === null ? '' : String(line.marketPrice));
     setPurchasePercentage(String(line.purchasePercentage));
     setPrintingSelectorOpen(false);
-    setRemoveArmed(false);
   }, [line]);
 
   if (!line) return null;
@@ -834,19 +798,6 @@ function CardReviewSheet({
       purchasePercentage: parsedRate,
       reviewStatus: markReviewed ? 'confirmed' : line.reviewStatus,
     });
-  };
-
-  const handleRemovePress = () => {
-    if (removeArmed) {
-      onRemove(line.id);
-      return;
-    }
-    setRemoveArmed(true);
-    if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
-    removeTimerRef.current = setTimeout(() => {
-      setRemoveArmed(false);
-      removeTimerRef.current = null;
-    }, 1800);
   };
 
   return (
@@ -909,7 +860,7 @@ function CardReviewSheet({
               <TDButton label="View other printings" variant="secondary" disabled={!activeCandidate} onPress={() => setPrintingSelectorOpen(true)} />
               <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and next' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
               <View style={s.compactDestructiveZone}>
-                <TDButton label={removeArmed ? 'Tap again to remove' : 'Remove card'} variant="danger" onPress={handleRemovePress} />
+                <TDButton label="Remove card" variant="danger" onPress={() => onRemove(line.id)} />
               </View>
             </ScrollView>
           </TDSheet>
@@ -1010,9 +961,9 @@ async function loadUserSession() {
 
 const statusOptions: { value: SessionReviewFilterState['status']; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'needs_review', label: 'Needs review' },
+  { value: 'needs_review', label: 'Review' },
+  { value: 'suggested', label: 'Ready' },
   { value: 'confirmed', label: 'Done' },
-  { value: 'suggested', label: 'Suggested' },
 ];
 
 const s = StyleSheet.create({
@@ -1024,7 +975,7 @@ const s = StyleSheet.create({
   header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   headerCopy: { flex: 1, minWidth: 0, gap: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  summaryRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
+  summaryRow: { minHeight: 54, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
   summaryItem: { flex: 1, minWidth: 0, gap: 2 },
   destinationPanel: { gap: space.sm, borderRadius: radius.lg, padding: space.sm, backgroundColor: color.canvasRaised },
   destinationHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
@@ -1036,18 +987,20 @@ const s = StyleSheet.create({
   syncNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.info + '10' },
   reviewNext: { minHeight: 60, borderRadius: radius.lg, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating },
   reviewNextIcon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '14' },
-  cardRow: { minHeight: 98, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
-  cardRowSelected: { backgroundColor: color.primaryBright + '10' },
+  cardRow: { minHeight: 106, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
+  cardRowSelected: { backgroundColor: color.primaryBright + '10', borderLeftWidth: 3, borderLeftColor: color.primaryBright },
   pressedRow: { opacity: 0.82 },
-  cardRowLead: { width: 70, alignItems: 'flex-start', gap: 4 },
+  cardRowLead: { width: 68, alignItems: 'center', gap: 4 },
   cardImage: { width: 50, height: 70, borderRadius: radius.sm, backgroundColor: color.surface },
   cardImageMissing: { width: 50, height: 70, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   cardCopy: { flex: 1, minWidth: 0, gap: 3 },
   cardTopLine: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
   cardName: { flex: 1, minWidth: 0 },
   cardBadges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 4 },
+  cardFooterBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingTop: 2 },
   cardValues: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingTop: 2 },
   valuePair: { minWidth: 74, gap: 1 },
+  cardActions: { width: 44, alignItems: 'center', justifyContent: 'center', gap: 8 },
   modalScrim: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000080' },
   sheetDock: { justifyContent: 'flex-end' },
   modalSheet: { maxHeight: '88%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
@@ -1066,6 +1019,7 @@ const s = StyleSheet.create({
   pickerRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surface },
   bulkBar: { gap: space.xs, borderRadius: radius.lg, padding: space.sm, backgroundColor: color.canvasRaised },
   bulkBarActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  toastWrap: { position: 'absolute', left: space.md, right: space.md, bottom: 104 },
   finalizeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 92, borderTopWidth: 1, borderTopColor: color.borderStrong, paddingHorizontal: space.md, paddingTop: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.surfaceFloating },
   finalizeAction: { flex: 1, gap: 4 },
   finalizeSummaryWrap: { gap: 2 },

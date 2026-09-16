@@ -1,0 +1,622 @@
+diff --git a/src/app/dashboard/plans/TieredPlanComparison.tsx b/src/app/dashboard/plans/TieredPlanComparison.tsx
+index 9611b01..a0607dd 100644
+--- a/src/app/dashboard/plans/TieredPlanComparison.tsx
++++ b/src/app/dashboard/plans/TieredPlanComparison.tsx
+@@ -52,9 +52,9 @@ const plans: Plan[] = [
+     id: "store",
+     name: "Store",
+     motion: "Operate",
+-    audience: "Store teams",
+-    description: "Shared buying profiles, approvals, customer summaries, staff, and operations.",
+-    annualNote: "Employee capacity pending configuration",
++    audience: "Store operators",
++    description: "Buying profiles, approvals, customer summaries, inventory, and store operations.",
++    annualNote: "Employee accounts not yet available",
+   },
+ ];
+ 
+@@ -68,7 +68,7 @@ const comparisonRows = [
+   { label: "CSV/email export", values: ["No", "No", "Yes", "Yes"] },
+   { label: "Business intelligence", values: ["No", "No", "Seller view", "Store view"] },
+   { label: "Store operations", values: ["No", "No", "No", "Yes"] },
+-  { label: "Employee accounts", values: ["No", "No", "No", "Configurable"] },
++  { label: "Employee accounts", values: ["No", "No", "No", "Not yet available"] },
+ ];
+ 
+ function formatPrice(value: number) {
+@@ -103,13 +103,14 @@ export function TieredPlanComparison({
+   publicView?: boolean;
+ }) {
+   const [billing, setBilling] = useState<BillingCycle>("monthly");
++  const Container = publicView ? "main" : "div";
+ 
+   return (
+-    <div className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
++    <Container className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
+       <div className="mx-auto max-w-[1480px]">
+         <Link
+           href={publicView ? "/" : "/dashboard"}
+-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-cyan-200"
++          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
+         >
+           <ArrowLeft className="h-4 w-4" />
+           {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
+@@ -119,26 +120,27 @@ export function TieredPlanComparison({
+           <div className="max-w-3xl">
+             <p className="text-sm font-medium text-cyan-200">Pricing</p>
+             <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl">
+-              Choose by workflow, not by a feature-card wall.
++              Choose the plan that fits your collection.
+             </h1>
+-            <p className="mt-5 text-base leading-8 text-slate-500">
++            <p className="mt-5 text-base leading-8 text-slate-400">
+               Trading Docks progresses from collection organization to market
+-              understanding, selling operations, and store management. Billing
+-              changes the workspace surface; platform authority remains separate.
++              understanding, selling operations, and store management. Compare
++              the included tools and choose monthly or annual billing.
+             </p>
+           </div>
+ 
+-          <div className="flex w-fit items-center border border-white/[0.1] p-1">
++          <div className="flex w-fit items-center border border-white/[0.1] p-1" role="group" aria-label="Billing cycle">
+             {(["monthly", "annual"] as const).map((cycle) => (
+               <button
+                 key={cycle}
+                 type="button"
+                 onClick={() => setBilling(cycle)}
++                aria-pressed={billing === cycle}
+                 className={[
+                   "h-10 px-4 text-sm font-semibold capitalize transition",
+                   billing === cycle
+                     ? "bg-cyan-300 text-[#01131a]"
+-                    : "text-slate-500 hover:text-white",
++                    : "text-slate-400 hover:text-white",
+                 ].join(" ")}
+               >
+                 {cycle}
+@@ -161,7 +163,7 @@ export function TieredPlanComparison({
+                 className="border-b border-white/[0.08] py-7 lg:border-b-0 lg:border-r lg:px-6 lg:last:border-r-0"
+               >
+                 <div className="flex min-h-6 items-center justify-between gap-4">
+-                  <span className="text-xs text-slate-600">
++                  <span className="text-xs text-slate-400">
+                     {String(index + 1).padStart(2, "0")}
+                   </span>
+                   {plan.recommended ? (
+@@ -174,18 +176,18 @@ export function TieredPlanComparison({
+                 <h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
+                   {plan.name}
+                 </h2>
+-                <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
++                <p className="mt-1 text-sm text-slate-400">{plan.audience}</p>
+                 <div className="mt-7">
+                   <span className="text-4xl font-semibold tracking-[-0.05em]">
+                     {displayPrice(plan, billing)}
+                   </span>
+-                  <span className="ml-2 text-sm text-slate-600">/ month</span>
++                  <span className="ml-2 text-sm text-slate-400">/ month</span>
+                 </div>
+-                <p className="mt-2 text-xs text-slate-600">{billingDetail(plan, billing)}</p>
++                <p className="mt-2 text-xs text-slate-400">{billingDetail(plan, billing)}</p>
+                 <p className="mt-5 min-h-[96px] text-sm leading-6 text-slate-400">
+                   {plan.description}
+                 </p>
+-                <p className="mt-3 text-xs leading-5 text-slate-600">{plan.annualNote}</p>
++                <p className="mt-3 text-xs leading-5 text-slate-400">{plan.annualNote}</p>
+ 
+                 {publicView ? (
+                   <Link
+@@ -230,18 +232,18 @@ export function TieredPlanComparison({
+           })}
+         </section>
+ 
+-        <section className="grid gap-8 py-10 lg:grid-cols-[300px_1fr]">
++        <section className="grid min-w-0 gap-8 py-10 lg:grid-cols-[300px_minmax(0,1fr)]">
+           <div>
+             <p className="text-sm font-semibold text-white">Capability matrix</p>
+-            <p className="mt-3 text-sm leading-6 text-slate-600">
+-              Compact by design. The important question is what workflow becomes
+-              available at each stage.
++            <p className="mt-3 text-sm leading-6 text-slate-400">
++              Compare the tools and limits included with each plan.
+             </p>
+           </div>
+-          <div className="overflow-x-auto">
++          <div className="min-w-0 overflow-x-auto" role="region" aria-label="Full plan comparison" tabIndex={0}>
+             <table className="w-full min-w-[860px] border-collapse text-left">
++              <caption className="sr-only">Plan features and limits.</caption>
+               <thead>
+-                <tr className="border-b border-white/[0.08] text-xs text-slate-600">
++                <tr className="border-b border-white/[0.08] text-xs text-slate-400">
+                   <th className="py-3 pr-6 font-medium">Capability</th>
+                   {plans.map((plan) => (
+                     <th key={plan.id} className="px-4 py-3 font-medium">
+@@ -258,7 +260,7 @@ export function TieredPlanComparison({
+                   >
+                     <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
+                     {row.values.map((value, index) => (
+-                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-500">
++                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-400">
+                         {value}
+                       </td>
+                     ))}
+@@ -273,15 +275,15 @@ export function TieredPlanComparison({
+           {[
+             ["No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
+             ["Upgrade without rebuilding", "Your workspace history, inventory, and account identity stay intact."],
+-            ["Owner access stays separate", "Platform Owner/Admin authority is not faked as a commercial subscription."],
++            ["Employee accounts", "Employee access is not yet available. Store pricing does not include active employee seats."],
+           ].map(([title, copy]) => (
+             <div key={title} className="border-l border-white/[0.08] pl-4">
+               <h3 className="text-sm font-semibold text-white">{title}</h3>
+-              <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
++              <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+             </div>
+           ))}
+         </section>
+       </div>
+-    </div>
++    </Container>
+   );
+ }
+diff --git a/src/app/globals.css b/src/app/globals.css
+index a7ca3a5..045f580 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -87,9 +87,11 @@ select option:disabled {
+   color: #64748b;
+ }
+ 
+-a {
+-  color: inherit;
+-  text-decoration: none;
++@layer base {
++  a {
++    color: inherit;
++    text-decoration: none;
++  }
+ }
+ 
+ ::selection {
+@@ -203,6 +205,9 @@ a {
+   color: var(--td-text-primary);
+ }
+ 
++/* Preserve native overlay scrollbars on touch devices. A forced scrollbar
++   width reduces the visual viewport in mobile WebKit. */
++@media (hover: hover) and (pointer: fine) {
+ ::-webkit-scrollbar {
+   width: 10px;
+ }
+@@ -220,6 +225,7 @@ a {
+ ::-webkit-scrollbar-thumb:hover {
+   background: rgba(148, 163, 184, 0.4);
+ }
++}
+ 
+ /* Navigation motion stays subordinate to the product. The transition preserves
+    spatial continuity instead of introducing a separate splash screen. */
+diff --git a/src/components/landing/MarketSection.tsx b/src/components/landing/MarketSection.tsx
+index 47ae453..618560e 100644
+--- a/src/components/landing/MarketSection.tsx
++++ b/src/components/landing/MarketSection.tsx
+@@ -1,51 +1,46 @@
+ "use client";
+ 
+ import Link from "next/link";
+-import { useEffect, useMemo, useState } from "react";
+-import { ArrowRight, RefreshCw } from "lucide-react";
++import { useMemo, useState } from "react";
++import { ArrowRight } from "lucide-react";
+ 
+ type GameId = "magic" | "pokemon" | "pokemon-japan" | "lorcana" | "one-piece";
+ type MarketMode = "trending" | "movers" | "volume" | "opportunities";
+ 
+ type MarketCard = {
+   id: string;
+-  game: GameId;
+   name: string;
+-  subtitle: string;
+   setName: string;
+   setCode: string;
+   collectorNumber: string;
+-  image: string;
+   marketPrice: number;
+-  lowPrice: number;
+   change24h: number;
+   change7d: number;
+-  inventoryOwned: number;
+-  potentialRevenue: number;
+   demand: "High" | "Medium" | "Low";
+   volumeScore: number;
+   opportunityScore: number;
+-  sparkline: number[];
+   source: string;
+-  dataQuality: "live" | "reference" | "fallback";
+-  signal: "gainer" | "loser" | "volume" | "opportunity";
+ };
+ 
+-type GameStatus = {
+-  game: GameId;
+-  label: string;
+-  source: string;
+-  dataQuality: "live" | "reference" | "fallback";
+-  cardCount: number;
+-};
+-
+-type ApiResponse = {
+-  updatedAt: string;
+-  refreshSeconds: number;
+-  games: Record<GameId, MarketCard[]>;
+-  status: Record<GameId, GameStatus>;
++// Deliberately illustrative: never presented as provider quotes or live prices.
++const SAMPLE_NAMES: Record<GameId, string[]> = {
++  magic: ["Sample mythic", "Sample rare", "Sample uncommon"],
++  pokemon: ["Sample illustration rare", "Sample ultra rare", "Sample holo"],
++  "pokemon-japan": ["Sample Japanese illustration rare", "Sample Japanese ultra rare", "Sample Japanese holo"],
++  lorcana: ["Sample enchanted", "Sample legendary", "Sample super rare"],
++  "one-piece": ["Sample alternate art", "Sample secret rare", "Sample super rare"],
+ };
+ 
++function sampleCards(game: GameId): MarketCard[] {
++  return SAMPLE_NAMES[game].map((name, index) => ({
++    id: `${game}-sample-${index}`, name, setName: "Example set", setCode: "DEMO",
++    collectorNumber: String(index + 1).padStart(3, "0"),
++    marketPrice: [24, 12, 3][index], change24h: [2, -1, 0.5][index],
++    change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
++    volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
++    source: "Illustrative sample",
++  }));
++}
+ const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
+   { id: "magic", label: "Magic: The Gathering", shortLabel: "Magic" },
+   { id: "pokemon", label: "Pokemon", shortLabel: "Pokemon" },
+@@ -64,38 +59,12 @@ const MODES: Array<{ id: MarketMode; label: string; description: string }> = [
+ export function MarketSection() {
+   const [activeGame, setActiveGame] = useState<GameId>("magic");
+   const [activeMode, setActiveMode] = useState<MarketMode>("trending");
+-  const [payload, setPayload] = useState<ApiResponse | null>(null);
+-  const [loading, setLoading] = useState(true);
+-  const [refreshing, setRefreshing] = useState(false);
+-  const [error, setError] = useState("");
+-
+-  async function load(manual = false) {
+-    manual ? setRefreshing(true) : setLoading(true);
+-    setError("");
+-
+-    try {
+-      const response = await fetch("/api/multi-game-market", { cache: "force-cache" });
+-      if (!response.ok) throw new Error(`Market feed returned ${response.status}.`);
+-      const nextPayload = (await response.json()) as ApiResponse;
+-      setPayload(nextPayload);
+-    } catch (caught) {
+-      setError(caught instanceof Error ? caught.message : "Market feed unavailable.");
+-    } finally {
+-      setLoading(false);
+-      setRefreshing(false);
+-    }
+-  }
+-
+-  useEffect(() => {
+-    void load(false);
+-  }, []);
+ 
+   const selectedGame = GAME_TABS.find((game) => game.id === activeGame) ?? GAME_TABS[0];
+   const selectedMode = MODES.find((mode) => mode.id === activeMode) ?? MODES[0];
+-  const status = payload?.status?.[activeGame];
+   const cards = useMemo(
+-    () => rankCards(payload?.games?.[activeGame] ?? [], activeMode),
+-    [activeGame, activeMode, payload],
++    () => rankCards(sampleCards(activeGame), activeMode),
++    [activeGame, activeMode],
+   );
+   const primaryCard = cards[0] ?? null;
+ 
+@@ -110,23 +79,15 @@ export function MarketSection() {
+           <div className="min-w-0">
+             <p className="text-sm font-medium text-cyan-200">Market intelligence</p>
+             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
+-              Product movement, not a fake stock ticker.
++              See market signals in context.
+             </h2>
+-            <p className="mt-5 text-sm leading-7 text-slate-500">
+-              The market view keeps source quality visible and turns price
+-              movement into inventory decisions: buy, hold, reprice, list, or
+-              investigate.
++            <p className="mt-5 text-sm leading-7 text-slate-400">
++              Explore a sample market snapshot. All products, prices, changes,
++              and demand scores below are illustrative examples, not current
++              market quotes or buying recommendations.
+             </p>
+ 
+             <div className="mt-8 flex flex-wrap gap-3">
+-              <button
+-                type="button"
+-                onClick={() => load(true)}
+-                className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
+-              >
+-                <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+-                Refresh feed
+-              </button>
+               <Link
+                 href="/dashboard/market-intelligence"
+                 className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-cyan-300 px-4 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200"
+@@ -146,11 +107,12 @@ export function MarketSection() {
+                       key={game.id}
+                       type="button"
+                       onClick={() => setActiveGame(game.id)}
++                      aria-pressed={activeGame === game.id}
+                       className={[
+                         "h-9 border px-3 text-sm transition",
+                         activeGame === game.id
+                           ? "border-cyan-300/40 text-white"
+-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
++                          : "border-white/[0.09] text-slate-400 hover:text-slate-200",
+                       ].join(" ")}
+                     >
+                       {game.shortLabel}
+@@ -163,11 +125,12 @@ export function MarketSection() {
+                       key={mode.id}
+                       type="button"
+                       onClick={() => setActiveMode(mode.id)}
++                      aria-pressed={activeMode === mode.id}
+                       className={[
+                         "h-9 border px-3 text-sm transition",
+                         activeMode === mode.id
+                           ? "border-cyan-300/40 text-cyan-200"
+-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
++                          : "border-white/[0.09] text-slate-400 hover:text-slate-200",
+                       ].join(" ")}
+                     >
+                       {mode.label}
+@@ -178,30 +141,24 @@ export function MarketSection() {
+ 
+               <div className="py-5 lg:pl-6">
+                 <p className="text-sm font-semibold text-white">{selectedGame.label}</p>
+-                <p className="mt-1 text-xs text-slate-600">{selectedMode.description}</p>
++                <p className="mt-1 text-xs text-slate-400">{selectedMode.description}</p>
+                 <div className="mt-4 grid gap-2 text-xs">
+-                  <StatusRow label="Source" value={status?.source ?? (loading ? "Connecting" : "Unavailable")} />
+-                  <StatusRow label="Quality" value={status?.dataQuality ?? "fallback"} />
+-                  <StatusRow label="Updated" value={formatUpdated(payload?.updatedAt)} />
++                  <StatusRow label="Source" value="Illustrative sample" />
++                  <StatusRow label="Prices" value="Demo values in USD" />
++                  <StatusRow label="Availability" value="Interactive preview" />
+                 </div>
+               </div>
+             </div>
+ 
+-            {error ? (
+-              <div className="border-b border-white/[0.08] py-5 text-sm text-rose-300">
+-                {error}
+-              </div>
+-            ) : null}
+-
+             <div className="grid min-w-0 gap-8 py-8 lg:grid-cols-[280px_1fr]">
+               <div className="min-w-0">
+-                <p className="text-sm font-semibold text-white">Lead signal</p>
++                <p className="text-sm font-semibold text-white">Sample lead signal</p>
+                 {primaryCard ? (
+                   <div className="mt-5 border-y border-white/[0.08] py-5">
+                     <p className="text-2xl font-semibold tracking-[-0.035em] text-white">
+                       {primaryCard.name}
+                     </p>
+-                    <p className="mt-2 text-sm text-slate-600">
++                    <p className="mt-2 text-sm text-slate-400">
+                       {primaryCard.setName} #{primaryCard.collectorNumber}
+                     </p>
+                     <div className="mt-5 grid grid-cols-2 gap-4">
+@@ -212,16 +169,17 @@ export function MarketSection() {
+                     </div>
+                   </div>
+                 ) : (
+-                  <p className="mt-5 border-y border-white/[0.08] py-5 text-sm leading-6 text-slate-600">
+-                    {loading ? "Connecting to market feed." : "No market signal available for this selection."}
++                  <p className="mt-5 border-y border-white/[0.08] py-5 text-sm leading-6 text-slate-400">
++                    No sample available for this selection.
+                   </p>
+                 )}
+               </div>
+ 
+-              <div className="min-w-0 overflow-x-auto">
++              <div className="min-w-0 overflow-x-auto" role="region" aria-label="Sample market comparison" tabIndex={0}>
+                 <table className="w-full min-w-[860px] border-collapse text-left">
++                  <caption className="sr-only">Illustrative market data. All values are examples.</caption>
+                   <thead>
+-                    <tr className="border-b border-white/[0.08] text-xs text-slate-600">
++                    <tr className="border-b border-white/[0.08] text-xs text-slate-400">
+                       <th className="py-3 pr-6 font-medium">Product</th>
+                       <th className="px-4 py-3 font-medium">Market</th>
+                       <th className="px-4 py-3 font-medium">24h</th>
+@@ -235,24 +193,17 @@ export function MarketSection() {
+                       <tr key={card.id} className="border-b border-white/[0.055] last:border-b-0">
+                         <td className="py-4 pr-6">
+                           <p className="text-sm font-semibold text-slate-200">{card.name}</p>
+-                          <p className="mt-1 text-xs text-slate-600">
++                          <p className="mt-1 text-xs text-slate-400">
+                             {card.setCode} #{card.collectorNumber}
+                           </p>
+                         </td>
+                         <td className="px-4 py-4 text-sm text-slate-400">{currency(card.marketPrice)}</td>
+                         <td className={movementClass(card.change24h)}>{signedPercent(card.change24h)}</td>
+                         <td className={movementClass(card.change7d)}>{signedPercent(card.change7d)}</td>
+-                        <td className="px-4 py-4 text-sm text-slate-500">{card.demand}</td>
+-                        <td className="px-4 py-4 text-sm text-slate-500">{card.source}</td>
++                        <td className="px-4 py-4 text-sm text-slate-400">{card.demand}</td>
++                        <td className="px-4 py-4 text-sm text-slate-400">{card.source}</td>
+                       </tr>
+                     ))}
+-                    {loading && !cards.length ? (
+-                      <tr>
+-                        <td className="py-8 text-sm text-slate-600" colSpan={6}>
+-                          Loading market intelligence.
+-                        </td>
+-                      </tr>
+-                    ) : null}
+                   </tbody>
+                 </table>
+               </div>
+@@ -276,7 +227,7 @@ function rankCards(cards: MarketCard[], mode: MarketMode) {
+ function StatusRow({ label, value }: { label: string; value: string }) {
+   return (
+     <div className="flex justify-between gap-4">
+-      <span className="text-slate-700">{label}</span>
++      <span className="text-slate-400">{label}</span>
+       <span className="text-slate-400">{value}</span>
+     </div>
+   );
+@@ -285,7 +236,7 @@ function StatusRow({ label, value }: { label: string; value: string }) {
+ function Metric({ label, value }: { label: string; value: string }) {
+   return (
+     <div>
+-      <p className="text-xs text-slate-700">{label}</p>
++      <p className="text-xs text-slate-400">{label}</p>
+       <p className="mt-1 text-sm font-semibold text-slate-200">{value}</p>
+     </div>
+   );
+@@ -294,7 +245,7 @@ function Metric({ label, value }: { label: string; value: string }) {
+ function movementClass(value: number) {
+   return [
+     "px-4 py-4 text-sm font-semibold",
+-    value > 0 ? "text-emerald-300" : value < 0 ? "text-rose-300" : "text-slate-500",
++    value > 0 ? "text-emerald-300" : value < 0 ? "text-rose-300" : "text-slate-400",
+   ].join(" ");
+ }
+ 
+@@ -309,11 +260,3 @@ function currency(value: number) {
+ function signedPercent(value: number) {
+   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+ }
+-
+-function formatUpdated(value: string | undefined) {
+-  if (!value) return "Pending";
+-  return new Date(value).toLocaleTimeString([], {
+-    hour: "numeric",
+-    minute: "2-digit",
+-  });
+-}
+diff --git a/src/components/landing/PricingSection.tsx b/src/components/landing/PricingSection.tsx
+index 2dfb6f2..1dc7302 100644
+--- a/src/components/landing/PricingSection.tsx
++++ b/src/components/landing/PricingSection.tsx
+@@ -37,7 +37,7 @@ const PLAN_POSITIONING: Record<MembershipTier, Omit<PublicPlan, "id">> = {
+   store: {
+     audience: "Store operators",
+     motion: "Operate",
+-    bestFor: "Shared workflows, approvals, employees, sessions, inventory, and operations.",
++    bestFor: "Buying profiles, approvals, customer summaries, inventory, and store operations.",
+     cta: "Choose Store",
+   },
+ };
+@@ -88,7 +88,7 @@ const COMPARISON_ROWS: Array<{
+       free: "Not included",
+       collector: "Not included",
+       seller: "Solo operation",
+-      store: "Employee accounts pending configuration",
++      store: "Employee accounts not yet available",
+     },
+   },
+ ];
+@@ -108,7 +108,7 @@ function formatAnnualPrice(tier: MembershipTier) {
+ }
+ 
+ function signupHref(tier: MembershipTier) {
+-  return `/sign-up?plan=${tier}`;
++  return tier === "free" ? "/sign-up" : `/sign-up?plan=${tier}&billing=monthly`;
+ }
+ 
+ export function PricingSection() {
+@@ -124,12 +124,12 @@ export function PricingSection() {
+           <div>
+             <p className="text-sm font-medium text-cyan-200">Plans</p>
+             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
+-              A workspace that grows by function, not decoration.
++              Find the plan for your collection.
+             </h2>
+-            <p className="mt-5 text-sm leading-7 text-slate-500">
++            <p className="mt-5 text-sm leading-7 text-slate-400">
+               Trading Docks plans progress through the real lifecycle:
+               organize the collection, understand value, sell inventory, then
+-              operate a team.
++              manage store operations.
+             </p>
+           </div>
+ 
+@@ -141,7 +141,7 @@ export function PricingSection() {
+                   className="border-b border-white/[0.08] py-6 md:border-b-0 md:border-r md:px-5 md:last:border-r-0"
+                 >
+                   <div className="flex items-center justify-between gap-4">
+-                    <span className="text-xs text-slate-600">
++                    <span className="text-xs text-slate-400">
+                       {String(index + 1).padStart(2, "0")}
+                     </span>
+                     {plan.recommended ? (
+@@ -154,14 +154,14 @@ export function PricingSection() {
+                   <h3 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-white">
+                     {MEMBERSHIP_PLANS[plan.id].name}
+                   </h3>
+-                  <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
++                  <p className="mt-1 text-sm text-slate-400">{plan.audience}</p>
+                   <div className="mt-6">
+                     <span className="text-3xl font-semibold tracking-[-0.045em]">
+                       {formatMonthlyPrice(plan.id)}
+                     </span>
+-                    <span className="ml-2 text-sm text-slate-600">/ month</span>
++                    <span className="ml-2 text-sm text-slate-400">/ month</span>
+                   </div>
+-                  <p className="mt-2 text-xs text-slate-600">{formatAnnualPrice(plan.id)}</p>
++                  <p className="mt-2 text-xs text-slate-400">{formatAnnualPrice(plan.id)}</p>
+                   <p className="mt-5 min-h-[84px] text-sm leading-6 text-slate-400">
+                     {plan.bestFor}
+                   </p>
+@@ -181,10 +181,11 @@ export function PricingSection() {
+               ))}
+             </div>
+ 
+-            <div className="mt-8 overflow-x-auto">
++            <div className="mt-8 overflow-x-auto" role="region" aria-label="Homepage plan comparison" tabIndex={0}>
+               <table className="w-full min-w-[860px] border-collapse text-left">
++                <caption className="sr-only">Compare Free, Collector, Seller, and Store plans.</caption>
+                 <thead>
+-                  <tr className="border-b border-white/[0.08] text-xs text-slate-600">
++                  <tr className="border-b border-white/[0.08] text-xs text-slate-400">
+                     <th className="py-3 pr-6 font-medium">Capability</th>
+                     {plans.map((plan) => (
+                       <th key={plan.id} className="px-4 py-3 font-medium">
+@@ -201,7 +202,7 @@ export function PricingSection() {
+                     >
+                       <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
+                       {plans.map((plan) => (
+-                        <td key={plan.id} className="px-4 py-4 leading-6 text-slate-500">
++                        <td key={plan.id} className="px-4 py-4 leading-6 text-slate-400">
+                           {row.values[plan.id]}
+                         </td>
+                       ))}
+@@ -212,10 +213,10 @@ export function PricingSection() {
+             </div>
+ 
+             <div className="mt-8 flex flex-col justify-between gap-4 border-t border-white/[0.08] pt-6 sm:flex-row sm:items-center">
+-              <p className="max-w-2xl text-sm leading-6 text-slate-500">
++              <p className="max-w-2xl text-sm leading-6 text-slate-400">
+                 Seller is recommended for users who buy and sell weekly. Store
+-                is for shared operations; employee capacity remains configurable
+-                rather than an invented fixed seat count.
++                adds store workflows. Employee accounts are not yet available
++                and are not included as an active benefit.
+               </p>
+               <Link
+                 href="/pricing"
+diff --git a/src/components/landing/TrustSection.tsx b/src/components/landing/TrustSection.tsx
+index 9a872b2..5f8bc3d 100644
+--- a/src/components/landing/TrustSection.tsx
++++ b/src/components/landing/TrustSection.tsx
+@@ -5,7 +5,7 @@ const items = [
+   ["Encrypted credentials", "Marketplace API keys are encrypted on the server—not kept in browser storage.", KeyRound],
+   ["Workspace-scoped data", "Inventory, orders, customers, and credentials remain tied to the correct account.", Database],
+   ["Preview-first automation", "Potential inventory changes can be reviewed before they affect live records.", ShieldCheck],
+-  ["Built for teams", "Store workspaces add employee, vendor, tournament, and operational controls.", Users],
++  ["Store workflows", "Explore store operations in the plan comparison. Employee accounts are not yet available.", Users],
+   ["Fast by design", "Modern Next.js infrastructure keeps the workspace responsive as your operation grows.", Zap],
+ ] as const;
+ 

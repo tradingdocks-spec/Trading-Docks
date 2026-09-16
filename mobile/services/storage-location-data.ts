@@ -157,22 +157,22 @@ async function executeLocationAssignment(assignment: LocationAssignment, userId:
   if (!supabase) throw new Error('Supabase storage locations are not configured.');
   const { data: item, error: itemError } = await supabase
     .from('inventory_items')
-    .select('id')
+    .select('data')
     .eq('user_id', userId)
     .eq('id', assignment.inventoryItemId)
     .maybeSingle();
   if (itemError) throw new Error(itemError.message);
   if (!item) throw new Error('Choose one of your collection records.');
-  const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-    p_inventory_item_id: assignment.inventoryItemId,
-    p_mutation_type: 'storage',
-    p_quantity: null,
-    p_condition: null,
-    p_finish: null,
-    p_location_id: assignment.toLocationId,
-    p_idempotency_key: `storage:${assignment.inventoryItemId}:${assignment.toLocationId ?? 'unassigned'}:${new Date().toISOString()}`,
-    p_source: 'mobile',
-  });
+  const previousData = isRecord(item.data) ? item.data : {};
+  const { error } = await supabase
+    .from('inventory_items')
+    .update({
+      location_id: assignment.toLocationId,
+      data: locationDataPatch(previousData, { locationId: assignment.toLocationId, locationMovedAt: new Date().toISOString() }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('id', assignment.inventoryItemId);
   if (error) throw new Error(error.message);
   if (assignment.toLocationId) {
     const { data: location } = await supabase

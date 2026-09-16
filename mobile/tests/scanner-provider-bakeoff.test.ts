@@ -7,10 +7,13 @@ import {
 } from '../services/scanner-provider-stack.ts';
 import {
   createCurrentScannerBaselineAdapter,
+  createCardSightBakeoffAdapter,
   createTcgTrackingBakeoffAdapter,
   runScannerProviderBakeoff,
   serializeScannerProviderBakeoffMarkdown,
 } from '../services/scanner-provider-bakeoff.ts';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const fixture = {
   id: 'private-raff-security-officer',
@@ -192,4 +195,59 @@ test('tcgtracking adapter stays conservative when disabled and can be injected w
   assert.equal(enabled.expectedNameMatch, true);
   assert.equal(enabled.exactPrintingMatch, true);
   assert.equal(enabled.topCandidate?.name, fixture.expectedCardName);
+});
+
+test('cardsight adapter compares raw and cropped routes without exposing secrets in mobile code', async () => {
+  const adapter = createCardSightBakeoffAdapter({
+    getAccessToken: async () => 'test-access-token',
+    prepareCardSightScanImage: async (input: { targetLongEdge?: number }) => {
+      const targetLongEdge = input.targetLongEdge;
+      return {
+        image: targetLongEdge && targetLongEdge > 1000 ? 'raw-image' : 'cropped-image',
+        width: targetLongEdge && targetLongEdge > 1000 ? 1440 : 720,
+        height: targetLongEdge && targetLongEdge > 1000 ? 1920 : 960,
+        bytes: 512,
+        mimeType: 'image/jpeg',
+      };
+    },
+    fetcher: (async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as { mode?: 'raw' | 'cropped' };
+      if (body.mode === 'raw') {
+        return new Response(JSON.stringify({
+          status: 'candidates',
+          mode: 'raw',
+          candidates: [{ name: fixture.expectedCardName, printingId: fixture.expectedScryfallId, confidence: 0.98, setCode: fixture.expectedSetCode, collectorNumber: fixture.expectedCollectorNumber }],
+          topCandidate: { name: fixture.expectedCardName, printingId: fixture.expectedScryfallId, confidence: 0.98, setCode: fixture.expectedSetCode, collectorNumber: fixture.expectedCollectorNumber },
+          intelligence: { selectedPrintingId: fixture.expectedScryfallId, requiresConfirmation: false },
+          latencyMs: 31,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({
+        status: 'candidates',
+        mode: 'cropped',
+        candidates: [{ name: 'Other Card', printingId: 'other-printing', confidence: 0.44 }],
+        topCandidate: { name: 'Other Card', printingId: 'other-printing', confidence: 0.44 },
+        intelligence: { selectedPrintingId: null, requiresConfirmation: true },
+        latencyMs: 55,
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch,
+  });
+
+  const cardsightProvider = buildScannerProviderManifest(resolveScannerProviderFlags({ SCANNER_PROVIDER_CARDSIGHT_ENABLED: 'true' }))
+    .find((provider) => provider.id === 'cardsight');
+  const result = await adapter.evaluate(fixture, {
+    provider: cardsightProvider ?? buildScannerProviderManifest(resolveScannerProviderFlags({ SCANNER_PROVIDER_CARDSIGHT_ENABLED: 'true' }))[0],
+    flags: resolveScannerProviderFlags({ SCANNER_PROVIDER_CARDSIGHT_ENABLED: 'true' }),
+    allowNetwork: true,
+  });
+
+  assert.equal(result.providerId, 'cardsight');
+  assert.equal(result.status, 'matched');
+  assert.equal(result.expectedNameMatch, true);
+  assert.equal(result.exactPrintingMatch, true);
+  assert.equal(result.details?.selectedMode, 'raw');
+  assert.match(String(result.notes.join(' ')), /raw image performed best/);
+
+  const source = readFileSync(fileURLToPath(String(new URL('../services/scanner-provider-bakeoff.ts', import.meta.url))), 'utf8');
+  assert.doesNotMatch(source, /CARDSIGHT_API_KEY|CARDSIGHT_BASE_URL/);
 });

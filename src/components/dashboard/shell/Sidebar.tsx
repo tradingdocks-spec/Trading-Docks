@@ -20,7 +20,6 @@ import { logout } from "@/app/actions/auth";
 
 import {
   CRM_NAV,
-  CHAOS_SORT_NAV,
   INSIGHTS_NAV,
   OPERATIONS_NAV,
   PRIMARY_NAV,
@@ -42,7 +41,7 @@ type SidebarProps = {
   onToggle: () => void;
 };
 
-type OpenSection = "chaos-sort" | "purchasing" | "selling" | "insights" | "operations" | null;
+type OpenSection = "purchasing" | "selling" | "insights" | "operations" | null;
 
 const PRIORITY_LIMIT = 4;
 
@@ -72,7 +71,7 @@ export function Sidebar({
   );
 
   const detectedSection = useMemo<OpenSection>(() => {
-    const sections = [CHAOS_SORT_NAV, PURCHASING_NAV, SELLING_NAV, INSIGHTS_NAV, OPERATIONS_NAV];
+    const sections = [PURCHASING_NAV, SELLING_NAV, INSIGHTS_NAV, OPERATIONS_NAV];
     return (
       sections.find(
         (section) =>
@@ -136,16 +135,6 @@ export function Sidebar({
               />
             ))}
           </div>
-
-          <NavLabel label="Workflow" collapsed={collapsed} spaced />
-          <SectionNav
-            section={CHAOS_SORT_NAV}
-            pathname={pathname}
-            collapsed={collapsed}
-            open={openSection === "chaos-sort"}
-            onToggle={() => setOpenSection(openSection === "chaos-sort" ? null : "chaos-sort")}
-            onNavigate={onCloseMobile}
-          />
 
           {!isCollector ? (
             <>
