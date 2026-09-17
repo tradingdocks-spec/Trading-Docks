@@ -69,6 +69,8 @@ test("Card Workspace route is reused by highest-value card encounter surfaces", 
   assert.match(collector, /\/dashboard\/cards\/\$\{encodeURIComponent\(card\.id\)\}/);
   assert.match(inbox, /\/dashboard\/cards\/\$\{encodeURIComponent\(item\.inventoryItemId\)\}/);
   assert.match(globalSearch, /\/dashboard\/cards\/\$\{encodeURIComponent\(item\.id\)\}/);
+  assert.match(globalSearch, /searchWebInventory\(query\)/);
+  assert.doesNotMatch(globalSearch, /loadInventorySnapshot/);
   assert.match(view, /Other Printings/);
   assert.match(view, /Performance Boundary/);
 });

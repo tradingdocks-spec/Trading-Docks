@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 import { loadDeckVault } from "@/lib/deck-vault/persistence";
-import { loadInventorySnapshot } from "@/lib/inventory-persistence";
+import { searchWebInventory } from "@/lib/collector-workspace-client-data";
 
 const PUT_AWAY_QUEUE_ID = "__trading-docks-put-away-queue__";
 const SEARCH_LOAD_TIMEOUT_MS = 10_000;
@@ -91,7 +91,7 @@ type CardGroup = {
 type ResultSort = "relevance" | "name" | "quantity" | "value" | "location";
 
 function normalize(value: string) {
-  return value.toLocaleLowerCase().replace(/[’']/g, "").replace(/\s+/g, " ").trim();
+  return value.toLocaleLowerCase().replace(/[’']/g, "").replace(/[-_/]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
@@ -240,19 +240,19 @@ export function GlobalSearch() {
     setInventoryAvailable(false);
 
     void Promise.allSettled([
-      withTimeout(loadInventorySnapshot(), SEARCH_LOAD_TIMEOUT_MS),
+      withTimeout(searchWebInventory(query), SEARCH_LOAD_TIMEOUT_MS),
       withTimeout(loadDeckVault(), SEARCH_LOAD_TIMEOUT_MS),
     ]).then(([inventoryResult, deckResult]) => {
       if (!active) return;
-      const inventorySnapshot = inventoryResult.status === "fulfilled" ? inventoryResult.value : null;
+      const inventorySearch = inventoryResult.status === "fulfilled" ? inventoryResult.value : null;
       const decks = deckResult.status === "fulfilled" ? deckResult.value : [];
-      if (!inventorySnapshot && deckResult.status === "rejected") {
+      if (!inventorySearch && deckResult.status === "rejected") {
         setLoadError("Inventory could not be loaded. Try closing search and opening it again.");
-      } else if (!inventorySnapshot) {
+      } else if (!inventorySearch) {
         setLoadError("Inventory could not be loaded. Your inventory results may be incomplete.");
       }
-      setInventoryAvailable(Boolean(inventorySnapshot));
-      if (!inventorySnapshot) {
+      setInventoryAvailable(Boolean(inventorySearch));
+      if (!inventorySearch) {
         setPlacements(decks.flatMap((deck) => deck.cards.map((card) => ({
           id: `deck:${deck.id}:${card.id}`,
           source: "deck" as const,
@@ -271,8 +271,26 @@ export function GlobalSearch() {
         setLoading(false);
         return;
       }
-      const locations = inventorySnapshot.locations as unknown as LocationRecord[];
-      const items = inventorySnapshot.items as unknown as SearchableInventoryItem[];
+      const locations = inventorySearch.locations as unknown as LocationRecord[];
+      const items = inventorySearch.items.map((item) => ({
+        id: item.id,
+        name: item.card_name ?? (typeof item.data?.name === "string" ? item.data.name : "Unnamed card"),
+        quantity: item.quantity ?? 0,
+        locationId: item.location_id ?? (typeof item.data?.locationId === "string" ? item.data.locationId : ""),
+        category: item.product_type === "sealed" ? "Sealed" : "Single",
+        condition: typeof item.data?.condition === "string" ? item.data.condition : undefined,
+        set: typeof item.data?.setName === "string" ? item.data.setName : item.set_code ?? undefined,
+        collectorNumber: typeof item.data?.collectorNumber === "string" ? item.data.collectorNumber : item.collector_number ?? undefined,
+        finish: typeof item.data?.finish === "string" ? item.data.finish : undefined,
+        imageUrl: typeof item.data?.imageUrl === "string" ? item.data.imageUrl : undefined,
+        unitMarketValue: item.quantity ? (item.inventory_value ?? 0) / item.quantity : undefined,
+        value: item.inventory_value ?? undefined,
+        platform: typeof item.data?.listingPlatform === "string" ? item.data.listingPlatform : undefined,
+        listingPlatform: typeof item.data?.listingPlatform === "string" ? item.data.listingPlatform : undefined,
+        listingStatus: typeof item.data?.listingStatus === "string" ? item.data.listingStatus : undefined,
+        listingId: typeof item.data?.listingId === "string" ? item.data.listingId : undefined,
+        sku: item.sku ?? undefined,
+      })) as SearchableInventoryItem[];
       const locationMap = new Map(locations.map((location) => [location.id, location]));
       const inventoryPlacements: CardPlacement[] = items
         .filter((item) => item.category === "Single" || !item.category)
@@ -331,7 +349,7 @@ export function GlobalSearch() {
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, query]);
 
   const filteredGroups = useMemo(() => {
     const needle = normalize(query);

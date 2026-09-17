@@ -352,7 +352,7 @@ export function filterCollectionCards(
         .filter(Boolean)
         .join(' '),
     );
-    if (query && !searchHaystack.includes(query)) return false;
+    if (query && !buildInventorySearchTerms(query).every((term) => searchHaystack.includes(term))) return false;
     if (filter.gameId && filter.gameId !== 'all' && card.gameId !== filter.gameId) return false;
     if (filter.productType && filter.productType !== 'all' && card.productType !== filter.productType) return false;
     if (filter.condition && filter.condition !== 'all' && card.condition !== filter.condition) return false;
@@ -508,16 +508,34 @@ export function shouldAcceptCollectionResponse(activeRequestKey: string, respons
 }
 
 export function buildInventorySearchFilterExpression(query: string, locationIds?: string[] | null) {
-  const pattern = `%${query.trim().replace(/[%_]/g, '')}%`;
+  const cleanedQuery = query.trim().replace(/^#/, '').replace(/[%_]/g, '');
+  const pattern = `%${cleanedQuery}%`;
   const filters = [
     `card_name.ilike.${pattern}`,
+    `sku.ilike.${pattern}`,
     `set_code.ilike.${pattern}`,
+    `data->>setName.ilike.${pattern}`,
+    `data->>set.ilike.${pattern}`,
     `collector_number.ilike.${pattern}`,
+    `data->>collectorNumber.ilike.${pattern}`,
+    `data->>condition.ilike.${pattern}`,
+    `data->>finish.ilike.${pattern}`,
   ];
   if (locationIds?.length) {
     filters.push(`location_id.in.(${locationIds.map(encodeSupabaseListValue).join(',')})`);
   }
   return filters.join(',');
+}
+
+export function buildInventorySearchTerms(query: string) {
+  return query
+    .toLocaleLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[-_/]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((term) => term.replace(/^#/, ''))
+    .filter(Boolean);
 }
 
 function encodeSupabaseListValue(value: string) {

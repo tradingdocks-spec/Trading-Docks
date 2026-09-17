@@ -2,6 +2,8 @@ export {
   COLLECTION_PAGE_SIZE,
   buildCollectionPageInfo,
   buildCollectionCards,
+  buildInventorySearchFilterExpression,
+  buildInventorySearchTerms,
   buildCollectionLocationPathLabel,
   buildCollectionLotKey,
   buildInventoryHealth,

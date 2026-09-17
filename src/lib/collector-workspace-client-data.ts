@@ -6,6 +6,8 @@ import {
   buildCollectionLocationPathLabel,
   buildCollectionPageInfo,
   COLLECTION_PAGE_SIZE,
+  buildInventorySearchFilterExpression,
+  buildInventorySearchTerms,
   decodeCollectionCursor,
   normalizeCollectionPageSize,
   type CollectionCard,
@@ -28,6 +30,37 @@ export type WebCollectorCollectionPage = {
   pageInfo: CollectionPageInfo;
   stale: false;
 };
+
+export type WebGlobalInventorySearch = {
+  items: RawInventoryItem[];
+  locations: RawInventoryLocation[];
+};
+
+/** Search the live inventory ledger with the same filters used by Collection. */
+export async function searchWebInventory(query: string, limit = 100): Promise<WebGlobalInventorySearch> {
+  const supabase = createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error("Sign in again to search your inventory.");
+
+  const filter = { query } satisfies CollectionFilter;
+  const relatedFilters = await loadRelatedFilterIds(user.id, filter);
+  if (relatedFilters.blocked) return { items: [], locations: [] };
+
+  let itemQuery = supabase
+    .from("inventory_items")
+    .select("id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
+    .eq("user_id", user.id)
+    .order("card_name", { ascending: true })
+    .order("id", { ascending: true });
+  itemQuery = applyInventoryFilters(itemQuery, filter, relatedFilters);
+  const [{ data: items, error: itemsError }, { data: locations, error: locationsError }] = await Promise.all([
+    itemQuery.limit(Math.min(Math.max(limit, 1), 100)),
+    supabase.from("inventory_locations").select("id, name, location_type, data").eq("user_id", user.id).limit(500),
+  ]);
+  if (itemsError) throw new Error(`Inventory search is unavailable: ${itemsError.message}`);
+  if (locationsError) throw new Error(`Storage locations are unavailable: ${locationsError.message}`);
+  return { items: (items ?? []) as RawInventoryItem[], locations: (locations ?? []) as RawInventoryLocation[] };
+}
 
 export async function loadWebCollectorCollectionPage({
   filter,
@@ -267,11 +300,12 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
   let next = query.gt("quantity", 0);
   const cleanQuery = filter?.query?.trim();
   if (cleanQuery) {
-    const pattern = `%${cleanQuery.replace(/[%_]/g, "")}%`;
     const locationFilter = "locationIds" in related && related.locationIds?.length
       ? `,location_id.in.(${related.locationIds.map(encodeSupabaseListValue).join(",")})`
       : "";
-    next = next.or(`card_name.ilike.${pattern},set_code.ilike.${pattern},collector_number.ilike.${pattern}${locationFilter}`);
+    for (const term of buildInventorySearchTerms(cleanQuery)) {
+      next = next.or(`${buildInventorySearchFilterExpression(term)}${locationFilter}`);
+    }
   }
   if (filter?.gameId && filter.gameId !== "all") {
     next = filter.gameId === "magic"
@@ -295,6 +329,7 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
 function matchingLocationIds(locations: RawInventoryLocation[], query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
+  const terms = buildInventorySearchTerms(normalized);
   const byParent = new Map<string, string[]>();
   for (const location of locations) {
     const parentId = typeof location.data?.parentId === "string" ? location.data.parentId : null;
@@ -305,7 +340,8 @@ function matchingLocationIds(locations: RawInventoryLocation[], query: string) {
   }
   const directMatches = locations.filter((location) => {
     const path = buildCollectionLocationPathLabel(location.id, locations) ?? "";
-    return `${location.name ?? ""} ${path} ${location.location_type ?? ""}`.toLowerCase().includes(normalized);
+    const haystack = `${location.name ?? ""} ${path} ${location.location_type ?? ""}`.toLowerCase();
+    return terms.every((term) => haystack.includes(term));
   });
   const ids = new Set<string>();
   for (const location of directMatches) {
