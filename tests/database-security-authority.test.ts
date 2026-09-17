@@ -162,3 +162,55 @@ test("staging function-surface repair contains only the missing PR #93 objects",
   assert.doesNotMatch(repair, /\balter table\b|\bcreate table\b|\bcreate type\b|\bcreate index\b/i);
   assert.doesNotMatch(repair, /marketplace|tournament|stripe|revenuecat/i);
 });
+
+test("staging prerequisite repair is canonical, forward-only, and limited to the four missing families", () => {
+  const repair = read("supabase/migrations/20260917180121_staging_prerequisite_repair.sql");
+  const canonicalAccess = read("supabase/migrations/202608100001_platform_role_authority_replayability.sql");
+  const canonicalLedger = read("supabase/migrations/202608120002_inventory_event_ledger.sql");
+
+  for (const dependency of [
+    "auth.users",
+    "public.workspaces",
+    "public.inventory_items",
+    "public.inventory_locations",
+    "public.user_roles",
+    "public.admin_role",
+  ]) {
+    assert.ok(repair.includes(dependency), `missing dependency preflight: ${dependency}`);
+  }
+  assert.match(repair, /create table if not exists public\.admin_account_access/);
+  assert.match(repair, /create type public\.inventory_event_type as enum/);
+  assert.match(repair, /create type public\.inventory_event_source as enum/);
+  assert.match(repair, /create table if not exists public\.inventory_events/);
+  assert.match(repair, /create unique index if not exists inventory_events_user_idempotency_key_idx/);
+  assert.match(repair, /alter table public\.inventory_events enable row level security/);
+  assert.match(repair, /Users can view their inventory events/);
+  assert.match(repair, /Users cannot update inventory events/);
+  assert.match(repair, /Users cannot delete inventory events/);
+  assert.match(repair, /account_type in \('free', 'collector', 'seller', 'store'\)/);
+  assert.match(repair, /subscription_status in \('free', 'trialing', 'active', 'past_due', 'canceled', 'suspended'\)/);
+  assert.match(repair, /inventory_events_inventory_item_fk/);
+  assert.match(repair, /inventory_events_previous_location_fk/);
+  assert.match(repair, /inventory_events_next_location_fk/);
+  assert.match(repair, /inventory_events_currency_check/);
+  assert.match(repair, /inventory_events_related_entity_check/);
+
+  for (const value of [
+    "inventory_created", "quantity_added", "quantity_removed", "quantity_adjusted",
+    "location_changed", "condition_changed", "finish_changed", "cost_basis_changed",
+    "inventory_archived", "inventory_restored", "imported",
+    "collector_workspace", "manual", "mobile", "scanner", "scanner_replay",
+    "purchasing_intelligence", "csv_import", "tcgplayer_import", "ebay_import",
+    "shopify_import", "system",
+  ]) {
+    assert.ok(repair.includes(`'${value}'`), `missing canonical enum value: ${value}`);
+  }
+
+  assert.match(canonicalAccess, /create table if not exists public\.admin_account_access[\s\S]*?updated_by uuid references auth\.users\(id\)/);
+  assert.match(canonicalLedger, /constraint inventory_events_inventory_item_fk[\s\S]*?references public\.inventory_items\(user_id, id\)/);
+  assert.match(canonicalLedger, /create unique index if not exists inventory_events_user_idempotency_key_idx/);
+  assert.doesNotMatch(repair, /\b(drop|truncate|delete from)\b/i);
+  assert.doesNotMatch(repair, /bohddnajlnmknngzjsjk/);
+  assert.doesNotMatch(repair, /marketplace|tournament|stripe|revenuecat/i);
+  assert.doesNotMatch(repair, /create function public\.inventory_events_block_mutation/);
+});
