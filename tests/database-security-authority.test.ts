@@ -58,3 +58,17 @@ test("public binder shares preserve revoked and expired share protections", () =
   assert.match(page, /shareHasExpired\(data\.expires_at\)/);
   assert.match(page, /sanitizeLegacyBinderPayload\(data\.payload\)/);
 });
+
+test("production advisor follow-up restricts internal RPCs without removing authorized clients", () => {
+  const privileges = read("supabase/migrations/20260917154008_production_function_privilege_hardening.sql");
+  const paths = read("supabase/migrations/20260917154003_production_function_search_path_hardening.sql");
+
+  assert.match(privileges, /revoke all on function public\.admin_overview\(\) from public, anon/);
+  assert.match(privileges, /grant execute on function public\.admin_overview\(\) to authenticated/);
+  assert.match(privileges, /revoke all on function public\.enforce_collector_inventory_mutation\(\) from public, anon, authenticated/);
+  assert.match(privileges, /revoke all on function public\.inventory_events_block_mutation\(\) from public, anon, authenticated/);
+  assert.match(privileges, /grant execute on function public\.apply_collector_inventory_mutation\(/);
+  assert.match(privileges, /to authenticated/);
+  assert.match(paths, /alter function public\.workspace_role_rank\(text\) set search_path = pg_catalog/);
+  assert.match(paths, /alter function public\.raise_collector_inventory_error\(text, text, uuid\) set search_path = pg_catalog/);
+});

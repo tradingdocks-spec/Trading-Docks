@@ -134,3 +134,49 @@ Do not revoke public RPC execution blindly: public Showcase, kiosk, event regist
 **Recommended posture:** suitable for controlled staging/beta validation; not certified for unrestricted public launch until AUD-001 through AUD-006 are closed or explicitly accepted by the release owner.
 
 No production Supabase migrations were applied. No production deployment was triggered. No live billing or customer data was changed.
+
+## Live Supabase advisor follow-up (2026-09-17)
+
+ChatGPT supplied current advisor results for Trading Docks project `bohddnajlnmknngzjsjk`. These results are recorded as production evidence; this environment still cannot connect to that project to independently replay the queries. The proposed migrations below are **not applied**.
+
+### Security findings and classifications
+
+| Finding | Classification | Assessment | Planned action |
+| --- | --- | --- | --- |
+| 57 `SECURITY DEFINER` functions executable by `anon`; 60 by `authenticated` | Mixed | Advisor counts require per-function review; a blanket revoke could break public Showcase/event flows or authenticated mutation flows. | `20260917154008_production_function_privilege_hardening.sql` makes named high-risk grants explicit. |
+| `admin_directory()`, `admin_feedback_queue()`, `admin_list_users()`, `admin_overview()`, `admin_set_membership_override()`, `admin_update_user_access()` | C — admin-only | Authenticated execution is intentional for the admin UI, but function bodies must enforce platform role. Source definitions perform role checks where applicable. | Revoke `PUBLIC`/`anon`; preserve `authenticated`; stage-test Owner/Admin and ordinary-user denial. |
+| `current_admin_role()`, `is_admin()`, `is_platform_owner()` | B — authenticated authority helpers | Used by policies and server access decisions; they return authority state rather than arbitrary user data. | Revoke `PUBLIC`/`anon`; preserve `authenticated`. |
+| `apply_collector_inventory_mutation()`, `create_inventory_item_with_event()`, `move_inventory_lot_quantity()`, `remove_inventory_lot_quantity()` | B — authenticated user RPCs | These are active web/mobile mutation APIs. Their definitions derive `auth.uid()` and check owned rows/locations; removing authenticated execution would break supported workflows. | Revoke `PUBLIC`/`anon`; preserve `authenticated`; verify cross-user and workspace boundaries in staging. |
+| `collector_effective_membership_tier()`, `enforce_collector_inventory_mutation()`, `inventory_events_block_mutation()`, `protect_platform_owner()` | E — trigger/internal helpers | No supported client call is present in active source. They are invoked by triggers or security-definer functions. | Revoke direct execution from `PUBLIC`, `anon`, and `authenticated`. Verify trigger execution after staging. |
+| `inventory_event_text_value()`, `collector_inventory_error_payload()`, `raise_collector_inventory_error()` | E — internal helpers | Formatting/error helpers are not client APIs. | Revoke direct execution from all client roles. |
+
+The privilege proposal deliberately does not alter public Showcase, kiosk, tournament registration, share-token, OAuth callback, or webhook functions because those are separate intentional public/server entry points and require route-specific verification.
+
+### Mutable search paths
+
+Production flagged `workspace_role_rank`, `set_tcgplayer_magic_catalog_updated_at`, `set_tcgtracking_updated_at`, `inventory_event_text_value`, `collector_inventory_error_payload`, and `raise_collector_inventory_error`. The forward-only proposal `20260917154003_production_function_search_path_hardening.sql` pins each to `pg_catalog`; calls to project helpers are schema-qualified. This is a resolution-hardening change, not an authorization change. Apply only after staging replay confirms policy and trigger behavior.
+
+### RLS enabled with no policy
+
+The following are classified as intentionally inaccessible through the client Data API based on repository migrations and server-only call sites: `billing_provider_events`, `marketplace_oauth_tokens`, `platform_marketplace_integrations`, `tcgplayer_magic_catalog`, `tcgplayer_magic_catalog_imports`, `tcgtracking_price_snapshots`, `tcgtracking_product_mappings`, and `tcgtracking_sync_runs`. `binder_shares` is the exception requiring a production schema check because public sharing uses token-scoped server/page access; no broad authenticated table policy should be added merely to silence the advisor. The correct follow-up is to verify grants, server-only access, and token boundaries against production.
+
+### Auth configuration
+
+Leaked-password protection is currently disabled in production Supabase Auth. This branch does not change that setting. The release owner should enable it through the Supabase Auth configuration after reviewing user recovery implications.
+
+### Performance advisor findings
+
+Production reports 83 unindexed foreign keys, 55 RLS initplan warnings, 41 multiple-permissive-policy cases, one duplicate index, and many unused indexes. No blanket index or policy rewrite is proposed. Candidate high-value areas are `inventory_items`, `inventory_events`, Chaos Sort tables, orders/shipments, purchase ledger, Deck Vault tables, workspace membership, and tournament tables. Each candidate requires query-plan evidence and semantic review before a separate migration.
+
+The duplicate `public.inbound_email_mailboxes` indexes (`inbound_email_mailboxes_one_per_workspace` and `inbound_email_mailboxes_workspace_id_key`) must first be identified as constraint-backed versus truly redundant; no drop is proposed in this branch.
+
+RLS initplan optimization (`(select auth.uid())`) and multiple-policy consolidation are likewise deferred unless the exact policy semantics are proven equivalent. The existing repository already has optimized patterns in many recent migrations, and changing all historical policies would be unsafe without a live schema snapshot.
+
+### Proposed migration order
+
+1. Stage and verify `20260917154003_production_function_search_path_hardening.sql`.
+2. Stage and verify `20260917154008_production_function_privilege_hardening.sql` with anonymous, ordinary authenticated, Owner/Admin, and supported mutation tests.
+3. Only after advisor re-check and query-plan review, propose separate high-value index/RLS optimization migrations.
+4. Handle leaked-password protection as an owner-controlled Auth configuration change, not SQL.
+
+These migrations remain repository proposals only. **Supabase migrations applied remotely: NO.**
