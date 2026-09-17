@@ -2,6 +2,8 @@
 -- This package assumes the live staging comparison has already identified the
 -- listed functions as absent. It does not replay historical migrations.
 -- Apply this migration only to Trading Docks staging (ukrcbmujzdyclrkghbvo).
+-- Apply after 20260917180121_staging_prerequisite_repair.sql and before the
+-- three PR #93 production security migrations are considered for staging.
 -- Existing staging objects intentionally skipped because the live comparison
 -- found them present: admin_feedback_queue, admin_set_membership_override,
 -- current_admin_role, is_admin, is_platform_owner,
@@ -28,7 +30,21 @@ begin
      or to_regclass('public.workspace_members') is null
      or not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'admin_role')
      or not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'inventory_event_type')
-     or not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'inventory_event_source') then
+     or not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'inventory_event_source')
+     or to_regprocedure('public.inventory_event_workspace_for_user(uuid)') is null
+     or exists (
+       select 1
+       from unnest(array['provider_category_id', 'provider_product_id', 'provider_sku_id', 'variant', 'language']) as required(column_name)
+       where not exists (
+         select 1
+         from information_schema.columns c
+         where c.table_schema = 'public'
+           and c.table_name = 'inventory_items'
+           and c.column_name = required.column_name
+           and c.data_type = 'text'
+           and c.is_nullable = 'YES'
+       )
+     ) then
     raise exception 'Staging prerequisites are incomplete; repair schema prerequisites before applying this function-surface repair.';
   end if;
 end;
@@ -774,6 +790,36 @@ begin
     return coalesce(new, old);
   end if;
   raise exception 'inventory_events is append-only';
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgrelid = 'public.inventory_events'::regclass
+      and tgname = 'inventory_events_append_only'
+      and not tgisinternal
+  ) then
+    create trigger inventory_events_append_only
+      before delete or update on public.inventory_events
+      for each row execute function public.inventory_events_block_mutation();
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgrelid = 'public.inventory_events'::regclass
+      and tgname = 'inventory_events_append_only'
+      and not tgisinternal
+  ) then
+    raise exception 'Staging append-only trigger was not created';
+  end if;
 end;
 $$;
 

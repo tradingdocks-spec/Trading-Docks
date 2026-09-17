@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -134,7 +134,7 @@ test("owner transition migrations remain explicitly ordered", () => {
 });
 
 test("staging function-surface repair contains only the missing PR #93 objects", () => {
-  const repair = read("supabase/migrations/20260917163455_staging_function_surface_repair.sql");
+  const repair = read("supabase/staging-repair/20260917163455_staging_function_surface_repair.sql");
   const requiredSignatures = [
     "admin_directory()",
     "admin_list_users(search_text text default '', result_limit integer default 100)",
@@ -157,6 +157,12 @@ test("staging function-surface repair contains only the missing PR #93 objects",
   assert.match(repair, /to_regclass\('public\.inventory_items'\)/);
   assert.match(repair, /to_regclass\('public\.inventory_events'\)/);
   assert.match(repair, /to_regclass\('public\.admin_audit_log'\)/);
+  assert.match(repair, /to_regprocedure\('public\.inventory_event_workspace_for_user\(uuid\)'\)/);
+  assert.match(repair, /provider_category_id/);
+  assert.match(repair, /provider_product_id/);
+  assert.match(repair, /provider_sku_id/);
+  assert.match(repair, /inventory_events_append_only/);
+  assert.match(repair, /Staging append-only trigger was not created/);
   assert.doesNotMatch(repair, /bohddnajlnmknngzjsjk/);
   assert.doesNotMatch(repair, /\b(drop|truncate|delete from)\b/i);
   assert.doesNotMatch(repair, /\balter table\b|\bcreate table\b|\bcreate type\b|\bcreate index\b/i);
@@ -164,7 +170,7 @@ test("staging function-surface repair contains only the missing PR #93 objects",
 });
 
 test("staging prerequisite repair is canonical, forward-only, and limited to the four missing families", () => {
-  const repair = read("supabase/migrations/20260917180121_staging_prerequisite_repair.sql");
+  const repair = read("supabase/staging-repair/20260917180121_staging_prerequisite_repair.sql");
   const canonicalAccess = read("supabase/migrations/202608100001_platform_role_authority_replayability.sql");
   const canonicalLedger = read("supabase/migrations/202608120002_inventory_event_ledger.sql");
 
@@ -174,6 +180,7 @@ test("staging prerequisite repair is canonical, forward-only, and limited to the
     "public.inventory_items",
     "public.inventory_locations",
     "public.user_roles",
+    "public.workspace_members",
     "public.admin_role",
   ]) {
     assert.ok(repair.includes(dependency), `missing dependency preflight: ${dependency}`);
@@ -194,6 +201,12 @@ test("staging prerequisite repair is canonical, forward-only, and limited to the
   assert.match(repair, /inventory_events_next_location_fk/);
   assert.match(repair, /inventory_events_currency_check/);
   assert.match(repair, /inventory_events_related_entity_check/);
+  assert.match(repair, /add column if not exists provider_category_id text/);
+  assert.match(repair, /add column if not exists provider_product_id text/);
+  assert.match(repair, /add column if not exists provider_sku_id text/);
+  assert.match(repair, /add column if not exists variant text/);
+  assert.match(repair, /add column if not exists language text/);
+  assert.match(repair, /create or replace function public\.inventory_event_workspace_for_user\(p_user_id uuid\)/);
 
   for (const value of [
     "inventory_created", "quantity_added", "quantity_removed", "quantity_adjusted",
@@ -213,4 +226,17 @@ test("staging prerequisite repair is canonical, forward-only, and limited to the
   assert.doesNotMatch(repair, /bohddnajlnmknngzjsjk/);
   assert.doesNotMatch(repair, /marketplace|tournament|stripe|revenuecat/i);
   assert.doesNotMatch(repair, /create function public\.inventory_events_block_mutation/);
+});
+
+test("staging repair utilities stay outside the production migration stream", () => {
+  const surface = read("supabase/staging-repair/20260917163455_staging_function_surface_repair.sql");
+  const prerequisite = read("supabase/staging-repair/20260917180121_staging_prerequisite_repair.sql");
+  const migrationFiles = readdirSync("supabase/migrations");
+
+  assert.ok(!migrationFiles.includes("20260917163455_staging_function_surface_repair.sql"));
+  assert.ok(!migrationFiles.includes("20260917180121_staging_prerequisite_repair.sql"));
+  assert.match(surface, /staging/i);
+  assert.match(prerequisite, /STAGING-ONLY/i);
+  assert.match(surface, /inventory_events_append_only/);
+  assert.match(surface, /not exists \([\s\S]*?pg_trigger[\s\S]*?tgname = 'inventory_events_append_only'/);
 });

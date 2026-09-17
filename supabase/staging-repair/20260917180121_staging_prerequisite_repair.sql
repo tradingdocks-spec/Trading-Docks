@@ -4,6 +4,8 @@
 -- admin_account_access, inventory_event_type, inventory_event_source, and
 -- inventory_events. This is intentionally forward-only and does not replay
 -- historical migrations or alter the production project.
+-- Apply before 20260917163455_staging_function_surface_repair.sql and before
+-- the three PR #93 production security migrations are considered for staging.
 --
 -- The follow-up staging_function_surface_repair migration owns the missing
 -- RPCs, including inventory_events_block_mutation. That helper and its trigger
@@ -23,6 +25,9 @@ begin
   if to_regclass('public.inventory_locations') is null then
     raise exception 'staging prerequisite missing: public.inventory_locations';
   end if;
+  if to_regclass('public.workspace_members') is null then
+    raise exception 'staging prerequisite missing: public.workspace_members';
+  end if;
   if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'admin_role') then
     raise exception 'staging prerequisite missing: public.admin_role';
   end if;
@@ -32,6 +37,29 @@ begin
 end $$;
 
 create extension if not exists pgcrypto;
+
+alter table public.inventory_items
+  add column if not exists provider_category_id text,
+  add column if not exists provider_product_id text,
+  add column if not exists provider_sku_id text,
+  add column if not exists variant text,
+  add column if not exists language text;
+
+create or replace function public.inventory_event_workspace_for_user(p_user_id uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when count(*) = 1 then (array_agg(wm.workspace_id))[1]
+    else null
+  end
+  from public.workspace_members wm
+  where wm.user_id = p_user_id
+    and wm.role in ('owner', 'admin', 'manager', 'member');
+$$;
 
 do $$
 declare
