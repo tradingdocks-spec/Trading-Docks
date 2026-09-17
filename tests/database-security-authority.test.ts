@@ -72,3 +72,22 @@ test("production advisor follow-up restricts internal RPCs without removing auth
   assert.match(paths, /alter function public\.workspace_role_rank\(text\) set search_path = pg_catalog/);
   assert.match(paths, /alter function public\.raise_collector_inventory_error\(text, text, uuid\) set search_path = pg_catalog/);
 });
+
+test("admin RPCs retain server-side authorization and owner transition removes email branching", () => {
+  const authority = read("supabase/migrations/202608100001_platform_role_authority_replayability.sql");
+  const feedback = read("supabase/migrations/202607280008_feedback_center.sql");
+  const overrides = read("supabase/migrations/202607280001_admin_membership_overrides.sql");
+  const transition = read("supabase/migrations/20260917154750_platform_owner_role_authority_transition.sql");
+
+  for (const functionName of ["admin_list_users", "admin_overview", "admin_update_user_access"]) {
+    assert.match(authority, new RegExp(`create or replace function public\\.${functionName}`));
+    assert.match(authority, /if not public\.is_admin\('/);
+  }
+  assert.match(feedback, /create or replace function public\.admin_feedback_queue\(\)/);
+  assert.match(feedback, /where public\.is_platform_owner\(\)/);
+  assert.match(overrides, /create or replace function public\.admin_set_membership_override\(/);
+  assert.match(overrides, /if not public\.is_platform_owner\(\)/);
+  assert.match(transition, /insert into public\.user_roles/);
+  assert.match(transition, /role = 'owner'/);
+  assert.doesNotMatch(transition, /tradingdocks@gmail\.com.*then/);
+});
