@@ -4,6 +4,9 @@
 -- auth.users.email comparison. Preserve bootstrap access exactly once by
 -- promoting that existing identity into user_roles, then use the trusted
 -- role table for all future owner checks. Apply in staging first.
+-- CREATE OR REPLACE FUNCTION preserves existing EXECUTE grants. The preceding
+-- privilege-hardening migration therefore remains authoritative for these
+-- redefined functions.
 
 do $$
 declare
@@ -29,7 +32,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = pg_catalog, public
+set search_path = pg_catalog
 as $$
   select exists (
     select 1
@@ -43,7 +46,7 @@ create or replace function public.protect_platform_owner()
 returns trigger
 language plpgsql
 security definer
-set search_path = pg_catalog, public
+set search_path = pg_catalog
 as $$
 begin
   if exists (
@@ -64,7 +67,7 @@ create or replace function public.admin_set_membership_override(
 returns void
 language plpgsql
 security definer
-set search_path = pg_catalog, public
+set search_path = pg_catalog
 as $$
 begin
   if not public.is_platform_owner() then
@@ -120,13 +123,21 @@ returns table (
 )
 language sql
 security definer
-set search_path = pg_catalog, public
+set search_path = pg_catalog
 as $$
   select
     u.id,
     u.email::text,
     p.full_name,
     case
+      -- Platform ownership is trusted authority, not a billing subscription.
+      -- Store is the existing full-access commercial equivalent used by the UI.
+      when exists (
+        select 1
+        from public.user_roles ur
+        where ur.user_id = u.id
+          and ur.role = 'owner'
+      ) then 'store'
       when amo.plan_id is not null then amo.plan_id
       when bs.status in ('active', 'trialing') then bs.plan_id
       when bs.status = 'past_due'

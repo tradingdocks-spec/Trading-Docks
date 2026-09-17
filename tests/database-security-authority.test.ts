@@ -91,3 +91,44 @@ test("admin RPCs retain server-side authorization and owner transition removes e
   assert.match(transition, /role = 'owner'/);
   assert.doesNotMatch(transition, /tradingdocks@gmail\.com.*then/);
 });
+
+test("owner authority transition is role-based, idempotent, and keeps owners out of Free display", () => {
+  const transition = read("supabase/migrations/20260917154750_platform_owner_role_authority_transition.sql");
+
+  assert.match(transition, /if bootstrap_user_id is null then\s+raise exception 'Owner authority transition requires the existing bootstrap identity\.'/s);
+  assert.match(transition, /on conflict \(user_id\) do update set role = 'owner'/);
+  assert.match(transition, /ur\.role = 'owner'\s*\)\s*then 'store'/s);
+  assert.doesNotMatch(transition, /ur\.role = 'owner'\)[\s\S]{0,500}else 'free'/);
+  assert.match(transition, /old\.user_id and role = 'owner'/);
+  assert.match(transition, /tg_op = 'DELETE' or new\.role <> 'owner'/);
+  assert.match(transition, /The platform owner role cannot be removed/);
+  assert.match(transition, /target_user_id and role = 'owner'/);
+});
+
+test("owner transition hardens search paths and preserves the earlier privilege boundary", () => {
+  const privileges = read("supabase/migrations/20260917154008_production_function_privilege_hardening.sql");
+  const transition = read("supabase/migrations/20260917154750_platform_owner_role_authority_transition.sql");
+
+  for (const signature of [
+    "public.is_platform_owner()",
+    "public.protect_platform_owner()",
+    "public.admin_set_membership_override(",
+    "public.admin_directory()",
+  ]) {
+    const escaped = signature.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(transition, new RegExp(`create or replace function ${escaped}[^]*?set search_path = pg_catalog`));
+  }
+  assert.doesNotMatch(transition, /set search_path = pg_catalog, public/);
+  assert.match(privileges, /revoke all on function public\.is_platform_owner\(\) from public, anon/);
+  assert.match(privileges, /grant execute on function public\.is_platform_owner\(\) to authenticated/);
+  assert.doesNotMatch(transition, /\b(grant|revoke)\s+(all|execute)/i);
+});
+
+test("owner transition migrations remain explicitly ordered", () => {
+  const migrations = [
+    "20260917154003_production_function_search_path_hardening.sql",
+    "20260917154008_production_function_privilege_hardening.sql",
+    "20260917154750_platform_owner_role_authority_transition.sql",
+  ];
+  assert.deepEqual([...migrations].sort(), migrations);
+});
