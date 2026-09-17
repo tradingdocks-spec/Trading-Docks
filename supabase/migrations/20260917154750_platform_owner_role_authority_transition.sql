@@ -17,13 +17,18 @@ begin
   where lower(email::text) = 'tradingdocks@gmail.com'
   limit 1;
 
-  if bootstrap_user_id is null then
-    raise exception 'Owner authority transition requires the existing bootstrap identity.';
+  if exists (select 1 from public.user_roles where role = 'owner') then
+    null;
+  elsif bootstrap_user_id is not null then
+    insert into public.user_roles (user_id, role, created_by)
+    values (bootstrap_user_id, 'owner', null)
+    on conflict (user_id) do update set role = 'owner';
+  elsif not exists (select 1 from auth.users) then
+    -- Empty staging/fresh environments have no identity to bootstrap yet.
+    null;
+  else
+    raise exception 'Owner authority transition requires an existing owner or the historical bootstrap identity.';
   end if;
-
-  insert into public.user_roles (user_id, role, created_by)
-  values (bootstrap_user_id, 'owner', null)
-  on conflict (user_id) do update set role = 'owner';
 end;
 $$;
 

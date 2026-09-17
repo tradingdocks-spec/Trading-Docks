@@ -95,7 +95,10 @@ test("admin RPCs retain server-side authorization and owner transition removes e
 test("owner authority transition is role-based, idempotent, and keeps owners out of Free display", () => {
   const transition = read("supabase/migrations/20260917154750_platform_owner_role_authority_transition.sql");
 
-  assert.match(transition, /if bootstrap_user_id is null then\s+raise exception 'Owner authority transition requires the existing bootstrap identity\.'/s);
+  assert.match(transition, /if exists \(select 1 from public\.user_roles where role = 'owner'\) then/);
+  assert.match(transition, /elsif bootstrap_user_id is not null then/);
+  assert.match(transition, /elsif not exists \(select 1 from auth\.users\) then/);
+  assert.match(transition, /Owner authority transition requires an existing owner or the historical bootstrap identity/);
   assert.match(transition, /on conflict \(user_id\) do update set role = 'owner'/);
   assert.match(transition, /ur\.role = 'owner'\s*\)\s*then 'store'/s);
   assert.doesNotMatch(transition, /ur\.role = 'owner'\)[\s\S]{0,500}else 'free'/);
@@ -121,7 +124,20 @@ test("owner transition hardens search paths and preserves the earlier privilege 
   assert.doesNotMatch(transition, /set search_path = pg_catalog, public/);
   assert.match(privileges, /revoke all on function public\.is_platform_owner\(\) from public, anon/);
   assert.match(privileges, /grant execute on function public\.is_platform_owner\(\) to authenticated/);
+  assert.match(privileges, /revoke all on function public\.inventory_event_workspace_for_user\(uuid\) from public, anon, authenticated/);
+  const ledger = read("supabase/migrations/202608120002_inventory_event_ledger.sql");
+  assert.match(ledger, /public\.inventory_event_workspace_for_user\(v_user_id\)/);
   assert.doesNotMatch(transition, /\b(grant|revoke)\s+(all|execute)/i);
+});
+
+test("owner bootstrap covers existing-owner, legacy-email, empty, and unsafe-populated paths", () => {
+  const transition = read("supabase/migrations/20260917154750_platform_owner_role_authority_transition.sql");
+
+  assert.match(transition, /exists \(select 1 from public\.user_roles where role = 'owner'\)/);
+  assert.match(transition, /lower\(email::text\) = 'tradingdocks@gmail\.com'/);
+  assert.match(transition, /not exists \(select 1 from auth\.users\)/);
+  assert.match(transition, /requires an existing owner or the historical bootstrap identity/);
+  assert.doesNotMatch(transition, /is_platform_owner\([^)]*email|auth\.users[^\n]*email[^\n]*owner/s);
 });
 
 test("owner transition migrations remain explicitly ordered", () => {

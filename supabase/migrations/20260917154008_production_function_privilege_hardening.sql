@@ -42,3 +42,4 @@ revoke all on function public.protect_platform_owner() from public, anon, authen
 revoke all on function public.inventory_event_text_value(jsonb) from public, anon, authenticated;
 revoke all on function public.collector_inventory_error_payload(text, text, uuid) from public, anon, authenticated;
 revoke all on function public.raise_collector_inventory_error(text, text, uuid) from public, anon, authenticated;
+revoke all on function public.inventory_event_workspace_for_user(uuid) from public, anon, authenticated;
