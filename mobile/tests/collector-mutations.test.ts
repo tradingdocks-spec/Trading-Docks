@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   applyCollectorMutationOptimistically,
   classifyCollectorAuthoritativeError,
+  collectionQuantityLimitDecision,
   isTradeBinderVisibleInTradeFilters,
   mutationQueueKey,
   rollbackCollectorMutation,
@@ -71,6 +72,32 @@ test('Free plan limit enforcement prevents increasing collection beyond card lim
 
   assert.equal(result.ok, false);
   assert.equal(result.ok ? null : result.code, 'free_limit');
+});
+
+test('Free plan allows decreases and metadata edits in an already over-limit collection', () => {
+  const context = {
+    membershipTier: 'free',
+    currentTotalQuantity: 1218,
+    currentCardQuantity: 2,
+    hasFullPlatformAccess: false,
+  } as const;
+
+  assert.deepEqual(collectionQuantityLimitDecision(context, 1), { ok: true });
+  assert.deepEqual(collectionQuantityLimitDecision({ ...context, currentCardQuantity: 1 }, 0), { ok: true });
+  assert.equal(validateCollectorMutation({ type: 'condition', userId: 'user-1', inventoryItemId: 'card-1', condition: 'near_mint' }, {
+    ...context,
+    requestedUserId: 'user-1',
+    authenticatedUserId: 'user-1',
+  }).ok, true);
+});
+
+test('Trusted platform access bypasses the commercial quantity cap', () => {
+  assert.deepEqual(collectionQuantityLimitDecision({
+    membershipTier: 'free',
+    currentTotalQuantity: 1218,
+    currentCardQuantity: 1,
+    hasFullPlatformAccess: true,
+  }, 2), { ok: true });
 });
 
 test('quantity mutation rejects negative or fractional quantities but allows zero as non-destructive zero-owned state', () => {
@@ -196,7 +223,7 @@ test('authoritative database errors are recognizable for mobile offline replay',
     {
       authoritative: true,
       code: 'TD_COLLECTOR_FREE_LIMIT_EXCEEDED',
-      message: 'Free plan collections are limited to 500 total owned cards.',
+    message: 'Collection limit reached: Free accounts can hold up to 500 total owned cards. Reduce quantity or upgrade to add more.',
     },
   );
   assert.deepEqual(
