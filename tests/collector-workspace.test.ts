@@ -103,6 +103,24 @@ test('Collector Workspace server search includes matching storage locations', ()
   assert.match(expression, /location_id\.in\.\("binder-1","box-2"\)/);
 });
 
+test('Collector Workspace search expression covers canonical inventory fields', () => {
+  const expression = buildInventorySearchFilterExpression('#89');
+
+  assert.match(expression, /card_name\.ilike\.%89%/);
+  assert.match(expression, /sku\.ilike\.%89%/);
+  assert.match(expression, /set_code\.ilike\.%89%/);
+  assert.match(expression, /data->>setName\.ilike\.%89%/);
+  assert.match(expression, /collector_number\.ilike\.%89%/);
+  assert.match(expression, /data->>condition\.ilike\.%89%/);
+});
+
+test('Collector Workspace search matches every query term across canonical fields', () => {
+  assert.equal(filterCollectionCards(cards, { query: 'rhystic 25' }).length, 1);
+  assert.equal(filterCollectionCards(cards, { query: 'RHYSTIC   25' }).length, 1);
+  assert.equal(filterCollectionCards(cards, { query: 'rhystic-25' }).length, 1);
+  assert.equal(filterCollectionCards(cards, { query: 'nope 25' }).length, 0);
+});
+
 test('Collector Workspace sorting supports quantity and set printing order', () => {
   assert.equal(sortCollectionCards(cards, 'quantity_desc')[0]?.cardName, 'Sol Ring');
   assert.equal(sortCollectionCards(cards, 'set_asc')[0]?.printing.setCode, 'ltc');
