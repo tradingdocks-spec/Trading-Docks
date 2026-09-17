@@ -132,3 +132,32 @@ test("owner transition migrations remain explicitly ordered", () => {
   ];
   assert.deepEqual([...migrations].sort(), migrations);
 });
+
+test("staging function-surface repair contains only the missing PR #93 objects", () => {
+  const repair = read("supabase/migrations/20260917163455_staging_function_surface_repair.sql");
+  const requiredSignatures = [
+    "admin_directory()",
+    "admin_list_users(search_text text default '', result_limit integer default 100)",
+    "admin_overview()",
+    "admin_update_user_access(",
+    "apply_collector_inventory_mutation(",
+    "create_inventory_item_with_event(",
+    "move_inventory_lot_quantity(",
+    "remove_inventory_lot_quantity(",
+    "collector_inventory_acting_user()",
+    "inventory_event_text_value(p_value jsonb)",
+    "inventory_events_block_mutation()",
+    "set_tcgtracking_updated_at()",
+  ];
+
+  for (const signature of requiredSignatures) {
+    assert.ok(repair.includes(`create function public.${signature}`), `missing repair signature: ${signature}`);
+  }
+  assert.match(repair, /ukrcbmujzdyclrkghbvo/);
+  assert.match(repair, /to_regclass\('public\.inventory_items'\)/);
+  assert.match(repair, /to_regclass\('public\.inventory_events'\)/);
+  assert.doesNotMatch(repair, /bohddnajlnmknngzjsjk/);
+  assert.doesNotMatch(repair, /\b(drop|truncate|delete from)\b/i);
+  assert.doesNotMatch(repair, /\balter table\b|\bcreate table\b|\bcreate type\b|\bcreate index\b/i);
+  assert.doesNotMatch(repair, /marketplace|tournament|stripe|revenuecat/i);
+});
