@@ -18,3 +18,5 @@ mobile/benchmark-output/
 *.log
 .DS_Store
 .vercel
+# Local Supabase CLI runtime state; migrations remain tracked above this path.
+/supabase/.temp/
