@@ -19,6 +19,7 @@ begin
      or to_regclass('public.inventory_events') is null
      or to_regclass('public.user_roles') is null
      or to_regclass('public.admin_account_access') is null
+     or to_regclass('public.admin_audit_log') is null
      or to_regclass('public.admin_membership_overrides') is null
      or to_regclass('public.account_card_usage') is null
      or to_regclass('public.profiles') is null

@@ -156,6 +156,7 @@ test("staging function-surface repair contains only the missing PR #93 objects",
   assert.match(repair, /ukrcbmujzdyclrkghbvo/);
   assert.match(repair, /to_regclass\('public\.inventory_items'\)/);
   assert.match(repair, /to_regclass\('public\.inventory_events'\)/);
+  assert.match(repair, /to_regclass\('public\.admin_audit_log'\)/);
   assert.doesNotMatch(repair, /bohddnajlnmknngzjsjk/);
   assert.doesNotMatch(repair, /\b(drop|truncate|delete from)\b/i);
   assert.doesNotMatch(repair, /\balter table\b|\bcreate table\b|\bcreate type\b|\bcreate index\b/i);
