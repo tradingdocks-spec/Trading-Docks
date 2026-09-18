@@ -174,6 +174,7 @@ test("admin eBay configuration preserves the encrypted architecture and staging 
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
   assert.match(route, /resolveEbayEnvironment/);
   assert.match(route, /encryptMarketplaceCredentials/);
+  assert.match(route, /key === "environment" \? value : mask\(value\)/);
   assert.doesNotMatch(route, /clientSecret\s*:/);
   assert.match(adminPanel, /type="password"/);
   assert.match(adminPanel, /Save Sandbox Configuration/);

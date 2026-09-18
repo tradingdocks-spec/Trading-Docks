@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     );
     const encrypted = encryptMarketplaceCredentials(credentials);
     const labels = Object.fromEntries(
-      Object.entries(credentials).map(([key, value]) => [key, mask(value)]),
+      Object.entries(credentials).map(([key, value]) => [key, key === "environment" ? value : mask(value)]),
     );
     const admin = adminClient();
     const { data, error } = await admin.from("platform_marketplace_integrations").upsert({
