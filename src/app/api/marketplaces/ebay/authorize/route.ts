@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { currentEbayDeploymentEnvironment, ebayAuthEndpoint, resolveEbayEnvironment } from "@/lib/marketplaces/ebay-environment";
 import { hasCapability } from "@/lib/platform/client-access";
 import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
 
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(destination);
     }
 
-    const environment = credentials.environment === "sandbox" ? "sandbox" : "production";
+    const environment = resolveEbayEnvironment(credentials, currentEbayDeploymentEnvironment());
     const state = randomBytes(32).toString("hex");
     const cookieStore = await cookies();
     cookieStore.set("td_ebay_oauth_state", state, {
@@ -86,11 +87,7 @@ export async function GET(request: Request) {
       maxAge: 600,
     });
 
-    const authorization = new URL(
-      environment === "sandbox"
-        ? "https://auth.sandbox.ebay.com/oauth2/authorize"
-        : "https://auth.ebay.com/oauth2/authorize",
-    );
+    const authorization = new URL(ebayAuthEndpoint(environment));
     authorization.searchParams.set("client_id", credentials.clientId);
     authorization.searchParams.set("response_type", "code");
     authorization.searchParams.set("redirect_uri", credentials.ruName);
@@ -98,8 +95,9 @@ export async function GET(request: Request) {
     authorization.searchParams.set("state", state);
     return NextResponse.redirect(authorization);
   } catch (error) {
-    console.error("Could not start eBay authorization", error);
-    destination.searchParams.set("error", "authorization_setup");
+    const blocked = error instanceof Error && error.message.startsWith("eBay configuration blocked:");
+    console.error("Could not start eBay authorization");
+    destination.searchParams.set("error", blocked ? "configuration_blocked" : "authorization_setup");
     return NextResponse.redirect(destination);
   }
 }

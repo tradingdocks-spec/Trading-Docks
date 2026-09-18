@@ -8,6 +8,7 @@ import { evaluateListingReadiness } from "../src/lib/selling/readiness.ts";
 import { calculateAvailableQuantity, reserveSellingInventory } from "../src/lib/selling/allocation.ts";
 import { normalizeCandidatePatch } from "../src/lib/selling/listing-service.ts";
 import { createMockEbayAdapter, generateEbayTitle, mapEbayCondition, prepareEbayListing, stableEbaySku, validateEbayListing } from "../src/lib/selling/ebay.ts";
+import { ebayApiBase, ebayAuthEndpoint, resolveEbayEnvironment } from "../src/lib/marketplaces/ebay-environment.ts";
 
 test("selling adapters expose capabilities without forcing marketplace methods", () => {
   const ebay = createMarketplaceAdapter("ebay");
@@ -127,4 +128,42 @@ test("marketplace operation migration stores normalized listing state without se
   assert.match(migration, /publish_succeeded/);
   assert.match(migration, /enable row level security/);
   assert.doesNotMatch(migration, /access_token|client_secret|refresh_token/);
+});
+
+test("eBay environment guard allows only explicit Sandbox credentials in staging", () => {
+  assert.equal(resolveEbayEnvironment({ environment: "sandbox" }, "staging"), "sandbox");
+  for (const credentials of [{}, { environment: "sandbx" }, { environment: "production" }]) {
+    assert.throws(() => resolveEbayEnvironment(credentials, "staging"), /eBay configuration blocked/);
+  }
+});
+
+test("eBay environment guard requires an explicit valid environment in production", () => {
+  assert.equal(resolveEbayEnvironment({ environment: "production" }, "production"), "production");
+  assert.throws(() => resolveEbayEnvironment({}, "production"), /explicitly sandbox or production/);
+  assert.throws(() => resolveEbayEnvironment({ environment: "live" }, "production"), /explicitly sandbox or production/);
+});
+
+test("eBay endpoint selection is Sandbox-only for validated staging configuration", () => {
+  assert.equal(ebayAuthEndpoint(resolveEbayEnvironment({ environment: "sandbox" }, "staging")), "https://auth.sandbox.ebay.com/oauth2/authorize");
+  assert.equal(`${ebayApiBase(resolveEbayEnvironment({ environment: "sandbox" }, "staging"))}/identity/v1/oauth2/token`, "https://api.sandbox.ebay.com/identity/v1/oauth2/token");
+  assert.equal(ebayApiBase(resolveEbayEnvironment({ environment: "sandbox" }, "staging")), "https://api.sandbox.ebay.com");
+});
+
+test("eBay environment errors never expose credential or token material", () => {
+  const secret = "super-secret-client-value";
+  assert.throws(() => resolveEbayEnvironment({ environment: secret }, "staging"), (error: unknown) => {
+    assert.ok(error instanceof Error);
+    assert.doesNotMatch(error.message, /super-secret-client-value|access_token|refresh_token|clientSecret/i);
+    return true;
+  });
+});
+
+test("all eBay OAuth paths use the shared validated environment resolver", () => {
+  const authorize = readFileSync(join(process.cwd(), "src/app/api/marketplaces/ebay/authorize/route.ts"), "utf8");
+  const callback = readFileSync(join(process.cwd(), "src/app/api/marketplaces/[marketplace]/callback/route.ts"), "utf8");
+  const refresh = readFileSync(join(process.cwd(), "src/lib/marketplaces/ebay.ts"), "utf8");
+  for (const source of [authorize, callback, refresh]) assert.match(source, /resolveEbayEnvironment/);
+  assert.doesNotMatch(authorize, /environment === "sandbox"/);
+  assert.doesNotMatch(callback, /credentials\.environment === "sandbox"/);
+  assert.doesNotMatch(refresh, /credentials\.environment === "sandbox"/);
 });

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { currentEbayDeploymentEnvironment, ebayApiBase, resolveEbayEnvironment } from "@/lib/marketplaces/ebay-environment";
 import { hasCapability } from "@/lib/platform/client-access";
 import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
 
@@ -59,11 +60,9 @@ export async function GET(
     if (error) throw error;
     if (!data) throw new Error("The eBay platform integration is not configured.");
     const credentials = decryptMarketplaceCredentials(data);
-    const sandbox = credentials.environment === "sandbox";
+    const environment = resolveEbayEnvironment(credentials, currentEbayDeploymentEnvironment());
     const response = await fetch(
-      sandbox
-        ? "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
-        : "https://api.ebay.com/identity/v1/oauth2/token",
+      `${ebayApiBase(environment)}/identity/v1/oauth2/token`,
       {
         method: "POST",
         headers: {
@@ -110,14 +109,15 @@ export async function GET(
       settings: {
         credentials_saved: true,
         authorized: true,
-        environment: sandbox ? "sandbox" : "production",
+        environment,
         authorized_at: new Date().toISOString(),
       },
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,marketplace_id" });
     destination.searchParams.set("authorization", "connected");
-  } catch {
-    destination.searchParams.set("error", "token_exchange");
+  } catch (error) {
+    const blocked = error instanceof Error && error.message.startsWith("eBay configuration blocked:");
+    destination.searchParams.set("error", blocked ? "configuration_blocked" : "token_exchange");
   }
   return NextResponse.redirect(destination);
 }
