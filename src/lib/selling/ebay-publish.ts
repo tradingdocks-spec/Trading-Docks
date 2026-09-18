@@ -6,10 +6,10 @@ export type EbayPublishSummary = { attempted: number; published: number; blocked
 
 function inputFromCandidate(candidate: Record<string, unknown>): EbayListingInput {
   return {
-    tradingDocksCandidateId: String(candidate.id), inventoryItemId: String(candidate.inventory_item_id), cardName: String(candidate.card_name ?? ""),
+    tradingDocksCandidateId: String(candidate.id), inventoryItemId: String(candidate.inventory_item_id), cardName: String(candidate.card_name ?? ""), titleOverride: candidate.title_override as string | null,
     setCode: candidate.set_code as string | null, collectorNumber: candidate.collector_number as string | null, game: candidate.game_id as string | null,
     condition: candidate.condition as string | null, listingPrice: candidate.listing_price as number | null, quantity: Number(candidate.quantity ?? 0),
-    imageUrls: candidate.image_source ? [String(candidate.image_source).startsWith("http") ? String(candidate.image_source) : `https://catalog.invalid/${candidate.image_source}`] : [],
+    imageUrls: candidate.image_source && /^https:\/\//i.test(String(candidate.image_source)) ? [String(candidate.image_source)] : [],
     categoryId: candidate.category_id as string | null, sellerAccountId: candidate.seller_account_id as string | null,
     merchantLocationKey: candidate.merchant_location_key as string | null, fulfillmentPolicyId: candidate.fulfillment_policy_id as string | null,
     paymentPolicyId: candidate.payment_policy_id as string | null, returnPolicyId: candidate.return_policy_id as string | null,
