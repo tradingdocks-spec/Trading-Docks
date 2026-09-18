@@ -5,6 +5,8 @@ import { join } from "node:path";
 
 import { createMarketplaceAdapter, getMarketplaceCapabilities } from "../src/lib/selling/adapter.ts";
 import { evaluateListingReadiness } from "../src/lib/selling/readiness.ts";
+import { calculateAvailableQuantity, reserveSellingInventory } from "../src/lib/selling/allocation.ts";
+import { normalizeCandidatePatch } from "../src/lib/selling/listing-service.ts";
 
 test("selling adapters expose capabilities without forcing marketplace methods", () => {
   const ebay = createMarketplaceAdapter("ebay");
@@ -50,4 +52,35 @@ test("selling foundation migration is additive and user-scoped", () => {
   }
   assert.doesNotMatch(migration, /create table if not exists public\.inventory_items/);
   assert.match(migration, /unique \(user_id, idempotency_key\)/);
+});
+
+test("allocation math never exposes negative availability", () => {
+  assert.equal(calculateAvailableQuantity({ physicalQuantity: 4, activeReservations: 1 }), 3);
+  assert.equal(calculateAvailableQuantity({ physicalQuantity: 2, activeReservations: 5 }), 0);
+});
+
+test("allocation client forwards workspace, quantity, and idempotency", async () => {
+  const calls: Array<[string, Record<string, unknown>]> = [];
+  const result = await reserveSellingInventory({
+    supabase: { rpc: async (name, args) => { calls.push([name, args]); return { data: { ok: true }, error: null }; } },
+    workspaceId: "workspace-1", candidateId: "candidate-1", quantity: 2, idempotencyKey: "request-1",
+  });
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(calls[0], ["reserve_selling_inventory", { p_workspace_id: "workspace-1", p_candidate_id: "candidate-1", p_quantity: 2, p_idempotency_key: "request-1" }]);
+  await assert.rejects(() => reserveSellingInventory({ supabase: { rpc: async () => ({ data: null, error: null }) }, workspaceId: "w", candidateId: "c", quantity: 0, idempotencyKey: "x" }));
+});
+
+test("candidate patch normalization accepts operational edits and rejects invalid quantity", () => {
+  assert.deepEqual(normalizeCandidatePatch({ listingPrice: "12.50", condition: "NM", marketplaces: ["ebay", "ebay"], quantity: 2 }), { listing_price: 12.5, condition: "NM", selected_marketplaces: ["ebay"], quantity: 2 });
+  assert.throws(() => normalizeCandidatePatch({ quantity: 0 }), /positive whole number/);
+});
+
+test("allocation workflow migration is additive, locked, and workspace scoped", () => {
+  const migration = readFileSync(join(process.cwd(), "supabase/migrations/20260918174321_selling_allocation_and_candidate_workflow.sql"), "utf8");
+  assert.match(migration, /create or replace function public\.reserve_selling_inventory/);
+  assert.match(migration, /create or replace function public\.update_selling_candidate_quantity/);
+  assert.match(migration, /for update/);
+  assert.match(migration, /is_workspace_member/);
+  assert.match(migration, /source_provenance jsonb/);
+  assert.doesNotMatch(migration, /create table if not exists public\.inventory_items/);
 });

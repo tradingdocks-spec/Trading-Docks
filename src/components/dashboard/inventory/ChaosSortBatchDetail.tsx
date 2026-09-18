@@ -69,6 +69,7 @@ export function ChaosSortBatchDetail({ data }: { data: ChaosSortBatchDetailData 
 
   return <main className="batch-page min-h-screen bg-[var(--td-background-primary)] p-4 text-td-primary sm:p-6 lg:p-8">
     <div className="mx-auto max-w-6xl space-y-6">
+      <Link href={`/dashboard/selling/listings?chaosBatch=${data.batch.id}`} className="inline-flex items-center rounded-xl border border-td-accent/20 bg-td-accent/5 px-4 py-2 text-sm font-bold text-td-accent-text">Prepare this batch for selling</Link>
       <Link href="/dashboard/inventory/chaos-sort" className="inline-flex items-center gap-2 text-sm font-semibold text-td-secondary hover:text-td-primary"><ArrowLeft className="h-4 w-4" />Back to Chaos Sort</Link>
       <section className="grid gap-5 lg:grid-cols-[1fr_240px]">
         <div className="rounded-2xl border border-td-ink/10 bg-td-surface p-5 sm:p-7">
