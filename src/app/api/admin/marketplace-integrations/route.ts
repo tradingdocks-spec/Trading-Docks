@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { encryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { currentEbayDeploymentEnvironment, resolveEbayEnvironment } from "@/lib/marketplaces/ebay-environment";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -63,7 +64,10 @@ export async function GET() {
       .select("marketplace_id,credential_labels,enabled,updated_at")
       .order("marketplace_id");
     if (error) throw error;
-    return NextResponse.json({ integrations: data ?? [] });
+    return NextResponse.json({
+      integrations: data ?? [],
+      deploymentEnvironment: currentEbayDeploymentEnvironment(),
+    });
   } catch (error) {
     return NextResponse.json({
       error: databaseError(error, "Could not load marketplace integrations."),
@@ -92,11 +96,14 @@ export async function POST(request: Request) {
   if (!credentials.clientId || !credentials.clientSecret || !credentials.ruName) {
     return NextResponse.json({ error: "Client ID, Client Secret, and RuName are required." }, { status: 400 });
   }
-  credentials.environment = credentials.environment === "sandbox" ? "sandbox" : "production";
   try {
+    credentials.environment = resolveEbayEnvironment(
+      credentials,
+      currentEbayDeploymentEnvironment(),
+    );
     const encrypted = encryptMarketplaceCredentials(credentials);
     const labels = Object.fromEntries(
-      Object.entries(credentials).map(([key, value]) => [key, mask(value)]),
+      Object.entries(credentials).map(([key, value]) => [key, key === "environment" ? value : mask(value)]),
     );
     const admin = adminClient();
     const { data, error } = await admin.from("platform_marketplace_integrations").upsert({

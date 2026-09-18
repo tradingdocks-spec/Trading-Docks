@@ -427,9 +427,15 @@ type PlatformIntegration = {
   updated_at: string;
 };
 
+type MarketplaceIntegrationsResponse = {
+  integrations?: PlatformIntegration[];
+  deploymentEnvironment?: "staging" | "production";
+  error?: string;
+};
+
 function AdminIntegrations() {
   const [integration, setIntegration] = useState<PlatformIntegration | null>(null);
-  const [environment, setEnvironment] = useState("production");
+  const [deploymentEnvironment, setDeploymentEnvironment] = useState<"staging" | "production">("staging");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [ruName, setRuName] = useState("");
@@ -441,8 +447,9 @@ function AdminIntegrations() {
   useEffect(() => {
     void fetch("/api/admin/marketplace-integrations", { cache: "no-store" })
       .then(async (response) => {
-        const body = await response.json() as { integrations?: PlatformIntegration[]; error?: string };
+        const body = await response.json() as MarketplaceIntegrationsResponse;
         if (!response.ok) throw new Error(body.error ?? "Could not load integrations.");
+        setDeploymentEnvironment(body.deploymentEnvironment ?? "staging");
         setIntegration(body.integrations?.find((item) => item.marketplace_id === "ebay") ?? null);
       })
       .catch((error: Error) => setMessage(error.message))
@@ -457,7 +464,7 @@ function AdminIntegrations() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         marketplaceId: "ebay",
-        credentials: { environment, clientId, clientSecret, ruName },
+        credentials: { environment: deploymentEnvironment === "production" ? "production" : "sandbox", clientId, clientSecret, ruName },
         enabled: true,
       }),
     });
@@ -512,7 +519,7 @@ function AdminIntegrations() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-accent/15 bg-td-accent/[0.05] text-td-accent-text"><PlugZap className="h-5 w-5" /></div>
-            <div><h3 className="text-sm font-semibold text-td-primary">eBay</h3><p className="mt-1 text-[11px] text-td-muted">One Trading Docks developer application · separate consent per store</p></div>
+            <div><h3 className="text-sm font-semibold text-td-primary">eBay Sandbox</h3><p className="mt-1 text-[11px] text-td-muted">Encrypted developer credentials · separate consent per store</p></div>
           </div>
           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${integration?.enabled ? "border-td-success/15 bg-td-success/[0.05] text-td-success" : "border-td-line/10 bg-td-ink/[0.03] text-td-muted"}`}>
             {loading ? "Checking" : integration?.enabled ? "Available to stores" : integration ? "Paused" : "Not configured"}
@@ -521,26 +528,29 @@ function AdminIntegrations() {
 
         {integration && !editing ? (
           <div className="mt-5">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                ["Environment", integration.credential_labels.environment ?? "Saved"],
-                ["Client ID", integration.credential_labels.clientId ?? "Saved"],
-                ["RuName", integration.credential_labels.ruName ?? "Saved"],
-              ].map(([label, value]) => <div key={label} className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className="mt-1.5 font-mono text-[11px] text-td-secondary">{value}</p></div>)}
+                ["Client ID", integration.credential_labels.clientId ? "Configured" : "Missing"],
+                ["Client Secret", integration.credential_labels.clientSecret ? "Configured" : "Missing"],
+                ["RuName", integration.credential_labels.ruName ? "Configured" : "Missing"],
+                ["Environment", integration.credential_labels.environment === "sandbox" ? "Sandbox" : "Configured"],
+              ].map(([label, value]) => <div key={label} className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className="mt-1.5 text-xs font-semibold text-td-secondary">{value}</p></div>)}
             </div>
+            <div className="mt-4 rounded-xl border border-td-success/15 bg-td-success/[0.04] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-success">Status</p><p className="mt-1 text-sm font-semibold text-td-primary">{integration.credential_labels.clientId && integration.credential_labels.clientSecret && integration.credential_labels.ruName ? "Ready to Connect" : "Configuration Incomplete"}</p></div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => setEditing(true)} className="h-10 rounded-xl border border-td-accent/15 px-4 text-xs font-bold text-td-accent-text hover:bg-td-accent/[0.06]">Replace credentials</button>
+              {deploymentEnvironment !== "production" && integration.credential_labels.environment === "sandbox" ? <Link href="/api/marketplaces/ebay/authorize" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent"><PlugZap className="h-4 w-4" />Connect eBay Sandbox</Link> : null}
               <button type="button" disabled={saving} onClick={() => void toggleEnabled()} className="h-10 rounded-xl border border-td-ink/[0.08] px-4 text-xs font-semibold text-td-secondary hover:bg-td-ink/[0.03]">{integration.enabled ? "Pause customer connections" : "Enable customer connections"}</button>
             </div>
           </div>
         ) : (
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <label className="text-[11px] font-semibold text-td-secondary">Environment<select value={environment} onChange={(event) => setEnvironment(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-td-surface px-3 text-xs text-td-primary"><option value="production">Production</option><option value="sandbox">Sandbox</option></select></label>
+            <label className="text-[11px] font-semibold text-td-secondary">Environment<input value={deploymentEnvironment === "production" ? "production" : "sandbox"} readOnly aria-readonly="true" className="mt-1.5 h-10 w-full rounded-xl border border-td-success/20 bg-td-success/[0.04] px-3 text-xs font-semibold text-td-success outline-none" /></label>
             <label className="text-[11px] font-semibold text-td-secondary">Client ID<input value={clientId} onChange={(event) => setClientId(event.target.value)} autoComplete="off" className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none focus:border-td-accent/30" /></label>
             <label className="text-[11px] font-semibold text-td-secondary">Client Secret<input type="password" value={clientSecret} onChange={(event) => setClientSecret(event.target.value)} autoComplete="new-password" className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none focus:border-td-accent/30" /></label>
             <label className="text-[11px] font-semibold text-td-secondary">RuName<input value={ruName} onChange={(event) => setRuName(event.target.value)} autoComplete="off" className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none focus:border-td-accent/30" /></label>
             <div className="flex gap-2 sm:col-span-2">
-              <button type="button" disabled={saving || !clientId || !clientSecret || !ruName} onClick={() => void save()} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}Encrypt and activate eBay</button>
+              <button type="button" disabled={saving || !clientId || !clientSecret || !ruName} onClick={() => void save()} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}Save Sandbox Configuration</button>
               {integration ? <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-xl border border-td-ink/[0.08] px-4 text-xs text-td-secondary">Cancel</button> : null}
             </div>
           </div>

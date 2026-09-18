@@ -62,7 +62,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   },
   { id: "card-shows", pattern: /^\/dashboard\/card-shows(\/|$)/, kind: "capability", capability: "buying.manage", label: "Card Shows" },
   { id: "marketplaces", pattern: /^\/dashboard\/marketplaces(\/|$)/, kind: "capability", capability: "marketplaces.manage", label: "Marketplaces" },
-  { id: "selling", pattern: /^\/dashboard\/(sell-optimizer|seller-launch|mission-control-preview)(\/|$)/, kind: "capability", capability: "orders.manage", label: "Selling" },
+  { id: "selling", pattern: /^\/dashboard\/(selling|sell-optimizer|seller-launch|mission-control-preview)(\/|$)/, kind: "capability", capability: "orders.manage", label: "Selling" },
   { id: "orders", pattern: /^\/dashboard\/orders(\/|$)/, kind: "capability", capability: "orders.manage", label: "Orders" },
   { id: "analytics", pattern: /^\/dashboard\/analytics(\/|$)/, kind: "capability", capability: "analytics.view", label: "Analytics" },
   { id: "automation", pattern: /^\/dashboard\/automation(\/|$)/, kind: "capability", capability: "automation.manage", label: "Automation" },

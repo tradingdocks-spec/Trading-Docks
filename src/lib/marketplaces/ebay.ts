@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { currentEbayDeploymentEnvironment, ebayApiBase, resolveEbayEnvironment } from "@/lib/marketplaces/ebay-environment";
 
 type EbayCredentials = {
   clientId: string;
@@ -28,8 +29,8 @@ export async function getEbayAccess(userId: string) {
   if (tokenError || !tokenRow?.refresh_token) throw new Error("Connect your eBay seller account before importing.");
 
   const credentials = decryptMarketplaceCredentials(integration) as EbayCredentials;
-  const sandbox = credentials.environment === "sandbox";
-  const apiBase = sandbox ? "https://api.sandbox.ebay.com" : "https://api.ebay.com";
+  const environment = resolveEbayEnvironment(credentials, currentEbayDeploymentEnvironment());
+  const apiBase = ebayApiBase(environment);
   const expiresAt = tokenRow.access_token_expires_at
     ? new Date(tokenRow.access_token_expires_at).getTime()
     : 0;

@@ -44,6 +44,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "buying", pattern: /^\/api\/(buylist|collection-intake|market-intelligence|purchasing|purchase-history|precon-intelligence|tcgcsv\/sealed)(\/|$)/, kind: "capability", capability: "buying.manage", label: "Buying APIs" },
   { id: "card-shows", pattern: /^\/api\/card-shows(\/|$)/, kind: "capability", capability: "buying.manage", label: "Card Show APIs" },
   { id: "marketplaces", pattern: /^\/api\/marketplaces(\/|$)/, kind: "capability", capability: "marketplaces.manage", label: "Marketplace APIs" },
+  { id: "selling", pattern: /^\/api\/selling(\/|$)/, kind: "capability", capability: "orders.manage", label: "Selling preparation APIs" },
   { id: "orders", pattern: /^\/api\/orders(\/|$)/, kind: "capability", capability: "orders.manage", label: "Order APIs" },
   { id: "marketing-unsubscribe", pattern: /^\/api\/marketing\/unsubscribe(\/|$)/, kind: "public", label: "Marketing unsubscribe API" },
   { id: "marketing", pattern: /^\/api\/marketing(\/|$)/, kind: "capability", capability: "crm.manage", label: "CRM marketing APIs" },

@@ -359,6 +359,7 @@ export function MarketplaceWorkspace() {
       credentials: "Save your eBay developer credentials before authorizing the connection.",
       credentials_incomplete: "Your saved eBay credentials are incomplete. Enter all four fields and save them again.",
       credentials_key_changed: "Your encryption key changed after these eBay credentials were saved. Enter and save the credentials again, then authorize eBay.",
+      configuration_blocked: "eBay configuration blocked: this deployment requires explicit Sandbox credentials.",
       authorization_setup: "Trading Docks could not start eBay authorization. Confirm the server environment variables, then save your credentials again.",
       server_service_key: "eBay authorization needs SUPABASE_SERVICE_ROLE_KEY in the deployed server environment. Add it in Vercel, redeploy, and try again.",
       server_encryption_key: "eBay authorization needs MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY in the deployed server environment. Add it in Vercel, redeploy, then save the credentials again.",
