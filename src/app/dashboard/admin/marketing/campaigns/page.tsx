@@ -1,4 +1,5 @@
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
+import { CampaignWorkspace } from "@/components/dashboard/admin/marketing/GrowthEngineWorkspace";
 import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
-export default async function CampaignsPage() { const actor = await requireServerPlatformRole("admin"); if (!actor) redirect("/dashboard"); return <div className="mx-auto max-w-4xl px-4 py-12 sm:px-8"><p className="text-xs font-semibold uppercase tracking-[.2em] text-td-accent">Admin marketing</p><h1 className="mt-2 text-3xl font-semibold text-td-primary">Campaigns</h1><p className="mt-4 text-sm leading-6 text-td-secondary">Campaign drafting and compliant Resend delivery are planned for the next milestone. Sending is intentionally unavailable until sender identity, physical address, unsubscribe handling, and webhook verification are configured.</p></div>; }
+export default async function CampaignsPage() { const actor = await requireServerPlatformRole("admin"); if (!actor) redirect("/dashboard"); return <CampaignWorkspace />; }
