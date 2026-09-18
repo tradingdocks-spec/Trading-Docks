@@ -427,15 +427,29 @@ type PlatformIntegration = {
   updated_at: string;
 };
 
+type EbayConnectionState = {
+  status?: string | null;
+  health?: string | null;
+  syncMode?: string | null;
+  lastSyncAt?: string | null;
+  updatedAt?: string | null;
+  environment?: string | null;
+  accessTokenExpired?: boolean;
+  refreshTokenValid?: boolean;
+  scopes?: string[];
+};
+
 type MarketplaceIntegrationsResponse = {
   integrations?: PlatformIntegration[];
   deploymentEnvironment?: "staging" | "production";
+  ebayConnection?: EbayConnectionState | null;
   error?: string;
 };
 
 function AdminIntegrations() {
   const [integration, setIntegration] = useState<PlatformIntegration | null>(null);
   const [deploymentEnvironment, setDeploymentEnvironment] = useState<"staging" | "production">("staging");
+  const [ebayConnection, setEbayConnection] = useState<EbayConnectionState | null>(null);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [ruName, setRuName] = useState("");
@@ -451,6 +465,7 @@ function AdminIntegrations() {
         if (!response.ok) throw new Error(body.error ?? "Could not load integrations.");
         setDeploymentEnvironment(body.deploymentEnvironment ?? "staging");
         setIntegration(body.integrations?.find((item) => item.marketplace_id === "ebay") ?? null);
+        setEbayConnection(body.ebayConnection ?? null);
       })
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setLoading(false));
@@ -487,6 +502,25 @@ function AdminIntegrations() {
     }
     setSaving(false);
   }
+
+  const sandboxConfigured = integration?.credential_labels.environment === "sandbox";
+  const validSandboxConnection =
+    sandboxConfigured &&
+    ebayConnection?.environment === "sandbox" &&
+    ebayConnection?.refreshTokenValid === true;
+  const hasPriorConnection = Boolean(ebayConnection);
+  const connectLabel = validSandboxConnection
+    ? "Reconnect eBay Sandbox"
+    : hasPriorConnection
+      ? "Reconnect eBay Sandbox"
+      : "Connect eBay Sandbox";
+  const connectionStatus = validSandboxConnection
+    ? "Connected to eBay Sandbox"
+    : hasPriorConnection
+      ? "Reconnect Required"
+      : integration?.credential_labels.clientId && integration?.credential_labels.clientSecret && integration?.credential_labels.ruName
+        ? "Ready to Connect"
+        : "Configuration Incomplete";
 
   async function toggleEnabled() {
     if (!integration) return;
@@ -536,10 +570,10 @@ function AdminIntegrations() {
                 ["Environment", integration.credential_labels.environment === "sandbox" ? "Sandbox" : "Configured"],
               ].map(([label, value]) => <div key={label} className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className="mt-1.5 text-xs font-semibold text-td-secondary">{value}</p></div>)}
             </div>
-            <div className="mt-4 rounded-xl border border-td-success/15 bg-td-success/[0.04] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-success">Status</p><p className="mt-1 text-sm font-semibold text-td-primary">{integration.credential_labels.clientId && integration.credential_labels.clientSecret && integration.credential_labels.ruName ? "Ready to Connect" : "Configuration Incomplete"}</p></div>
+            <div className="mt-4 rounded-xl border border-td-success/15 bg-td-success/[0.04] p-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-success">Status</p><p className="mt-1 text-sm font-semibold text-td-primary">{connectionStatus}</p>{hasPriorConnection ? <p className="mt-1 text-[11px] text-td-muted">Stored seller connection: {ebayConnection?.environment ?? "legacy/unknown"} · {ebayConnection?.syncMode ?? "unknown mode"}{ebayConnection?.accessTokenExpired ? " · access token expired" : ""}</p> : null}</div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" onClick={() => setEditing(true)} className="h-10 rounded-xl border border-td-accent/15 px-4 text-xs font-bold text-td-accent-text hover:bg-td-accent/[0.06]">Replace credentials</button>
-              {deploymentEnvironment !== "production" && integration.credential_labels.environment === "sandbox" ? <Link href="/api/marketplaces/ebay/authorize" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent"><PlugZap className="h-4 w-4" />Connect eBay Sandbox</Link> : null}
+              {sandboxConfigured ? <Link href="/api/marketplaces/ebay/authorize" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent"><PlugZap className="h-4 w-4" />{connectLabel}</Link> : null}
               <button type="button" disabled={saving} onClick={() => void toggleEnabled()} className="h-10 rounded-xl border border-td-ink/[0.08] px-4 text-xs font-semibold text-td-secondary hover:bg-td-ink/[0.03]">{integration.enabled ? "Pause customer connections" : "Enable customer connections"}</button>
             </div>
           </div>
