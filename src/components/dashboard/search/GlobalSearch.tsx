@@ -82,8 +82,8 @@ type CardPlacement = {
   unitValue: number;
   href: string;
   locationId?: string;
-  batchId?: string;
-  batchCode?: string;
+  batchId?: string | null;
+  batchCode?: string | null;
   batchTitle?: string | null;
   position?: number | null;
   sku?: string;
@@ -328,7 +328,7 @@ export function GlobalSearch() {
             const locationId = provenance?.locationId ?? baseLocationId;
             const placement = locationLabel({
               ...item,
-              batchCode: provenance?.batchCode,
+              batchCode: provenance?.batchCode ?? undefined,
               locationId,
             }, locationMap.get(locationId));
             const positionDetail = provenance?.position != null ? `Position ${provenance.position}` : "";
@@ -340,7 +340,7 @@ export function GlobalSearch() {
               quantity: Math.max(1, provenance?.quantity ?? card?.quantityOwned ?? item.quantity ?? 1),
               locationName: placement.name,
               locationDetail: [
-                provenance?.batchCode ? `Chaos Sort ${provenance.batchCode}` : placement.detail,
+                provenance?.batchCode ? `Chaos Sort ${provenance.batchCode}${provenance.batchTitle ? ` · ${provenance.batchTitle}` : ""}` : placement.detail,
                 positionDetail,
               ].filter(Boolean).join(" · "),
               locationType: placement.type,
@@ -355,8 +355,8 @@ export function GlobalSearch() {
                   : ((item.value ?? 0) / Math.max(1, item.quantity || 1)),
               href: `/dashboard/cards/${encodeURIComponent(item.id)}`,
               locationId: locationId || undefined,
-              batchId: provenance?.batchId,
-              batchCode: provenance?.batchCode,
+              batchId: provenance?.batchId ?? undefined,
+              batchCode: provenance?.batchCode ?? undefined,
               batchTitle: provenance?.batchTitle,
               position: provenance?.position,
               sku: item.sku,

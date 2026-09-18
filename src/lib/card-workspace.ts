@@ -10,6 +10,8 @@ import {
   type RawInventoryLocation,
   type RawTradeBinderStatus,
   type RawWishlistItem,
+  type CardCondition,
+  type CardFinish,
 } from "@/lib/collector-workspace";
 import {
   buildInventoryAttentionSummary,
@@ -22,6 +24,7 @@ import {
   nonNegativeNumber,
   type CostBasisCompleteness,
 } from "@/lib/financials/domain";
+import { loadInventoryProvenance, type InventoryProvenance } from "@/lib/inventory-provenance";
 
 export type CardWorkspaceData = {
   identity: CardWorkspaceIdentity;
@@ -98,7 +101,14 @@ export type CardWorkspaceInventoryRecord = {
   quantity: number;
   condition: string;
   finish: string;
+  language: string | null;
   location: string;
+  locationId: string | null;
+  batchId: string | null;
+  batchCode: string | null;
+  batchTitle: string | null;
+  batchHref: string | null;
+  locationHref: string | null;
   unitValue: number | null;
   totalValue: number | null;
   knownUnitCost: number | null;
@@ -203,6 +213,7 @@ export async function getCardWorkspaceData({
   if (inventoryError) throw new Error(`Card workspace inventory failed: ${inventoryError.message ?? "Unknown Supabase error"}`);
 
   const rawInventoryRows = ((inventoryRows?.length ? inventoryRows : [anchor]) ?? []) as RawInventoryItem[];
+  const provenance = await loadInventoryProvenance(supabase, userId, rawInventoryRows.map((row) => row.id));
   const cards = buildCollectionCards({
     items: rawInventoryRows,
     locations: (locations ?? []) as RawInventoryLocation[],
@@ -227,8 +238,8 @@ export async function getCardWorkspaceData({
     }
   }
 
-  const rawById = new Map(rawInventoryRows.map((row) => [row.id, row]));
-  const inventoryRecords = cards.map((card) => buildInventoryRecord(card, rawById.get(card.id), attentionByItemId.get(card.id) ?? []));
+  const cardById = new Map(cards.map((card) => [card.id, card]));
+  const inventoryRecords = buildInventoryRecords(rawInventoryRows, cardById, provenance, attentionByItemId, (locations ?? []) as RawInventoryLocation[]);
   const position = buildPosition(inventoryRecords);
   const market = buildMarket(anchorCard, position.quantityOwned);
   const deckReferences = buildDeckReferences(decks ?? [], anchorCard);
@@ -297,8 +308,35 @@ function relatedInventoryQuery(supabase: SupabaseLike, userId: string, anchor: R
   return query.eq("card_name", anchor.card_name ?? "");
 }
 
-function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | undefined, issues: InventoryAttentionItem[]): CardWorkspaceInventoryRecord {
-  const quantity = card.quantityOwned;
+function buildInventoryRecords(
+  rows: RawInventoryItem[],
+  cards: Map<string, CollectionCard>,
+  provenance: InventoryProvenance[],
+  attentionByItemId: Map<string, InventoryAttentionItem[]>,
+  locations: RawInventoryLocation[],
+) {
+  const positionsByItemId = new Map<string, InventoryProvenance[]>();
+  for (const position of provenance) {
+    const current = positionsByItemId.get(position.inventoryItemId) ?? [];
+    current.push(position);
+    positionsByItemId.set(position.inventoryItemId, current);
+  }
+  return rows.flatMap((raw) => {
+    const card = cards.get(raw.id);
+    if (!card) return [];
+    const positions = positionsByItemId.get(raw.id) ?? [];
+    const records = positions.map((position) => buildInventoryRecord(card, raw, attentionByItemId.get(card.id) ?? [], position, undefined, locations));
+    const positionedQuantity = positions.reduce((sum, position) => sum + position.quantity, 0);
+    const remainder = Math.max(0, card.quantityOwned - positionedQuantity);
+    if (!records.length || remainder > 0) {
+      records.push(buildInventoryRecord(card, raw, attentionByItemId.get(card.id) ?? [], null, remainder || undefined, locations));
+    }
+    return records;
+  });
+}
+
+function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | undefined, issues: InventoryAttentionItem[], provenance: InventoryProvenance | null, quantityOverride?: number, locations: RawInventoryLocation[] = []): CardWorkspaceInventoryRecord {
+  const quantity = quantityOverride ?? provenance?.quantity ?? card.quantityOwned;
   const totalValue = card.marketPrice.amount === null ? null : card.marketPrice.amount * quantity;
   const costBasis = resolveInventoryCostBasis([{
     quantity,
@@ -307,12 +345,19 @@ function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | unde
   }]);
   const knownUnitCostValue = costBasis.weightedAverageUnitCost;
   return {
-    id: card.id,
+    id: provenance?.positionId ?? card.id,
     cardName: card.cardName,
     quantity,
-    condition: displayCondition(card.condition),
-    finish: displayFinish(card.printing.finish),
-    location: displayStorageLocation(card),
+    condition: displayCondition(normalizeCondition(provenance?.condition) ?? card.condition),
+    finish: displayFinish(normalizeFinish(provenance?.finish) ?? card.printing.finish),
+    language: provenance?.language ?? card.printing.language ?? null,
+    location: provenance?.locationId ? locationLabel(provenance.locationId) : displayStorageLocation(card),
+    locationId: provenance?.locationId ?? card.storageLocation?.id ?? null,
+    batchId: provenance?.batchId ?? null,
+    batchCode: provenance?.batchCode ?? null,
+    batchTitle: provenance?.batchTitle ?? null,
+    batchHref: provenance?.batchId ? `/dashboard/inventory/batches/${encodeURIComponent(provenance.batchId)}` : null,
+    locationHref: (provenance?.locationId ?? card.storageLocation?.id) ? `/dashboard/inventory?location=${encodeURIComponent(provenance?.locationId ?? card.storageLocation?.id ?? "")}` : null,
     unitValue: card.marketPrice.amount,
     totalValue,
     knownUnitCost: knownUnitCostValue,
@@ -322,6 +367,24 @@ function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | unde
     editHref: `/dashboard/inventory/${encodeURIComponent(card.id)}`,
     inventoryFilterHref: `/dashboard/inventory?query=${encodeURIComponent(card.cardName)}`,
   };
+
+  function locationLabel(locationId: string) {
+    const location = locations.find((candidate) => candidate.id === locationId);
+    if (!location) return "Storage unavailable";
+    return location.name ?? (typeof location.data?.name === "string" ? location.data.name : "Stored inventory");
+  }
+}
+
+function normalizeCondition(value: string | null | undefined): CardCondition | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[ -]/g, "_");
+  return ["near_mint", "lightly_played", "moderately_played", "heavily_played", "damaged"].includes(normalized) ? normalized as CardCondition : null;
+}
+
+function normalizeFinish(value: string | null | undefined): CardFinish | null {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[ -]/g, "_");
+  return ["normal", "foil", "etched", "showcase", "extended_art", "borderless", "serialized"].includes(normalized) ? normalized as CardFinish : null;
 }
 
 function buildPosition(records: CardWorkspaceInventoryRecord[]): CardWorkspacePosition {
