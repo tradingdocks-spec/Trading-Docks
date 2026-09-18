@@ -118,3 +118,13 @@ test("eBay readiness reports exact blockers and mock publish is idempotent", asy
   const second = await adapter.publish(prepared.value!, "publish-1");
   assert.deepEqual(second, first);
 });
+
+test("marketplace operation migration stores normalized listing state without secrets", () => {
+  const migration = readFileSync(join(process.cwd(), "supabase/migrations/20260918191500_selling_marketplace_operations.sql"), "utf8");
+  assert.match(migration, /selling_marketplace_settings/);
+  assert.match(migration, /selling_marketplace_operations/);
+  assert.match(migration, /prepared_payload jsonb/);
+  assert.match(migration, /publish_succeeded/);
+  assert.match(migration, /enable row level security/);
+  assert.doesNotMatch(migration, /access_token|client_secret|refresh_token/);
+});
