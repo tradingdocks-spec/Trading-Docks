@@ -312,6 +312,7 @@ test("dashboard chrome consumes canonical platform access instead of raw billing
 
   assert.match(layoutSource, /const clientAccess = toClientSafeAccess\(platformAccess\)/);
   assert.match(layoutSource, /hasCapability\(clientAccess, "platform\.admin"\)/);
+  assert.doesNotMatch(layoutSource, /isOwner=\{access\.isAdmin/);
   assert.match(shellSource, /<Topbar[\s\S]*clientAccess=\{clientAccess\}/);
   assert.match(shellSource, /<MobileBottomNav[\s\S]*clientAccess=\{clientAccess\}/);
   assert.match(topbarSource, /hasCapability\(clientAccess, "platform\.admin"\)/);
@@ -319,6 +320,19 @@ test("dashboard chrome consumes canonical platform access instead of raw billing
   assert.match(topbarSource, /Full platform access/);
   assert.doesNotMatch(topbarSource, /Free plan[\s\S]{0,160}Admin Control Center/);
   assert.match(mobileNavSource, /getAccountAwareNavigationGroups\(accountType, isOwner, clientAccess\)/);
+});
+
+test("admin navigation is hidden for normal and suspended accounts", () => {
+  const regularUser = access({ platformRole: "user", tier: "store" });
+  const suspendedAdmin = access({ platformRole: "admin", tier: "free", suspended: true });
+  const activeAdmin = access({ platformRole: "admin", tier: "free" });
+
+  assert.equal(hasCapability(regularUser, "platform.admin"), false);
+  assert.equal(hasCapability(suspendedAdmin, "platform.admin"), false);
+  assert.equal(hasCapability(activeAdmin, "platform.admin"), true);
+  assert.equal(navigationHrefsFor(regularUser).includes("/dashboard/admin"), false);
+  assert.equal(navigationHrefsFor(suspendedAdmin).includes("/dashboard/admin"), false);
+  assert.equal(navigationHrefsFor(activeAdmin).includes("/dashboard/admin"), true);
 });
 
 test("analytics workspace composes Owner/Admin access from platform authority", () => {
