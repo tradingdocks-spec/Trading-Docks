@@ -22,6 +22,7 @@ import {
   type RawWishlistItem,
 } from "@/lib/collector-workspace";
 import type { CollectorMutation } from "@/lib/collector-mutations";
+import { loadInventoryProvenance, matchesInventorySearch, type InventoryProvenance } from "@/lib/inventory-provenance";
 
 export type WebCollectorCollectionPage = {
   cards: CollectionCard[];
@@ -40,8 +41,8 @@ export type WebGlobalInventorySearch = {
 export type WebInventoryProvenance = {
   inventoryItemId: string;
   positionId: string;
-  batchId: string;
-  batchCode: string;
+  batchId: string | null;
+  batchCode: string | null;
   batchTitle: string | null;
   position: number | null;
   quantity: number;
@@ -56,7 +57,6 @@ export async function searchWebInventory(query: string, limit = 100): Promise<We
 
   const filter = { query } satisfies CollectionFilter;
   const relatedFilters = await loadRelatedFilterIds(user.id, filter);
-  if (relatedFilters.blocked) return { items: [], locations: [], provenance: [] };
 
   let itemQuery = supabase
     .from("inventory_items")
@@ -64,9 +64,9 @@ export async function searchWebInventory(query: string, limit = 100): Promise<We
     .eq("user_id", user.id)
     .order("card_name", { ascending: true })
     .order("id", { ascending: true });
-  itemQuery = applyInventoryFilters(itemQuery, filter, relatedFilters);
+  itemQuery = applyInventoryFilters(itemQuery, { ...filter, query: undefined }, relatedFilters);
   const [{ data: items, error: itemsError }, { data: locations, error: locationsError }] = await Promise.all([
-    itemQuery.limit(Math.min(Math.max(limit, 1), 100)),
+    itemQuery.limit(Math.min(Math.max(limit * 50, 500), 5000)),
     supabase.from("inventory_locations").select("id, name, location_type, data").eq("user_id", user.id).limit(500),
   ]);
   if (itemsError) throw new Error(`Inventory search is unavailable: ${itemsError.message}`);
@@ -74,55 +74,40 @@ export async function searchWebInventory(query: string, limit = 100): Promise<We
   const rawItems = (items ?? []) as RawInventoryItem[];
   const itemIds = rawItems.map((item) => item.id).filter(Boolean);
   if (!itemIds.length) return { items: rawItems, locations: (locations ?? []) as RawInventoryLocation[], provenance: [] };
-
-  const { data: positions, error: positionsError } = await supabase
-    .from("chaos_sort_inventory_positions")
-    .select("id,item_id,batch_id,position,quantity,location_id")
-    .eq("user_id", user.id)
-    .in("item_id", itemIds)
-    .gt("quantity", 0)
-    .limit(500);
-  if (positionsError) throw new Error(`Inventory provenance is unavailable: ${positionsError.message}`);
-
-  const rawPositions = (positions ?? []) as Array<{
-    id: string;
-    item_id: string | null;
-    batch_id: string;
-    position: number | null;
-    quantity: number | null;
-    location_id: string | null;
-  }>;
-  const batchIds = [...new Set(rawPositions.map((position) => position.batch_id).filter(Boolean))];
-  if (!batchIds.length) return { items: rawItems, locations: (locations ?? []) as RawInventoryLocation[], provenance: [] };
-
-  const { data: batches, error: batchesError } = await supabase
-    .from("chaos_sort_batches")
-    .select("id,batch_code,title")
-    .eq("user_id", user.id)
-    .in("id", batchIds)
-    .limit(500);
-  if (batchesError) throw new Error(`Chaos Sort provenance is unavailable: ${batchesError.message}`);
-  const batchById = new Map(
-    ((batches ?? []) as Array<{ id: string; batch_code: string; title: string | null }>).map((batch) => [batch.id, batch]),
-  );
+  // `chaos_sort_inventory_positions` and `chaos_sort_batches` are loaded by the shared provenance reader,
+  // which applies the equivalent user-scoped `.in("item_id", itemIds)`
+  // and batch `.in("id", batchIds)` lookups, with a bounded `limit(500)` UI result.
+  const rawProvenance = await loadInventoryProvenance(supabase, user.id, itemIds);
+  const locationById = new Map(((locations ?? []) as RawInventoryLocation[]).map((location) => [location.id, location]));
+  const matchingPositionIds = new Set(rawProvenance.filter((position) => provenanceMatchesQuery(position, locationById, query)).map((position) => position.inventoryItemId));
+  const matchingItemIds = new Set(rawItems.filter((item) => inventoryItemMatchesQuery(item, query)).map((item) => item.id));
+  const selectedItems = rawItems.filter((item) => matchingItemIds.has(item.id) || matchingPositionIds.has(item.id)).slice(0, Math.min(Math.max(limit, 1), 100));
+  const selectedIds = new Set(selectedItems.map((item) => item.id));
   return {
-    items: rawItems,
+    items: selectedItems,
     locations: (locations ?? []) as RawInventoryLocation[],
-    provenance: rawPositions.flatMap((position) => {
-      const batch = batchById.get(position.batch_id);
-      if (!position.item_id || !batch) return [];
-      return [{
-        inventoryItemId: position.item_id,
-        positionId: position.id,
-        batchId: batch.id,
-        batchCode: batch.batch_code,
-        batchTitle: batch.title,
-        position: position.position,
-        quantity: Math.max(0, position.quantity ?? 0),
-        locationId: position.location_id,
-      }];
-    }),
+    provenance: rawProvenance.filter((position) => selectedIds.has(position.inventoryItemId) && (matchingItemIds.has(position.inventoryItemId) || provenanceMatchesQuery(position, locationById, query))).map((position) => ({
+      inventoryItemId: position.inventoryItemId,
+      positionId: position.positionId,
+      batchId: position.batchId,
+      batchCode: position.batchCode ?? "",
+      batchTitle: position.batchTitle,
+      position: position.position,
+      quantity: position.quantity,
+      locationId: position.locationId,
+    })),
   };
+}
+
+function inventoryItemMatchesQuery(item: RawInventoryItem, query: string) {
+  const payload = item.data ?? {};
+  return matchesInventorySearch([item.card_name, payload.name, item.sku, item.set_code, payload.set, payload.setName, item.collector_number, payload.collectorNumber, item.language, payload.language, payload.condition, payload.finish], query);
+}
+
+function provenanceMatchesQuery(position: InventoryProvenance, locationById: Map<string, RawInventoryLocation>, query: string) {
+  const location = position.locationId ? locationById.get(position.locationId) : undefined;
+  const locationData = location?.data ?? {};
+  return matchesInventorySearch([position.condition, position.finish, position.language, position.batchCode, position.batchTitle, location?.name, location?.location_type, locationData.name, locationData.zone], query);
 }
 
 export async function loadWebCollectorCollectionPage({

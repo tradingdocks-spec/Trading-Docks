@@ -69,10 +69,16 @@ export function CardWorkspaceView({ data }: { data: CardWorkspaceData }) {
               <div className="space-y-2">
                 {data.inventoryRecords.map((record) => (
                   <article key={record.id} className="rounded-2xl bg-td-ink/[0.035] p-4 ring-1 ring-td-ink/[0.06] transition hover:bg-td-ink/[0.05]">
-                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_100px_130px_120px] lg:items-center">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(150px,1fr)_100px_130px_120px] lg:items-center">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-td-primary">{record.condition} · {record.finish}</p>
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-td-muted"><MapPin className="h-3.5 w-3.5" /> {record.location}</p>
+                        <p className="truncate text-sm font-semibold text-td-primary">{record.condition} · {record.finish}{record.language ? ` · ${record.language}` : ""}</p>
+                        <p className="mt-1 text-xs text-td-muted">
+                          {record.locationHref ? <Link href={record.locationHref} className="inline-flex items-center gap-1.5 hover:text-td-accent-text"><MapPin className="h-3.5 w-3.5" /> {record.location}</Link> : <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {record.location}</span>}
+                        </p>
+                      </div>
+                      <div className="min-w-0 text-xs text-td-muted">
+                        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-td-muted/75">Batch</span>
+                        {record.batchHref ? <Link href={record.batchHref} className="mt-1 block truncate font-semibold text-td-secondary hover:text-td-accent-text">{record.batchCode ? `${record.batchCode}${record.batchTitle ? ` · ${record.batchTitle}` : ""}` : "Batch recorded"}</Link> : <span className="mt-1 block">Not recorded</span>}
                       </div>
                       <p className="text-sm font-semibold text-td-primary">Qty {record.quantity}</p>
                       <p className="text-sm text-td-secondary">{record.totalValue === null ? "Value unavailable" : money(record.totalValue)}</p>
