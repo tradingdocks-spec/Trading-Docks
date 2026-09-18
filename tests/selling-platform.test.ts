@@ -181,3 +181,14 @@ test("admin eBay configuration preserves the encrypted architecture and staging 
   assert.match(adminPanel, /Connect eBay Sandbox/);
   assert.match(adminPanel, /deploymentEnvironment !== "production"/);
 });
+
+
+test("admin eBay connection UI distinguishes sandbox reconnect from legacy connection state", () => {
+  const adminPanel = readFileSync(join(process.cwd(), "src/components/dashboard/admin/AdminControlCenterWithPreview.tsx"), "utf8");
+  const connectionsPage = readFileSync(join(process.cwd(), "src/app/dashboard/selling/connections/page.tsx"), "utf8");
+  assert.match(adminPanel, /ebayConnection/);
+  assert.match(adminPanel, /Reconnect eBay Sandbox/);
+  assert.match(adminPanel, /environment === "sandbox"/);
+  assert.match(connectionsPage, /connectionEnvironment === "sandbox"/);
+  assert.match(connectionsPage, /reconnect required/);
+});

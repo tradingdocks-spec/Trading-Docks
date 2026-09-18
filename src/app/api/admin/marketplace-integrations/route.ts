@@ -59,14 +59,49 @@ export async function GET() {
   const actor = await requireServerPlatformRole("admin");
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   try {
-    const { data, error } = await adminClient()
-      .from("platform_marketplace_integrations")
-      .select("marketplace_id,credential_labels,enabled,updated_at")
-      .order("marketplace_id");
+    const admin = adminClient();
+    const [{ data, error }, { data: connection }, { data: token }] = await Promise.all([
+      admin
+        .from("platform_marketplace_integrations")
+        .select("marketplace_id,credential_labels,enabled,updated_at")
+        .order("marketplace_id"),
+      admin
+        .from("marketplace_connections")
+        .select("status,health,sync_mode,last_sync_at,updated_at,settings")
+        .eq("user_id", actor.user.id)
+        .eq("marketplace_id", "ebay")
+        .maybeSingle(),
+      admin
+        .from("marketplace_oauth_tokens")
+        .select("access_token_expires_at,refresh_token_expires_at,scopes,updated_at")
+        .eq("user_id", actor.user.id)
+        .eq("marketplace_id", "ebay")
+        .maybeSingle(),
+    ]);
     if (error) throw error;
+    const connectionEnvironment =
+      connection?.settings && typeof connection.settings === "object" && !Array.isArray(connection.settings)
+        ? String((connection.settings as Record<string, unknown>).environment ?? "")
+        : "";
+    const refreshValid = token?.refresh_token_expires_at
+      ? new Date(token.refresh_token_expires_at).getTime() > Date.now()
+      : Boolean(token);
     return NextResponse.json({
       integrations: data ?? [],
       deploymentEnvironment: currentEbayDeploymentEnvironment(),
+      ebayConnection: connection ? {
+        status: connection.status,
+        health: connection.health,
+        syncMode: connection.sync_mode,
+        lastSyncAt: connection.last_sync_at,
+        updatedAt: connection.updated_at,
+        environment: connectionEnvironment || null,
+        accessTokenExpired: token?.access_token_expires_at
+          ? new Date(token.access_token_expires_at).getTime() <= Date.now()
+          : true,
+        refreshTokenValid: refreshValid,
+        scopes: Array.isArray(token?.scopes) ? token.scopes : [],
+      } : null,
     });
   } catch (error) {
     return NextResponse.json({
