@@ -167,3 +167,16 @@ test("all eBay OAuth paths use the shared validated environment resolver", () =>
   assert.doesNotMatch(callback, /credentials\.environment === "sandbox"/);
   assert.doesNotMatch(refresh, /credentials\.environment === "sandbox"/);
 });
+
+test("admin eBay configuration preserves the encrypted architecture and staging lock", () => {
+  const route = readFileSync(join(process.cwd(), "src/app/api/admin/marketplace-integrations/route.ts"), "utf8");
+  const adminPanel = readFileSync(join(process.cwd(), "src/components/dashboard/admin/AdminControlCenterWithPreview.tsx"), "utf8");
+  assert.match(route, /requireServerPlatformRole\("admin"\)/);
+  assert.match(route, /resolveEbayEnvironment/);
+  assert.match(route, /encryptMarketplaceCredentials/);
+  assert.doesNotMatch(route, /clientSecret\s*:/);
+  assert.match(adminPanel, /type="password"/);
+  assert.match(adminPanel, /Save Sandbox Configuration/);
+  assert.match(adminPanel, /Connect eBay Sandbox/);
+  assert.match(adminPanel, /deploymentEnvironment !== "production"/);
+});
