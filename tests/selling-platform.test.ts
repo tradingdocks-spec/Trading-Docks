@@ -7,6 +7,7 @@ import { createMarketplaceAdapter, getMarketplaceCapabilities } from "../src/lib
 import { evaluateListingReadiness } from "../src/lib/selling/readiness.ts";
 import { calculateAvailableQuantity, reserveSellingInventory } from "../src/lib/selling/allocation.ts";
 import { normalizeCandidatePatch } from "../src/lib/selling/listing-service.ts";
+import { createMockEbayAdapter, generateEbayTitle, mapEbayCondition, prepareEbayListing, stableEbaySku, validateEbayListing } from "../src/lib/selling/ebay.ts";
 
 test("selling adapters expose capabilities without forcing marketplace methods", () => {
   const ebay = createMarketplaceAdapter("ebay");
@@ -83,4 +84,37 @@ test("allocation workflow migration is additive, locked, and workspace scoped", 
   assert.match(migration, /is_workspace_member/);
   assert.match(migration, /source_provenance jsonb/);
   assert.doesNotMatch(migration, /create table if not exists public\.inventory_items/);
+});
+
+test("selling provenance correction permits multiple physical positions per item", () => {
+  const migration = readFileSync(join(process.cwd(), "supabase/migrations/20260918190000_selling_chaos_position_multiplicity.sql"), "utf8");
+  assert.match(migration, /drop constraint if exists chaos_sort_inventory_positions_user_id_batch_id_item_id_key/);
+  assert.match(migration, /chaos_sort_positions_user_batch_item_idx/);
+});
+
+test("eBay SKU and title generation are deterministic and bounded", () => {
+  const input = { tradingDocksCandidateId: "candidate-1", inventoryItemId: "item-1", cardName: "Innkeeper's Talent", setCode: "BLB", collectorNumber: "180", game: "magic", condition: "NM" } as const;
+  assert.equal(stableEbaySku(input), stableEbaySku(input));
+  assert.match(stableEbaySku(input), /^TD-[A-Z0-9]+$/);
+  assert.equal(generateEbayTitle(input, 80), "Innkeeper's Talent #180 BLB MTG NM");
+  assert.ok(generateEbayTitle({ ...input, titleOverride: "A".repeat(100) }, 80).length <= 80);
+});
+
+test("eBay normalization maps conditions and filters unsafe images", () => {
+  assert.equal(mapEbayCondition("NM"), "NEW");
+  assert.equal(mapEbayCondition("unknown"), null);
+  const prepared = prepareEbayListing({ tradingDocksCandidateId: "c", inventoryItemId: "i", cardName: "Card", condition: "LP", listingPrice: 4.5, quantity: 2, imageUrls: ["https://example.com/a.jpg", "http://unsafe.example/b.jpg"] });
+  assert.equal(prepared.condition, "USED_EXCELLENT");
+  assert.deepEqual(prepared.imageUrls, ["https://example.com/a.jpg"]);
+});
+
+test("eBay readiness reports exact blockers and mock publish is idempotent", async () => {
+  const input = { tradingDocksCandidateId: "c", inventoryItemId: "i", cardName: "Card", condition: "NM", listingPrice: 4.5, quantity: 2, imageUrls: ["https://example.com/a.jpg"], sellerAccountId: "seller", merchantLocationKey: "loc", categoryId: "183454", fulfillmentPolicyId: "ship", paymentPolicyId: "pay", returnPolicyId: "return" };
+  assert.deepEqual(validateEbayListing({ ...input, categoryId: null }).map((blocker) => blocker.code), ["NEEDS_EBAY_CATEGORY"]);
+  const adapter = createMockEbayAdapter();
+  const prepared = adapter.prepare(input);
+  assert.equal(prepared.ok, true);
+  const first = await adapter.publish(prepared.value!, "publish-1");
+  const second = await adapter.publish(prepared.value!, "publish-1");
+  assert.deepEqual(second, first);
 });
