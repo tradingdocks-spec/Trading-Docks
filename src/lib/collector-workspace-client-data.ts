@@ -34,6 +34,18 @@ export type WebCollectorCollectionPage = {
 export type WebGlobalInventorySearch = {
   items: RawInventoryItem[];
   locations: RawInventoryLocation[];
+  provenance: WebInventoryProvenance[];
+};
+
+export type WebInventoryProvenance = {
+  inventoryItemId: string;
+  positionId: string;
+  batchId: string;
+  batchCode: string;
+  batchTitle: string | null;
+  position: number | null;
+  quantity: number;
+  locationId: string | null;
 };
 
 /** Search the live inventory ledger with the same filters used by Collection. */
@@ -44,7 +56,7 @@ export async function searchWebInventory(query: string, limit = 100): Promise<We
 
   const filter = { query } satisfies CollectionFilter;
   const relatedFilters = await loadRelatedFilterIds(user.id, filter);
-  if (relatedFilters.blocked) return { items: [], locations: [] };
+  if (relatedFilters.blocked) return { items: [], locations: [], provenance: [] };
 
   let itemQuery = supabase
     .from("inventory_items")
@@ -59,7 +71,58 @@ export async function searchWebInventory(query: string, limit = 100): Promise<We
   ]);
   if (itemsError) throw new Error(`Inventory search is unavailable: ${itemsError.message}`);
   if (locationsError) throw new Error(`Storage locations are unavailable: ${locationsError.message}`);
-  return { items: (items ?? []) as RawInventoryItem[], locations: (locations ?? []) as RawInventoryLocation[] };
+  const rawItems = (items ?? []) as RawInventoryItem[];
+  const itemIds = rawItems.map((item) => item.id).filter(Boolean);
+  if (!itemIds.length) return { items: rawItems, locations: (locations ?? []) as RawInventoryLocation[], provenance: [] };
+
+  const { data: positions, error: positionsError } = await supabase
+    .from("chaos_sort_inventory_positions")
+    .select("id,item_id,batch_id,position,quantity,location_id")
+    .eq("user_id", user.id)
+    .in("item_id", itemIds)
+    .gt("quantity", 0)
+    .limit(500);
+  if (positionsError) throw new Error(`Inventory provenance is unavailable: ${positionsError.message}`);
+
+  const rawPositions = (positions ?? []) as Array<{
+    id: string;
+    item_id: string | null;
+    batch_id: string;
+    position: number | null;
+    quantity: number | null;
+    location_id: string | null;
+  }>;
+  const batchIds = [...new Set(rawPositions.map((position) => position.batch_id).filter(Boolean))];
+  if (!batchIds.length) return { items: rawItems, locations: (locations ?? []) as RawInventoryLocation[], provenance: [] };
+
+  const { data: batches, error: batchesError } = await supabase
+    .from("chaos_sort_batches")
+    .select("id,batch_code,title")
+    .eq("user_id", user.id)
+    .in("id", batchIds)
+    .limit(500);
+  if (batchesError) throw new Error(`Chaos Sort provenance is unavailable: ${batchesError.message}`);
+  const batchById = new Map(
+    ((batches ?? []) as Array<{ id: string; batch_code: string; title: string | null }>).map((batch) => [batch.id, batch]),
+  );
+  return {
+    items: rawItems,
+    locations: (locations ?? []) as RawInventoryLocation[],
+    provenance: rawPositions.flatMap((position) => {
+      const batch = batchById.get(position.batch_id);
+      if (!position.item_id || !batch) return [];
+      return [{
+        inventoryItemId: position.item_id,
+        positionId: position.id,
+        batchId: batch.id,
+        batchCode: batch.batch_code,
+        batchTitle: batch.title,
+        position: position.position,
+        quantity: Math.max(0, position.quantity ?? 0),
+        locationId: position.location_id,
+      }];
+    }),
+  };
 }
 
 export async function loadWebCollectorCollectionPage({

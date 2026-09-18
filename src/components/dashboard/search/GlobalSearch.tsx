@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 
 import { loadDeckVault } from "@/lib/deck-vault/persistence";
-import { searchWebInventory } from "@/lib/collector-workspace-client-data";
+import { searchWebInventory, type WebInventoryProvenance } from "@/lib/collector-workspace-client-data";
+import { buildCollectionCards } from "@/lib/collector-workspace";
 
 const PUT_AWAY_QUEUE_ID = "__trading-docks-put-away-queue__";
 const SEARCH_LOAD_TIMEOUT_MS = 10_000;
@@ -58,6 +59,9 @@ type SearchableInventoryItem = {
   listingStatus?: string;
   listingId?: string;
   sku?: string;
+  providerCategoryId?: string;
+  providerProductId?: string;
+  providerSkuId?: string;
   batchCode?: string;
 };
 
@@ -77,6 +81,12 @@ type CardPlacement = {
   imageUrl?: string;
   unitValue: number;
   href: string;
+  locationId?: string;
+  batchId?: string;
+  batchCode?: string;
+  batchTitle?: string | null;
+  position?: number | null;
+  sku?: string;
 };
 
 type CardGroup = {
@@ -271,9 +281,14 @@ export function GlobalSearch() {
         setLoading(false);
         return;
       }
-      const locations = inventorySearch.locations as unknown as LocationRecord[];
+      const locations = inventorySearch.locations.map((location) => ({
+        id: location.id,
+        name: location.name ?? (typeof location.data?.name === "string" ? location.data.name : "Unnamed location"),
+        type: location.location_type ?? (typeof location.data?.type === "string" ? location.data.type : undefined),
+        zone: typeof location.data?.zone === "string" ? location.data.zone : undefined,
+      })) as LocationRecord[];
       const items = inventorySearch.items.map((item) => ({
-        id: item.id,
+        ...item,
         name: item.card_name ?? (typeof item.data?.name === "string" ? item.data.name : "Unnamed card"),
         quantity: item.quantity ?? 0,
         locationId: item.location_id ?? (typeof item.data?.locationId === "string" ? item.data.locationId : ""),
@@ -282,39 +297,71 @@ export function GlobalSearch() {
         set: typeof item.data?.setName === "string" ? item.data.setName : item.set_code ?? undefined,
         collectorNumber: typeof item.data?.collectorNumber === "string" ? item.data.collectorNumber : item.collector_number ?? undefined,
         finish: typeof item.data?.finish === "string" ? item.data.finish : undefined,
-        imageUrl: typeof item.data?.imageUrl === "string" ? item.data.imageUrl : undefined,
-        unitMarketValue: item.quantity ? (item.inventory_value ?? 0) / item.quantity : undefined,
         value: item.inventory_value ?? undefined,
         platform: typeof item.data?.listingPlatform === "string" ? item.data.listingPlatform : undefined,
         listingPlatform: typeof item.data?.listingPlatform === "string" ? item.data.listingPlatform : undefined,
         listingStatus: typeof item.data?.listingStatus === "string" ? item.data.listingStatus : undefined,
         listingId: typeof item.data?.listingId === "string" ? item.data.listingId : undefined,
         sku: item.sku ?? undefined,
+        batchCode: typeof item.data?.batchCode === "string" ? item.data.batchCode : typeof item.data?.batch_code === "string" ? item.data.batch_code : undefined,
       })) as SearchableInventoryItem[];
       const locationMap = new Map(locations.map((location) => [location.id, location]));
+      const normalizedCards = buildCollectionCards({
+        items: inventorySearch.items,
+        locations: inventorySearch.locations,
+      });
+      const cardById = new Map(normalizedCards.map((card) => [card.id, card]));
+      const provenanceByItemId = new Map<string, WebInventoryProvenance[]>();
+      inventorySearch.provenance.forEach((provenance) => {
+        const current = provenanceByItemId.get(provenance.inventoryItemId) ?? [];
+        current.push(provenance);
+        provenanceByItemId.set(provenance.inventoryItemId, current);
+      });
       const inventoryPlacements: CardPlacement[] = items
         .filter((item) => item.category === "Single" || !item.category)
-        .map((item) => {
-          const placement = locationLabel(item, locationMap.get(item.locationId));
-          return {
-            id: `inventory:${item.id}`,
-            source: "inventory",
-            sourceId: item.id,
-            cardName: item.name,
-            quantity: Math.max(1, item.quantity || 1),
-            locationName: placement.name,
-            locationDetail: placement.detail,
-            locationType: placement.type,
-            condition: item.condition,
-            set: item.set,
-            collectorNumber: item.collectorNumber,
-            finish: item.finish,
-            imageUrl: item.imageUrl,
-            unitValue:
-              item.unitMarketValue ??
-              ((item.value ?? 0) / Math.max(1, item.quantity || 1)),
-            href: `/dashboard/cards/${encodeURIComponent(item.id)}`,
-          };
+        .flatMap((item) => {
+          const card = cardById.get(item.id);
+          const baseLocationId = item.locationId;
+          const itemProvenance = provenanceByItemId.get(item.id) ?? [];
+          const positions = itemProvenance.length ? itemProvenance : [null];
+          return positions.map((provenance) => {
+            const locationId = provenance?.locationId ?? baseLocationId;
+            const placement = locationLabel({
+              ...item,
+              batchCode: provenance?.batchCode,
+              locationId,
+            }, locationMap.get(locationId));
+            const positionDetail = provenance?.position != null ? `Position ${provenance.position}` : "";
+            return {
+              id: provenance ? `inventory:${item.id}:position:${provenance.positionId}` : `inventory:${item.id}`,
+              source: "inventory" as const,
+              sourceId: item.id,
+              cardName: card?.cardName ?? item.name,
+              quantity: Math.max(1, provenance?.quantity ?? card?.quantityOwned ?? item.quantity ?? 1),
+              locationName: placement.name,
+              locationDetail: [
+                provenance?.batchCode ? `Chaos Sort ${provenance.batchCode}` : placement.detail,
+                positionDetail,
+              ].filter(Boolean).join(" · "),
+              locationType: placement.type,
+              condition: card?.condition && card.condition !== "unknown" ? card.condition : item.condition,
+              set: card?.printing.setName ?? card?.printing.setCode ?? item.set,
+              collectorNumber: card?.printing.collectorNumber ?? item.collectorNumber,
+              finish: card?.printing.finish !== "unknown" ? card?.printing.finish : item.finish,
+              imageUrl: card?.printing.imageUrl ?? undefined,
+              unitValue:
+                card?.marketPrice.amount != null
+                  ? card.marketPrice.amount
+                  : ((item.value ?? 0) / Math.max(1, item.quantity || 1)),
+              href: `/dashboard/cards/${encodeURIComponent(item.id)}`,
+              locationId: locationId || undefined,
+              batchId: provenance?.batchId,
+              batchCode: provenance?.batchCode,
+              batchTitle: provenance?.batchTitle,
+              position: provenance?.position,
+              sku: item.sku,
+            };
+          });
         });
 
       const deckPlacements: CardPlacement[] = decks.flatMap((deck) =>
@@ -364,6 +411,7 @@ export function GlobalSearch() {
           placement.locationName,
           placement.condition,
           placement.locationDetail,
+          placement.sku,
         ]
           .filter(Boolean)
           .join(" "),
@@ -662,11 +710,8 @@ function CardResult({
         </p>
         <div className="divide-y divide-td-ink/[0.055]">
         {group.placements.map((placement, placementIndex) => (
-          <Link
+          <div
             key={placement.id}
-            href={placement.href}
-            onClick={onNavigate}
-            data-global-search-result
             className={[
               "group flex items-center gap-3 border-l-2 px-3.5 py-3.5 transition sm:px-4",
               activeResult === startIndex + placementIndex
@@ -702,8 +747,35 @@ function CardResult({
                 </span>
               </span>
             </div>
-            <span className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-td-accent-text sm:inline-flex">Open location <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
-          </Link>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+              <Link
+                href={placement.href}
+                onClick={onNavigate}
+                data-global-search-result
+                className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-td-accent/20 bg-td-accent/[0.07] px-2.5 text-[11px] font-semibold text-td-accent-text transition hover:bg-td-accent/[0.13]"
+              >
+                Open card <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+              {placement.locationId ? (
+                <Link
+                  href={`/dashboard/inventory?location=${encodeURIComponent(placement.locationId)}`}
+                  onClick={onNavigate}
+                  className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-td-ink/[0.08] px-2.5 text-[11px] font-semibold text-td-secondary transition hover:text-td-primary"
+                >
+                  Open location
+                </Link>
+              ) : null}
+              {placement.batchId ? (
+                <Link
+                  href={`/dashboard/inventory/batches/${encodeURIComponent(placement.batchId)}`}
+                  onClick={onNavigate}
+                  className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-td-ink/[0.08] px-2.5 text-[11px] font-semibold text-td-secondary transition hover:text-td-primary"
+                >
+                  Open batch
+                </Link>
+              ) : null}
+            </div>
+          </div>
         ))}
         </div>
       </div>

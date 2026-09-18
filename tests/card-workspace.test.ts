@@ -75,6 +75,29 @@ test("Card Workspace route is reused by highest-value card encounter surfaces", 
   assert.match(view, /Performance Boundary/);
 });
 
+test("Global Search preserves canonical image, storage, batch provenance, and action links", () => {
+  const globalSearch = read("src/components/dashboard/search/GlobalSearch.tsx");
+  const clientData = read("src/lib/collector-workspace-client-data.ts");
+
+  assert.match(globalSearch, /buildCollectionCards\(/);
+  assert.match(globalSearch, /card\?\.printing\.imageUrl/);
+  assert.match(globalSearch, /Open card/);
+  assert.match(globalSearch, /Open location/);
+  assert.match(globalSearch, /Open batch/);
+  assert.match(globalSearch, /batchId/);
+  assert.match(globalSearch, /positionId/);
+  assert.match(globalSearch, /placement\.sku/);
+  assert.match(globalSearch, /data-global-search-result/);
+  assert.match(clientData, /chaos_sort_inventory_positions/);
+  assert.match(clientData, /chaos_sort_batches/);
+  assert.match(clientData, /\.in\("item_id", itemIds\)/);
+  assert.match(clientData, /\.in\("id", batchIds\)/);
+  assert.match(clientData, /limit\(500\)/);
+  assert.ok(globalSearch.includes("/dashboard/inventory?location="));
+  assert.ok(globalSearch.includes("/dashboard/inventory/batches/"));
+  assert.doesNotMatch(globalSearch, /loadInventorySnapshot/);
+});
+
 test("Card Workspace inventory history renders typed ledger details", () => {
   const service = read("src/lib/card-workspace.ts");
   const view = read("src/components/dashboard/card-workspace/CardWorkspaceView.tsx");
