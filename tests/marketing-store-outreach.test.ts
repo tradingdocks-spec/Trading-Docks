@@ -23,6 +23,23 @@ test("broader Store Finder matches are opt-in and never restore excluded busines
   assert.equal(filterStoreResults([result("high"), result("medium"), result("low"), result("excluded")], true).length, 3);
 });
 
+test("Store Finder map loader is singleton, bounded, and preserves visible result numbering", () => {
+  const map = readFileSync(join(process.cwd(), "src/components/dashboard/admin/marketing/StoreFinderMap.tsx"), "utf8");
+  assert.match(map, /__tradingDocksMapsLoader/);
+  assert.match(map, /loading=async/);
+  assert.match(map, /callback=/);
+  assert.match(map, /MAPS_LOAD_TIMEOUT_MS = 12_000/);
+  assert.match(map, /tdMapsStatus === "failed"/);
+  assert.match(map, /gm_authFailure/);
+  assert.match(map, /Loading territory map/);
+  assert.match(map, /Google Maps could not load/);
+  assert.match(map, /stores\.map\(\(store, originalIndex\)/);
+  assert.match(map, /label: String\(originalIndex \+ 1\)/);
+  assert.match(map, /new google\.maps\.Map/);
+  assert.match(map, /new google\.maps\.LatLngBounds/);
+  assert.doesNotMatch(map, /GOOGLE_PLACES_API_KEY/);
+});
+
 test("store finder validates supported ZIP and radius values", () => {
   assert.deepEqual(validateStoreSearch("85001-1234", 25), { postalCode: "85001", radius: 25 });
   assert.throws(() => validateStoreSearch("8500", 25), /valid five-digit/);
