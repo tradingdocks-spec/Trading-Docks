@@ -93,7 +93,7 @@ export function StoreFinderMap({ stores, selectedId, onSelect }: { stores: MapSt
     if (marker && map.current) { map.current.panTo(marker.getPosition()); marker.setAnimation((window as GoogleMapsWindow).google?.maps?.Animation?.BOUNCE); window.setTimeout(() => marker.setAnimation(null), 700); }
   }, [selectedId]);
 
-  return <div className="relative h-full min-h-[420px] bg-[#0d1d2b]">
+  return <div className="relative h-full min-h-0 bg-[#0d1d2b]">
     <div ref={mapElement} className="absolute inset-0" aria-label="Google map of Store Finder results" />
     {mapState === "loading" ? <div className="absolute inset-0 grid place-items-center bg-[#0d1d2b] p-6 text-center"><p className="text-sm text-white/70">Loading territory map…</p></div> : null}
     {mapState === "missing-key" ? <div className="absolute inset-0 grid place-items-center bg-[#0d1d2b] p-6 text-center"><div><p className="text-sm font-semibold text-white">Map configuration is incomplete</p><p className="mt-2 max-w-sm text-xs leading-5 text-white/65">Ask an administrator to configure the browser map key with Trading Docks HTTP referrer restrictions. Store search remains available.</p></div></div> : null}
