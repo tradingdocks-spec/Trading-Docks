@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
-import { resolveAssetPreviewUrl } from "@/lib/marketing/repo-brand-assets";
+import { isRedundantLegacyBrandAsset, resolveAssetPreviewUrl } from "@/lib/marketing/repo-brand-assets";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 const ASSET_TYPES = ["logo", "product_screenshot", "feature_screenshot", "card_image", "background", "texture", "device_mockup", "icon", "campaign_artwork", "social_export", "email_export", "other"] as const;
 const APPROVAL_STATES = ["draft", "approved", "restricted", "archived"] as const;
+const VIEWS = ["curated", "brand", "product", "approved", "draft", "archived", "all"] as const;
+const CANONICAL_ROLES = new Set(["logo_primary", "logo_wordmark", "logo_icon", "app_icon_primary"]);
 
 function safeAsset(asset: Record<string, unknown>, signedUrl?: string | null) {
   return { ...asset, signed_url: resolveAssetPreviewUrl(typeof asset.storage_path === "string" ? asset.storage_path : null, signedUrl) };
@@ -16,21 +18,36 @@ export async function GET(request: Request) {
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const url = new URL(request.url);
   const admin = createAdminClient();
-  let query = admin.from("marketing_assets").select("id,name,slug,asset_type,storage_path,mime_type,width,height,tags,feature_ids,game_ids,approved_for_marketing,approval_status,source,source_url,license_notes,alt_text,product_display_allowed,marketing_use_approved,brand_role,screenshot_role,focal_x,focal_y,safe_crop,preferred_aspect_ratios,archived_at,created_at,updated_at").order("updated_at", { ascending: false }).limit(300);
+  let query = admin.from("marketing_assets").select("id,name,slug,asset_type,storage_path,mime_type,width,height,tags,feature_ids,game_ids,approved_for_marketing,approval_status,source,source_url,license_notes,alt_text,product_display_allowed,marketing_use_approved,brand_role,screenshot_role,focal_x,focal_y,safe_crop,preferred_aspect_ratios,archived_at,created_at,updated_at").order("updated_at", { ascending: false }).limit(500);
   const type = url.searchParams.get("type");
   const approval = url.searchParams.get("approval");
+  const view = VIEWS.includes((url.searchParams.get("view") ?? "curated") as typeof VIEWS[number]) ? (url.searchParams.get("view") ?? "curated") as typeof VIEWS[number] : "curated";
   const search = url.searchParams.get("search");
   if (type && ASSET_TYPES.includes(type as typeof ASSET_TYPES[number])) query = query.eq("asset_type", type);
   if (approval && APPROVAL_STATES.includes(approval as typeof APPROVAL_STATES[number])) query = query.eq("approval_status", approval);
+  if (view === "archived") query = query.not("archived_at", "is", null);
+  else if (view !== "all") query = query.is("archived_at", null);
   if (search) query = query.ilike("name", `%${search.replaceAll("%", "\\%")}%`);
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Asset Vault is not initialized. Apply the documented staging migration first." }, { status: 503 });
-  const assets = await Promise.all((data ?? []).map(async (asset: Record<string, unknown>) => {
+  const filtered = (data ?? []).filter((asset) => {
+    const legacy = isRedundantLegacyBrandAsset({ name: asset.name, slug: asset.slug, assetType: asset.asset_type, approvalStatus: asset.approval_status, source: asset.source, brandRole: asset.brand_role });
+    if (view === "curated") return !legacy;
+    if (view === "brand") return (asset.source === "repo_owned" || CANONICAL_ROLES.has(asset.brand_role ?? "")) && !legacy;
+    if (view === "product") return ["product_screenshot", "feature_screenshot"].includes(asset.asset_type) && !legacy;
+    if (view === "approved") return asset.approval_status === "approved" && !legacy;
+    if (view === "draft") return asset.approval_status === "draft" && !legacy;
+    return true;
+  }).sort((left, right) => {
+    const rank = (asset: Record<string, unknown>) => (CANONICAL_ROLES.has(String(asset.brand_role ?? "")) ? 0 : asset.approval_status === "approved" ? 1 : ["product_screenshot", "feature_screenshot"].includes(String(asset.asset_type ?? "")) ? 2 : asset.asset_type === "campaign_artwork" ? 3 : asset.archived_at ? 5 : 4);
+    return rank(left) - rank(right) || String(right.updated_at ?? "").localeCompare(String(left.updated_at ?? ""));
+  }).slice(0, 300);
+  const assets = await Promise.all(filtered.map(async (asset: Record<string, unknown>) => {
     if (typeof asset.storage_path !== "string" || asset.storage_path.startsWith("/")) return safeAsset(asset);
     const signed = await admin.storage.from("marketing-assets").createSignedUrl(asset.storage_path, 600);
     return safeAsset(asset, signed.data?.signedUrl);
   }));
-  return NextResponse.json({ assets, assetTypes: ASSET_TYPES, approvalStates: APPROVAL_STATES });
+  return NextResponse.json({ assets, assetTypes: ASSET_TYPES, approvalStates: APPROVAL_STATES, views: VIEWS, view });
 }
 
 export async function POST(request: Request) {

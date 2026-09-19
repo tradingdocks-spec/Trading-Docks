@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isKnownRepoBrandAsset, REPO_BRAND_ASSET_MANIFEST, resolveAssetPreviewUrl } from "../src/lib/marketing/repo-brand-assets.ts";
+import { isKnownRepoBrandAsset, isRedundantLegacyBrandAsset, REPO_BRAND_ASSET_MANIFEST, resolveAssetPreviewUrl } from "../src/lib/marketing/repo-brand-assets.ts";
 
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
@@ -45,4 +45,36 @@ test("Brand System resolves canonical brand roles", () => {
     assert.match(source, /logo_icon/);
     assert.match(source, /app_icon_primary/);
     assert.match(source, /canonicalAssets/);
+});
+
+test("legacy icon drafts are excluded from the curated default view", () => {
+  const source = read("src/app/api/admin/marketing/assets/route.ts");
+  assert.match(source, /view === "curated"/);
+  assert.match(source, /return !legacy/);
+  assert.match(source, /isRedundantLegacyBrandAsset/);
+});
+
+test("archive cleanup only matches known redundant drafts and is idempotent", () => {
+  const legacy = { name: "favicon-32", slug: "favicon-32", assetType: "icon", approvalStatus: "draft", source: "admin_uploaded", brandRole: null };
+  assert.equal(isRedundantLegacyBrandAsset(legacy), true);
+  assert.equal(isRedundantLegacyBrandAsset(legacy), isRedundantLegacyBrandAsset(legacy));
+  assert.equal(isRedundantLegacyBrandAsset({ ...legacy, approvalStatus: "archived" }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ ...legacy, source: "repo_owned" }), false);
+});
+
+test("canonical assets, user assets, and approved product screenshots are preserved", () => {
+  for (const asset of REPO_BRAND_ASSET_MANIFEST) {
+    assert.equal(isRedundantLegacyBrandAsset({ name: asset.name, slug: asset.slug, assetType: asset.assetType, approvalStatus: "approved", source: "repo_owned", brandRole: asset.brandRole }), false);
+  }
+  assert.equal(isRedundantLegacyBrandAsset({ name: "custom-store-icon", slug: "custom-store-icon", assetType: "icon", approvalStatus: "draft", source: "admin_uploaded", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "favicon-32", slug: "favicon-32", assetType: "icon", approvalStatus: "approved", source: "admin_uploaded", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "storefront", slug: "storefront", assetType: "product_screenshot", approvalStatus: "approved", source: "admin_uploaded", brandRole: null }), false);
+});
+
+test("legacy archive endpoint is admin-only and never deletes storage", () => {
+  const source = read("src/app/api/admin/marketing/assets/archive-legacy/route.ts");
+  assert.match(source, /requireServerPlatformRole\("admin"\)/);
+  assert.match(source, /approval_status: "archived"/);
+  assert.match(source, /Storage files were not deleted/);
+  assert.doesNotMatch(source, /\.remove\(/);
 });
