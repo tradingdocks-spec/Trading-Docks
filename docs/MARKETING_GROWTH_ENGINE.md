@@ -57,6 +57,18 @@ P2: paid enrichment, social/ad publishing, video generation, automatic optimizat
 
 The Brand System, Sequences, and Templates pages remain foundation states. Asset Vault upload/review, deterministic render/export, campaign placement attachment, creative approval, outreach email preview, provider readiness, real-send gating, and signed webhook ingestion are implemented in the current slices.
 
+## Reply ingestion and sales inbox
+
+The additive migration `supabase/migrations/20260919065642_marketing_sales_inbox.sql` adds admin-only conversations, normalized conversation messages, follow-up tasks, and interest events. It has not been applied remotely by this task. Outbound message snapshots remain immutable; the conversation layer links them to later inbound and manually reviewed messages without replacing the original campaign, feature, creative, or message attribution.
+
+Inbound replies enter through `/api/marketing/webhooks/resend/inbound`. The provider-specific adapter verifies the existing signed Resend webhook boundary and normalizes `email.received` into a provider-neutral message shape. Where a provider only supplies an inbound email ID initially, body retrieval can remain inside that adapter; CRM logic never depends on Resend-specific payload fields.
+
+Matching is conservative: provider thread, message references, and `In-Reply-To` are preferred, followed by a single recent contact-and-subject match. Ambiguous or unsafe matches become `unmatched_inbound` for admin review and are never attached based only on a company-name resemblance. Inbound HTML is sanitized before admin rendering, while protected stored content remains available to authorized server code. Full bodies are never written to logs.
+
+`/dashboard/admin/marketing/inbox` is an admin-only sales-context inbox with conversation list, unread state, classification, thread view, prospect context, attribution, and follow-up task creation. Deterministic classification supports interested, questions, demo/trial requests, unsubscribe, out-of-office, wrong contact, pricing/integration/support questions, not interested, and other. Explicit unsubscribe and auto-reply signals take precedence over weaker signals. Any genuine human reply pauses cold outreach; unsubscribe creates global suppression; not interested stops the current campaign without automatically creating global suppression; wrong contact stops the current contact path; and no reply can automatically promote a prospect to customer.
+
+Suggested replies are editable drafts only. They are constrained to approved feature facts and flag unsupported integration questions for manual review. A future manual-send action must reuse the existing readiness, suppression, approval, immutable snapshot, and provider gates; no autonomous reply path is enabled. Prospect lifecycle changes and interest events preserve provenance for campaign and feature analytics, while out-of-office replies do not count as engagement.
+
 ## Validation
 
 - TypeScript: passed.

@@ -99,6 +99,13 @@ export function createResendProvider(env: NodeJS.ProcessEnv = process.env, fetch
 }
 
 export function verifyResendWebhook(rawBody: string, headers: Headers, secret: string | undefined, now = Date.now()): MarketingWebhookEvent | null {
+  const payload = verifyResendPayload(rawBody, headers, secret, now);
+  if (!payload) return null;
+  const eventId = headers.get("svix-id") ?? "";
+  return normalizeResendWebhook(eventId, payload);
+}
+
+export function verifyResendPayload(rawBody: string, headers: Headers, secret: string | undefined, now = Date.now()): Record<string, unknown> | null {
   const eventId = headers.get("svix-id");
   const timestamp = headers.get("svix-timestamp");
   const signatureHeader = headers.get("svix-signature");
@@ -111,8 +118,7 @@ export function verifyResendWebhook(rawBody: string, headers: Headers, secret: s
   const expected = createHmac("sha256", key).update(`${eventId}.${timestamp}.${rawBody}`).digest("base64");
   const valid = signatureHeader.split(" ").some((signature) => { const value = signature.split(",")[1]; if (!value) return false; const a = Buffer.from(value); const b = Buffer.from(expected); return a.length === b.length && timingSafeEqual(a, b); });
   if (!valid) return null;
-  const payload = JSON.parse(rawBody) as Record<string, unknown>;
-  return normalizeResendWebhook(eventId, payload);
+  try { return JSON.parse(rawBody) as Record<string, unknown>; } catch { return null; }
 }
 
 export function normalizeResendWebhook(providerEventId: string, payload: Record<string, unknown>): MarketingWebhookEvent | null {
