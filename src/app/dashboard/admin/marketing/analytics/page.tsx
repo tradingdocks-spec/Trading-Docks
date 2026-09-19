@@ -1,4 +1,5 @@
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
+import { MarketingPlaceholder } from "@/components/dashboard/admin/marketing/GrowthEngineWorkspace";
 import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
-export default async function MarketingAnalyticsPage() { const actor = await requireServerPlatformRole("admin"); if (!actor) redirect("/dashboard"); return <div className="mx-auto max-w-4xl px-4 py-12 sm:px-8"><p className="text-xs font-semibold uppercase tracking-[.2em] text-td-accent">Admin marketing</p><h1 className="mt-2 text-3xl font-semibold text-td-primary">Marketing Analytics</h1><p className="mt-4 text-sm leading-6 text-td-secondary">Analytics will be enabled once campaign delivery events and conversion attribution are available. Empty metrics are not fabricated.</p></div>; }
+export default async function MarketingAnalyticsPage() { const actor = await requireServerPlatformRole("admin"); if (!actor) redirect("/dashboard"); return <MarketingPlaceholder title="Analytics" detail="Delivery, click, reply, and conversion attribution are modeled in the growth schema. Metrics will remain empty until real provider events exist." />; }

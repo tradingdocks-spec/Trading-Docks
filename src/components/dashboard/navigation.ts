@@ -25,6 +25,7 @@ import {
   PackageSearch,
   Palette,
   Rocket,
+  Send,
   Percent,
   MessageSquarePlus,
   PlugZap,
@@ -398,9 +399,15 @@ const ADMIN_NAV: NavigationItem[] = [
   { href: "/dashboard/admin/marketing/store-finder", label: "Store Finder", icon: MapPinned },
   { href: "/dashboard/admin/marketing/prospects", label: "Prospects", icon: Users },
   { href: "/dashboard/admin/marketing/campaigns", label: "Campaigns", icon: Mail },
+  { href: "/dashboard/admin/marketing/creative-studio", label: "Creative Studio", icon: Palette },
+  { href: "/dashboard/admin/marketing/outreach", label: "Outreach", icon: Send },
   { href: "/dashboard/admin/marketing/templates", label: "Email Templates", icon: Mail },
+  { href: "/dashboard/admin/marketing/assets", label: "Asset Vault", icon: PackageOpen },
+  { href: "/dashboard/admin/marketing/brand-system", label: "Brand System", icon: Palette },
   { href: "/dashboard/admin/marketing/sequences", label: "Sequences", icon: History },
   { href: "/dashboard/admin/marketing/analytics", label: "Marketing Analytics", icon: BarChart3 },
+  { href: "/dashboard/admin/marketing/suppression", label: "Suppression List", icon: ShieldCheck },
+  { href: "/dashboard/admin/marketing/settings", label: "Marketing Settings", icon: Settings },
 ];
 
 function isAtLeast(tier: AccountType, minimum: AccountType) {

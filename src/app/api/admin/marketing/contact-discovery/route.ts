@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     const result = await discoverPublicContact(prospect.website_url);
     if (result.email) {
       await admin.from("marketing_prospects").update({ public_email: result.email, public_email_normalized: result.email, public_email_source_url: result.sourceUrl, public_email_discovered_at: new Date().toISOString(), contact_page_url: result.contactPageUrl }).eq("id", body.prospectId);
+      const contact = await admin.from("marketing_prospect_contacts").upsert({ prospect_id: body.prospectId, email: result.email, normalized_email: result.email, contact_type: "general", confidence: "verified", source_url: result.sourceUrl, is_primary: true, updated_at: new Date().toISOString() }, { onConflict: "prospect_id,normalized_email" });
+      if (contact.error) return NextResponse.json({ error: "Public contact was found, but the contact record could not be saved." }, { status: 503 });
     } else if (result.contactPageUrl) await admin.from("marketing_prospects").update({ contact_page_url: result.contactPageUrl }).eq("id", body.prospectId);
     await admin.from("marketing_activities").insert({ prospect_id: body.prospectId, actor_user_id: actor.user.id, activity_type: "contact_discovery", body: result.email ? "Found a publicly listed email address." : "No public email found.", metadata: { sourceUrl: result.sourceUrl, pagesVisited: result.pagesVisited } });
     return NextResponse.json({ email: result.email, sourceUrl: result.sourceUrl, contactPageUrl: result.contactPageUrl, message: result.email ? "Public email found." : "No public email found." });
