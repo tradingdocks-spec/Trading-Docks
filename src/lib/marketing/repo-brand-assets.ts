@@ -58,3 +58,26 @@ export function repoBrandAssetRow(asset: RepoBrandAssetManifestEntry, actorId: s
 export function isKnownRepoBrandAsset(name: string) {
   return REPO_BRAND_ASSET_MANIFEST.some((asset) => asset.name === name || asset.slug === name);
 }
+
+const LEGACY_BRAND_ASSET_PATTERNS = [
+  /^android-chrome(?:-|$)/i,
+  /^apple-touch-icon(?:-|$)/i,
+  /^app-store-icon-1024(?:-|$)/i,
+  /^discord-icon-512(?:-|$)/i,
+  /^favicon(?:-|$)/i,
+  /^icon-(?:16|32|48|64|128|180)(?:-|$)/i,
+];
+
+export type LegacyBrandAssetCandidate = {
+  name: string | null | undefined;
+  slug?: string | null;
+  assetType: string | null | undefined;
+  approvalStatus: string | null | undefined;
+  source: string | null | undefined;
+  brandRole?: string | null;
+};
+
+export function isRedundantLegacyBrandAsset(asset: LegacyBrandAssetCandidate) {
+  if (asset.assetType !== "icon" || asset.approvalStatus !== "draft" || asset.source === "repo_owned" || asset.brandRole) return false;
+  return [asset.name, asset.slug].some((value) => typeof value === "string" && LEGACY_BRAND_ASSET_PATTERNS.some((pattern) => pattern.test(value)));
+}
