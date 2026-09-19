@@ -55,13 +55,13 @@ P1: real provider adapter, signed webhooks, delivery/click/reply ingestion, sequ
 
 P2: paid enrichment, social/ad publishing, video generation, automatic optimization, and autonomous follow-up.
 
-The Brand System, Analytics, Sequences, Templates, and Settings pages remain honest foundation states. Asset Vault upload/review and deterministic render/export are implemented in the current slice; campaign attachment, creative approval actions, and email preview wiring remain follow-up work.
+The Brand System, Analytics, Sequences, Templates, and Settings pages remain honest foundation states. Asset Vault upload/review, deterministic render/export, campaign placement attachment, creative approval, and outreach email preview are implemented in the current slices.
 
 ## Validation
 
 - TypeScript: passed.
 - ESLint: passed with 0 errors; existing repository warnings remain.
-- Full test suite: 770 passed, 0 failed.
+- Full test suite: 774 passed, 0 failed.
 - Production build: passed.
 - `git diff --check`: passed.
 - Local Supabase lint: not run successfully because Docker/Postgres was unavailable at `127.0.0.1:54322`; no remote database was touched.
@@ -71,6 +71,14 @@ The deterministic renderer was inspected as generated PNG output at 1080×1080, 
 ## Safe operating rules
 
 Use `Generate → Review → Approve → Mock send` in development. Do not apply the migration remotely, configure a real provider, or send outreach until the owner has reviewed compliance, sender identity, provider webhooks, suppression behavior, and the production enablement checklist.
+
+## Campaign workflow and outreach preview
+
+The additive migration `20260919013616_marketing_campaign_workflow.sql` adds creative review metadata, placement validation, mock-send provenance fields, and an admin-only campaign activity timeline. It does not replace the existing campaign, creative, prospect, or outreach tables. Staging migration validation remains blocked by the previously documented remote migration drift; no remote migration was applied.
+
+Campaign detail is available at `/dashboard/admin/marketing/campaigns/[id]`. Attachments are keyed by explicit placement (`email_hero`, social, or Google/LinkedIn/X variants), and the server checks creative approval plus exact platform dimensions before attaching. A placement can be replaced or removed without deleting the creative. Creative review actions preserve the original row and record reviewer, timestamps, rejection reason/notes, and campaign activity; duplicate/variant actions preserve parent and variant-group lineage.
+
+Outreach review at `/dashboard/admin/marketing/outreach` now loads a complete admin-only preview from the existing draft and campaign references. It supports desktop, mobile, and plain-text views; includes the approved email hero only when an approved `email_hero` placement exists; shows an explicit missing-creative warning otherwise; and displays personalization signals, source URLs, claim provenance, sender readiness, suppression state, and deterministic approval checks. Approval is blocked when recipient, body, campaign, feature, CTA, claims, suppression, or sender identity requirements fail. Mock send remains the only send path, uses a stable `draft + approved version` idempotency key, stores campaign/creative/prospect/body-hash provenance, records a mock delivery event, and never contacts a recipient.
 ## Asset Vault and deterministic creative renderer
 
 The additive migration `20260919010406_marketing_asset_renderer.sql` extends the existing `marketing_assets` table rather than creating a second asset store. It adds controlled asset types, approval state, source and license provenance, product-display and marketing-use approval flags, archive state, and searchable indexes. The migration also provisions the private `marketing-assets` Supabase Storage bucket with authenticated admin-only policies. It is not applied by this task.
