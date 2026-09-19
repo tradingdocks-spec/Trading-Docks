@@ -32,6 +32,14 @@ export const DEFAULT_MARKETING_BRAND_TOKENS: MarketingBrandTokens = {
 export const APPROVED_CTA_LANGUAGE = ["See Chaos Sort", "Explore Inventory", "See Trading Docks", "Start Sorting", "View the Workflow", "Try Trading Docks"];
 export const PROHIBITED_CREATIVE_PATTERNS = ["random neon gradient", "floating glowing orb", "generic 3d cube", "fake holographic ui", "robot imagery", "random particles", "excessive glow", "fake dashboard", "fake statistics", "fake product screenshots", "stock corporate people", "generic future technology"];
 
+export function validateCreativeCopy(copy: string, approvedClaims: string[], disallowedClaims: string[]) {
+  const normalized = copy.toLowerCase();
+  if (disallowedClaims.some((claim) => claim.trim() && normalized.includes(claim.toLowerCase().trim()))) return false;
+  const unsupportedClaimPattern = /\b(integrat(?:e|es|ion)|works with|syncs? with|guarantee(?:s|d)?|[0-9]+x faster|[0-9]+%|million users?|customers? use)\b/i;
+  if (!unsupportedClaimPattern.test(copy)) return true;
+  return approvedClaims.some((claim) => claim.trim() && normalized.includes(claim.toLowerCase().trim()));
+}
+
 export type CreativeConcept = {
   id: "product" | "transformation" | "editorial";
   direction: "product" | "transformation" | "editorial";
@@ -72,12 +80,13 @@ export function validateMarketingBrandTokens(tokens: MarketingBrandTokens) {
   return [...new Set(issues)];
 }
 
-export function runBrandQualityChecks(input: { headline: string; subheadline: string; cta: string; platform: CreativePlatform; productAssetApproved: boolean; logoAssetApproved: boolean; hasFeatureCopy: boolean; hasApprovedPalette?: boolean; hasOverflow?: boolean; }) : BrandCheck[] {
+export function runBrandQualityChecks(input: { headline: string; subheadline: string; cta: string; platform: CreativePlatform; productAssetApproved: boolean; logoAssetApproved: boolean; hasFeatureCopy: boolean; claimsApproved?: boolean; hasApprovedPalette?: boolean; hasOverflow?: boolean; }) : BrandCheck[] {
   const checks: BrandCheck[] = [
     { key: "logo", status: input.logoAssetApproved ? "pass" : "fail", message: input.logoAssetApproved ? "Approved Trading Docks logo is assigned." : "An approved Trading Docks logo is required.", blocking: true },
     { key: "palette", status: input.hasApprovedPalette === false ? "fail" : "pass", message: input.hasApprovedPalette === false ? "Creative does not use the approved palette." : "Approved color system is assigned.", blocking: true },
     { key: "product_proof", status: input.productAssetApproved ? "pass" : "fail", message: input.productAssetApproved ? "Approved product proof is assigned." : "An approved product screenshot or feature visual is required.", blocking: true },
     { key: "feature_copy", status: input.hasFeatureCopy ? "pass" : "fail", message: input.hasFeatureCopy ? "Copy is tied to a feature." : "Feature-specific copy is required.", blocking: true },
+    { key: "claims", status: input.claimsApproved === false ? "fail" : "pass", message: input.claimsApproved === false ? "Copy contains an unsupported or disallowed claim." : "Copy is grounded in approved feature facts.", blocking: true },
     { key: "cta", status: APPROVED_CTA_LANGUAGE.includes(input.cta) ? "pass" : "warning", message: APPROVED_CTA_LANGUAGE.includes(input.cta) ? "CTA uses approved language." : "CTA should use approved Trading Docks language.", blocking: false },
     { key: "headline_length", status: input.headline.trim().length <= 52 ? "pass" : "warning", message: input.headline.trim().length <= 52 ? "Headline is concise." : "Headline may be difficult to read quickly.", blocking: false },
     { key: "copy_length", status: input.subheadline.trim().length <= 150 ? "pass" : "fail", message: input.subheadline.trim().length <= 150 ? "Supporting copy fits the system." : "Supporting copy is too long.", blocking: true },

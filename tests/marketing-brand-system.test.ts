@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DEFAULT_MARKETING_BRAND_TOKENS, generateCreativeDirections, hasBlockingBrandIssues, runBrandQualityChecks, validateMarketingBrandTokens } from "../src/lib/marketing/brand-system.ts";
+import { DEFAULT_MARKETING_BRAND_TOKENS, generateCreativeDirections, hasBlockingBrandIssues, runBrandQualityChecks, validateCreativeCopy, validateMarketingBrandTokens } from "../src/lib/marketing/brand-system.ts";
 
 test("brand tokens use the existing Trading Docks dark/cyan visual language", () => {
   assert.equal(validateMarketingBrandTokens(DEFAULT_MARKETING_BRAND_TOKENS).length, 0);
@@ -36,10 +36,18 @@ test("brand quality blocks missing proof and passes an authentic product creativ
   assert.equal(hasBlockingBrandIssues(ready), false);
 });
 
+test("unsupported creative claims are blocked while approved feature facts remain valid", () => {
+  assert.equal(validateCreativeCopy("Works with every marketplace.", ["Supports card intake and physical locations."], []), false);
+  assert.equal(validateCreativeCopy("Supports card intake and physical locations.", ["Supports card intake and physical locations."], []), true);
+  assert.equal(validateCreativeCopy("Sort the chaos.", [], ["Sorts inventory 10x faster"]), true);
+  assert.equal(validateCreativeCopy("Sorts inventory 10x faster", [], ["Sorts inventory 10x faster"]), false);
+});
+
 test("brand system and creative direction routes remain admin-only", () => {
   for (const path of ["src/app/api/admin/marketing/brand-system/route.ts", "src/app/api/admin/marketing/creative/directions/route.ts"]) {
     assert.match(readFileSync(path, "utf8"), /requireServerPlatformRole\("admin"\)/, path);
   }
+  assert.match(readFileSync("src/app/api/admin/marketing/creative/renderer/route.ts", "utf8"), /validateCreativeCopy/);
 });
 
 test("brand migration preserves existing stores and versions creative provenance", () => {
