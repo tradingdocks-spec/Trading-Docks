@@ -30,7 +30,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const action = body?.action;
   if (action === "mark_gold_standard" || action === "remove_gold_standard") {
     if (creative.status !== "approved" && action === "mark_gold_standard") return NextResponse.json({ error: "Only approved creatives can enter the Gold Standard Library." }, { status: 409 });
-    const savedGold = await createAdminClient().from("marketing_creatives").update({ gold_standard: action === "mark_gold_standard", updated_at: new Date().toISOString() }).eq("id", id).select("id,status,gold_standard").single();
+    const admin = createAdminClient();
+    if (action === "mark_gold_standard") {
+      const assetIds = Array.isArray(creative.asset_ids) ? creative.asset_ids.filter((value): value is string => typeof value === "string") : [];
+      const proof = assetIds.length ? await admin.from("marketing_assets").select("id,asset_type,approval_status,marketing_use_approved,archived_at").in("id", assetIds) : { data: [], error: null };
+      const hasAuthenticProductProof = (proof.data ?? []).some((asset) => ["product_screenshot", "feature_screenshot"].includes(asset.asset_type) && asset.approval_status === "approved" && asset.marketing_use_approved === true && !asset.archived_at);
+      if (proof.error || !hasAuthenticProductProof) return NextResponse.json({ error: "Gold Standard creatives require approved authentic product screenshot proof." }, { status: 409 });
+      const review = Array.isArray(creative.quality_review) ? creative.quality_review as Array<{ status?: string; blocking?: boolean }> : [];
+      if (review.some((check) => check.status === "fail" && check.blocking !== false)) return NextResponse.json({ error: "Resolve blocking Brand System quality checks before Gold Standard promotion." }, { status: 409 });
+    }
+    const savedGold = await admin.from("marketing_creatives").update({ gold_standard: action === "mark_gold_standard", updated_at: new Date().toISOString() }).eq("id", id).select("id,status,gold_standard,render_spec,brand_profile_version,concept_direction,campaign_visual_family_id,asset_ids").single();
     if (savedGold.error || !savedGold.data) return NextResponse.json({ error: "Gold Standard state could not be updated. Apply the documented additive migration first." }, { status: 503 });
     return NextResponse.json({ creative: savedGold.data });
   }

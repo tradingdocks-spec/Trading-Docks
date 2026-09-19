@@ -19,9 +19,10 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const feature = await admin.from("marketing_feature_library").select("id,name,approved_claims,disallowed_claims").eq("id", body.featureId).maybeSingle();
   if (feature.error || !feature.data) return NextResponse.json({ error: "The selected feature could not be verified." }, { status: 400 });
-  const selectedAssets = body.assetIds?.length ? await admin.from("marketing_assets").select("id,asset_type,brand_role,approval_status,marketing_use_approved,archived_at").in("id", body.assetIds) : { data: [], error: null };
+  const selectedAssets = body.assetIds?.length ? await admin.from("marketing_assets").select("id,asset_type,brand_role,approval_status,marketing_use_approved,archived_at,feature_ids,screenshot_role").in("id", body.assetIds) : { data: [], error: null };
   if (selectedAssets.error || (selectedAssets.data ?? []).length !== (body.assetIds ?? []).length) return NextResponse.json({ error: "Every selected asset must be approved for marketing and not archived." }, { status: 400 });
   if ((selectedAssets.data ?? []).some((asset) => asset.approval_status !== "approved" || asset.marketing_use_approved !== true || asset.archived_at)) return NextResponse.json({ error: "Every selected asset must be approved for marketing and not archived." }, { status: 400 });
+  if (feature.data.name === "Chaos Sort" && (selectedAssets.data ?? []).some((asset) => ["product_screenshot", "feature_screenshot"].includes(asset.asset_type) && (!Array.isArray(asset.feature_ids) || !asset.feature_ids.includes(body.featureId)))) return NextResponse.json({ error: "Chaos Sort creatives require an approved Chaos Sort screenshot." }, { status: 400 });
   const logoAssetApproved = (selectedAssets.data ?? []).some((asset) => asset.asset_type === "logo" && asset.marketing_use_approved === true && asset.brand_role);
   const productAssetApproved = (selectedAssets.data ?? []).some((asset) => ["product_screenshot", "feature_screenshot"].includes(asset.asset_type) && asset.marketing_use_approved === true);
   const claims = (value: unknown) => Array.isArray(value) ? value.flatMap((item) => item && typeof item === "object" && "claim" in item && typeof item.claim === "string" ? [item.claim] : typeof item === "string" ? [item] : []) : [];
