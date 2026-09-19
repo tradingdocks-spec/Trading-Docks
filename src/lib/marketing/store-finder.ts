@@ -3,15 +3,16 @@ import net from "node:net";
 
 export const STORE_SEARCH_PHRASES = [
   "trading card store",
-  "card shop",
   "TCG store",
-  "game store",
-  "hobby shop",
-  "collectibles store",
+  "card shop",
+  "local game store",
+  "collectible card shop",
   "sports card store",
   "Pokémon card store",
   "Magic The Gathering store",
-  "comic and card shop",
+  "Yu-Gi-Oh card store",
+  "tabletop game store",
+  "comic card shop",
 ] as const;
 
 export const STORE_SEARCH_RADII = [5, 10, 25, 50, 100] as const;
@@ -33,6 +34,13 @@ export type StoreDiscoveryResult = {
   openNow: boolean | null;
   distanceMiles: number | null;
   sourcePhrase: string;
+  relevance: StoreRelevance;
+};
+
+export type StoreRelevance = {
+  relevance: "high" | "medium" | "low" | "excluded";
+  score: number;
+  reasons: string[];
 };
 
 type PlacesResponse = {
@@ -44,6 +52,8 @@ type PlacesResponse = {
     websiteUri?: string;
     googleMapsUri?: string;
     primaryTypeDisplayName?: { text?: string };
+    primaryType?: string;
+    types?: string[];
     location?: { latitude?: number; longitude?: number };
     currentOpeningHours?: { openNow?: boolean };
   }>;
@@ -56,7 +66,7 @@ export function validateStoreSearch(postalCode: string, radius: number): { posta
   return { postalCode: normalizedZip.slice(0, 5), radius: radius as StoreSearchRadius };
 }
 
-export async function discoverStores(postalCode: string, radius: StoreSearchRadius, fetcher: typeof fetch = fetch): Promise<StoreDiscoveryResult[]> {
+export async function discoverStores(postalCode: string, radius: StoreSearchRadius, fetcher: typeof fetch = fetch, options: { broaderMatches?: boolean } = {}): Promise<StoreDiscoveryResult[]> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) throw new StoreFinderConfigurationError("Google Places is not configured. Add GOOGLE_PLACES_API_KEY to enable Store Finder searches.");
   const center = await geocodeZip(postalCode, apiKey, fetcher);
@@ -67,7 +77,7 @@ export async function discoverStores(postalCode: string, radius: StoreSearchRadi
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.primaryTypeDisplayName,places.location,places.currentOpeningHours",
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.primaryTypeDisplayName,places.primaryType,places.types,places.location,places.currentOpeningHours",
       },
       body: JSON.stringify({
         textQuery: `${phrase} near ${postalCode}`,
@@ -98,12 +108,53 @@ export async function discoverStores(postalCode: string, radius: StoreSearchRadi
         openNow: place.currentOpeningHours?.openNow ?? null,
         distanceMiles: latitude !== null && longitude !== null ? haversineMiles(center.latitude, center.longitude, latitude, longitude) : null,
         sourcePhrase: phrase,
+        relevance: classifyStoreRelevance({
+          businessName: place.displayName.text,
+          primaryType: place.primaryType,
+          primaryTypeDisplayName: place.primaryTypeDisplayName?.text,
+          types: place.types,
+          websiteUrl: safeHttpUrl(place.websiteUri),
+        }, phrase),
       };
       const existing = seen.get(place.id);
-      if (!existing || (result.websiteUrl && !existing.websiteUrl) || (result.phone && !existing.phone)) seen.set(place.id, { ...existing, ...result });
+      if (!existing) seen.set(place.id, result);
+      else {
+        const relevanceRank = { high: 4, medium: 3, low: 2, excluded: 1 } as const;
+        const preferred = relevanceRank[result.relevance.relevance] > relevanceRank[existing.relevance.relevance] ? result : existing;
+        seen.set(place.id, { ...existing, ...result, ...preferred, websiteUrl: result.websiteUrl ?? existing.websiteUrl, phone: result.phone ?? existing.phone });
+      }
     }
   }
-  return [...seen.values()].filter((place) => place.distanceMiles === null || place.distanceMiles <= radius).sort((a, b) => (a.distanceMiles ?? 999) - (b.distanceMiles ?? 999)).slice(0, 100);
+  return filterStoreResults([...seen.values()].filter((place) => place.distanceMiles === null || place.distanceMiles <= radius), options.broaderMatches).sort((a, b) => {
+    const relevanceOrder = { high: 0, medium: 1, low: 2, excluded: 3 } as const;
+    return relevanceOrder[a.relevance.relevance] - relevanceOrder[b.relevance.relevance] || (a.distanceMiles ?? 999) - (b.distanceMiles ?? 999);
+  }).slice(0, 100);
+}
+
+export function filterStoreResults(results: StoreDiscoveryResult[], broaderMatches = false) {
+  return results.filter((result) => result.relevance.relevance === "high" || result.relevance.relevance === "medium" || (broaderMatches && result.relevance.relevance === "low"));
+}
+
+export function classifyStoreRelevance(input: { businessName: string; primaryType?: string; primaryTypeDisplayName?: string; types?: string[]; websiteUrl?: string | null }, sourcePhrase: string): StoreRelevance {
+  const searchable = [input.businessName, input.primaryType, input.primaryTypeDisplayName, ...(input.types ?? []), input.websiteUrl].filter(Boolean).join(" ").toLowerCase();
+  const sourceSearchable = sourcePhrase.toLowerCase();
+  const name = input.businessName.toLowerCase();
+  const reasons: string[] = [];
+  let score = 0;
+  const add = (amount: number, reason: string) => { score += amount; reasons.push(reason); };
+  if (/trading\s*card|\btcgs?\b|card\s*shop|card\s*store|collectible\s*card|sports\s*card/.test(searchable)) add(6, "Card or TCG evidence");
+  if (/pokemon|pokémon|magic\s*(the\s*gathering|tg)?|\bmtg\b|yu[- ]?gi[- ]?oh|lorcana|one\s*piece/.test(searchable)) add(5, "Named trading-card game evidence");
+  if (/tabletop|\bgame(?:s)?\b/.test(searchable)) add(3, "Game or tabletop evidence");
+  if (/comic(?:s)?/.test(searchable)) add(2, "Comic/card hybrid evidence");
+  if (/art\s*supply|teaching\s*supply|school\s*supply|gift\s*shop|clothing|furniture|beauty|restaurant|grocery|department\s*store/.test(searchable)) add(-8, "Strong non-target category");
+  if (/general\s*toy|\btoy\s*store\b/.test(searchable) && !/card|tcg|game|pokemon|magic|yugioh|lorcana|comic/.test(searchable)) add(-4, "Toy store without card or game evidence");
+  if (/\bgame\s*store\b|tabletop|hobby/.test(name) || /\bgame_store\b|\bboard_game_store\b/.test(searchable)) add(2, "Local game-store evidence");
+  if (/trading\s*card|\btcgs?\b|card\s*shop|sports\s*card|pokemon|magic|yu[- ]?gi[- ]?oh|lorcana|one\s*piece/.test(sourceSearchable)) reasons.push("Matched a focused card-store search");
+  if (!reasons.length) reasons.push("No strong category evidence");
+  if (score < 0) return { relevance: "excluded", score, reasons };
+  if (score >= 5) return { relevance: "high", score, reasons };
+  if (score >= 3) return { relevance: "medium", score, reasons };
+  return { relevance: "low", score, reasons };
 }
 
 export async function geocodeZip(postalCode: string, apiKey: string, fetcher: typeof fetch = fetch) {
