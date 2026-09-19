@@ -23,7 +23,7 @@ Production deployment, remote Supabase migrations, real email sends, public scra
 - First-class outbound campaign, creative brief, creative variant, outreach draft, message, event, generation-run, suppression, and settings models.
 - Deterministic feature-fit, creative-brief, and outreach-draft generation. The generator is provider-neutral and does not invent metrics or claims.
 - Human approval boundary: drafts must be explicitly approved before entering the queue.
-- Development-only mock send path with suppression checks and idempotency. It records a message and a mock delivery event but never calls an email provider.
+- Development-only mock send path with suppression checks and idempotency. The first real-provider adapter is implemented but remains disabled unless every server-side readiness control passes.
 
 ## Data and security
 
@@ -31,13 +31,13 @@ Migration: `supabase/migrations/20260918231733_marketing_growth_engine_foundatio
 
 All new tables are additive, RLS-enabled, revoked from `anon`, granted only to `authenticated`, and restricted by `public.is_admin('admin')`. APIs also perform server-side admin authorization before using the service-role client.
 
-No API keys, provider credentials, email bodies in logs, or secrets are stored by the growth engine. Suppression is checked before a mock message can be recorded. Provider events use unique IDs for idempotency.
+No API keys, provider credentials, email bodies in logs, or secrets are stored by the growth engine. Suppression is checked before any send can be recorded. Provider events use unique IDs for idempotency.
 
 The migration is a reviewed artifact only. It was not applied to staging or production.
 
 ## Owner configuration required for future production enablement
 
-No new environment variables are required for the current mock-only foundation. Before enabling real delivery, the owner must configure and review:
+Real delivery uses the server-only variables documented below. Before enabling it, the owner must configure and review:
 
 - provider credentials through the approved server-side secret mechanism;
 - sender name and sender email;
@@ -51,11 +51,11 @@ The `marketing_settings` row defaults to `email_provider = mock` and `outbound_e
 
 ## Deferred work
 
-P1: real provider adapter, signed webhooks, delivery/click/reply ingestion, sequence scheduler, reply classification, and outcome analytics.
+P1: sequence scheduler, reply classification, and outcome analytics beyond the normalized delivery-event foundation.
 
 P2: paid enrichment, social/ad publishing, video generation, automatic optimization, and autonomous follow-up.
 
-The Brand System, Analytics, Sequences, Templates, and Settings pages remain honest foundation states. Asset Vault upload/review, deterministic render/export, campaign placement attachment, creative approval, and outreach email preview are implemented in the current slices.
+The Brand System, Sequences, and Templates pages remain foundation states. Asset Vault upload/review, deterministic render/export, campaign placement attachment, creative approval, outreach email preview, provider readiness, real-send gating, and signed webhook ingestion are implemented in the current slices.
 
 ## Validation
 
@@ -70,7 +70,26 @@ The deterministic renderer was inspected as generated PNG output at 1080×1080, 
 
 ## Safe operating rules
 
-Use `Generate → Review → Approve → Mock send` in development. Do not apply the migration remotely, configure a real provider, or send outreach until the owner has reviewed compliance, sender identity, provider webhooks, suppression behavior, and the production enablement checklist.
+Use `Generate → Review → Approve → Mock send` in development. Real sending requires an approved draft, a current suppression check, complete sender/compliance configuration, Resend credentials, `VERCEL_ENV=production`, and `MARKETING_REAL_SEND_ENABLED=true`. Do not apply the migration remotely or send outreach until the owner has reviewed sender-domain authentication, provider webhooks, suppression behavior, and the production enablement checklist.
+
+## Production email provider and webhook foundation
+
+The selected first adapter is Resend. It uses the existing provider abstraction and server-side `fetch`, provides provider message IDs and an idempotency header, and supports signed Svix webhook events without adding a client-side credential dependency. The mock provider remains the default and no development/test path contacts a recipient.
+
+The additive migration `20260919031004_marketing_email_delivery.sql` adds immutable message snapshots, normalized delivery states, provider webhook diagnostics, domain-authentication metadata, and an idempotent webhook-event ledger. It does not store API keys or webhook secrets and has not been applied remotely.
+
+Real send is available only as a deliberate one-message action after the server revalidates approval, recipient normalization, suppression, sender/compliance readiness, provider configuration, and `MARKETING_REAL_SEND_ENABLED=true` in a production deployment. Ambiguous provider outcomes are not silently retried. The message snapshot retains the body, subject, CTA, sender, campaign, prospect, creative, version, and content hash.
+
+`/dashboard/admin/marketing/settings` displays provider, sender, compliance, domain-authentication, and real-send readiness without exposing secrets. The signed Resend endpoint is `/api/marketing/webhooks/resend`; it rejects missing/invalid signatures, deduplicates provider events, normalizes sent/delivered/opened/clicked/bounced/complained/failed events, and creates suppression records for hard bounces, complaints, and unsubscribes. Open events are labeled as tracked opens rather than guaranteed reads, and unsubscribe clicks are not counted as CTA clicks.
+
+Required server-only configuration:
+
+- `MARKETING_EMAIL_PROVIDER` — `mock` by default; set to `resend` only when reviewed.
+- `MARKETING_EMAIL_API_KEY` — Resend API key; never expose to the browser.
+- `MARKETING_EMAIL_WEBHOOK_SECRET` — Resend signing secret; never persist in `marketing_settings`.
+- `MARKETING_REAL_SEND_ENABLED` — must be exactly `true` and is honored only when `VERCEL_ENV=production`.
+
+Non-secret sender/compliance values are stored in the existing singleton `marketing_settings` row: `from_name`, `from_email`, `reply_to`, `business_name`, `business_address`, `unsubscribe_base_url`, `sending_domain`, `spf_status`, `dkim_status`, `dmarc_status`, and `tracking_domain`.
 
 ## Campaign workflow and outreach preview
 

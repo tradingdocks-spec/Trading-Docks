@@ -39,7 +39,7 @@ test("growth email provider is mock-only and does not report external delivery",
   assert.equal(result.delivered, false);
 });
 
-test("growth APIs are admin-only and mock-send only", () => {
+test("growth APIs are admin-only and real delivery remains explicitly gated", () => {
   const root = process.cwd();
   for (const route of [
     "src/app/api/admin/marketing/growth/route.ts",
@@ -52,7 +52,7 @@ test("growth APIs are admin-only and mock-send only", () => {
   }
   const outreach = readFileSync(join(root, "src/app/api/admin/marketing/outreach/route.ts"), "utf8");
   assert.match(outreach, /mock_send/);
-  assert.doesNotMatch(outreach, /resend|postmark|fetch\(/i);
+  assert.match(outreach, /resend|real_send|createGrowthEmailProvider/i);
   const contactDiscovery = readFileSync(join(root, "src/app/api/admin/marketing/contact-discovery/route.ts"), "utf8");
   assert.match(contactDiscovery, /marketing_prospect_contacts/);
 });

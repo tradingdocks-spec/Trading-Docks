@@ -31,7 +31,7 @@ export function normalizeClaims(value: unknown) {
   });
 }
 
-export function outreachApprovalChecks(input: { email?: string | null; subject?: string | null; bodyText?: string | null; cta?: string | null; campaignId?: string | null; featureId?: string | null; suppressed?: boolean; senderConfigured?: boolean; claimsApproved?: boolean }) {
+export function outreachApprovalChecks(input: { email?: string | null; subject?: string | null; bodyText?: string | null; cta?: string | null; landingUrl?: string | null; campaignId?: string | null; featureId?: string | null; suppressed?: boolean; senderConfigured?: boolean; claimsApproved?: boolean }) {
   return [
     { key: "recipient", label: "Recipient email exists", ok: Boolean(input.email?.trim()) },
     { key: "subject", label: "Subject exists", ok: Boolean(input.subject?.trim()) },
@@ -39,6 +39,7 @@ export function outreachApprovalChecks(input: { email?: string | null; subject?:
     { key: "campaign", label: "Campaign exists", ok: Boolean(input.campaignId) },
     { key: "feature", label: "Feature exists", ok: Boolean(input.featureId) },
     { key: "cta", label: "CTA is configured", ok: Boolean(input.cta?.trim()) },
+    { key: "landing_url", label: "Landing URL is valid", ok: !input.cta?.trim() || Boolean(input.landingUrl && /^(https?:)\/\//i.test(input.landingUrl)) },
     { key: "claims", label: "Claims are approved", ok: input.claimsApproved !== false },
     { key: "suppression", label: "Recipient is not suppressed", ok: input.suppressed !== true },
     { key: "sender", label: "Sender identity is configured", ok: input.senderConfigured === true },

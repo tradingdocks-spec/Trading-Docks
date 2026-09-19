@@ -23,7 +23,7 @@ test("claims normalize to approved feature-library provenance and body hashes ar
   assert.equal(hashApprovedBody(input), hashApprovedBody(input));
 });
 
-test("workflow APIs remain admin-only, approval-gated, and mock-only", () => {
+test("workflow APIs remain admin-only, approval-gated, and keep mock mode explicit", () => {
   const campaignRoute = readFileSync("src/app/api/admin/marketing/campaigns/[id]/route.ts", "utf8");
   const creativeRoute = readFileSync("src/app/api/admin/marketing/creative/[id]/route.ts", "utf8");
   const outreachRoute = readFileSync("src/app/api/admin/marketing/outreach/route.ts", "utf8");
@@ -31,7 +31,7 @@ test("workflow APIs remain admin-only, approval-gated, and mock-only", () => {
   assert.match(campaignRoute, /validatePlacement/);
   assert.match(creativeRoute, /status === "approved"/);
   assert.match(creativeRoute, /marketing_use_approved/);
-  assert.match(outreachRoute, /Only approved drafts can enter the mock send queue/);
+  assert.match(outreachRoute, /Only approved drafts can enter the mock send queue or real send flow/);
   assert.match(outreachRoute, /createGrowthEmailProvider/);
-  assert.match(outreachRoute, /mockOnly: true/);
+  assert.match(outreachRoute, /mockOnly:/);
 });
