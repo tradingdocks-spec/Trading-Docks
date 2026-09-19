@@ -55,17 +55,30 @@ P1: real provider adapter, signed webhooks, delivery/click/reply ingestion, sequ
 
 P2: paid enrichment, social/ad publishing, video generation, automatic optimization, and autonomous follow-up.
 
-The Asset Vault and Brand System pages currently expose the persisted foundation and honest next-step states; upload, deterministic render/export, and editing workflows are the next implementation slice.
+The Brand System, Analytics, Sequences, Templates, and Settings pages remain honest foundation states. Asset Vault upload/review and deterministic render/export are implemented in the current slice; campaign attachment, creative approval actions, and email preview wiring remain follow-up work.
 
 ## Validation
 
 - TypeScript: passed.
 - ESLint: passed with 0 errors; existing repository warnings remain.
-- Full test suite: 766 passed, 0 failed.
+- Full test suite: 770 passed, 0 failed.
 - Production build: passed.
 - `git diff --check`: passed.
 - Local Supabase lint: not run successfully because Docker/Postgres was unavailable at `127.0.0.1:54322`; no remote database was touched.
 
+The deterministic renderer was inspected as generated PNG output at 1080×1080, 1080×1350, 1080×1920, and 1200×628. The local admin browser reached the sign-in boundary, so authenticated Asset Vault and Creative Studio interaction at desktop/mobile viewports remains staging verification work.
+
 ## Safe operating rules
 
 Use `Generate → Review → Approve → Mock send` in development. Do not apply the migration remotely, configure a real provider, or send outreach until the owner has reviewed compliance, sender identity, provider webhooks, suppression behavior, and the production enablement checklist.
+## Asset Vault and deterministic creative renderer
+
+The additive migration `20260919010406_marketing_asset_renderer.sql` extends the existing `marketing_assets` table rather than creating a second asset store. It adds controlled asset types, approval state, source and license provenance, product-display and marketing-use approval flags, archive state, and searchable indexes. The migration also provisions the private `marketing-assets` Supabase Storage bucket with authenticated admin-only policies. It is not applied by this task.
+
+`/dashboard/admin/marketing/assets` now provides an admin-only upload and review workspace. Uploads accept PNG, JPEG, and WebP only, are limited to 10 MB, use a private storage path, retain dimensions and provenance metadata, and begin in `draft`. An asset cannot be approved without an explicit commercial-use approval flag. Reads use short-lived signed URLs; private storage is never made public.
+
+`/dashboard/admin/marketing/creative-studio` now provides deterministic composition controls for feature, campaign, platform, composition family, headline, supporting copy, CTA, and an approved product screenshot. The renderer supports Product Hero, Product + Cards, Feature Spotlight, Operational Pain, Workflow, and Minimal Editorial families. Platform formats are rendered independently at 1080×1080, 1080×1350, 1080×1920, 1200×1200, 1200×628, and the related email/social landscape formats. Structured `render_spec`, dimensions, asset IDs, quality issues, and optional lineage are persisted on `marketing_creatives`; the flattened output is reproducible from that specification.
+
+Preview output is SVG generated from actual copy and selected approved assets. Admin export routes produce PNG or JPEG using the installed server image runtime. The renderer deliberately shows an “Approved product screenshot required” state when no approved product visual exists instead of fabricating a dashboard or card art. Creative save rejects restricted, archived, or commercially unapproved assets. Campaign attachment and email preview integration remain the next wiring step after the staging migration is validated.
+
+Canonical screenshot capture is intentionally documented rather than implemented as brittle browser automation. The recommended workflow is to capture stable internal demo states through the existing authenticated admin UI, upload the resulting owned screenshots into Asset Vault, record source/license notes, and approve them before using them in Creative Studio.
