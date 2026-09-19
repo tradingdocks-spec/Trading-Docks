@@ -111,3 +111,13 @@ test("Store Finder keeps the API key server-side and Places New search unchanged
   assert.equal(placeCalls.length, 11);
   assert.ok(placeCalls.every((call) => call.init?.method === "POST" && String(call.init.body).includes('"locationBias"')));
 });
+
+test("Store Finder CSP allows only the required Google Maps origins", () => {
+  const config = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+  assert.match(config, /script-src[^\n]*https:\/\/maps\.googleapis\.com[^\n]*https:\/\/maps\.gstatic\.com/);
+  assert.match(config, /connect-src[^\n]*https:\/\/maps\.googleapis\.com[^\n]*https:\/\/maps\.gstatic\.com/);
+  assert.match(config, /img-src[^\n]*https:\/\/maps\.googleapis\.com[^\n]*https:\/\/maps\.gstatic\.com/);
+  assert.doesNotMatch(config, /script-src[^\n]*\*/);
+  assert.doesNotMatch(config, /script-src[^\n]*unsafe-eval/);
+  assert.doesNotMatch(config, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+});
