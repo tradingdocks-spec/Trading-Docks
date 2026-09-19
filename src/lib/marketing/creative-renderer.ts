@@ -11,7 +11,7 @@ export const CREATIVE_FORMATS = {
 } as const;
 
 export type CreativePlatform = keyof typeof CREATIVE_FORMATS;
-export type CompositionFamily = "product_hero" | "product_cards" | "feature_spotlight" | "operational_pain" | "workflow" | "minimal_editorial";
+export type CompositionFamily = "product_hero" | "product_cards" | "feature_spotlight" | "operational_pain" | "workflow" | "minimal_editorial" | "before_after" | "editorial_tcg" | "data_story" | "campaign_carousel";
 
 export type CreativeRenderSpec = {
   version: 1;
@@ -28,6 +28,10 @@ export type CreativeRenderSpec = {
   productAssetUrl?: string;
   supportingAssetUrls?: string[];
   background: "navy" | "paper";
+  conceptDirection?: "product" | "transformation" | "editorial";
+  logoPlacement?: "top_left" | "top_right" | "bottom_left" | "bottom_right" | "footer_lockup";
+  brandProfileVersion?: number;
+  campaignVisualFamilyId?: string;
 };
 
 export const SUPPORTED_COMPOSITIONS: Array<{ value: CompositionFamily; label: string; description: string }> = [
@@ -37,6 +41,10 @@ export const SUPPORTED_COMPOSITIONS: Array<{ value: CompositionFamily; label: st
   { value: "operational_pain", label: "Operational Pain", description: "A real workflow problem, then the product response." },
   { value: "workflow", label: "Workflow", description: "A restrained scan-to-shelf operating sequence." },
   { value: "minimal_editorial", label: "Minimal Editorial", description: "Typography-led with generous negative space." },
+  { value: "before_after", label: "Before / After", description: "Operational pain resolved by an authentic product workflow." },
+  { value: "editorial_tcg", label: "Editorial TCG", description: "Premium card imagery with restrained product context." },
+  { value: "data_story", label: "Data Story", description: "A clear operational narrative without fabricated metrics." },
+  { value: "campaign_carousel", label: "Campaign Carousel", description: "A connected sequence of campaign frames." },
 ];
 
 export function formatForPlatform(platform: CreativePlatform) {
@@ -61,6 +69,10 @@ export function buildRenderSpec(input: Partial<CreativeRenderSpec> & Pick<Creati
     productAssetUrl: input.productAssetUrl,
     supportingAssetUrls: input.supportingAssetUrls ?? [],
     background: input.background ?? "navy",
+    conceptDirection: input.conceptDirection,
+    logoPlacement: input.logoPlacement ?? "top_right",
+    brandProfileVersion: input.brandProfileVersion ?? 1,
+    campaignVisualFamilyId: input.campaignVisualFamilyId,
   };
 }
 
