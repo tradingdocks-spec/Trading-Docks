@@ -6,11 +6,11 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://cdn.tcgtracking.com https://tcgplayer-cdn.tcgplayer.com https://product-images.tcgplayer.com",
+  "img-src 'self' data: blob: https://api.scryfall.com https://cards.scryfall.io https://cdn.tcgtracking.com https://tcgplayer-cdn.tcgplayer.com https://product-images.tcgplayer.com https://maps.googleapis.com https://maps.gstatic.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.scryfall.com https://api2.moxfield.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.scryfall.com https://api2.moxfield.com https://maps.googleapis.com https://maps.gstatic.com",
   "upgrade-insecure-requests",
 ].join("; ");
 
