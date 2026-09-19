@@ -57,6 +57,7 @@ test("legacy icon drafts are excluded from the curated default view", () => {
 test("archive cleanup only matches known redundant drafts and is idempotent", () => {
   const legacy = { name: "favicon-32", slug: "favicon-32", assetType: "icon", approvalStatus: "draft", source: "admin_uploaded", brandRole: null };
   assert.equal(isRedundantLegacyBrandAsset(legacy), true);
+  assert.equal(isRedundantLegacyBrandAsset({ ...legacy, assetType: "other" }), true);
   assert.equal(isRedundantLegacyBrandAsset(legacy), isRedundantLegacyBrandAsset(legacy));
   assert.equal(isRedundantLegacyBrandAsset({ ...legacy, approvalStatus: "archived" }), false);
   assert.equal(isRedundantLegacyBrandAsset({ ...legacy, source: "repo_owned" }), false);
@@ -67,13 +68,19 @@ test("canonical assets, user assets, and approved product screenshots are preser
     assert.equal(isRedundantLegacyBrandAsset({ name: asset.name, slug: asset.slug, assetType: asset.assetType, approvalStatus: "approved", source: "repo_owned", brandRole: asset.brandRole }), false);
   }
   assert.equal(isRedundantLegacyBrandAsset({ name: "custom-store-icon", slug: "custom-store-icon", assetType: "icon", approvalStatus: "draft", source: "admin_uploaded", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "custom-store-icon", slug: "custom-store-icon", assetType: "other", approvalStatus: "draft", source: "admin_uploaded", brandRole: null }), false);
   assert.equal(isRedundantLegacyBrandAsset({ name: "favicon-32", slug: "favicon-32", assetType: "icon", approvalStatus: "approved", source: "admin_uploaded", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "favicon-32", slug: "favicon-32", assetType: "other", approvalStatus: "approved", source: "admin_uploaded", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "icon-192", slug: "icon-192", assetType: "icon", approvalStatus: "approved", source: "repo_owned", brandRole: null }), false);
+  assert.equal(isRedundantLegacyBrandAsset({ name: "icon-512", slug: "icon-512", assetType: "other", approvalStatus: "approved", source: "repo_owned", brandRole: null }), false);
   assert.equal(isRedundantLegacyBrandAsset({ name: "storefront", slug: "storefront", assetType: "product_screenshot", approvalStatus: "approved", source: "admin_uploaded", brandRole: null }), false);
 });
 
 test("legacy archive endpoint is admin-only and never deletes storage", () => {
   const source = read("src/app/api/admin/marketing/assets/archive-legacy/route.ts");
   assert.match(source, /requireServerPlatformRole\("admin"\)/);
+  assert.doesNotMatch(source, /\.eq\("asset_type", "icon"\)/);
+  assert.match(source, /\.eq\("approval_status", "draft"\)/);
   assert.match(source, /approval_status: "archived"/);
   assert.match(source, /Storage files were not deleted/);
   assert.doesNotMatch(source, /\.remove\(/);

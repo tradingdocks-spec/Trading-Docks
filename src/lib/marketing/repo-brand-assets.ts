@@ -78,6 +78,6 @@ export type LegacyBrandAssetCandidate = {
 };
 
 export function isRedundantLegacyBrandAsset(asset: LegacyBrandAssetCandidate) {
-  if (asset.assetType !== "icon" || asset.approvalStatus !== "draft" || asset.source === "repo_owned" || asset.brandRole) return false;
+  if (!["icon", "other"].includes(asset.assetType ?? "") || asset.approvalStatus !== "draft" || asset.source === "repo_owned" || asset.brandRole) return false;
   return [asset.name, asset.slug].some((value) => typeof value === "string" && LEGACY_BRAND_ASSET_PATTERNS.some((pattern) => pattern.test(value)));
 }
