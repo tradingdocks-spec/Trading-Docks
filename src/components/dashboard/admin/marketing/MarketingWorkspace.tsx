@@ -57,14 +57,14 @@ export function StoreFinder() {
   }
 
   return <MarketingShell title="Store Finder" eyebrow="Admin marketing" description="Search a focused territory for legitimate trading-card businesses. Results are deduplicated by the provider place ID." actions={<Link href="/dashboard/admin/marketing/prospects" className="td-button-secondary"><Users className="h-4 w-4" />Prospects</Link>}>
-    <form onSubmit={(e) => { e.preventDefault(); void search(); }} className="rounded-2xl border border-td-ink/10 bg-td-surface/60 p-4 sm:p-5">
-      <div className="grid items-end gap-4 md:grid-cols-[minmax(220px,260px)_minmax(160px,190px)_auto]">
-        <label className="block"><span className="td-label">ZIP code</span><input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} inputMode="numeric" maxLength={10} placeholder="e.g. 85001" className="td-input mt-2 h-11" /></label>
-        <label className="block"><span className="td-label">Radius</span><select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="td-input mt-2 h-11">{radii.map((item) => <option key={item} value={item}>{item} miles</option>)}</select></label>
-        <button disabled={loading} className="td-button-primary h-11 md:w-fit">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? "Searching" : "Search stores"}</button>
+    <form onSubmit={(e) => { e.preventDefault(); void search(); }} className="rounded-2xl border border-td-ink/10 bg-td-surface/60 p-5 sm:p-6">
+      <div className="grid gap-5 md:grid-cols-[minmax(220px,260px)_minmax(160px,190px)_auto] md:items-end md:gap-4 lg:gap-5">
+        <label className="block"><span className="td-label block">ZIP code</span><input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} inputMode="numeric" maxLength={10} placeholder="e.g. 85001" className="td-input mt-2 h-11 w-full px-3.5" /></label>
+        <label className="block"><span className="td-label block">Radius</span><select value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="td-input mt-2 h-11 w-full px-3.5">{radii.map((item) => <option key={item} value={item}>{item} miles</option>)}</select></label>
+        <button disabled={loading} className="td-button-primary h-11 w-full px-5 md:w-fit">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{loading ? "Searching" : "Search stores"}</button>
       </div>
-      <label className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-td-secondary"><input type="checkbox" checked={broaderMatches} onChange={(e) => setBroaderMatches(e.target.checked)} /> <span>Show broader matches</span><span className="text-xs text-td-muted">Includes lower-confidence results; obvious non-targets stay excluded.</span></label>
-      <p className="mt-3 text-xs text-td-muted">Search uses Google Places Text Search (New) on the server and never exposes the provider key to the browser.</p>
+      <label className="mt-5 flex cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-td-secondary"><input type="checkbox" checked={broaderMatches} onChange={(e) => setBroaderMatches(e.target.checked)} className="h-4 w-4 accent-td-accent" /> <span>Show broader matches</span><span className="basis-full pl-6 text-xs font-normal text-td-muted sm:basis-auto sm:pl-0">Includes lower-confidence results; obvious non-targets stay excluded.</span></label>
+      <p className="mt-4 text-xs leading-5 text-td-muted">Search uses Google Places Text Search (New) on the server and never exposes the provider key to the browser.</p>
     </form>
     {error ? <div role="alert" className="mt-4 rounded-xl border border-td-danger/20 bg-td-danger/10 p-4 text-sm text-td-danger">{error}</div> : null}{notice ? <div className="mt-4 rounded-xl border border-td-success/20 bg-td-success/10 p-4 text-sm text-td-success">{notice}</div> : null}
     {hasSearched ? <div className="mt-5">
