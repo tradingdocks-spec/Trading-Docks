@@ -9,7 +9,7 @@ export async function POST() {
   const actor = await requireServerPlatformRole("admin");
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const admin = createAdminClient();
-  const candidates = await admin.from("marketing_assets").select("id,name,slug,asset_type,approval_status,source,brand_role,archived_at").eq("asset_type", "icon").eq("approval_status", "draft").is("archived_at", null);
+  const candidates = await admin.from("marketing_assets").select("id,name,slug,asset_type,approval_status,source,brand_role,archived_at").eq("approval_status", "draft").is("archived_at", null);
   if (candidates.error) return NextResponse.json({ error: "Legacy brand assets could not be checked." }, { status: 503 });
   const legacy = (candidates.data ?? []).filter((asset) => isRedundantLegacyBrandAsset({ name: asset.name, slug: asset.slug, assetType: asset.asset_type, approvalStatus: asset.approval_status, source: asset.source, brandRole: asset.brand_role }));
   if (!legacy.length) return NextResponse.json({ archived: 0, assets: [], message: "No redundant legacy brand assets needed archiving." });
