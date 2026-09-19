@@ -106,13 +106,27 @@ export async function discoverStores(postalCode: string, radius: StoreSearchRadi
   return [...seen.values()].filter((place) => place.distanceMiles === null || place.distanceMiles <= radius).sort((a, b) => (a.distanceMiles ?? 999) - (b.distanceMiles ?? 999)).slice(0, 100);
 }
 
-async function geocodeZip(postalCode: string, apiKey: string, fetcher: typeof fetch) {
-  const response = await fetcher(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(postalCode)}&components=country:US|postal_code:${encodeURIComponent(postalCode)}&key=${encodeURIComponent(apiKey)}`);
-  if (!response.ok) throw new StoreFinderProviderError(`Google geocoding returned ${response.status}.`);
-  const payload = await response.json() as { status?: string; results?: Array<{ geometry?: { location?: { lat?: number; lng?: number } } }> };
+export async function geocodeZip(postalCode: string, apiKey: string, fetcher: typeof fetch = fetch) {
+  const response = await fetcher(`https://maps.googleapis.com/maps/api/geocode/json?components=country:US|postal_code:${encodeURIComponent(postalCode)}&key=${encodeURIComponent(apiKey)}`);
+  const payload = await response.json().catch(() => null) as { status?: string; error_message?: string; results?: Array<{ geometry?: { location?: { lat?: number; lng?: number } } }> } | null;
+  if (!payload) throw new StoreFinderProviderError("Google Geocoding returned an invalid response.");
+  if (!response.ok) throw new StoreFinderProviderError(geocodingErrorMessage(payload.status, payload.error_message));
   const location = payload.results?.[0]?.geometry?.location;
-  if (payload.status !== "OK" || typeof location?.lat !== "number" || typeof location.lng !== "number") throw new StoreFinderProviderError("Google could not locate that ZIP code.");
+  if (payload.status !== "OK" || typeof location?.lat !== "number" || typeof location.lng !== "number") throw new StoreFinderProviderError(geocodingErrorMessage(payload.status, payload.error_message));
   return { latitude: location.lat, longitude: location.lng };
+}
+
+function geocodingErrorMessage(status: string | undefined, providerMessage: string | undefined) {
+  const hasProviderDetail = typeof providerMessage === "string" && providerMessage.trim().length > 0;
+  switch (status) {
+    case "ZERO_RESULTS": return "Google could not locate that ZIP code.";
+    case "REQUEST_DENIED": return "Google Geocoding denied the request. Check API key restrictions and Geocoding API access.";
+    case "OVER_DAILY_LIMIT": return "Google Maps billing or quota configuration prevented the ZIP lookup.";
+    case "OVER_QUERY_LIMIT": return "Google Maps quota was exceeded while looking up the ZIP code. Try again later.";
+    case "INVALID_REQUEST": return "Google Geocoding rejected the ZIP lookup request.";
+    case "UNKNOWN_ERROR": return hasProviderDetail ? "Google Geocoding temporarily failed. Try again." : "Google Geocoding returned an unknown error. Try again.";
+    default: return "Google Geocoding could not complete the ZIP lookup.";
+  }
 }
 
 function addressPart(address: string | undefined, index: number) {
