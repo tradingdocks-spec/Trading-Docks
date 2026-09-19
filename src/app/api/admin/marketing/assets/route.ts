@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
+import { resolveAssetPreviewUrl } from "@/lib/marketing/repo-brand-assets";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ const ASSET_TYPES = ["logo", "product_screenshot", "feature_screenshot", "card_i
 const APPROVAL_STATES = ["draft", "approved", "restricted", "archived"] as const;
 
 function safeAsset(asset: Record<string, unknown>, signedUrl?: string | null) {
-  return { ...asset, signed_url: signedUrl ?? null };
+  return { ...asset, signed_url: resolveAssetPreviewUrl(typeof asset.storage_path === "string" ? asset.storage_path : null, signedUrl) };
 }
 
 export async function GET(request: Request) {
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Asset Vault is not initialized. Apply the documented staging migration first." }, { status: 503 });
   const assets = await Promise.all((data ?? []).map(async (asset: Record<string, unknown>) => {
-    if (typeof asset.storage_path !== "string" || asset.storage_path.startsWith("/")) return safeAsset(asset, asset.storage_path as string);
+    if (typeof asset.storage_path !== "string" || asset.storage_path.startsWith("/")) return safeAsset(asset);
     const signed = await admin.storage.from("marketing-assets").createSignedUrl(asset.storage_path, 600);
     return safeAsset(asset, signed.data?.signedUrl);
   }));
