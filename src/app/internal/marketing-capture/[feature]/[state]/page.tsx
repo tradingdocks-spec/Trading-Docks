@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
-import { verifyCanonicalCaptureToken } from "@/lib/marketing/canonical-capture-auth";
+import { captureSecretFingerprint, verifyCanonicalCaptureTokenDetailed } from "@/lib/marketing/canonical-capture-auth";
 import { getMarketingDemoFixture } from "@/lib/marketing/marketing-demo-fixtures";
 import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
 
@@ -10,9 +10,20 @@ export default async function MarketingCapturePage({ params, searchParams }: { p
   const { feature: featureSlug, state } = await params;
   const query = await searchParams;
   const token = Array.isArray(query.capture_token) ? query.capture_token[0] : query.capture_token;
-  const tokenAuthorized = Boolean(token && verifyCanonicalCaptureToken(token, featureSlug, state, process.env.MARKETING_CAPTURE_SECRET ?? ""));
+  const tokenResult = token
+    ? verifyCanonicalCaptureTokenDetailed(token, featureSlug, state, process.env.MARKETING_CAPTURE_SECRET ?? "")
+    : { code: "TOKEN_MISSING" as const };
+  const tokenAuthorized = tokenResult.code === "VALID";
   if (!tokenAuthorized) {
-    if (token) console.warn("[marketing-capture] CAPTURE_TOKEN_INVALID");
+    if (token) console.warn("[marketing-capture-auth]", {
+      code: tokenResult.code,
+      feature: featureSlug,
+      state,
+      secretConfigured: Boolean(process.env.MARKETING_CAPTURE_SECRET),
+      secretFingerprint: process.env.MARKETING_CAPTURE_SECRET ? captureSecretFingerprint(process.env.MARKETING_CAPTURE_SECRET) : null,
+      verifierDeploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
+      verifierHost: process.env.VERCEL_URL ? new URL(process.env.VERCEL_URL.includes("://") ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`).hostname : null,
+    });
     const actor = await requireServerPlatformRole("admin");
     if (!actor) {
       if (token) notFound();

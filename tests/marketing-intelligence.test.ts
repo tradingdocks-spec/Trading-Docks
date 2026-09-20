@@ -5,7 +5,7 @@ import { buildCampaignDraftPlan, rankMarketingOpportunities } from "../src/lib/m
 import { marketingCaptureImportsAreSafe, validateCanonicalCaptureRequest } from "../src/lib/marketing/canonical-capture.ts";
 import { getMarketingDemoFixture } from "../src/lib/marketing/marketing-demo-fixtures.ts";
 import { MARKETING_PRODUCT_REGISTRY } from "../src/lib/marketing/product-marketing-registry.ts";
-import { createCanonicalCaptureToken, verifyCanonicalCaptureToken } from "../src/lib/marketing/canonical-capture-auth.ts";
+import { captureSecretFingerprint, createCanonicalCaptureToken, verifyCanonicalCaptureToken, verifyCanonicalCaptureTokenDetailed } from "../src/lib/marketing/canonical-capture-auth.ts";
 
 const proof = { id: "capture-1", name: "Chaos Sort primary capture", featureIds: ["chaos-sort"], role: "primary", source: "canonical_product_capture", approved: true, marketingApproved: true, archived: false };
 
@@ -54,10 +54,29 @@ test("canonical capture tokens are signed, short-lived, and fixture-scoped", () 
   assert.throws(() => createCanonicalCaptureToken("chaos-sort", "not-registered", secret, 1_000), /Unknown canonical capture fixture/);
 });
 
+test("canonical capture diagnostics distinguish safe token failures", () => {
+  const secret = "test-only-capture-secret";
+  const token = createCanonicalCaptureToken("chaos-sort", "primary", secret, 1_000);
+  assert.equal(verifyCanonicalCaptureTokenDetailed(token, "chaos-sort", "primary", secret, 1_001).code, "VALID");
+  assert.equal(verifyCanonicalCaptureTokenDetailed("", "chaos-sort", "primary", secret, 1_001).code, "TOKEN_MISSING");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(token, "chaos-sort", "primary", "", 1_001).code, "SECRET_MISSING");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(token, "not-registered", "primary", secret, 1_001).code, "FIXTURE_UNREGISTERED");
+  assert.equal(verifyCanonicalCaptureTokenDetailed("bad", "chaos-sort", "primary", secret, 1_001).code, "TOKEN_FORMAT_INVALID");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(`v2.${token.split(".").slice(1).join(".")}`, "chaos-sort", "primary", secret, 1_001).code, "TOKEN_VERSION_INVALID");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(`${token.slice(0, -1)}x`, "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_INVALID");
+  const featureMismatchToken = createCanonicalCaptureToken("inventory", "locations", secret, 1_000);
+  assert.equal(verifyCanonicalCaptureTokenDetailed(featureMismatchToken, "chaos-sort", "locations", secret, 1_001).code, "FEATURE_MISMATCH");
+  const stateMismatchToken = createCanonicalCaptureToken("chaos-sort", "locations", secret, 1_000);
+  assert.equal(verifyCanonicalCaptureTokenDetailed(stateMismatchToken, "chaos-sort", "primary", secret, 1_001).code, "STATE_MISMATCH");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(token, "chaos-sort", "primary", secret, 1_301).code, "TOKEN_EXPIRED");
+  assert.match(captureSecretFingerprint(secret), /^[a-f0-9]{8}$/);
+  assert.notEqual(captureSecretFingerprint(secret), secret);
+});
+
 test("canonical capture auth remains limited to the synthetic internal page", () => {
   const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
   const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
-  assert.match(page, /verifyCanonicalCaptureToken/);
+  assert.match(page, /verifyCanonicalCaptureTokenDetailed/);
   assert.match(page, /requireServerPlatformRole\("admin"\)/);
   assert.match(page, /if \(token\) notFound\(\)/);
   assert.doesNotMatch(page, /"use client"/);

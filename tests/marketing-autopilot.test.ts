@@ -118,10 +118,10 @@ test("capture routes share the resolved origin and safe token-mismatch diagnosti
   assert.match(autopilot, /resolveMarketingCaptureBaseUrl/);
   assert.match(health, /describeMarketingCaptureTarget/);
   assert.match(intelligence, /resolveMarketingCaptureBaseUrl/);
-  assert.match(page, /CAPTURE_TOKEN_INVALID/);
+  assert.match(page, /\[marketing-capture-auth\]|verifyCanonicalCaptureTokenDetailed/);
   assert.match(runner, /CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT/);
   assert.match(health, /captureTarget/);
-  assert.doesNotMatch(health, /x-vercel-trusted-oidc-idp-token|VERCEL_OIDC_TOKEN/);
+  assert.match(health, /x-vercel-trusted-oidc-idp-token/);
 });
 
 test("canonical capture uses the default browser page and closes capture resources", () => {
@@ -140,12 +140,30 @@ test("Autopilot diagnostics expose safe health and capture controls", () => {
   assert.match(workspace, /Refresh Health/);
   assert.match(workspace, /Run Browser Test/);
   assert.match(workspace, /Run Capture Test/);
+  assert.match(workspace, /Run Token Test/);
+  assert.match(workspace, /Run Capture Auth Test/);
   assert.match(workspace, /autopilot\/health/);
   assert.match(workspace, /browser_test/);
   assert.match(workspace, /capture_test/);
   assert.doesNotMatch(workspace, /MARKETING_CAPTURE_SECRET|SUPABASE_SERVICE_ROLE_KEY|capture_token/);
   assert.match(health, /body\?\.action === "browser_test"/);
   assert.match(health, /body\?\.action === "capture_test"/);
+  assert.match(health, /body\?\.action === "token_test"/);
+  assert.match(health, /body\?\.action === "capture_auth_test"/);
+});
+
+test("capture auth diagnostics use safe reason codes and never return token material", () => {
+  const auth = readFileSync("src/lib/marketing/canonical-capture-auth.ts", "utf8");
+  const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
+  for (const code of ["VALID", "TOKEN_MISSING", "SECRET_MISSING", "FIXTURE_UNREGISTERED", "TOKEN_FORMAT_INVALID", "TOKEN_VERSION_INVALID", "SIGNATURE_LENGTH_INVALID", "SIGNATURE_INVALID", "PAYLOAD_INVALID", "FEATURE_MISMATCH", "STATE_MISMATCH", "TOKEN_EXPIRED", "NONCE_INVALID"]) assert.match(auth, new RegExp(`\\"${code}\\"`));
+  assert.match(auth, /captureSecretFingerprint/);
+  assert.match(page, /verifyCanonicalCaptureTokenDetailed/);
+  assert.match(page, /\[marketing-capture-auth\]/);
+  assert.match(page, /secretConfigured/);
+  assert.match(health, /capture_auth_test/);
+  assert.match(health, /x-vercel-trusted-oidc-idp-token/);
+  assert.doesNotMatch(health, /return NextResponse\.json\(\{[^}]*token[,}]/s);
 });
 
 test("canonical capture keeps a server-rendered ready marker and safe page diagnostics", () => {

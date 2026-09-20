@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { validateCanonicalCaptureRequest } from "@/lib/marketing/canonical-capture";
+import { captureSecretFingerprint, createCanonicalCaptureToken, verifyCanonicalCaptureTokenDetailed } from "@/lib/marketing/canonical-capture-auth";
 import { describeMarketingCaptureTarget, resolveMarketingCaptureBaseUrl } from "@/lib/marketing/canonical-capture-origin";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +15,28 @@ function safeMessage(error: unknown) {
   return message
     .replace(/https?:\/\/\S+/gi, "[remote resource]")
     .replace(/capture_token=[^&\s]+/gi, "capture_token=[redacted]")
+    .replace(/v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted token]")
     .replace(/MARKETING_CAPTURE_SECRET|SUPABASE_SERVICE_ROLE_KEY|MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY/gi, "[redacted variable]")
     .slice(0, 240);
+}
+
+function authDiagnosticCode(code: string) {
+  if (code === "SIGNATURE_INVALID" || code === "SIGNATURE_LENGTH_INVALID" || code === "TOKEN_FORMAT_INVALID") return "CAPTURE_TOKEN_SIGNATURE_INVALID";
+  if (code === "TOKEN_EXPIRED") return "CAPTURE_TOKEN_EXPIRED";
+  if (code === "FEATURE_MISMATCH") return "CAPTURE_TOKEN_FEATURE_MISMATCH";
+  if (code === "STATE_MISMATCH") return "CAPTURE_TOKEN_STATE_MISMATCH";
+  return code;
+}
+
+async function resolveTrustedSourceTokenForTarget(baseUrl: string) {
+  if (!previewRequiresTrustedSource(baseUrl)) return undefined;
+  try {
+    const token = await getVercelOidcToken();
+    if (!token) throw new Error("Vercel OIDC token was empty.");
+    return token;
+  } catch {
+    throw Object.assign(new Error("Vercel Trusted Source authorization is unavailable for this Preview capture."), { code: "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" });
+  }
 }
 
 function diagnosticError(error: unknown, fallbackCode: string): StageStatus {
@@ -136,6 +157,47 @@ export async function POST(request: Request) {
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const body = await request.json().catch(() => null) as { action?: string } | null;
 
+  if (body?.action === "token_test") {
+    const feature = "chaos-sort";
+    const state = "primary";
+    const secret = process.env.MARKETING_CAPTURE_SECRET;
+    if (!secret) return NextResponse.json({ ok: false, stage: "tokenAuth", code: "SECRET_MISSING", message: "Marketing capture signing is not configured." }, { status: 503 });
+    const token = createCanonicalCaptureToken(feature, state, secret);
+    const result = verifyCanonicalCaptureTokenDetailed(token, feature, state, secret);
+    if (result.code !== "VALID") return NextResponse.json({ ok: false, stage: "tokenAuth", code: authDiagnosticCode(result.code), authDiagnostic: result.code }, { status: 503 });
+    return NextResponse.json({ ok: true, stage: "tokenAuth", feature, state, secretFingerprint: captureSecretFingerprint(secret), result: result.code });
+  }
+
+  if (body?.action === "capture_auth_test") {
+    const captureTarget = describeMarketingCaptureTarget();
+    const baseUrl = captureTarget.baseUrl;
+    const secret = process.env.MARKETING_CAPTURE_SECRET;
+    if (!baseUrl || !secret) return NextResponse.json({ ok: false, stage: "captureAuth", code: "CAPTURE_CONFIGURATION_MISSING", message: "Marketing capture origin and signing secret are required." }, { status: 503 });
+    if (process.env.VERCEL_ENV === "preview" && !captureTarget.hostMatchesCurrentDeployment) return NextResponse.json({ ok: false, stage: "captureAuth", code: "CAPTURE_DEPLOYMENT_MISMATCH", message: "The capture target does not match the current Preview deployment." }, { status: 503 });
+    const feature = "chaos-sort";
+    const state = "primary";
+    const token = createCanonicalCaptureToken(feature, state, secret);
+    const localResult = verifyCanonicalCaptureTokenDetailed(token, feature, state, secret);
+    if (localResult.code !== "VALID") return NextResponse.json({ ok: false, stage: "captureAuth", code: authDiagnosticCode(localResult.code), authDiagnostic: localResult.code }, { status: 503 });
+    try {
+      const trustedSourceToken = await resolveTrustedSourceTokenForTarget(baseUrl);
+      const response = await fetch(`${baseUrl.replace(/\/+$/, "")}/internal/marketing-capture/${feature}/${state}?capture_token=${encodeURIComponent(token)}`, {
+        redirect: "manual",
+        headers: trustedSourceToken ? { "x-vercel-trusted-oidc-idp-token": trustedSourceToken } : undefined,
+      });
+      const redirectLocation = response.headers.get("location");
+      const finalHost = redirectLocation ? new URL(redirectLocation, baseUrl).hostname : new URL(response.url || baseUrl).hostname;
+      if (finalHost !== new URL(baseUrl).hostname) return NextResponse.json({ ok: false, stage: "captureAuth", code: trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", responseStatus: response.status, finalHost }, { status: 503 });
+      if (response.status !== 200) {
+        const code = response.status === 404 ? "CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT" : trustedSourceToken && (response.status === 401 || response.status === 403) ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_AUTH_REJECTED";
+        return NextResponse.json({ ok: false, stage: "captureAuth", code, responseStatus: response.status, finalHost }, { status: 503 });
+      }
+      return NextResponse.json({ ok: true, stage: "captureAuth", responseStatus: response.status, finalHost, authDiagnostic: "VALID", trustedSource: trustedSourceToken ? { status: "ready" } : { status: "not_run" }, issuerDeploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null });
+    } catch (error) {
+      return NextResponse.json({ ok: false, stage: "captureAuth", ...diagnosticError(error, "CAPTURE_AUTH_REJECTED") }, { status: 503 });
+    }
+  }
+
   if (body?.action === "browser_test") {
     try {
       const runtimeModule = await import("@/lib/marketing/canonical-capture-runtime");
@@ -173,5 +235,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: false, code: "UNKNOWN_HEALTH_ACTION", message: "Use browser_test or capture_test." }, { status: 400 });
+  return NextResponse.json({ ok: false, code: "UNKNOWN_HEALTH_ACTION", message: "Use token_test, capture_auth_test, browser_test, or capture_test." }, { status: 400 });
 }
