@@ -1,3 +1,4 @@
+import {paymentHttp} from "./pos-payment-http.mjs";
 import http from "node:http";
 import { readFileSync } from "node:fs";
 import { build } from "../.local-fixtures/pos-db/node_modules/esbuild/lib/main.js";
@@ -69,6 +70,7 @@ export async function verifyOperationsBrowser({
         res.end(bundle.outputFiles[0].text);
         return;
       }
+      if(await paymentHttp(req,res,url,client,workspace))return;
       if (url.pathname === "/api/pos") {
         let body = Object.fromEntries(url.searchParams);
         if (req.method === "POST") {

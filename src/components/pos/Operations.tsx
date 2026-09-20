@@ -79,6 +79,8 @@ type Access = {
   }[];
 };
 type Daily = {
+  cashNetMinor: number;
+  noncashMinor: number;
   date: string;
   timezone: string;
   sales: {
@@ -976,9 +978,7 @@ export function Operations({
                 Number(daily.sales.netMinor) - Number(daily.refunds.netMinor),
               "Net tax":
                 Number(daily.sales.taxMinor) - Number(daily.refunds.taxMinor),
-              "Net cash sales":
-                Number(daily.sales.totalMinor) -
-                Number(daily.refunds.totalMinor),
+              "Net cash sales": Number(daily.cashNetMinor),
               "Average sale": daily.sales.averageMinor,
             }).map(([label, value]) => (
               <div className="pos-panel" key={label}>
@@ -989,7 +989,7 @@ export function Operations({
           </div>
           <p>
             {daily.sales.count} sales · {daily.refunds.count} refunds · Noncash:{" "}
-            {money(0)}
+            {money(Number(daily.noncashMinor))}
           </p>
           <section className="pos-panel">
             <h3>By register</h3>

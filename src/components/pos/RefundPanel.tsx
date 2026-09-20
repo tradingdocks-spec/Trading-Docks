@@ -1,5 +1,8 @@
 "use client";
-import { useState } from "react";
+import { paymentRequest } from "@/lib/pos/payments/client";
+import type { Payment, RefundAttempt } from "@/lib/pos/payments/domain";
+
+import { useEffect, useState } from "react";
 import { money, type Bootstrap } from "@/lib/pos/domain";
 import { OperationNotice, useOperationalCommand } from "./OperationalCommand";
 export type RefundableItem = {
@@ -21,6 +24,80 @@ export function RefundPanel({
   data: Bootstrap;
   scope: string;
 }) {
+  const [payment, setPayment] = useState<Payment | null>(null);
+  const [paymentLoaded, setPaymentLoaded] = useState(false);
+  const [providerBusy, setProviderBusy] = useState(false);
+  const [providerError, setProviderError] = useState("");
+  const [savedRefund, setSavedRefund] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [refundResult, setRefundResult] = useState<RefundAttempt | null>(null);
+  const refundKey = `td.pos.provider-refund.${scope}.${saleId}`;
+  useEffect(() => {
+    let active = true;
+    paymentRequest<Payment[]>(`?saleId=${encodeURIComponent(saleId)}`)
+      .then((rows) => {
+        if (active) {
+          setPayment(rows[0] ?? null);
+          setPaymentLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (active)
+          setProviderError(
+            "Payment method could not be verified. Refresh before refunding.",
+          );
+      });
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const raw = localStorage.getItem(refundKey);
+        if (raw) setSavedRefund(JSON.parse(raw));
+      } catch {
+        setProviderError("Saved refund needs review.");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [saleId, refundKey]);
+  async function providerRefund(payload?: Record<string, unknown>) {
+    if (providerBusy || !payment) return;
+    setProviderBusy(true);
+    setProviderError("");
+    try {
+      const request = savedRefund ?? {
+        key: crypto.randomUUID(),
+        intent: payload,
+      };
+      localStorage.setItem(refundKey, JSON.stringify(request));
+      setSavedRefund(request);
+      const result = refundResult
+        ? await paymentRequest<RefundAttempt>(
+            `/refunds/${refundResult.id}/check`,
+            {},
+          )
+        : await paymentRequest<RefundAttempt>(
+            `/${payment.id}/refunds`,
+            request,
+          );
+      setRefundResult(result);
+      if (result.status === "SUCCEEDED" && !result.recovery_required) {
+        localStorage.removeItem(refundKey);
+        setSavedRefund(null);
+        setComplete(true);
+      }
+    } catch (e) {
+      setProviderError(
+        e instanceof Error
+          ? e.message
+          : "Verify refund status before retrying.",
+      );
+    } finally {
+      setProviderBusy(false);
+    }
+  }
   const operation = useOperationalCommand(`${scope}.refund`);
   const [sessionId, setSessionId] = useState(
     data.sessions.find((s) => s.status === "OPEN")?.id ?? "",
@@ -46,7 +123,34 @@ export function RefundPanel({
   }, 0);
   return (
     <section className="pos-panel">
-      <h3>Cash refund</h3>
+      <h3>{payment ? `${payment.provider} refund` : "Cash refund"}</h3>
+      {refundResult?.status === "FAILED" && (
+        <button
+          disabled={providerBusy}
+          onClick={() => {
+            localStorage.removeItem(refundKey);
+            setSavedRefund(null);
+            setRefundResult(null);
+          }}
+        >
+          Dismiss failed refund
+        </button>
+      )}
+      {payment?.provider === "EXTERNAL" && (
+        <p>
+          Record money already refunded outside Trading Docks. This does not
+          issue or verify a processor refund.
+        </p>
+      )}
+      {providerError && <p role="alert">{providerError}</p>}
+      {savedRefund && (
+        <p>
+          Refund {refundResult?.status ?? "status is being verified"}.{" "}
+          <button disabled={providerBusy} onClick={() => void providerRefund()}>
+            Check Refund Status
+          </button>
+        </p>
+      )}
       <p>
         Choose quantities and explicitly decide whether each item returns to
         inventory. If condition changed, choose Do Not Return and use the
@@ -154,10 +258,14 @@ export function RefundPanel({
             />
           </label>
           <p>
-            Return cash <strong>{money(total)}</strong>
+            {payment ? "Refund via original payment" : "Return cash"}{" "}
+            <strong>{money(total)}</strong>
           </p>
           <button
             disabled={
+              !paymentLoaded ||
+              providerBusy ||
+              !!savedRefund ||
               operation.locked ||
               !sessionId ||
               !items.some((i) => (quantities[i.id] ?? 0) > 0) ||
@@ -167,25 +275,29 @@ export function RefundPanel({
               )
             }
             onClick={async () => {
-              if (
-                await operation.run("refund", {
-                  saleId,
-                  sessionId,
-                  expectedMinor: total,
-                  reason: `${category}: ${reason}`,
-                  lines: items
-                    .filter((i) => (quantities[i.id] ?? 0) > 0)
-                    .map((i) => ({
-                      saleItemId: i.id,
-                      quantity: quantities[i.id],
-                      returnInventory: restore[i.id],
-                    })),
-                })
-              )
+              const payload = {
+                saleId,
+                sessionId,
+                expectedMinor: total,
+                reason: `${category}: ${reason}`,
+                lines: items
+                  .filter((i) => (quantities[i.id] ?? 0) > 0)
+                  .map((i) => ({
+                    saleItemId: i.id,
+                    quantity: quantities[i.id],
+                    returnInventory: restore[i.id],
+                  })),
+              };
+              if (payment) await providerRefund(payload);
+              else if (await operation.run("refund", payload))
                 setComplete(true);
             }}
           >
-            Record cash refund
+            {payment?.provider === "EXTERNAL"
+              ? "Record external refund"
+              : payment
+                ? "Request provider refund"
+                : "Record cash refund"}
           </button>
         </>
       )}

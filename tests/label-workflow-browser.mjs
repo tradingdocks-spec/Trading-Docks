@@ -102,6 +102,7 @@ export async function verifyLabelWorkflow({
         );
         return;
       }
+      if(url.pathname.startsWith("/api/pos/payments")){res.setHeader("Content-Type","application/json");res.end(JSON.stringify(url.pathname.endsWith("capabilities")?{mockEnabled:false}:[]));return;}
       if (url.pathname === "/api/pos") {
         const value =
           req.method === "POST" ? body : Object.fromEntries(url.searchParams);

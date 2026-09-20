@@ -46,6 +46,7 @@ try {
   await admin.query(sql('supabase/migrations/20260920190428_pos_barcode_labels.sql'));
   await admin.query(sql('supabase/migrations/20260920201259_pos_staff_delegation.sql'));
   await admin.query(sql('supabase/migrations/20260920201754_pos_register_operations.sql'));
+  await admin.query(sql('supabase/migrations/20260920211929_pos_payment_framework.sql'));
   console.log('Migrations applied to disposable PostgreSQL');
   if (process.argv.includes('--advisors')) {
     try { console.log(execFileSync('powershell.exe',['-NoProfile','-Command','supabase db advisors --db-url postgresql://postgres:pos-test-only@127.0.0.1:55439/postgres?sslmode=disable --type security --level warn --fail-on error'],{encoding:'utf8',timeout:60000})); } catch(error) { console.log('LOCAL ADVISORS:',error.stdout?.toString(),error.stderr?.toString()); }
@@ -121,6 +122,8 @@ try {
     await command(a,'close',{registerId:setup.registerId});
     const {verifyOperations}=await import('./pos-operations-db.mjs');
     await verifyOperations({admin,a,b,staff:stranger,command,workspace,owner,other,setup,check,createClient:client});
+    const {verifyPayments}=await import('./pos-payments-db.mjs');
+    await verifyPayments({admin,a,b,stranger,command,workspace,owner,setup,check});
     if (process.argv.includes('--browser')) {
       await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
       const { verifyLabelWorkflow }=await import('./label-workflow-browser.mjs');
@@ -129,6 +132,8 @@ try {
       await verifyBrowser({admin, command: (action,body)=>command(a,action,body), workspace, owner});
       const {verifyOperationsBrowser}=await import('./pos-operations-browser.mjs');
       await verifyOperationsBrowser({admin,a,staff:stranger,command,workspace,owner,other,setup});
+      const {verifyPaymentsBrowser}=await import('./pos-payments-browser.mjs');
+      await verifyPaymentsBrowser({admin,a,command,workspace,owner,setup});
     }
   } finally { for(const c of clients) await c.end(); }
   console.log(`POS database checks: ${passed} passed`);

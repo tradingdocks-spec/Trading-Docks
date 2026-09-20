@@ -15,6 +15,7 @@ import { posRead, posWrite } from "@/lib/pos/client";
 import { createScanner } from "@/lib/pos/scanner";
 import { previewCart } from "@/lib/pos/pricing";
 import { ShiftControls } from "./ShiftControls";
+import { PaymentPanel } from "./PaymentPanel";
 import { MoneyInput } from "./MoneyInput";
 
 type Completion = { status: string; saleId?: string; receipt?: Receipt };
@@ -58,6 +59,8 @@ export function Register({
   const [results, setResults] = useState<PosItem[]>([]);
   const [unknownBarcode, setUnknownBarcode] = useState("");
   const [message, setMessage] = useState("Ready to scan");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [providerLocked, setProviderLocked] = useState(true);
   const [busy, setBusy] = useState(false);
   const [cash, setCash] = useState("");
   const [reason, setReason] = useState("");
@@ -79,6 +82,7 @@ export function Register({
   const site = data.sites.find((s) => s.id === register?.site_id);
   const session = sessions.find((s) => s.register_id === registerId);
   const locked =
+    providerLocked ||
     busy ||
     shiftBusy ||
     pending !== null ||
@@ -376,7 +380,7 @@ export function Register({
         />
         <span>Operator: {data.operatorName ?? "Signed-in operator"}</span>
         <span>
-          {online ? "Online · Cash" : "Offline · Checkout unavailable"}
+          {online ? "Online · Payments" : "Offline · Checkout unavailable"}
         </span>
       </div>
       <p className="pos-status" role="status" aria-live="polite">
@@ -517,8 +521,10 @@ export function Register({
             <h2>Payment Complete</h2>
             <p>{completed.receipt.number}</p>
             <strong>
-              Paid {money(completed.receipt.totalMinor)} · Change{" "}
-              {money(completed.receipt.changeMinor)}
+              Paid {money(completed.receipt.totalMinor)} ·{" "}
+              {completed.receipt.payment
+                ? completed.receipt.payment.provider
+                : `Change ${money(completed.receipt.changeMinor)}`}
             </strong>
           </div>
           <Link
@@ -815,6 +821,7 @@ export function Register({
         </section>
         <aside className="pos-checkout" aria-label="Cash checkout">
           <h2>Checkout</h2>
+
           <p>Guest · {site?.name}</p>
           <dl>
             <div>
@@ -876,56 +883,109 @@ export function Register({
             />
           </label>
           {pricingError && <p role="alert">{pricingError}</p>}
-          <label>
-            Cash received
-            <input
-              inputMode="decimal"
-              value={cash}
-              disabled={locked}
-              onChange={(e) => setCash(e.target.value)}
-              placeholder="0.00"
-            />
-          </label>
-          <div className="pos-cash-shortcuts">
-            {[totals.total, Math.ceil(totals.total / 1000) * 1000, 5000, 10000]
-              .filter((v, i, a) => v >= totals.total && a.indexOf(v) === i)
-              .map((n) => (
-                <button
-                  key={n}
-                  disabled={locked}
-                  onClick={() => setCash((n / 100).toFixed(2))}
-                >
-                  {n === totals.total ? "Exact" : money(n)}
-                </button>
-              ))}
-          </div>
-          <p>
-            Change{" "}
-            <strong>
-              {money(Math.max(0, (parseMinor(cash) ?? 0) - totals.total))}
-            </strong>
-          </p>
-          <button
-            className="pos-primary"
+          <PaymentPanel
+            scope={`${workspaceId}.${actorId}`}
             disabled={
-              locked ||
-              Boolean(pricingError) ||
-              session?.status === "CLOSING" ||
-              scanning > 0 ||
-              !restored ||
+              busy ||
+              !!pending ||
+              !!completed ||
               !online ||
+              !restored ||
               !session ||
-              !cart.length ||
-              cart.some(
-                (l) =>
-                  l.item.available < l.quantity ||
-                  l.item.unit_price_minor === null,
-              )
+              session.status !== "OPEN" ||
+              Boolean(pricingError) ||
+              !site ||
+              cart.length === 0 ||
+              scanning > 0
             }
-            onClick={checkout}
-          >
-            {busy ? "Completing…" : "Complete cash sale"}
-          </button>
+            onLock={setProviderLocked}
+            onMethod={setPaymentMethod}
+            onComplete={(p) =>
+              finish({
+                status: "completed",
+                saleId: p.saleId,
+                receipt: p.receipt,
+              })
+            }
+            intent={() => ({
+              key: crypto.randomUUID(),
+              siteId: site!.id,
+              sessionId: session!.id,
+              expectedMinor: totals.total,
+              cashMinor: totals.total,
+              discountReason: reason,
+              cartDiscountMinor: parseMinor(cartDiscount) || 0,
+              cartDiscountBps: Math.round(cartPercent * 100),
+              lines: cart.map((l) => ({
+                itemId: l.item.id,
+                ownerId: l.item.ownerId,
+                discountMinor: l.discountMinor,
+                overrideMinor: l.overrideMinor,
+                quantity: l.quantity,
+                discountBps: l.discountBps,
+                positionId: l.positionId,
+              })),
+            })}
+          />
+          {paymentMethod === "CASH" && (
+            <>
+              <label>
+                Cash received
+                <input
+                  inputMode="decimal"
+                  value={cash}
+                  disabled={locked}
+                  onChange={(e) => setCash(e.target.value)}
+                  placeholder="0.00"
+                />
+              </label>
+              <div className="pos-cash-shortcuts">
+                {[
+                  totals.total,
+                  Math.ceil(totals.total / 1000) * 1000,
+                  5000,
+                  10000,
+                ]
+                  .filter((v, i, a) => v >= totals.total && a.indexOf(v) === i)
+                  .map((n) => (
+                    <button
+                      key={n}
+                      disabled={locked}
+                      onClick={() => setCash((n / 100).toFixed(2))}
+                    >
+                      {n === totals.total ? "Exact" : money(n)}
+                    </button>
+                  ))}
+              </div>
+              <p>
+                Change{" "}
+                <strong>
+                  {money(Math.max(0, (parseMinor(cash) ?? 0) - totals.total))}
+                </strong>
+              </p>
+              <button
+                className="pos-primary"
+                disabled={
+                  locked ||
+                  Boolean(pricingError) ||
+                  session?.status === "CLOSING" ||
+                  scanning > 0 ||
+                  !restored ||
+                  !online ||
+                  !session ||
+                  !cart.length ||
+                  cart.some(
+                    (l) =>
+                      l.item.available < l.quantity ||
+                      l.item.unit_price_minor === null,
+                  )
+                }
+                onClick={checkout}
+              >
+                {busy ? "Completing…" : "Complete cash sale"}
+              </button>
+            </>
+          )}
           <small>
             Prices, stock and tax are checked again when the sale completes.
           </small>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { posCommand } from "@/lib/pos/server";
 import { money, type Bootstrap } from "@/lib/pos/domain";
 type Sale = {
+  payment_methods: string;
   id: string;
   receipt_number: string;
   created_at: string;
@@ -98,6 +99,10 @@ export default async function Transactions({
           Payment
           <select name="payment">
             <option value="cash">Cash</option>
+            {process.env.NODE_ENV !== "production" && (
+              <option value="mock">Mock</option>
+            )}
+            <option value="external">External</option>
           </select>
         </label>
         <label>
@@ -115,7 +120,7 @@ export default async function Transactions({
                 {new Date(s.created_at).toLocaleString("en-US", {
                   timeZone: s.timezone,
                 })}{" "}
-                · {s.site_name} · Cash ·{" "}
+                · {s.site_name} · {s.payment_methods} ·{" "}
                 {Number(s.refunded_minor)
                   ? "Refunded / partially refunded"
                   : "Completed"}

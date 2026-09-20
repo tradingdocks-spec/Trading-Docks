@@ -1,3 +1,4 @@
+import { PaymentHistory } from "@/components/pos/PaymentHistory";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { posCommand, posContext } from "@/lib/pos/server";
@@ -42,7 +43,8 @@ export default async function Transaction({
     <section className="pos-detail">
       <h2>{receipt.number}</h2>
       <p>
-        {receipt.site} · {receipt.register} · Cash{" "}
+        {receipt.site} · {receipt.register} ·{" "}
+        {receipt.payment?.provider ?? "Cash"}{" "}
         {refunds.length ? "with refunds" : "completed"}
       </p>
       <p>
@@ -112,6 +114,7 @@ export default async function Transaction({
           </p>
         ))}
       </details>
+      <PaymentHistory saleId={saleId} />
       {context.ok && !bootstrap.response && (
         <RefundPanel
           saleId={saleId}

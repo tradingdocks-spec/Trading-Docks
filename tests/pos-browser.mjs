@@ -14,6 +14,7 @@ export async function verifyBrowser({ admin, command, workspace, owner }) {
     try {
       const url=new URL(req.url,'http://127.0.0.1:4199');
       if(url.pathname==='/bundle.js'){res.setHeader('Content-Type','text/javascript');res.end(bundle.outputFiles[0].text);return;}
+      if(url.pathname.startsWith('/api/pos/payments')){res.setHeader('Content-Type','application/json');res.end(JSON.stringify(url.pathname.endsWith('capabilities')?{mockEnabled:false}:[]));return;}
       if(url.pathname==='/api/pos'){
         let body=Object.fromEntries(url.searchParams);if(req.method==='POST'){let raw='';for await(const chunk of req) raw+=chunk;body=JSON.parse(raw);}
         const {action,...payload}=body;const result=await command(action,payload);
