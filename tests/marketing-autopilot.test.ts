@@ -135,6 +135,23 @@ test("canonical capture keeps a server-rendered ready marker and safe page diagn
   assert.doesNotMatch(runner, /console\.log\(.*capture_token/);
 });
 
+test("protected Preview capture forwards Vercel OIDC only from server to server", () => {
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  assert.match(health, /x-vercel-oidc-token/);
+  assert.match(runner, /x-vercel-trusted-oidc-idp-token/);
+  assert.match(runner, /TRUSTED_SOURCE_TOKEN_UNAVAILABLE/);
+  assert.match(runner, /TRUSTED_SOURCE_REJECTED/);
+  assert.match(health, /trustedSourceToken/);
+  assert.match(health, /sameProjectAuthorization/);
+  assert.match(workspace, /Deployment Protection/);
+  assert.doesNotMatch(workspace, /x-vercel-oidc-token|x-vercel-trusted-oidc-idp-token|VERCEL_OIDC_TOKEN/);
+  assert.match(runner, /capture_token=/);
+  assert.doesNotMatch(runner, /storageState|cookies\(/);
+  assert.doesNotMatch(health, /VERCEL_AUTOMATION_BYPASS_SECRET/);
+});
+
 test("Autopilot renders and exports real PNG variants only after proof is loaded", () => {
   const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
   const rendering = readFileSync("src/lib/marketing/marketing-autopilot-rendering.ts", "utf8");

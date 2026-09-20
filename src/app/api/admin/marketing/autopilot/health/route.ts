@@ -25,6 +25,11 @@ function diagnosticError(error: unknown, fallbackCode: string): StageStatus {
   };
 }
 
+function previewRequiresTrustedSource(baseUrl: string | undefined) {
+  if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "preview" || !baseUrl) return false;
+  try { return new URL(baseUrl).hostname.endsWith(".vercel.app"); } catch { return false; }
+}
+
 async function runBrowserDiagnostic() {
   let puppeteerReady = true;
   let chromiumReady = true;
@@ -78,7 +83,7 @@ async function runBrowserDiagnostic() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const actor = await requireServerPlatformRole("admin");
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
 
@@ -86,6 +91,8 @@ export async function GET() {
     baseUrlConfigured: Boolean(process.env.MARKETING_CAPTURE_BASE_URL),
     signingSecretConfigured: Boolean(process.env.MARKETING_CAPTURE_SECRET),
   };
+  const trustedSourceTokenAvailable = Boolean(request.headers.get("x-vercel-oidc-token"));
+  const trustedSourceRequired = previewRequiresTrustedSource(process.env.MARKETING_CAPTURE_BASE_URL);
   let captureRoute: StageStatus = { status: "ready", code: "SYNTHETIC_ROUTE_VALID" };
   try {
     validateCanonicalCaptureRequest({ feature: "chaos-sort", state: "primary" });
@@ -101,6 +108,10 @@ export async function GET() {
     chromium: browser.chromium,
     browserLaunch: browser.browserLaunch,
     captureRoute: { ...captureRoute, responseStatus: null },
+    deploymentProtection: {
+      trustedSourceToken: { status: trustedSourceRequired ? (trustedSourceTokenAvailable ? "ready" : "error") : "not_run", code: trustedSourceRequired && !trustedSourceTokenAvailable ? "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" : undefined },
+      sameProjectAuthorization: { status: trustedSourceRequired ? (trustedSourceTokenAvailable ? "ready" : "error") : "not_run", code: trustedSourceRequired && !trustedSourceTokenAvailable ? "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" : undefined },
+    },
     storage: { status: "not_run", code: "STORAGE_CHECK_REQUIRES_EXPLICIT_SMOKE_TEST" },
     renderer: { status: "ready", code: "DETERMINISTIC_RENDERER_AVAILABLE" },
   }, { headers: { "Cache-Control": "no-store" } });
@@ -135,12 +146,13 @@ export async function POST(request: Request) {
       const requestData = validate({ feature: "chaos-sort", state: "primary", viewport: "desktop", role: "primary", width: 1440, height: 1000 });
       const featureId = await resolveCanonicalFeatureId("chaos-sort");
       if (!featureId) return NextResponse.json({ ok: false, stage: "captureRoute", code: "CAPTURE_FEATURE_UNAVAILABLE", message: "The canonical capture feature is not initialized." }, { status: 503 });
-      const captured = await captureCanonicalPage(requestData, { baseUrl, featureId, secret });
+      const trustedSourceToken = request.headers.get("x-vercel-oidc-token") ?? undefined;
+      const captured = await captureCanonicalPage(requestData, { baseUrl, featureId, secret, trustedSourceToken });
       const png = Buffer.from(captured.png);
       const dimensions = png.length >= 8 && png.subarray(0, 8).toString("hex") === "89504e470d0a1a0a"
         ? await (await import("sharp")).default(png).metadata()
         : null;
-      return NextResponse.json({ ok: true, stage: "captureRoute", responseStatus: 200, signedTokenAccepted: true, pngBytes: png.length, pngMagicValid: Boolean(dimensions), width: dimensions?.width ?? null, height: dimensions?.height ?? null });
+      return NextResponse.json({ ok: true, stage: "captureRoute", responseStatus: 200, signedTokenAccepted: true, trustedSource: { status: "ready" }, pngBytes: png.length, pngMagicValid: Boolean(dimensions), width: dimensions?.width ?? null, height: dimensions?.height ?? null });
     } catch (error) {
       const diagnostic = diagnosticError(error, "CAPTURE_ROUTE_FAILED");
       return NextResponse.json({ ok: false, stage: "captureRoute", ...diagnostic }, { status: 503 });

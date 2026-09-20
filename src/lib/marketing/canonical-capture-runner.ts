@@ -3,7 +3,7 @@ import { buildCanonicalCaptureMetadata, type CanonicalCaptureRequest } from "./c
 import { createCanonicalCaptureToken } from "./canonical-capture-auth";
 import { CanonicalBrowserRuntimeError, resolveCanonicalBrowserRuntime } from "./canonical-capture-runtime";
 
-export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "SCREENSHOT_FAILED";
+export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" | "TRUSTED_SOURCE_REJECTED" | "SCREENSHOT_FAILED";
 export class CanonicalCaptureError extends Error { constructor(public readonly code: CanonicalCaptureErrorCode, message: string) { super(message); this.name = "CanonicalCaptureError"; } }
 
 function safeCaptureMessage(error: unknown) {
@@ -37,7 +37,12 @@ function isDeploymentProtectionPage(finalUrl: string, bodyText: string) {
     || /(?:deployment protection|log in to vercel|sign in to vercel|authentication required|sign in is required)/i.test(bodyText);
 }
 
-export async function captureCanonicalPage(request: CanonicalCaptureRequest, options: { baseUrl: string; featureId: string; secret: string }) {
+function targetRequiresTrustedSource(baseUrl: string) {
+  if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "preview") return false;
+  try { return new URL(baseUrl).hostname.endsWith(".vercel.app"); } catch { return false; }
+}
+
+export async function captureCanonicalPage(request: CanonicalCaptureRequest, options: { baseUrl: string; featureId: string; secret: string; trustedSourceToken?: string }) {
   let runtime;
   try { runtime = await resolveCanonicalBrowserRuntime(); } catch (error) {
     const code = error instanceof CanonicalBrowserRuntimeError ? error.code : "CHROMIUM_EXECUTABLE_UNAVAILABLE";
@@ -55,6 +60,13 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     page.setDefaultTimeout(15_000);
     const token = createCanonicalCaptureToken(request.feature, request.state, options.secret);
     const baseUrl = options.baseUrl.replace(/\/+$/, "");
+    const requiresTrustedSource = targetRequiresTrustedSource(baseUrl);
+    if (requiresTrustedSource && !options.trustedSourceToken) {
+      throw new CanonicalCaptureError("TRUSTED_SOURCE_TOKEN_UNAVAILABLE", "Vercel Trusted Source authorization is unavailable for this Preview capture.");
+    }
+    if (requiresTrustedSource && options.trustedSourceToken) {
+      await page.setExtraHTTPHeaders({ "x-vercel-trusted-oidc-idp-token": options.trustedSourceToken });
+    }
     let response;
     try {
       response = await page.goto(`${baseUrl}/internal/marketing-capture/${encodeURIComponent(request.feature)}/${encodeURIComponent(request.state)}?capture_token=${encodeURIComponent(token)}`, { waitUntil: "networkidle0", timeout: 45_000 });
@@ -73,12 +85,14 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     })).catch(() => ({ title: "", bodyPrefix: "", hasReadyMarker: false, heading: "" }));
     const bodyText = safePageDiagnostic(pageDiagnostic.bodyPrefix);
     if (isDeploymentProtectionPage(finalUrl, bodyText)) {
-      logCaptureFailure("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
-      throw new CanonicalCaptureError("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "Canonical capture was blocked by Vercel deployment protection or authentication.");
+      const protectionCode = requiresTrustedSource && options.trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
+      logCaptureFailure(protectionCode, "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError(protectionCode, protectionCode === "TRUSTED_SOURCE_REJECTED" ? "Vercel rejected the Trusted Source authorization for this Preview capture." : "Canonical capture was blocked by Vercel deployment protection or authentication.");
     }
     if (new URL(finalUrl).hostname !== expectedHost) {
-      logCaptureFailure("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), expectedHost, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
-      throw new CanonicalCaptureError("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "Canonical capture reached an unexpected host instead of the configured capture deployment.");
+      const protectionCode = requiresTrustedSource && options.trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
+      logCaptureFailure(protectionCode, "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), expectedHost, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError(protectionCode, protectionCode === "TRUSTED_SOURCE_REJECTED" ? "Vercel rejected the Trusted Source authorization for this Preview capture." : "Canonical capture reached an unexpected host instead of the configured capture deployment.");
     }
     if (responseStatus !== null && responseStatus >= 400) {
       logCaptureFailure("CAPTURE_AUTH_REJECTED", "response", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
