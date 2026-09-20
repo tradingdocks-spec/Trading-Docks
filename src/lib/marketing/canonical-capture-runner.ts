@@ -3,7 +3,7 @@ import { buildCanonicalCaptureMetadata, type CanonicalCaptureRequest } from "./c
 import { createCanonicalCaptureToken } from "./canonical-capture-auth";
 import { CanonicalBrowserRuntimeError, resolveCanonicalBrowserRuntime } from "./canonical-capture-runtime";
 
-export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT" | "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" | "TRUSTED_SOURCE_REJECTED" | "SCREENSHOT_FAILED";
+export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT" | "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" | "TRUSTED_SOURCE_REJECTED" | "PRODUCT_CAPTURE_REGION_MISSING" | "PRODUCT_CAPTURE_RECURSIVE_CONTENT" | "SCREENSHOT_FAILED";
 export class CanonicalCaptureError extends Error { constructor(public readonly code: CanonicalCaptureErrorCode, message: string) { super(message); this.name = "CanonicalCaptureError"; } }
 
 function safeCaptureMessage(error: unknown) {
@@ -113,7 +113,7 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
       logCaptureFailure("CAPTURE_AUTH_REJECTED", "response", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
       throw new CanonicalCaptureError("CAPTURE_AUTH_REJECTED", `Canonical capture authorization failed (${responseStatus}).`);
     }
-    if (!pageDiagnostic.heading || !pageDiagnostic.heading.toLowerCase().includes(request.feature.replaceAll("-", " ").toLowerCase())) {
+    if (!bodyText.toLowerCase().includes(request.feature.replaceAll("-", " ").toLowerCase())) {
       logCaptureFailure("CAPTURE_PAGE_NOT_READY", "page-content", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
     }
     await page.addStyleTag({ content: "*, *::before, *::after { animation: none !important; transition: none !important; }" });
@@ -123,10 +123,29 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     });
     await page.evaluate(async () => { await document.fonts.ready; await Promise.all(Array.from(document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener("load", () => resolve(), { once: true }); image.addEventListener("error", () => resolve(), { once: true }); }))); });
     await new Promise((resolve) => setTimeout(resolve, 250));
-    const png = await page.screenshot({ type: "png", fullPage: true }).catch((error) => {
+    const productRegion = await page.$('[data-marketing-product-capture="true"]');
+    if (!productRegion) {
+      logCaptureFailure("PRODUCT_CAPTURE_REGION_MISSING", "product-region", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText });
+      throw new CanonicalCaptureError("PRODUCT_CAPTURE_REGION_MISSING", "Canonical product capture region was not found.");
+    }
+    const productDiagnostics = await page.evaluate(() => {
+      const regions = document.querySelectorAll('[data-marketing-product-capture="true"]');
+      const region = regions[0];
+      return {
+        regionCount: regions.length,
+        text: region?.textContent ?? "",
+      };
+    });
+    const recursiveCopy = /PRODUCT PROOF|SORT THE CHAOS|SEE CHAOS SORT|A BETTER WAY TO SORT|FROM INTAKE TO INVENTORY/i.test(productDiagnostics.text);
+    if (productDiagnostics.regionCount !== 1 || recursiveCopy) {
+      logCaptureFailure("PRODUCT_CAPTURE_RECURSIVE_CONTENT", "product-region", { regionCount: productDiagnostics.regionCount, recursiveCopy });
+      await productRegion.dispose().catch(() => undefined);
+      throw new CanonicalCaptureError("PRODUCT_CAPTURE_RECURSIVE_CONTENT", "Canonical product capture contained recursive campaign content.");
+    }
+    const png = await productRegion.screenshot({ type: "png" }).catch((error) => {
       logCaptureFailure("SCREENSHOT_FAILED", "screenshot", error);
       throw new CanonicalCaptureError("SCREENSHOT_FAILED", "Canonical product capture screenshot failed.");
-    });
+    }).finally(() => productRegion.dispose().catch(() => undefined));
     return { png, metadata: buildCanonicalCaptureMetadata(request, options.featureId) };
   } finally {
     if (page) await page.close().catch(() => undefined);

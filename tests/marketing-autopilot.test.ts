@@ -34,7 +34,7 @@ test("canonical capture has a browser runner and automatic Asset Vault registrat
   const registration = readFileSync("src/lib/marketing/canonical-capture-registration.ts", "utf8");
   assert.match(runner, /puppeteer\.launch/);
   assert.match(runner, /document\.fonts\.ready/);
-  assert.match(runner, /page\.screenshot/);
+  assert.match(runner, /productRegion\.screenshot/);
   assert.match(route, /marketing-assets/);
   assert.match(registration, /upsert/);
   assert.match(route, /canonical_product_capture/);
@@ -87,7 +87,7 @@ test("production capture uses the signed route, ready marker, and pinned Chromiu
   const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
   const runtime = readFileSync("src/lib/marketing/canonical-capture-runtime.ts", "utf8");
   const packageJson = readFileSync("package.json", "utf8");
-  const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const shell = readFileSync("src/components/marketing/MarketingProductShell.tsx", "utf8");
   assert.match(runner, /capture_token=/);
   assert.match(runner, /data-marketing-capture-ready/);
   assert.match(runner, /document\.fonts\.ready/);
@@ -96,7 +96,7 @@ test("production capture uses the signed route, ready marker, and pinned Chromiu
   assert.match(packageJson, /"@sparticuz\/chromium": "153\.0\.0"/);
   assert.match(packageJson, /"node": "24\.x"/);
   assert.match(runtime, /runCanonicalBrowserSelfTest/);
-  assert.match(page, /data-marketing-capture-ready="true"/);
+  assert.match(shell, /data-marketing-capture-ready="true" data-marketing-product-capture="true"/);
 });
 
 test("capture target uses the current Vercel Preview deployment and production fallback", () => {
@@ -168,8 +168,10 @@ test("capture auth diagnostics use safe reason codes and never return token mate
 
 test("canonical capture keeps a server-rendered ready marker and safe page diagnostics", () => {
   const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const shell = readFileSync("src/components/marketing/MarketingProductShell.tsx", "utf8");
   const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
-  assert.match(page, /<main data-marketing-capture-ready="true"/);
+  assert.match(page, /ProductCaptureShell/);
+  assert.match(shell, /data-marketing-capture-ready="true" data-marketing-product-capture="true"/);
   assert.match(runner, /document\.querySelector/);
   assert.match(runner, /data-marketing-capture-ready=.*true/);
   assert.match(runner, /CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED/);

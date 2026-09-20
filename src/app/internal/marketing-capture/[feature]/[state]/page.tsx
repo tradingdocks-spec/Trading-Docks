@@ -3,10 +3,10 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { captureSecretFingerprint, verifyCanonicalCaptureTokenDetailed } from "@/lib/marketing/canonical-capture-auth";
 import { getMarketingDemoFixture } from "@/lib/marketing/marketing-demo-fixtures";
 import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
-import { MarketingProductShell } from "@/components/marketing/MarketingProductShell";
+import { ProductCaptureShell } from "@/components/marketing/MarketingProductShell";
 
 export const dynamic = "force-dynamic";
-// MarketingProductShell renders the server-side <main data-marketing-capture-ready="true"> marker.
+// ProductCaptureShell renders the server-side product-only capture region and ready marker.
 
 export default async function MarketingCapturePage({ params, searchParams }: { params: Promise<{ feature: string; state: string }>; searchParams: Promise<{ capture_token?: string | string[] }> }) {
   const { feature: featureSlug, state } = await params;
@@ -35,5 +35,5 @@ export default async function MarketingCapturePage({ params, searchParams }: { p
   const feature = registryFeatureFor(featureSlug);
   const fixture = getMarketingDemoFixture(featureSlug, state);
   if (!feature || !fixture) notFound();
-  return <MarketingProductShell featureName={feature.name} state={state} />;
+  return <ProductCaptureShell featureName={feature.name} state={state} />;
 }

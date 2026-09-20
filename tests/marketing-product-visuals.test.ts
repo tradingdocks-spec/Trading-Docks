@@ -14,6 +14,7 @@ test("Chaos Sort capture includes product-looking primary, workflow, review, and
   assert.match(page, /Needs review/);
   assert.match(page, /Inventory updated/);
   assert.match(page, /Scan/);
+  assert.match(page, /data-marketing-product-capture="true"/);
   assert.doesNotMatch(page, /Synthetic record|Synthetic demo state|No customer records|Internal fixture/);
 });
 
@@ -37,8 +38,19 @@ test("creative direction families use real proof, approved logo, and exact socia
 
 test("capture page keeps the ready marker server-rendered and removes debug fixture copy", () => {
   const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
-  assert.match(page, /<main data-marketing-capture-ready="true"/);
+  const shell = readFileSync("src/components/marketing/MarketingProductShell.tsx", "utf8");
+  assert.match(page, /ProductCaptureShell/);
+  assert.match(shell, /data-marketing-capture-ready="true" data-marketing-product-capture="true"/);
   assert.doesNotMatch(page, /Synthetic record|Synthetic demo state|No customer records|Internal fixture/);
+});
+
+test("product capture is element-scoped and rejects recursive campaign content", () => {
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  assert.match(runner, /data-marketing-product-capture/);
+  assert.match(runner, /productRegion\.screenshot/);
+  assert.doesNotMatch(runner, /fullPage:\s*true/);
+  assert.match(runner, /PRODUCT_CAPTURE_REGION_MISSING/);
+  assert.match(runner, /PRODUCT_CAPTURE_RECURSIVE_CONTENT/);
 });
 
 test("quality gate rejects deliberately bad copy and keeps transformation layers separated", () => {
@@ -48,4 +60,7 @@ test("quality gate rejects deliberately bad copy and keeps transformation layers
   const layout = computeCreativeLayout(transformation);
   assert.deepEqual(layout.issues, []);
   assert.ok(layout.occupancy >= .4);
+  const square = computeCreativeLayout(buildRenderSpec({ platform: "instagram_square", featureName: "Chaos Sort", headline: "Organize every intake.", subheadline: "A clearer workflow for card teams.", cta: "Open Chaos Sort", productAssetUrl: product, logoAssetUrl: logo, conceptDirection: "product" }));
+  assert.equal(square.cta.x, Math.round(1080 * .07));
+  assert.ok(square.logo.x > square.cta.x + square.cta.width);
 });
