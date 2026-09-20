@@ -51,3 +51,36 @@ test("intelligence endpoints remain admin-only and never send or publish", () =>
   assert.doesNotMatch(intelligenceRoute, /marketing_outreach_messages/);
   assert.doesNotMatch(intelligenceRoute, /resend|sendEmail|publishAd/i);
 });
+
+test("campaign draft handoff exposes review and Creative Studio links", () => {
+  const route = readFileSync("src/app/api/admin/marketing/intelligence/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingIntelligenceWorkspace.tsx", "utf8");
+  assert.match(route, /campaignReview/);
+  assert.match(route, /creativeStudio/);
+  assert.match(route, /marketing_creative_briefs/);
+  assert.match(workspace, /Campaign draft created/);
+  assert.match(workspace, /Review Campaign/);
+  assert.match(workspace, /campaignReview/);
+  assert.match(workspace, /handoff\.links\.creativeStudio/);
+  assert.match(workspace, /No publishing or email sending occurred/);
+});
+
+test("campaign review and Creative Studio preserve draft-only handoff", () => {
+  const review = readFileSync("src/components/dashboard/admin/marketing/CampaignDetailWorkspace.tsx", "utf8");
+  const studio = readFileSync("src/components/dashboard/admin/marketing/CreativeRendererWorkspace.tsx", "utf8");
+  assert.match(review, /Creative Strategy/);
+  assert.match(review, /Product Proof/);
+  assert.match(review, /Archive Draft/);
+  assert.match(studio, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(studio, /campaigns\/\$\{selectedCampaignId\}/);
+  assert.match(studio, /setProductAssetId/);
+});
+
+test("exports retain deterministic filenames and block missing product proof", () => {
+  const exportRoute = readFileSync("src/app/api/admin/marketing/creative/renderer/export/route.ts", "utf8");
+  const studio = readFileSync("src/components/dashboard/admin/marketing/CreativeRendererWorkspace.tsx", "utf8");
+  assert.match(exportRoute, /product screenshot before exporting/);
+  assert.match(exportRoute, /\$\{spec\.width\}x\$\{spec\.height\}/);
+  assert.match(studio, /Download PNG/);
+  assert.match(studio, /Add an approved .* product screenshot before exporting/);
+});
