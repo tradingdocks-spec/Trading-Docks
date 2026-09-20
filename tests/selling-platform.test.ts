@@ -173,13 +173,16 @@ test("admin eBay configuration preserves the encrypted architecture and staging 
   const adminPanel = readFileSync(join(process.cwd(), "src/components/dashboard/admin/AdminControlCenterWithPreview.tsx"), "utf8");
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
   assert.match(route, /resolveEbayEnvironment/);
+  assert.match(route, /currentEbayDeploymentEnvironment/);
   assert.match(route, /encryptMarketplaceCredentials/);
   assert.match(route, /key === "environment" \? value : mask\(value\)/);
   assert.doesNotMatch(route, /clientSecret\s*:/);
   assert.match(adminPanel, /type="password"/);
-  assert.match(adminPanel, /Save Sandbox Configuration/);
-  assert.match(adminPanel, /Connect eBay Sandbox/);
-  assert.match(adminPanel, /deploymentEnvironment !== "production"/);
+  assert.match(adminPanel, /environment: deploymentEnvironment === "production" \? "production" : "sandbox"/);
+  assert.match(adminPanel, /credential_labels\.clientSecret/);
+  assert.match(adminPanel, /saved secret is encrypted server-side and never displayed again/);
+  assert.match(adminPanel, /href="\/api\/marketplaces\/ebay\/authorize"/);
+  assert.match(adminPanel, /Reconnect eBay Sandbox/);
 });
 
 
