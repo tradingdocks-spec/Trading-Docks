@@ -73,3 +73,32 @@ test("Autopilot retries canonical capture once and reports automatic proof in UI
   assert.match(route, /Canonical product capture failed/);
   assert.match(workspace, /Product proof created automatically/);
 });
+
+
+test("Autopilot GET stays lightweight and capture modules are lazy", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  assert.doesNotMatch(route, /^import .*canonical-capture-(runner|registration)/m);
+  assert.doesNotMatch(route, /^import .*canonical-capture["']/m);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture-runner"\)/);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture-registration"\)/);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture"\)/);
+  assert.match(route, /return NextResponse\.json\(\{ audiences, objectives, channels, pipeline:/);
+  assert.ok(route.indexOf("return NextResponse.json({ audiences") < route.indexOf('import("@/lib/marketing/canonical-capture-runner")'));
+  assert.match(workspace, /useState\("local_game_store"\)/);
+  assert.match(workspace, /useState\("awareness"\)/);
+  assert.match(workspace, /useState\("instagram"\)/);
+  assert.match(workspace, /Using the default campaign options/);
+  assert.doesNotMatch(workspace, /Marketing Autopilot could not be loaded/);
+});
+
+test("Autopilot preserves automatic proof capture behind lazy loading", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  assert.match(route, /captureMissingProof/);
+  assert.match(route, /attempt < 2/);
+  assert.match(route, /registerCanonicalCapture/);
+  assert.match(route, /status: "captured"/);
+  assert.match(route, /existing_approved_proof_selected/);
+  assert.match(route, /Canonical product capture is unavailable in this deployment environment/);
+  assert.ok(route.indexOf("captureMissingProof") < route.indexOf("marketing_outbound_campaigns"));
+});
