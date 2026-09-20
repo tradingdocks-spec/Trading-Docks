@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getVercelOidcToken } from "@vercel/oidc";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { validateCanonicalCaptureRequest } from "@/lib/marketing/canonical-capture";
 
@@ -28,6 +29,16 @@ function diagnosticError(error: unknown, fallbackCode: string): StageStatus {
 function previewRequiresTrustedSource(baseUrl: string | undefined) {
   if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "preview" || !baseUrl) return false;
   try { return new URL(baseUrl).hostname.endsWith(".vercel.app"); } catch { return false; }
+}
+
+async function trustedSourceStatus(required: boolean) {
+  if (!required) return { status: "not_run" as const };
+  try {
+    const token = await getVercelOidcToken();
+    return token ? { status: "ready" as const } : { status: "error" as const, code: "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" };
+  } catch {
+    return { status: "error" as const, code: "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" };
+  }
 }
 
 async function runBrowserDiagnostic() {
@@ -83,7 +94,7 @@ async function runBrowserDiagnostic() {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const actor = await requireServerPlatformRole("admin");
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
 
@@ -91,8 +102,8 @@ export async function GET(request: Request) {
     baseUrlConfigured: Boolean(process.env.MARKETING_CAPTURE_BASE_URL),
     signingSecretConfigured: Boolean(process.env.MARKETING_CAPTURE_SECRET),
   };
-  const trustedSourceTokenAvailable = Boolean(request.headers.get("x-vercel-oidc-token"));
   const trustedSourceRequired = previewRequiresTrustedSource(process.env.MARKETING_CAPTURE_BASE_URL);
+  const trustedSource = await trustedSourceStatus(trustedSourceRequired);
   let captureRoute: StageStatus = { status: "ready", code: "SYNTHETIC_ROUTE_VALID" };
   try {
     validateCanonicalCaptureRequest({ feature: "chaos-sort", state: "primary" });
@@ -109,8 +120,8 @@ export async function GET(request: Request) {
     browserLaunch: browser.browserLaunch,
     captureRoute: { ...captureRoute, responseStatus: null },
     deploymentProtection: {
-      trustedSourceToken: { status: trustedSourceRequired ? (trustedSourceTokenAvailable ? "ready" : "error") : "not_run", code: trustedSourceRequired && !trustedSourceTokenAvailable ? "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" : undefined },
-      sameProjectAuthorization: { status: trustedSourceRequired ? (trustedSourceTokenAvailable ? "ready" : "error") : "not_run", code: trustedSourceRequired && !trustedSourceTokenAvailable ? "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" : undefined },
+      trustedSourceToken: trustedSource,
+      sameProjectAuthorization: trustedSource,
     },
     storage: { status: "not_run", code: "STORAGE_CHECK_REQUIRES_EXPLICIT_SMOKE_TEST" },
     renderer: { status: "ready", code: "DETERMINISTIC_RENDERER_AVAILABLE" },
@@ -146,8 +157,7 @@ export async function POST(request: Request) {
       const requestData = validate({ feature: "chaos-sort", state: "primary", viewport: "desktop", role: "primary", width: 1440, height: 1000 });
       const featureId = await resolveCanonicalFeatureId("chaos-sort");
       if (!featureId) return NextResponse.json({ ok: false, stage: "captureRoute", code: "CAPTURE_FEATURE_UNAVAILABLE", message: "The canonical capture feature is not initialized." }, { status: 503 });
-      const trustedSourceToken = request.headers.get("x-vercel-oidc-token") ?? undefined;
-      const captured = await captureCanonicalPage(requestData, { baseUrl, featureId, secret, trustedSourceToken });
+      const captured = await captureCanonicalPage(requestData, { baseUrl, featureId, secret });
       const png = Buffer.from(captured.png);
       const dimensions = png.length >= 8 && png.subarray(0, 8).toString("hex") === "89504e470d0a1a0a"
         ? await (await import("sharp")).default(png).metadata()

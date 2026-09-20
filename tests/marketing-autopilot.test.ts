@@ -139,7 +139,9 @@ test("protected Preview capture forwards Vercel OIDC only from server to server"
   const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
   const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
   const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
-  assert.match(health, /x-vercel-oidc-token/);
+  assert.match(runner, /getVercelOidcToken/);
+  assert.match(health, /getVercelOidcToken/);
+  assert.doesNotMatch(health, /x-vercel-oidc-token/);
   assert.match(runner, /x-vercel-trusted-oidc-idp-token/);
   assert.match(runner, /TRUSTED_SOURCE_TOKEN_UNAVAILABLE/);
   assert.match(runner, /TRUSTED_SOURCE_REJECTED/);

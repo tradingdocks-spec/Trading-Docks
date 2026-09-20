@@ -42,7 +42,20 @@ function targetRequiresTrustedSource(baseUrl: string) {
   try { return new URL(baseUrl).hostname.endsWith(".vercel.app"); } catch { return false; }
 }
 
-export async function captureCanonicalPage(request: CanonicalCaptureRequest, options: { baseUrl: string; featureId: string; secret: string; trustedSourceToken?: string }) {
+async function resolveTrustedSourceToken(baseUrl: string) {
+  if (!targetRequiresTrustedSource(baseUrl)) return undefined;
+  try {
+    const { getVercelOidcToken } = await import("@vercel/oidc");
+    const token = await getVercelOidcToken();
+    if (!token) throw new Error("Vercel OIDC token was empty.");
+    return token;
+  } catch (error) {
+    logCaptureFailure("TRUSTED_SOURCE_TOKEN_UNAVAILABLE", "trusted-source", error);
+    throw new CanonicalCaptureError("TRUSTED_SOURCE_TOKEN_UNAVAILABLE", "Vercel Trusted Source authorization is unavailable for this Preview capture.");
+  }
+}
+
+export async function captureCanonicalPage(request: CanonicalCaptureRequest, options: { baseUrl: string; featureId: string; secret: string }) {
   let runtime;
   try { runtime = await resolveCanonicalBrowserRuntime(); } catch (error) {
     const code = error instanceof CanonicalBrowserRuntimeError ? error.code : "CHROMIUM_EXECUTABLE_UNAVAILABLE";
@@ -61,11 +74,9 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     const token = createCanonicalCaptureToken(request.feature, request.state, options.secret);
     const baseUrl = options.baseUrl.replace(/\/+$/, "");
     const requiresTrustedSource = targetRequiresTrustedSource(baseUrl);
-    if (requiresTrustedSource && !options.trustedSourceToken) {
-      throw new CanonicalCaptureError("TRUSTED_SOURCE_TOKEN_UNAVAILABLE", "Vercel Trusted Source authorization is unavailable for this Preview capture.");
-    }
-    if (requiresTrustedSource && options.trustedSourceToken) {
-      await page.setExtraHTTPHeaders({ "x-vercel-trusted-oidc-idp-token": options.trustedSourceToken });
+    const trustedSourceToken = await resolveTrustedSourceToken(baseUrl);
+    if (requiresTrustedSource && trustedSourceToken) {
+      await page.setExtraHTTPHeaders({ "x-vercel-trusted-oidc-idp-token": trustedSourceToken });
     }
     let response;
     try {
@@ -85,12 +96,12 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     })).catch(() => ({ title: "", bodyPrefix: "", hasReadyMarker: false, heading: "" }));
     const bodyText = safePageDiagnostic(pageDiagnostic.bodyPrefix);
     if (isDeploymentProtectionPage(finalUrl, bodyText)) {
-      const protectionCode = requiresTrustedSource && options.trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
+      const protectionCode = requiresTrustedSource && trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
       logCaptureFailure(protectionCode, "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
       throw new CanonicalCaptureError(protectionCode, protectionCode === "TRUSTED_SOURCE_REJECTED" ? "Vercel rejected the Trusted Source authorization for this Preview capture." : "Canonical capture was blocked by Vercel deployment protection or authentication.");
     }
     if (new URL(finalUrl).hostname !== expectedHost) {
-      const protectionCode = requiresTrustedSource && options.trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
+      const protectionCode = requiresTrustedSource && trustedSourceToken ? "TRUSTED_SOURCE_REJECTED" : "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED";
       logCaptureFailure(protectionCode, "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), expectedHost, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
       throw new CanonicalCaptureError(protectionCode, protectionCode === "TRUSTED_SOURCE_REJECTED" ? "Vercel rejected the Trusted Source authorization for this Preview capture." : "Canonical capture reached an unexpected host instead of the configured capture deployment.");
     }
