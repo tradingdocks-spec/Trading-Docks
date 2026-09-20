@@ -6,7 +6,7 @@ import { loadMarketingIntelligenceContext } from "@/app/api/admin/marketing/inte
 import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
 import type { IntelligenceProof } from "@/lib/marketing/marketing-intelligence";
 import { randomUUID } from "node:crypto";
-import { renderAutopilotVariants } from "@/lib/marketing/marketing-autopilot-rendering";
+import { renderAutopilotVariants, type RenderedAutopilotVariant } from "@/lib/marketing/marketing-autopilot-rendering";
 import { resolveMarketingCaptureBaseUrl } from "@/lib/marketing/canonical-capture-origin";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,26 @@ export const maxDuration = 60;
 const audiences = ["local_game_store", "multi_location_store", "high_volume_online_seller", "collector", "other"] as const;
 const objectives = ["awareness", "workflow_education", "demo_request", "product_launch", "re_engagement"] as const;
 const channels = ["instagram", "facebook", "email", "website", "multi_channel"] as const;
+
+type AutopilotStage = "CREATIVE_RENDER_FAILED" | "CREATIVE_UPLOAD_FAILED" | "CREATIVE_REGISTRATION_FAILED" | "CREATIVE_PREVIEW_URL_FAILED" | "CAMPAIGN_PERSISTENCE_FAILED";
+type PartialAsset = { platform: string; assetId?: string; status: "rendered" | "uploaded" | "registered" | "failed"; errorCode?: string };
+
+function safeProviderError(error: unknown) {
+  const value = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
+  return String(value.message ?? error ?? "Unknown provider error.")
+    .replace(/https?:\/\/\S+/gi, "[remote resource]")
+    .replace(/(?:key|secret|token|password)=[^\s&]+/gi, "[redacted]")
+    .slice(0, 240);
+}
+
+function logAutopilotStageFailure(stage: AutopilotStage, platform: string | undefined, error: unknown) {
+  const value = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
+  console.error("[marketing-autopilot]", { stage, platform: platform ?? null, providerCode: typeof value.code === "string" ? value.code : null, providerMessage: safeProviderError(error) });
+}
+
+function stageFailure(stage: AutopilotStage, message: string, partialAssets: PartialAsset[] = []) {
+  return NextResponse.json({ error: `${stage}: ${message}`, code: stage, stage, partialAssets }, { status: 503 });
+}
 
 export async function GET() {
   const actor = await requireServerPlatformRole("admin");
@@ -142,22 +162,48 @@ export async function POST(request: Request) {
     if (proofRecord.error || !proofRecord.data?.storage_path) return NextResponse.json({ error: "The selected product proof could not be loaded. No campaign was created." }, { status: 503 });
     const proofDownload = await admin.storage.from("marketing-assets").download(proofRecord.data.storage_path);
     if (proofDownload.error || !proofDownload.data) return NextResponse.json({ error: "The selected product proof could not be loaded. No campaign was created." }, { status: 503 });
-    let renderedVariants;
+    let rendered;
     try {
-      const rendered = await renderAutopilotVariants(packageData, Buffer.from(await proofDownload.data.arrayBuffer()));
-      const renderBatch = randomUUID();
-      renderedVariants = await Promise.all(rendered.map(async (variant) => {
-        const storagePath = `autopilot/${renderBatch}/${variant.filename}`;
-        const upload = await admin.storage.from("marketing-assets").upload(storagePath, variant.png, { contentType: "image/png", upsert: false });
-        if (upload.error) throw new Error("Rendered creative upload failed.");
-        const metadata = await admin.from("marketing_assets").insert({ name: variant.filename.replace(/\.png$/, ""), asset_type: "social_export", storage_path: storagePath, mime_type: "image/png", width: variant.width, height: variant.height, feature_ids: [packageData.feature.id], tags: [`platform:${variant.platform}`, "source:marketing_autopilot"], approved_for_marketing: false, approval_status: "draft", source: "marketing_autopilot_render", marketing_use_approved: false, product_display_allowed: false, created_by: actor.user.id }).select("id,name,storage_path,width,height,approval_status").single();
-        if (metadata.error || !metadata.data) throw new Error("Rendered creative registration failed.");
-        const signed = await admin.storage.from("marketing-assets").createSignedUrl(storagePath, 600);
-        return { platform: variant.platform, width: variant.width, height: variant.height, filename: variant.filename, assetId: metadata.data.id, previewUrl: signed.data?.signedUrl ?? null };
-      }));
-    } catch {
-      return NextResponse.json({ error: "Creative rendering or registration failed. No campaign was created." }, { status: 503 });
+      rendered = await renderAutopilotVariants(packageData, Buffer.from(await proofDownload.data.arrayBuffer()));
+    } catch (error) {
+      logAutopilotStageFailure("CREATIVE_RENDER_FAILED", undefined, error);
+      return stageFailure("CREATIVE_RENDER_FAILED", "Creative variants could not be rendered.");
     }
+    const renderBatch = randomUUID();
+    const partialAssets: PartialAsset[] = [];
+    const renderedVariants: Array<{ platform: RenderedAutopilotVariant["platform"]; width: number; height: number; filename: string; assetId: string; previewUrl: string | null }> = [];
+    const previewFailures: Array<{ platform: string; assetId: string; code: "CREATIVE_PREVIEW_URL_FAILED" }> = [];
+    for (const variant of rendered) {
+      const storagePath = `autopilot/${renderBatch}/${variant.filename}`;
+      partialAssets.push({ platform: variant.platform, status: "rendered" });
+      const upload = await admin.storage.from("marketing-assets").upload(storagePath, variant.png, { contentType: "image/png", upsert: false });
+      if (upload.error) {
+        logAutopilotStageFailure("CREATIVE_UPLOAD_FAILED", variant.platform, upload.error);
+        partialAssets[partialAssets.length - 1] = { platform: variant.platform, status: "failed", errorCode: "CREATIVE_UPLOAD_FAILED" };
+        return stageFailure("CREATIVE_UPLOAD_FAILED", "Rendered creative could not be uploaded.", partialAssets);
+      }
+      partialAssets[partialAssets.length - 1] = { platform: variant.platform, status: "uploaded" };
+      const metadata = await admin.from("marketing_assets").insert({ name: variant.filename.replace(/\.png$/, ""), asset_type: "social_export", storage_path: storagePath, mime_type: "image/png", width: variant.width, height: variant.height, feature_ids: [packageData.feature.id], tags: [`platform:${variant.platform}`, "source:marketing_autopilot"], approved_for_marketing: false, approval_status: "draft", source: "marketing_autopilot_render", marketing_use_approved: false, product_display_allowed: false, created_by: actor.user.id }).select("id,name,storage_path,width,height,approval_status").single();
+      if (metadata.error || !metadata.data) {
+        logAutopilotStageFailure("CREATIVE_REGISTRATION_FAILED", variant.platform, metadata.error);
+        partialAssets[partialAssets.length - 1] = { platform: variant.platform, status: "failed", errorCode: "CREATIVE_REGISTRATION_FAILED" };
+        return stageFailure("CREATIVE_REGISTRATION_FAILED", "Rendered creative metadata could not be registered.", partialAssets);
+      }
+      partialAssets[partialAssets.length - 1] = { platform: variant.platform, assetId: metadata.data.id, status: "registered" };
+      let previewUrl: string | null = null;
+      try {
+        const signed = await admin.storage.from("marketing-assets").createSignedUrl(storagePath, 600);
+        if (signed.error || !signed.data?.signedUrl) {
+          logAutopilotStageFailure("CREATIVE_PREVIEW_URL_FAILED", variant.platform, signed.error);
+          previewFailures.push({ platform: variant.platform, assetId: metadata.data.id, code: "CREATIVE_PREVIEW_URL_FAILED" });
+        } else previewUrl = signed.data.signedUrl;
+      } catch (error) {
+        logAutopilotStageFailure("CREATIVE_PREVIEW_URL_FAILED", variant.platform, error);
+        previewFailures.push({ platform: variant.platform, assetId: metadata.data.id, code: "CREATIVE_PREVIEW_URL_FAILED" });
+      }
+      renderedVariants.push({ platform: variant.platform, width: variant.width, height: variant.height, filename: variant.filename, assetId: metadata.data.id, previewUrl });
+    }
+    const diagnostics = { previewFailures, stages: ["Product proof", "Square render", "Portrait render", "Story render", "Asset registration", ...(previewFailures.length ? ["Preview URL"] : [])] };
     packageData = { ...packageData, renderedVariants };
     const campaign = await admin.from("marketing_outbound_campaigns").insert({
       name: `${packageData.feature.name} · ${objective}`,
@@ -169,14 +215,20 @@ export async function POST(request: Request) {
       creative_brief: packageData,
       created_by: actor.user.id,
     }).select("id,name,status,feature_id,audience,objective,cta,landing_url").single();
-    if (campaign.error || !campaign.data) return NextResponse.json({ error: "Campaign package could not be stored." }, { status: 503 });
+    if (campaign.error || !campaign.data) {
+      logAutopilotStageFailure("CAMPAIGN_PERSISTENCE_FAILED", undefined, campaign.error);
+      return stageFailure("CAMPAIGN_PERSISTENCE_FAILED", "Campaign package could not be stored.", partialAssets);
+    }
 
     const brief = await admin.from("marketing_creative_briefs").insert({
       campaign_id: campaign.data.id,
       brief: packageData,
       created_by: actor.user.id,
     }).select("id,status").single();
-    if (brief.error || !brief.data) return NextResponse.json({ error: "Campaign was created, but its brief could not be stored." }, { status: 503 });
+    if (brief.error || !brief.data) {
+      logAutopilotStageFailure("CAMPAIGN_PERSISTENCE_FAILED", undefined, brief.error);
+      return stageFailure("CAMPAIGN_PERSISTENCE_FAILED", "Campaign was created, but its brief could not be stored.", partialAssets);
+    }
 
     return NextResponse.json({
       campaign: campaign.data,
@@ -187,6 +239,7 @@ export async function POST(request: Request) {
         creativeStudio: `/dashboard/admin/marketing/creative-studio?campaign=${campaign.data.id}`,
       },
       capture,
+      diagnostics,
       autonomousActions: packageData.autonomousActions,
     }, { status: 201 });
   } catch (error) {

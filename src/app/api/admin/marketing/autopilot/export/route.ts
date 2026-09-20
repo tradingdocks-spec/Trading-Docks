@@ -17,13 +17,24 @@ export async function POST(request: Request) {
   ]);
   if (campaign.error || !campaign.data || brief.error || !brief.data) return NextResponse.json({ error: "Campaign package could not be loaded for export." }, { status: 404 });
   const packageData = (brief.data.brief ?? campaign.data.creative_brief) as Record<string, unknown>;
-  const rendered = Array.isArray(packageData.renderedVariants) ? packageData.renderedVariants.filter((item): item is { filename: string; previewUrl: string } => Boolean(item && typeof item === "object" && typeof (item as { filename?: unknown }).filename === "string" && typeof (item as { previewUrl?: unknown }).previewUrl === "string")) : [];
+  const rendered = Array.isArray(packageData.renderedVariants) ? packageData.renderedVariants.filter((item): item is { filename: string; assetId?: string; previewUrl?: string | null } => Boolean(item && typeof item === "object" && typeof (item as { filename?: unknown }).filename === "string" && (typeof (item as { assetId?: unknown }).assetId === "string" || typeof (item as { previewUrl?: unknown }).previewUrl === "string"))) : [];
   if (!rendered.length) return NextResponse.json({ error: "No rendered creative variants are available for export." }, { status: 409 });
   const zip = new JSZip();
   for (const variant of rendered) {
-    const response = await fetch(variant.previewUrl);
-    if (!response.ok) return NextResponse.json({ error: "A rendered creative could not be downloaded for export." }, { status: 503 });
-    zip.file(variant.filename, Buffer.from(await response.arrayBuffer()));
+    let bytes: Buffer | null = null;
+    if (variant.assetId) {
+      const asset = await admin.from("marketing_assets").select("storage_path").eq("id", variant.assetId).maybeSingle();
+      if (!asset.error && asset.data?.storage_path) {
+        const downloaded = await admin.storage.from("marketing-assets").download(asset.data.storage_path);
+        if (!downloaded.error && downloaded.data) bytes = Buffer.from(await downloaded.data.arrayBuffer());
+      }
+    }
+    if (!bytes && variant.previewUrl) {
+      const response = await fetch(variant.previewUrl);
+      if (response.ok) bytes = Buffer.from(await response.arrayBuffer());
+    }
+    if (!bytes) return NextResponse.json({ error: "A rendered creative could not be downloaded for export." }, { status: 503 });
+    zip.file(variant.filename, bytes);
   }
   const copy = typeof packageData.copy === "object" && packageData.copy ? packageData.copy as Record<string, unknown> : {};
   zip.file("campaign-copy.md", [`# ${campaign.data.name}`, "", `Objective: ${campaign.data.objective}`, "", `## Headline\n${String(copy.primaryHeadline ?? "")}`, "", `## Supporting line\n${String(copy.supportingLine ?? "")}`, "", `## CTA\n${String(copy.cta ?? "")}`, "", `## Instagram caption\n${String(copy.instagramCaption ?? "")}`, "", `## Email subject\n${String(copy.emailSubject ?? "")}`, "", `## Email body\n${String(copy.emailBody ?? "")}`].join("\n"));

@@ -213,6 +213,31 @@ test("Autopilot renders and exports real PNG variants only after proof is loaded
   assert.match(exportRoute, /requireServerPlatformRole\("admin"\)/);
 });
 
+test("Autopilot diagnoses creative stages and keeps signed previews non-fatal", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const preview = readFileSync("src/app/api/admin/marketing/assets/[id]/preview/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  const exportRoute = readFileSync("src/app/api/admin/marketing/autopilot/export/route.ts", "utf8");
+  for (const code of ["CREATIVE_RENDER_FAILED", "CREATIVE_UPLOAD_FAILED", "CREATIVE_REGISTRATION_FAILED", "CREATIVE_PREVIEW_URL_FAILED", "CAMPAIGN_PERSISTENCE_FAILED"]) assert.match(route, new RegExp(code));
+  assert.match(route, /let previewUrl: string \| null/);
+  assert.match(route, /previewFailures/);
+  assert.match(route, /partialAssets/);
+  assert.match(preview, /requireServerPlatformRole\("admin"\)/);
+  assert.match(preview, /createSignedUrl/);
+  assert.match(workspace, /Creative preview URL/);
+  assert.match(workspace, /Refresh preview/);
+  assert.match(workspace, /CREATIVE_PREVIEW_URL_FAILED/);
+  assert.match(exportRoute, /storage_path/);
+});
+
+test("Autopilot forwards workflow education objective to package and campaign persistence", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  assert.match(route, /body\?\.objective/);
+  assert.match(route, /objective, channel/);
+  assert.match(route, /name: `\$\{packageData\.feature\.name\} · \$\{objective\}`/);
+  assert.match(route, /objective,\s*cta:/s);
+});
+
 test("Autopilot health is admin-only and does not expose capture secrets", () => {
   const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
   assert.match(health, /requireServerPlatformRole\("admin"\)/);
