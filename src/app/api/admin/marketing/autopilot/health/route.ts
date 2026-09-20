@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { validateCanonicalCaptureRequest } from "@/lib/marketing/canonical-capture";
+import { describeMarketingCaptureTarget, resolveMarketingCaptureBaseUrl } from "@/lib/marketing/canonical-capture-origin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -26,7 +27,7 @@ function diagnosticError(error: unknown, fallbackCode: string): StageStatus {
   };
 }
 
-function previewRequiresTrustedSource(baseUrl: string | undefined) {
+function previewRequiresTrustedSource(baseUrl: string | null) {
   if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "preview" || !baseUrl) return false;
   try { return new URL(baseUrl).hostname.endsWith(".vercel.app"); } catch { return false; }
 }
@@ -98,11 +99,12 @@ export async function GET() {
   const actor = await requireServerPlatformRole("admin");
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
 
+  const captureTarget = describeMarketingCaptureTarget();
   const captureConfiguration = {
-    baseUrlConfigured: Boolean(process.env.MARKETING_CAPTURE_BASE_URL),
+    baseUrlConfigured: Boolean(resolveMarketingCaptureBaseUrl()),
     signingSecretConfigured: Boolean(process.env.MARKETING_CAPTURE_SECRET),
   };
-  const trustedSourceRequired = previewRequiresTrustedSource(process.env.MARKETING_CAPTURE_BASE_URL);
+  const trustedSourceRequired = previewRequiresTrustedSource(captureTarget.baseUrl);
   const trustedSource = await trustedSourceStatus(trustedSourceRequired);
   let captureRoute: StageStatus = { status: "ready", code: "SYNTHETIC_ROUTE_VALID" };
   try {
@@ -119,6 +121,7 @@ export async function GET() {
     chromium: browser.chromium,
     browserLaunch: browser.browserLaunch,
     captureRoute: { ...captureRoute, responseStatus: null },
+    captureTarget: { environment: captureTarget.environment, source: captureTarget.source, hostMatchesCurrentDeployment: captureTarget.hostMatchesCurrentDeployment },
     deploymentProtection: {
       trustedSourceToken: trustedSource,
       sameProjectAuthorization: trustedSource,
@@ -145,9 +148,10 @@ export async function POST(request: Request) {
   }
 
   if (body?.action === "capture_test") {
-    const baseUrl = process.env.MARKETING_CAPTURE_BASE_URL;
+    const captureTarget = describeMarketingCaptureTarget();
+    const baseUrl = captureTarget.baseUrl;
     const secret = process.env.MARKETING_CAPTURE_SECRET;
-    if (!baseUrl || !secret) return NextResponse.json({ ok: false, stage: "configuration", code: "CAPTURE_CONFIGURATION_MISSING", message: "Marketing capture base URL and signing secret are required." }, { status: 503 });
+    if (!baseUrl || !secret) return NextResponse.json({ ok: false, stage: "configuration", code: "CAPTURE_CONFIGURATION_MISSING", message: "Marketing capture origin and signing secret are required." }, { status: 503 });
     try {
       const [{ captureCanonicalPage }, { resolveCanonicalFeatureId }, { validateCanonicalCaptureRequest: validate }] = await Promise.all([
         import("@/lib/marketing/canonical-capture-runner"),

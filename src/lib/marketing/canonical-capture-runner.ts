@@ -3,7 +3,7 @@ import { buildCanonicalCaptureMetadata, type CanonicalCaptureRequest } from "./c
 import { createCanonicalCaptureToken } from "./canonical-capture-auth";
 import { CanonicalBrowserRuntimeError, resolveCanonicalBrowserRuntime } from "./canonical-capture-runtime";
 
-export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" | "TRUSTED_SOURCE_REJECTED" | "SCREENSHOT_FAILED";
+export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT" | "TRUSTED_SOURCE_TOKEN_UNAVAILABLE" | "TRUSTED_SOURCE_REJECTED" | "SCREENSHOT_FAILED";
 export class CanonicalCaptureError extends Error { constructor(public readonly code: CanonicalCaptureErrorCode, message: string) { super(message); this.name = "CanonicalCaptureError"; } }
 
 function safeCaptureMessage(error: unknown) {
@@ -106,6 +106,10 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
       throw new CanonicalCaptureError(protectionCode, protectionCode === "TRUSTED_SOURCE_REJECTED" ? "Vercel rejected the Trusted Source authorization for this Preview capture." : "Canonical capture reached an unexpected host instead of the configured capture deployment.");
     }
     if (responseStatus !== null && responseStatus >= 400) {
+      if (responseStatus === 404) {
+        logCaptureFailure("CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT", "response", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+        throw new CanonicalCaptureError("CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT", "The signed capture token was invalid for the current deployment.");
+      }
       logCaptureFailure("CAPTURE_AUTH_REJECTED", "response", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
       throw new CanonicalCaptureError("CAPTURE_AUTH_REJECTED", `Canonical capture authorization failed (${responseStatus}).`);
     }

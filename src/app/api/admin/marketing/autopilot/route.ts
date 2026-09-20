@@ -7,6 +7,7 @@ import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
 import type { IntelligenceProof } from "@/lib/marketing/marketing-intelligence";
 import { randomUUID } from "node:crypto";
 import { renderAutopilotVariants } from "@/lib/marketing/marketing-autopilot-rendering";
+import { resolveMarketingCaptureBaseUrl } from "@/lib/marketing/canonical-capture-origin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,8 +23,8 @@ export async function GET() {
 }
 
 async function captureMissingProof(featureSlug: string): Promise<{ proof: IntelligenceProof; assetId: string; assetName: string; role: string }> {
-  const baseUrl = process.env.MARKETING_CAPTURE_BASE_URL;
-  if (!baseUrl) throw new Error("Marketing capture is not configured. Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation.");
+  const baseUrl = resolveMarketingCaptureBaseUrl();
+  if (!baseUrl) throw new Error("Marketing capture is not configured. Set MARKETING_CAPTURE_BASE_URL for production or use the current Vercel Preview URL.");
   const secret = process.env.MARKETING_CAPTURE_SECRET;
   if (!secret) throw new Error("Marketing capture signing is not configured.");
 

@@ -4,6 +4,7 @@ import test from "node:test";
 import { buildMarketingAutopilotPackage } from "../src/lib/marketing/marketing-autopilot.ts";
 import { validateCanonicalCaptureRequest } from "../src/lib/marketing/canonical-capture.ts";
 import { MARKETING_PRODUCT_REGISTRY } from "../src/lib/marketing/product-marketing-registry.ts";
+import { describeMarketingCaptureTarget, resolveMarketingCaptureBaseUrl } from "../src/lib/marketing/canonical-capture-origin.ts";
 
 const proof = { id: "capture-1", name: "Chaos Sort primary capture", featureIds: ["chaos-sort"], role: "primary", source: "canonical_product_capture", approved: true, marketingApproved: true, archived: false };
 
@@ -41,10 +42,10 @@ test("canonical capture has a browser runner and automatic Asset Vault registrat
 
 test("Autopilot resolves missing product proof before persisting a campaign", () => {
   const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
-  assert.match(route, /MARKETING_CAPTURE_BASE_URL/);
+  assert.match(route, /resolveMarketingCaptureBaseUrl/);
   assert.match(route, /MARKETING_CAPTURE_SECRET/);
   assert.match(route, /Marketing capture signing is not configured\./);
-  assert.match(route, /Marketing capture is not configured\. Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation\./);
+  assert.match(route, /Marketing capture is not configured/);
   assert.match(route, /captureCanonicalPage/);
   assert.match(route, /registerCanonicalCapture/);
   assert.match(route, /resolveCanonicalFeatureId/);
@@ -96,6 +97,31 @@ test("production capture uses the signed route, ready marker, and pinned Chromiu
   assert.match(packageJson, /"node": "24\.x"/);
   assert.match(runtime, /runCanonicalBrowserSelfTest/);
   assert.match(page, /data-marketing-capture-ready="true"/);
+});
+
+test("capture target uses the current Vercel Preview deployment and production fallback", () => {
+  const preview = { VERCEL_ENV: "preview", VERCEL_URL: "trading-docks-new.vercel.app", MARKETING_CAPTURE_BASE_URL: "https://stale-preview.vercel.app" };
+  assert.equal(resolveMarketingCaptureBaseUrl(preview), "https://trading-docks-new.vercel.app");
+  assert.deepEqual(describeMarketingCaptureTarget(preview), { environment: "preview", source: "VERCEL_URL", baseUrl: "https://trading-docks-new.vercel.app", hostMatchesCurrentDeployment: true });
+  const production = { VERCEL_ENV: "production", VERCEL_URL: "trading-docks-prod.vercel.app", MARKETING_CAPTURE_BASE_URL: "https://tradingdocks.com" };
+  assert.equal(resolveMarketingCaptureBaseUrl(production), "https://tradingdocks.com");
+  assert.equal(describeMarketingCaptureTarget(production).source, "MARKETING_CAPTURE_BASE_URL");
+  assert.equal(resolveMarketingCaptureBaseUrl({ VERCEL_ENV: "preview", MARKETING_CAPTURE_BASE_URL: "https://stale-preview.vercel.app" }), "https://stale-preview.vercel.app");
+});
+
+test("capture routes share the resolved origin and safe token-mismatch diagnostics", () => {
+  const autopilot = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
+  const intelligence = readFileSync("src/app/api/admin/marketing/intelligence/capture/route.ts", "utf8");
+  const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  assert.match(autopilot, /resolveMarketingCaptureBaseUrl/);
+  assert.match(health, /describeMarketingCaptureTarget/);
+  assert.match(intelligence, /resolveMarketingCaptureBaseUrl/);
+  assert.match(page, /CAPTURE_TOKEN_INVALID/);
+  assert.match(runner, /CAPTURE_TOKEN_INVALID_OR_MISMATCHED_DEPLOYMENT/);
+  assert.match(health, /captureTarget/);
+  assert.doesNotMatch(health, /x-vercel-trusted-oidc-idp-token|VERCEL_OIDC_TOKEN/);
 });
 
 test("canonical capture uses the default browser page and closes capture resources", () => {

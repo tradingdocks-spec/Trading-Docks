@@ -12,6 +12,7 @@ export default async function MarketingCapturePage({ params, searchParams }: { p
   const token = Array.isArray(query.capture_token) ? query.capture_token[0] : query.capture_token;
   const tokenAuthorized = Boolean(token && verifyCanonicalCaptureToken(token, featureSlug, state, process.env.MARKETING_CAPTURE_SECRET ?? ""));
   if (!tokenAuthorized) {
+    if (token) console.warn("[marketing-capture] CAPTURE_TOKEN_INVALID");
     const actor = await requireServerPlatformRole("admin");
     if (!actor) {
       if (token) notFound();
