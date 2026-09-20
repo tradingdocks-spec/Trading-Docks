@@ -62,7 +62,7 @@ function canonicalAssetRow(metadata: CanonicalCaptureMetadata): CanonicalAssetRo
     source: "canonical_product_capture",
     screenshot_role: metadata.screenshotRole,
     safe_crop: true,
-    tags: [`capture_version:${metadata.captureVersion}`, `screenshot_role:${metadata.screenshotRole}`, "safe_crop:true"],
+    tags: [`capture_version:${metadata.captureVersion}`, `screenshot_role:${metadata.screenshotRole}`, `crop_mode:${metadata.cropMode}`, "safe_crop:true"],
   };
 }
 

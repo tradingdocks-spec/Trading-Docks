@@ -4,6 +4,8 @@ const base = (feature: string, state: string, label: string, records: Record<str
 
 export const MARKETING_DEMO_FIXTURES: readonly MarketingDemoFixture[] = [
   base("chaos-sort", "primary", "Synthetic Chaos Sort intake", [{ batchLabel: "Demo intake · 2026-09-01", cards: 24, status: "review", locations: 3 }, { cardLabel: "Demo card A", identity: "Recognized", position: "Shelf A / Bin 02" }]),
+  base("chaos-sort", "workflow", "Chaos Sort workflow", [{ step: "scan", status: "complete" }, { step: "identify", status: "in_progress" }, { step: "confirm", status: "next" }, { step: "locate", status: "queued" }]),
+  base("chaos-sort", "inventory-result", "Inventory result", [{ cards: 5, status: "located", positions: ["Shelf A / Bin 02", "Shelf B / Bin 04"] }]),
   base("chaos-sort", "locations", "Synthetic location assignment", [{ batchLabel: "Demo batch 001", status: "active", positions: ["Shelf A / Bin 02", "Shelf B / Bin 04"] }]),
   base("chaos-sort", "review", "Synthetic recognition review", [{ cardLabel: "Demo card B", confidence: "review", decision: "pending" }]),
   base("inventory", "locations", "Synthetic inventory locations", [{ cardLabel: "Demo card C", batch: "Demo batch 001", location: "Shelf A / Bin 02", quantity: 1 }, { cardLabel: "Demo card D", batch: "Demo batch 002", location: "Shelf B / Bin 04", quantity: 2 }]),
