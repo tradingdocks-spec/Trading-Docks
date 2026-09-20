@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { verifyStaffingBoundary } from './pos-staffing-boundary.mjs';
 
 const root = resolve('.local-fixtures/pos-db');
 const cluster = resolve(root, `cluster-${Date.now()}`);
@@ -55,6 +56,7 @@ try {
     const second=await admin.query(`insert into pos_registers(workspace_id,site_id,name) values($1,$2,'Second') returning id`,[workspace,setup.siteId]);
     const session2=await command(b,'open',{registerId:second.rows[0].id});
     const request=(sessionId=session.id)=>({key:randomUUID(),siteId:setup.siteId,sessionId,expectedMinor:1409,cashMinor:2000,discountReason:'',lines:[{itemId:'bolt',quantity:1,discountBps:0}]});
+    await verifyStaffingBoundary({ admin, staff: stranger, owner, other, workspace, setup, request, command, check });
     await check('exact barcode resolves only authorized real inventory',async()=>{const rows=await command(a,'search',{siteId:setup.siteId,query:'TD-ABCD-EFGH',exact:true});assert.equal(rows.length,1);assert.equal(rows[0].unit_price_minor,1299);});
     await check('canonical label SKU remains stable through repricing',async()=>{
       const identity=(await a.query(`insert into inventory_label_identities(workspace_id,inventory_user_id,inventory_item_id,target_type,sku,qr_token) values($1,$2,'bolt','single','','') returning sku,qr_token`,[workspace,owner])).rows[0];
