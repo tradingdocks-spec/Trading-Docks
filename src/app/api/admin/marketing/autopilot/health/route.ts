@@ -215,7 +215,7 @@ export async function POST(request: Request) {
     const secret = process.env.MARKETING_CAPTURE_SECRET;
     if (!baseUrl || !secret) return NextResponse.json({ ok: false, stage: "configuration", code: "CAPTURE_CONFIGURATION_MISSING", message: "Marketing capture origin and signing secret are required." }, { status: 503 });
     try {
-      const [{ captureCanonicalPage }, { resolveCanonicalFeatureId }, { validateCanonicalCaptureRequest: validate }] = await Promise.all([
+      const [{ captureCanonicalPage }, { registerCanonicalCapture, resolveCanonicalFeatureId }, { validateCanonicalCaptureRequest: validate }] = await Promise.all([
         import("@/lib/marketing/canonical-capture-runner"),
         import("@/lib/marketing/canonical-capture-registration"),
         import("@/lib/marketing/canonical-capture"),
@@ -228,7 +228,7 @@ export async function POST(request: Request) {
       const dimensions = png.length >= 8 && png.subarray(0, 8).toString("hex") === "89504e470d0a1a0a"
         ? await (await import("sharp")).default(png).metadata()
         : null;
-      return NextResponse.json({ ok: true, stage: "captureRoute", responseStatus: 200, signedTokenAccepted: true, trustedSource: { status: "ready" }, pngBytes: png.length, pngMagicValid: Boolean(dimensions), width: dimensions?.width ?? null, height: dimensions?.height ?? null });
+      const asset = await registerCanonicalCapture(captured.metadata, png); return NextResponse.json({ ok: true, stage: "captureRoute", responseStatus: 200, signedTokenAccepted: true, trustedSource: { status: "ready" }, pngBytes: png.length, pngMagicValid: Boolean(dimensions), width: dimensions?.width ?? null, height: dimensions?.height ?? null, storageUpload: { status: "ready" }, assetRegistration: { status: "ready" }, assetId: asset.id });
     } catch (error) {
       const diagnostic = diagnosticError(error, "CAPTURE_ROUTE_FAILED");
       return NextResponse.json({ ok: false, stage: "captureRoute", ...diagnostic }, { status: 503 });
