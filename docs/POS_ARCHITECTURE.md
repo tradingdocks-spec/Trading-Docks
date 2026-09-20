@@ -1,6 +1,8 @@
 # Trading Docks POS architecture
 
-Status: Partially Implemented. Phases 1–3 are implemented in development source. Phase 4 onward remains Planned. Hosted rollout Requires Production Configuration and separate staging/hardware acceptance. Working branch: `codex/pos-foundation`.
+Status: Partially Implemented. Phases 1–4 are implemented in development source. Phase 5 onward remains Planned. Hosted rollout Requires Production Configuration and separate staging/hardware acceptance. Working branch: `codex/pos-foundation`.
+
+Phase 4 adds provider-neutral payment attempts, frozen checkouts, explicit payment/sale state separation, idempotent finalization, deterministic mock/external adapters, provider refunds and manual reconciliation. Mock operation is disabled by default and rejected by production servers. Cash retains its synchronous path; drawer reports distinguish noncash. See [payment architecture](POS_PAYMENT_ARCHITECTURE.md) and [Phase 4 validation](POS_PHASE4_VALIDATION.md). No live processor or production change is included.
 
 Phase 3's owner-controlled delegation extension was explicitly approved on 2026-09-20. **Inventory ownership remains canonical and unchanged. POS employee access is granted through explicit, owner-controlled, revocable, location-scoped operational delegation.** Workspace membership or manager status alone never authorizes selling another owner's inventory. Actual employee identity remains the authenticated actor; the stock owner's identity remains on inventory, positions, batches, costs and events.
 
