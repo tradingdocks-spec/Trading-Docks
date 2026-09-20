@@ -3,6 +3,7 @@ import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { isKnownRepoBrandAsset, isRedundantLegacyBrandAsset, REPO_BRAND_ASSET_MANIFEST, resolveAssetPreviewUrl } from "../src/lib/marketing/repo-brand-assets.ts";
+import { selectChaosSortScreenshot } from "../src/lib/marketing/chaos-sort-campaign.ts";
 
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
@@ -84,4 +85,40 @@ test("legacy archive endpoint is admin-only and never deletes storage", () => {
   assert.match(source, /approval_status: "archived"/);
   assert.match(source, /Storage files were not deleted/);
   assert.doesNotMatch(source, /\.remove\(/);
+});
+
+test("Asset Vault keeps Supabase available for signed image previews without widening CSP", () => {
+  const config = read("next.config.ts");
+  assert.match(config, /connect-src[^\n]*https:\/\/\*\.supabase\.co/);
+  assert.match(config, /img-src[^\n]*https:\/\/\*\.supabase\.co/);
+  assert.match(config, /img-src[^\n]*https:\/\/maps\.googleapis\.com/);
+  assert.match(config, /img-src[^\n]*https:\/\/cards\.scryfall\.io/);
+  assert.doesNotMatch(config, /img-src[^\n]*\s\*\s/);
+});
+
+test("Asset Vault upload form classifies screenshots and preserves draft approval", () => {
+  const workspace = read("src/components/dashboard/admin/marketing/AssetVaultWorkspace.tsx");
+  const uploadRoute = read("src/app/api/admin/marketing/assets/upload/route.ts");
+  const patchRoute = read("src/app/api/admin/marketing/assets/[id]/route.ts");
+  assert.match(workspace, /useState\("product_screenshot"\)/);
+  assert.match(workspace, /value=\{uploadFeatureId\}/);
+  assert.match(workspace, /value=\{uploadRole\}/);
+  assert.match(workspace, /form\.append\("featureIds"/);
+  assert.match(workspace, /form\.append\("screenshotRole"/);
+  assert.match(workspace, /form\.append\("altText"/);
+  assert.match(uploadRoute, /feature_ids: featureIds/);
+  assert.match(uploadRoute, /screenshot_role: screenshotRole/);
+  assert.match(uploadRoute, /marketing_use_approved: false/);
+  assert.match(uploadRoute, /approval_status: "draft"/);
+  assert.match(patchRoute, /featureIds/);
+  assert.match(patchRoute, /screenshotRole/);
+});
+
+test("Asset Vault uses signed URLs for uploads and keeps Chaos Sort eligibility approval-gated", () => {
+  const workspace = read("src/components/dashboard/admin/marketing/AssetVaultWorkspace.tsx");
+  assert.match(workspace, /src=\{asset\.signed_url\}/);
+  assert.equal(resolveAssetPreviewUrl("user/date/screenshot.png", "https://project.supabase.co/storage/v1/object/sign/marketing-assets/user/date/screenshot.png"), "https://project.supabase.co/storage/v1/object/sign/marketing-assets/user/date/screenshot.png");
+  assert.equal(resolveAssetPreviewUrl("/trading-docks-horizontal.png", "https://project.supabase.co/storage/v1/object/sign/marketing-assets/logo.png"), "/trading-docks-horizontal.png");
+  const chaosScreenshot = { id: "dashboard", name: "Chaos Sort Dashboard", asset_type: "product_screenshot", feature_ids: ["chaos-sort"], screenshot_role: "primary", approval_status: "approved", marketing_use_approved: true, archived_at: null };
+  assert.equal(selectChaosSortScreenshot([chaosScreenshot], "chaos-sort")?.id, "dashboard");
 });
