@@ -137,3 +137,12 @@ test("Autopilot is a primary admin navigation surface", () => {
   assert.match(navigation, /Marketing Overview[\s\S]*Marketing Autopilot[\s\S]*Marketing Intelligence/);
   assert.match(navigation, /\/dashboard\/admin\/marketing\/autopilot/);
 });
+
+test("Vercel preserves the Chromium runtime and existing CSP directives", () => {
+  const config = readFileSync("next.config.ts", "utf8");
+  assert.match(config, /serverExternalPackages:\s*\["@sparticuz\/chromium",\s*"puppeteer-core"\]/);
+  assert.match(config, /outputFileTracingIncludes:[\s\S]*@sparticuz\/chromium\/bin\/\*\*\/\*/);
+  assert.match(config, /script-src 'self' 'unsafe-inline' https:\/\/maps\.googleapis\.com https:\/\/maps\.gstatic\.com/);
+  assert.match(config, /img-src 'self' data: blob: https:\/\/\*\.supabase\.co/);
+  assert.match(config, /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co/);
+});

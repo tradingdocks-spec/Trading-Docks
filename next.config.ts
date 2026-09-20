@@ -16,6 +16,12 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: {
+    "/api/admin/marketing/autopilot": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/api/admin/marketing/autopilot/health": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/api/admin/marketing/intelligence/capture": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   async headers() {
     return [
       {
