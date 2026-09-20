@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     if (campaign.error || !campaign.data) return NextResponse.json({ error: "Campaign draft could not be created." }, { status: 503 });
     const brief = await admin.from("marketing_creative_briefs").insert({ campaign_id: campaign.data.id, brief: plan, created_by: actor.user.id }).select("id,status").single();
     if (brief.error) return NextResponse.json({ error: "Campaign draft was created, but its creative plan could not be saved." }, { status: 503 });
-    return NextResponse.json({ campaign: campaign.data, brief: brief.data, plan, next: "/dashboard/admin/marketing/creative-studio", publishing: "not performed", sending: "not performed" }, { status: 201 });
+    return NextResponse.json({ campaign: campaign.data, brief: brief.data, plan, links: { campaignReview: `/dashboard/admin/marketing/campaigns/${campaign.data.id}`, creativeStudio: `/dashboard/admin/marketing/creative-studio?campaign=${campaign.data.id}` }, next: `/dashboard/admin/marketing/campaigns/${campaign.data.id}`, publishing: "not performed", sending: "not performed" }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Marketing intelligence is not initialized. Apply the documented marketing foundation first." }, { status: 503 });
   }

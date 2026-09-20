@@ -11,7 +11,7 @@ export async function GET() {
   const admin = createAdminClient();
   const [features, campaigns, drafts, settings] = await Promise.all([
     admin.from("marketing_feature_library").select("id,slug,name,status,internal_description,customer_description,target_audiences,problems_solved,capabilities,approved_claims,disallowed_claims,proof_points,relevant_cta,landing_url,suggested_angles").eq("status", "active").order("name"),
-    admin.from("marketing_outbound_campaigns").select("id,name,status,audience,objective,created_at,updated_at").order("updated_at", { ascending: false }).limit(50),
+    admin.from("marketing_outbound_campaigns").select("id,name,status,audience,objective,feature_id,creative_brief,created_at,updated_at,marketing_feature_library(name)").order("updated_at", { ascending: false }).limit(50),
     admin.from("marketing_outreach_drafts").select("id,prospect_id,campaign_id,subject,status,scheduled_at,created_at").order("updated_at", { ascending: false }).limit(100),
     admin.from("marketing_settings").select("email_provider,outbound_enabled,from_name,from_email,reply_to,business_name,business_address,unsubscribe_base_url").eq("singleton_key", "default").maybeSingle(),
   ]);

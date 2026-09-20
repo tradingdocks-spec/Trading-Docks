@@ -10,14 +10,24 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const { id } = await context.params;
   const admin = createAdminClient();
-  const [campaign, placements, activities, availableCreatives] = await Promise.all([
-    admin.from("marketing_outbound_campaigns").select("id,name,status,audience,objective,cta,landing_url,created_at,updated_at,feature_id,marketing_feature_library(id,name,customer_description,approved_claims)").eq("id", id).maybeSingle(),
+  const [campaign, brief, placements, activities, availableCreatives] = await Promise.all([
+    admin.from("marketing_outbound_campaigns").select("id,name,status,audience,objective,cta,landing_url,created_at,updated_at,feature_id,creative_brief,marketing_feature_library(id,name,customer_description,approved_claims,disallowed_claims)").eq("id", id).maybeSingle(),
+    admin.from("marketing_creative_briefs").select("id,status,brief,created_at,updated_at").eq("campaign_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     admin.from("marketing_campaign_creatives").select("campaign_id,creative_id,placement,attached_by,attached_at,marketing_creatives(id,name,status,platform,variant_key,width,height,copy_payload,render_spec,quality_issues,asset_ids,created_at,marketing_assets(id,name,asset_type,approval_status,marketing_use_approved))").eq("campaign_id", id).order("placement"),
     admin.from("marketing_campaign_activities").select("id,activity_type,body,metadata,created_at").eq("campaign_id", id).order("created_at", { ascending: false }).limit(100),
     admin.from("marketing_creatives").select("id,name,status,platform,variant_key,width,height,render_spec,asset_ids,quality_issues").eq("status", "approved").order("updated_at", { ascending: false }).limit(200),
   ]);
   if (campaign.error || !campaign.data) return NextResponse.json({ error: "Campaign could not be loaded." }, { status: 404 });
-  return NextResponse.json({ campaign: campaign.data, placements: placements.data ?? [], activities: activities.data ?? [], availableCreatives: availableCreatives.data ?? [], placementOptions: CAMPAIGN_PLACEMENTS });
+  let productProof: Record<string, unknown> | null = null;
+  const proofId = brief.data?.brief && typeof brief.data.brief === "object" && brief.data.brief !== null && "productProof" in brief.data.brief && brief.data.brief.productProof && typeof brief.data.brief.productProof === "object" && "id" in brief.data.brief.productProof ? String(brief.data.brief.productProof.id) : "";
+  if (proofId) {
+    const proof = await admin.from("marketing_assets").select("id,name,asset_type,screenshot_role,source,storage_path,approval_status,marketing_use_approved,archived_at").eq("id", proofId).maybeSingle();
+    if (proof.data) {
+      const signed = proof.data.storage_path && !proof.data.storage_path.startsWith("/") ? await admin.storage.from("marketing-assets").createSignedUrl(proof.data.storage_path, 600) : null;
+      productProof = { ...proof.data, signed_url: signed?.data?.signedUrl ?? (proof.data.storage_path?.startsWith("/") ? proof.data.storage_path : null) };
+    }
+  }
+  return NextResponse.json({ campaign: campaign.data, brief: brief.data, productProof, placements: placements.data ?? [], activities: activities.data ?? [], availableCreatives: availableCreatives.data ?? [], placementOptions: CAMPAIGN_PLACEMENTS });
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -25,8 +35,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const { id } = await context.params;
   const body = await request.json().catch(() => null) as { action?: string; creativeId?: string; placement?: string } | null;
-  if (body?.action !== "attach" || !body.creativeId || !body.placement) return NextResponse.json({ error: "Creative and placement are required." }, { status: 400 });
   const admin = createAdminClient();
+  if (body?.action === "archive") {
+    const archived = await admin.from("marketing_outbound_campaigns").update({ status: "archived" }).eq("id", id).eq("status", "draft").select("id,status").maybeSingle();
+    if (archived.error || !archived.data) return NextResponse.json({ error: "Only draft campaigns can be archived." }, { status: 409 });
+    await admin.from("marketing_campaign_activities").insert({ campaign_id: id, actor_user_id: actor.user.id, activity_type: "campaign_archived", body: "Archived campaign draft.", metadata: {} });
+    return NextResponse.json({ campaign: archived.data });
+  }
+  if (body?.action !== "attach" || !body.creativeId || !body.placement) return NextResponse.json({ error: "Creative and placement are required." }, { status: 400 });
   const creative = await admin.from("marketing_creatives").select("id,status,platform,width,height").eq("id", body.creativeId).maybeSingle();
   if (creative.error || !creative.data) return NextResponse.json({ error: "Creative not found." }, { status: 404 });
   const validation = validatePlacement(body.placement, creative.data);
