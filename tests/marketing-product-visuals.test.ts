@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buildRenderSpec, CREATIVE_FORMATS, renderCreativeSvg, validateRenderSpec } from "../src/lib/marketing/creative-renderer.ts";
+import { buildRenderSpec, computeCreativeLayout, CREATIVE_FORMATS, renderCreativeSvg, validateRenderSpec } from "../src/lib/marketing/creative-renderer.ts";
 import { getMarketingDemoFixture } from "../src/lib/marketing/marketing-demo-fixtures.ts";
 
 const product = "data:image/png;base64,product-proof";
@@ -39,4 +39,13 @@ test("capture page keeps the ready marker server-rendered and removes debug fixt
   const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
   assert.match(page, /<main data-marketing-capture-ready="true"/);
   assert.doesNotMatch(page, /Synthetic record|Synthetic demo state|No customer records|Internal fixture/);
+});
+
+test("quality gate rejects deliberately bad copy and keeps transformation layers separated", () => {
+  const bad = { ...buildRenderSpec({ platform: "instagram_square", featureName: "Chaos Sort", headline: "Sort the chaos.", subheadline: "Turn unsorted cards into organized, trackable inventory.", cta: "See Chaos Sort", productAssetUrl: product, logoAssetUrl: logo, conceptDirection: "product" as const }), headline: "This headline is intentionally much too long to fit inside the assigned safe region without clipping or becoming unreadable" };
+  assert.ok(validateRenderSpec(bad).some((issue) => issue === "headline_does_not_fit" || issue === "headline_too_long"));
+  const transformation = buildRenderSpec({ platform: "instagram_portrait", composition: "before_after", featureName: "Chaos Sort", headline: "Collections do not arrive organized.", subheadline: "Move from unsorted intake to identifiable, trackable inventory.", cta: "See Chaos Sort", productAssetUrl: product, logoAssetUrl: logo, conceptDirection: "transformation" });
+  const layout = computeCreativeLayout(transformation);
+  assert.deepEqual(layout.issues, []);
+  assert.ok(layout.occupancy >= .4);
 });
