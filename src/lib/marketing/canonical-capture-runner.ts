@@ -3,11 +3,15 @@ import { buildCanonicalCaptureMetadata, type CanonicalCaptureRequest } from "./c
 import { createCanonicalCaptureToken } from "./canonical-capture-auth";
 import { CanonicalBrowserRuntimeError, resolveCanonicalBrowserRuntime } from "./canonical-capture-runtime";
 
-export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "SCREENSHOT_FAILED";
+export type CanonicalCaptureErrorCode = "BROWSER_MODULE_UNAVAILABLE" | "CHROMIUM_PACK_DOWNLOAD_FAILED" | "CHROMIUM_EXECUTABLE_UNAVAILABLE" | "CHROMIUM_EXECUTABLE_MISSING" | "BROWSER_LAUNCH_FAILED" | "CAPTURE_AUTH_REJECTED" | "CAPTURE_PAGE_TIMEOUT" | "CAPTURE_PAGE_NOT_READY" | "CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED" | "SCREENSHOT_FAILED";
 export class CanonicalCaptureError extends Error { constructor(public readonly code: CanonicalCaptureErrorCode, message: string) { super(message); this.name = "CanonicalCaptureError"; } }
 
 function safeCaptureMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "Unknown capture error.";
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "string"
+      ? error
+      : JSON.stringify(error) ?? "Unknown capture error.";
   return message
     .replace(/https?:\/\/\S+/gi, "[remote resource]")
     .replace(/capture_token=[^&\s]+/gi, "capture_token=[redacted]")
@@ -17,6 +21,20 @@ function safeCaptureMessage(error: unknown) {
 
 function logCaptureFailure(code: CanonicalCaptureErrorCode, stage: string, error?: unknown) {
   console.error("[marketing-capture]", { code, stage, message: safeCaptureMessage(error) });
+}
+
+function safePageDiagnostic(value: unknown) {
+  return String(value ?? "")
+    .replace(/https?:\/\/\S+/gi, "[remote resource]")
+    .replace(/capture_token=[^&\s]+/gi, "capture_token=[redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
+}
+
+function isDeploymentProtectionPage(finalUrl: string, bodyText: string) {
+  return /vercel\.com\/(?:login|protect|auth)/i.test(finalUrl)
+    || /(?:deployment protection|log in to vercel|sign in to vercel|authentication required|sign in is required)/i.test(bodyText);
 }
 
 export async function captureCanonicalPage(request: CanonicalCaptureRequest, options: { baseUrl: string; featureId: string; secret: string }) {
@@ -44,12 +62,36 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
       logCaptureFailure("CAPTURE_PAGE_TIMEOUT", "navigation", error);
       throw new CanonicalCaptureError("CAPTURE_PAGE_TIMEOUT", "Canonical capture page timed out.");
     }
-    if (response && response.status() >= 400) {
-      logCaptureFailure("CAPTURE_AUTH_REJECTED", "response", response.status());
-      throw new CanonicalCaptureError("CAPTURE_AUTH_REJECTED", `Canonical capture authorization failed (${response.status()}).`);
+    const responseStatus = response?.status() ?? null;
+    const finalUrl = page.url();
+    const expectedHost = new URL(baseUrl).hostname;
+    const pageDiagnostic = await page.evaluate(() => ({
+      title: document.title,
+      bodyPrefix: document.body?.innerText ?? "",
+      hasReadyMarker: Boolean(document.querySelector('[data-marketing-capture-ready="true"]')),
+      heading: document.querySelector("h1")?.textContent ?? "",
+    })).catch(() => ({ title: "", bodyPrefix: "", hasReadyMarker: false, heading: "" }));
+    const bodyText = safePageDiagnostic(pageDiagnostic.bodyPrefix);
+    if (isDeploymentProtectionPage(finalUrl, bodyText)) {
+      logCaptureFailure("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "Canonical capture was blocked by Vercel deployment protection or authentication.");
+    }
+    if (new URL(finalUrl).hostname !== expectedHost) {
+      logCaptureFailure("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "response", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), expectedHost, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError("CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED", "Canonical capture reached an unexpected host instead of the configured capture deployment.");
+    }
+    if (responseStatus !== null && responseStatus >= 400) {
+      logCaptureFailure("CAPTURE_AUTH_REJECTED", "response", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError("CAPTURE_AUTH_REJECTED", `Canonical capture authorization failed (${responseStatus}).`);
+    }
+    if (!pageDiagnostic.heading || !pageDiagnostic.heading.toLowerCase().includes(request.feature.replaceAll("-", " ").toLowerCase())) {
+      logCaptureFailure("CAPTURE_PAGE_NOT_READY", "page-content", { responseStatus, title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
     }
     await page.addStyleTag({ content: "*, *::before, *::after { animation: none !important; transition: none !important; }" });
-    await page.waitForSelector("[data-marketing-capture-ready=\"true\"]", { timeout: 15_000 }).catch(() => { throw new CanonicalCaptureError("CAPTURE_PAGE_NOT_READY", "Canonical capture page was not ready."); });
+    await page.waitForSelector("[data-marketing-capture-ready=\"true\"]", { timeout: 15_000 }).catch(() => {
+      logCaptureFailure("CAPTURE_PAGE_NOT_READY", "ready-marker", { responseStatus, finalUrl: safePageDiagnostic(finalUrl), title: safePageDiagnostic(pageDiagnostic.title), bodyPrefix: bodyText, hasReadyMarker: pageDiagnostic.hasReadyMarker });
+      throw new CanonicalCaptureError("CAPTURE_PAGE_NOT_READY", "Canonical capture page loaded but ready marker was not found.");
+    });
     await page.evaluate(async () => { await document.fonts.ready; await Promise.all(Array.from(document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener("load", () => resolve(), { once: true }); image.addEventListener("error", () => resolve(), { once: true }); }))); });
     await new Promise((resolve) => setTimeout(resolve, 250));
     const png = await page.screenshot({ type: "png", fullPage: true }).catch((error) => {

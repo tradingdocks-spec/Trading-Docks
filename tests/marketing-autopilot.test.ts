@@ -107,6 +107,34 @@ test("canonical capture uses the default browser page and closes capture resourc
   assert.match(runner, /browser\.close\(\)/);
 });
 
+test("Autopilot diagnostics expose safe health and capture controls", () => {
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
+  assert.match(workspace, /Autopilot Health/);
+  assert.match(workspace, /Refresh Health/);
+  assert.match(workspace, /Run Browser Test/);
+  assert.match(workspace, /Run Capture Test/);
+  assert.match(workspace, /autopilot\/health/);
+  assert.match(workspace, /browser_test/);
+  assert.match(workspace, /capture_test/);
+  assert.doesNotMatch(workspace, /MARKETING_CAPTURE_SECRET|SUPABASE_SERVICE_ROLE_KEY|capture_token/);
+  assert.match(health, /body\?\.action === "browser_test"/);
+  assert.match(health, /body\?\.action === "capture_test"/);
+});
+
+test("canonical capture keeps a server-rendered ready marker and safe page diagnostics", () => {
+  const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  assert.match(page, /<main data-marketing-capture-ready="true"/);
+  assert.match(runner, /document\.querySelector/);
+  assert.match(runner, /data-marketing-capture-ready=.*true/);
+  assert.match(runner, /CAPTURE_DEPLOYMENT_PROTECTION_BLOCKED/);
+  assert.match(runner, /ready marker was not found/);
+  assert.match(runner, /document\.title/);
+  assert.match(runner, /bodyPrefix/);
+  assert.doesNotMatch(runner, /console\.log\(.*capture_token/);
+});
+
 test("Autopilot renders and exports real PNG variants only after proof is loaded", () => {
   const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
   const rendering = readFileSync("src/lib/marketing/marketing-autopilot-rendering.ts", "utf8");
