@@ -12,7 +12,7 @@ const INPUT_VALUES = {
   channels: ["instagram", "email", "facebook", "website"],
 } as const;
 
-async function loadContext() {
+export async function loadMarketingIntelligenceContext() {
   const admin = createAdminClient();
   const [featuresResult, assetsResult, campaignsResult, goldResult] = await Promise.all([
     admin.from("marketing_feature_library").select("id,slug,name,target_audiences,problems_solved,capabilities,approved_claims,disallowed_claims,landing_url").eq("status", "active"),
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as Partial<IntelligenceInput> & { action?: string; featureSlug?: string } | null;
   const input: IntelligenceInput = { audience: typeof body?.audience === "string" && INPUT_VALUES.audiences.includes(body.audience as typeof INPUT_VALUES.audiences[number]) ? body.audience : "local_game_store", objective: typeof body?.objective === "string" && INPUT_VALUES.objectives.includes(body.objective as typeof INPUT_VALUES.objectives[number]) ? body.objective : "awareness", channel: typeof body?.channel === "string" && INPUT_VALUES.channels.includes(body.channel as typeof INPUT_VALUES.channels[number]) ? body.channel : "instagram" };
   try {
-    const context = await loadContext();
+    const context = await loadMarketingIntelligenceContext();
     const opportunities = rankMarketingOpportunities(context.features, context.proofs, context.campaigns, context.goldStandards, input);
     if (body?.action !== "build_campaign") return NextResponse.json({ input, opportunities, dataSource: "Approved product metadata + synthetic demo state", autonomousActions: [] });
     const chosen = opportunities.find((item) => item.feature.slug === body.featureSlug) ?? opportunities[0];
