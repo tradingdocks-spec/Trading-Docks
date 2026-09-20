@@ -41,8 +41,8 @@ async function captureMissingProof(featureSlug: string): Promise<{ proof: Intell
     registerCanonicalCapture = registrationModule.registerCanonicalCapture;
     resolveCanonicalFeatureId = registrationModule.resolveCanonicalFeatureId;
     validateCanonicalCaptureRequest = requestModule.validateCanonicalCaptureRequest;
-  } catch {
-    throw new Error("Canonical product capture is unavailable in this deployment environment.");
+  } catch (error) {
+    throw new Error(`BROWSER_MODULE_UNAVAILABLE: ${error instanceof Error ? error.message : "Browser capture modules could not be loaded."}`);
   }
 
   const feature = registryFeatureFor(featureSlug);
@@ -79,7 +79,11 @@ async function captureMissingProof(featureSlug: string): Promise<{ proof: Intell
   }
 
   if (!captured) {
-    throw new Error(captureError instanceof Error && captureError.message === "Canonical capture page timed out." ? captureError.message : "Canonical product capture is unavailable in this deployment environment.");
+    if (captureError instanceof Error) {
+      const code = typeof (captureError as unknown as { code?: unknown }).code === "string" ? (captureError as unknown as { code: string }).code : "CAPTURE_FAILED";
+      throw new Error(`${code}: ${captureError.message}`);
+    }
+    throw new Error("CAPTURE_FAILED: Canonical product capture did not return an image.");
   }
 
   const asset = await registerCanonicalCapture(captured.metadata, Buffer.from(captured.png));

@@ -52,7 +52,8 @@ test("Autopilot resolves missing product proof before persisting a campaign", ()
   assert.match(route, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
   assert.match(route, /role: "primary"/);
   assert.match(route, /status: "captured"/);
-  assert.match(route, /Canonical product capture is unavailable in this deployment environment/);
+  assert.match(route, /BROWSER_MODULE_UNAVAILABLE/);
+  assert.match(route, /CAPTURE_FAILED/);
   assert.match(route, /source: "canonical_product_capture"/);
   assert.match(route, /assetId: asset\.id/);
   assert.match(route, /creativeStudio:/);
@@ -84,12 +85,16 @@ test("Autopilot GET stays lightweight and capture modules are lazy", () => {
 test("production capture uses the signed route, ready marker, and pinned Chromium runtime", () => {
   const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
   const runtime = readFileSync("src/lib/marketing/canonical-capture-runtime.ts", "utf8");
+  const packageJson = readFileSync("package.json", "utf8");
   const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
   assert.match(runner, /capture_token=/);
   assert.match(runner, /data-marketing-capture-ready/);
   assert.match(runner, /document\.fonts\.ready/);
   assert.doesNotMatch(runner, /storageState/);
-  assert.match(runtime, /chromium-v153\.0\.0-pack\.x64\.tar/);
+  assert.match(runtime, /@sparticuz\/chromium/);
+  assert.match(packageJson, /"@sparticuz\/chromium": "153\.0\.0"/);
+  assert.match(packageJson, /"node": "24\.x"/);
+  assert.match(runtime, /runCanonicalBrowserSelfTest/);
   assert.match(page, /data-marketing-capture-ready="true"/);
 });
 
@@ -109,9 +114,17 @@ test("Autopilot renders and exports real PNG variants only after proof is loaded
 test("Autopilot health is admin-only and does not expose capture secrets", () => {
   const health = readFileSync("src/app/api/admin/marketing/autopilot/health/route.ts", "utf8");
   assert.match(health, /requireServerPlatformRole\("admin"\)/);
-  assert.match(health, /signedAuth/);
+  assert.match(health, /nodeRuntime/);
+  assert.match(health, /browserModules/);
+  assert.match(health, /executablePathExists/);
+  assert.match(health, /browserLaunch/);
+  assert.match(health, /captureRoute/);
+  assert.match(health, /storage/);
+  assert.match(health, /renderer/);
+  assert.match(health, /browser_test/);
+  assert.match(health, /capture_test/);
   assert.doesNotMatch(health, /MARKETING_CAPTURE_SECRET[^\n]*value/);
-  assert.match(health, /resolveCanonicalBrowserRuntime/);
+  assert.match(health, /runCanonicalBrowserSelfTest/);
 });
 
 test("Autopilot capture accepts only registered synthetic feature states", () => {

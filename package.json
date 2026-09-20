@@ -2,6 +2,9 @@
   "name": "trading-docks",
   "version": "0.88.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
@@ -16,7 +19,7 @@
     "validate": "npm run check && npm run build"
   },
   "dependencies": {
-    "@sparticuz/chromium-min": "^153.0.0",
+    "@sparticuz/chromium": "153.0.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
     "@types/qrcode": "^1.5.6",
