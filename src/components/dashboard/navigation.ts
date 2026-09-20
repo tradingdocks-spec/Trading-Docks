@@ -396,6 +396,7 @@ const ADMIN_NAV: NavigationItem[] = [
   { href: "/dashboard/admin", label: "Command Center", icon: ShieldCheck },
   { href: "/dashboard/admin/catalog/tcgplayer", label: "TCGplayer Catalog", icon: DatabaseZap },
   { href: "/dashboard/admin/marketing", label: "Marketing Overview", icon: Megaphone },
+  { href: "/dashboard/admin/marketing/intelligence", label: "Marketing Intelligence", icon: BrainCircuit },
   { href: "/dashboard/admin/marketing/store-finder", label: "Store Finder", icon: MapPinned },
   { href: "/dashboard/admin/marketing/prospects", label: "Prospects", icon: Users },
   { href: "/dashboard/admin/marketing/campaigns", label: "Campaigns", icon: Mail },

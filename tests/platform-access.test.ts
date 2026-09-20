@@ -516,6 +516,11 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
   assert.ok(ownerLabels.includes("Command Center"));
   assert.equal(ownerHrefs.includes("/dashboard/deck-architect"), false);
   assert.equal(adminHrefs.includes("/dashboard/deck-architect"), false);
+  assert.ok(adminHrefs.includes("/dashboard/admin/marketing/intelligence"));
+  assert.equal(freeHrefs.includes("/dashboard/admin/marketing/intelligence"), false);
+  assert.equal(collectorHrefs.includes("/dashboard/admin/marketing/intelligence"), false);
+  assert.equal(sellerHrefs.includes("/dashboard/admin/marketing/intelligence"), false);
+  assert.equal(storeHrefs.includes("/dashboard/admin/marketing/intelligence"), false);
 
   assert.equal(sellerHrefs.includes("/dashboard/mission-control-preview"), false);
   assert.equal(ownerHrefs.includes("/dashboard/mission-control-preview"), false);
