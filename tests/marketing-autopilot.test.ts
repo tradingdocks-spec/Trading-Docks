@@ -43,3 +43,33 @@ test("Autopilot is a primary admin navigation surface", () => {
   assert.match(navigation, /Marketing Overview[\s\S]*Marketing Autopilot[\s\S]*Marketing Intelligence/);
   assert.match(navigation, /\/dashboard\/admin\/marketing\/autopilot/);
 });
+
+
+test("Autopilot automatically resolves missing product proof before persistence", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  assert.match(route, /captureMissingProof/);
+  assert.match(route, /captureCanonicalPage/);
+  assert.match(route, /registerCanonicalCapture/);
+  assert.match(route, /existing_approved_proof_selected/);
+  assert.match(route, /status: "captured"/);
+  assert.match(route, /MARKETING_CAPTURE_BASE_URL/);
+  assert.match(route, /Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation/);
+  assert.ok(route.indexOf("captureMissingProof") < route.indexOf("marketing_outbound_campaigns"));
+});
+
+test("Autopilot canonical capture remains registry-bound and synthetic-only", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const canonical = readFileSync("src/lib/marketing/canonical-capture.ts", "utf8");
+  assert.match(route, /registryFeatureFor/);
+  assert.match(route, /validateCanonicalCaptureRequest/);
+  assert.match(canonical, /getMarketingDemoFixture/);
+  assert.doesNotMatch(route, /inventory_items|customers|payments|marketing_prospects/);
+});
+
+test("Autopilot retries canonical capture once and reports automatic proof in UI", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  assert.match(route, /attempt < 2/);
+  assert.match(route, /Canonical product capture failed/);
+  assert.match(workspace, /Product proof created automatically/);
+});
