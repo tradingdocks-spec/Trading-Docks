@@ -50,6 +50,7 @@ test("Autopilot resolves missing product proof before persisting a campaign", ()
   assert.match(route, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
   assert.match(route, /role: "primary"/);
   assert.match(route, /status: "captured"/);
+  assert.match(route, /Canonical product capture is unavailable in this deployment environment/);
   assert.match(route, /productProof: \{ id: asset\.id, name: asset\.name, role: "primary", source: "canonical_product_capture" \}/);
   assert.match(route, /assetId: asset\.id/);
   assert.match(route, /creativeStudio:/);
@@ -57,6 +58,24 @@ test("Autopilot resolves missing product proof before persisting a campaign", ()
   assert.match(route, /status: "existing_approved_proof_selected"/);
   assert.doesNotMatch(route, /required_before_export/);
   assert.ok(route.indexOf("captureCanonicalPage") < route.indexOf("marketing_outbound_campaigns"));
+  assert.ok(route.indexOf("Canonical product capture is unavailable") < route.indexOf("marketing_outbound_campaigns"));
+});
+
+test("Autopilot GET stays lightweight and capture modules are lazy", () => {
+  const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
+  const workspace = readFileSync("src/components/dashboard/admin/marketing/MarketingAutopilotWorkspace.tsx", "utf8");
+  assert.doesNotMatch(route, /^import .*canonical-capture-(runner|registration)/m);
+  assert.doesNotMatch(route, /^import .*canonical-capture["']/m);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture-runner"\)/);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture-registration"\)/);
+  assert.match(route, /import\("@\/lib\/marketing\/canonical-capture"\)/);
+  assert.match(route, /return NextResponse\.json\(\{ audiences, objectives, channels, pipeline:/);
+  assert.ok(route.indexOf("return NextResponse.json({ audiences") < route.indexOf("import(\"@/lib/marketing/canonical-capture-runner\")"));
+  assert.match(workspace, /useState\("local_game_store"\)/);
+  assert.match(workspace, /useState\("awareness"\)/);
+  assert.match(workspace, /useState\("instagram"\)/);
+  assert.match(workspace, /Using the default campaign options/);
+  assert.doesNotMatch(workspace, /Marketing Autopilot could not be loaded/);
 });
 
 test("Autopilot capture accepts only registered synthetic feature states", () => {

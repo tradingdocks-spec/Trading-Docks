@@ -3,9 +3,6 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMarketingAutopilotPackage } from "@/lib/marketing/marketing-autopilot";
 import { loadMarketingIntelligenceContext } from "@/app/api/admin/marketing/intelligence/route";
-import { validateCanonicalCaptureRequest } from "@/lib/marketing/canonical-capture";
-import { captureCanonicalPage } from "@/lib/marketing/canonical-capture-runner";
-import { registerCanonicalCapture, resolveCanonicalFeatureId } from "@/lib/marketing/canonical-capture-registration";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +35,23 @@ export async function POST(request: Request) {
       if (!baseUrl) {
         return NextResponse.json({ error: "Marketing capture is not configured. Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation." }, { status: 503 });
       }
+      let validateCanonicalCaptureRequest: typeof import("@/lib/marketing/canonical-capture").validateCanonicalCaptureRequest;
+      let captureCanonicalPage: typeof import("@/lib/marketing/canonical-capture-runner").captureCanonicalPage;
+      let registerCanonicalCapture: typeof import("@/lib/marketing/canonical-capture-registration").registerCanonicalCapture;
+      let resolveCanonicalFeatureId: typeof import("@/lib/marketing/canonical-capture-registration").resolveCanonicalFeatureId;
+      try {
+        const [captureModule, registrationModule, requestModule] = await Promise.all([
+          import("@/lib/marketing/canonical-capture-runner"),
+          import("@/lib/marketing/canonical-capture-registration"),
+          import("@/lib/marketing/canonical-capture"),
+        ]);
+        captureCanonicalPage = captureModule.captureCanonicalPage;
+        registerCanonicalCapture = registrationModule.registerCanonicalCapture;
+        resolveCanonicalFeatureId = registrationModule.resolveCanonicalFeatureId;
+        validateCanonicalCaptureRequest = requestModule.validateCanonicalCaptureRequest;
+      } catch {
+        return NextResponse.json({ error: "Canonical product capture is unavailable in this deployment environment." }, { status: 503 });
+      }
       const state = packageData.feature.recommendedCaptureStates.find((item) => item.id === "primary") ?? packageData.feature.recommendedCaptureStates[0];
       if (!state) return NextResponse.json({ error: "No canonical product capture state is configured for this feature." }, { status: 503 });
       const request = validateCanonicalCaptureRequest({ feature: packageData.feature.slug, state: state.id, viewport: "desktop", role: "primary" });
@@ -45,18 +59,14 @@ export async function POST(request: Request) {
       if (!featureId) return NextResponse.json({ error: "The canonical capture feature is not initialized." }, { status: 503 });
 
       let captured: Awaited<ReturnType<typeof captureCanonicalPage>> | null = null;
-      let lastError: unknown;
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
           captured = await captureCanonicalPage(request, { baseUrl, featureId, storageState: process.env.MARKETING_CAPTURE_STORAGE_STATE });
           break;
-        } catch (error) {
-          lastError = error;
-        }
+        } catch { /* Retry once without exposing browser/runtime details. */ }
       }
       if (!captured) {
-        void lastError;
-        return NextResponse.json({ error: "Canonical product capture failed after one retry. No campaign was created." }, { status: 503 });
+        return NextResponse.json({ error: "Canonical product capture is unavailable in this deployment environment. No campaign was created." }, { status: 503 });
       }
       try {
         const asset = await registerCanonicalCapture(captured.metadata, captured.png);
