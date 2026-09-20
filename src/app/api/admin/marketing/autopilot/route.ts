@@ -3,9 +3,6 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMarketingAutopilotPackage } from "@/lib/marketing/marketing-autopilot";
 import { loadMarketingIntelligenceContext } from "@/app/api/admin/marketing/intelligence/route";
-import { captureCanonicalPage } from "@/lib/marketing/canonical-capture-runner";
-import { registerCanonicalCapture, resolveCanonicalFeatureId } from "@/lib/marketing/canonical-capture-registration";
-import { validateCanonicalCaptureRequest } from "@/lib/marketing/canonical-capture";
 import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
 import type { IntelligenceProof } from "@/lib/marketing/marketing-intelligence";
 
@@ -24,6 +21,24 @@ export async function GET() {
 async function captureMissingProof(featureSlug: string): Promise<{ proof: IntelligenceProof; assetId: string; assetName: string; role: string }> {
   const baseUrl = process.env.MARKETING_CAPTURE_BASE_URL;
   if (!baseUrl) throw new Error("Marketing capture is not configured. Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation.");
+
+  let captureCanonicalPage: typeof import("@/lib/marketing/canonical-capture-runner").captureCanonicalPage;
+  let registerCanonicalCapture: typeof import("@/lib/marketing/canonical-capture-registration").registerCanonicalCapture;
+  let resolveCanonicalFeatureId: typeof import("@/lib/marketing/canonical-capture-registration").resolveCanonicalFeatureId;
+  let validateCanonicalCaptureRequest: typeof import("@/lib/marketing/canonical-capture").validateCanonicalCaptureRequest;
+  try {
+    const [captureModule, registrationModule, requestModule] = await Promise.all([
+      import("@/lib/marketing/canonical-capture-runner"),
+      import("@/lib/marketing/canonical-capture-registration"),
+      import("@/lib/marketing/canonical-capture"),
+    ]);
+    captureCanonicalPage = captureModule.captureCanonicalPage;
+    registerCanonicalCapture = registrationModule.registerCanonicalCapture;
+    resolveCanonicalFeatureId = registrationModule.resolveCanonicalFeatureId;
+    validateCanonicalCaptureRequest = requestModule.validateCanonicalCaptureRequest;
+  } catch {
+    throw new Error("Canonical product capture is unavailable in this deployment environment.");
+  }
 
   const feature = registryFeatureFor(featureSlug);
   if (!feature) throw new Error("Selected feature is not available for canonical marketing capture.");
