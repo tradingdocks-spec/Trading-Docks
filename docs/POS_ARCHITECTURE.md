@@ -1,9 +1,10 @@
 # Trading Docks POS architecture
 
-Status: Partially Implemented. Accepted architecture with Phase 1 cash POS and Phase 2 barcode/label source implementation, 2026-09-20. Phase 3 onward remains Planned. Hosted rollout Requires Production Configuration and staging acceptance.
-Audited source: `121297b`; working branch: `codex/pos-foundation`.
+Status: Partially Implemented. Phases 1–3 are implemented in development source. Phase 4 onward remains Planned. Hosted rollout Requires Production Configuration and separate staging/hardware acceptance. Working branch: `codex/pos-foundation`.
 
-Phase 3 pre-schema audit (2026-09-20): implementation remains Planned and is stopped for the explicit ownership architecture review. Shared employee checkout requires a separately approved extension to the canonical owner-only mutation model; workspace manager membership currently does not grant that authority. See [register operations audit and proposed delegation](POS_REGISTER_OPERATIONS.md) and [Phase 3 audit validation](POS_PHASE3_VALIDATION.md). No Phase 3 schema or runtime changes have been made.
+Phase 3's owner-controlled delegation extension was explicitly approved on 2026-09-20. **Inventory ownership remains canonical and unchanged. POS employee access is granted through explicit, owner-controlled, revocable, location-scoped operational delegation.** Workspace membership or manager status alone never authorizes selling another owner's inventory. Actual employee identity remains the authenticated actor; the stock owner's identity remains on inventory, positions, batches, costs and events.
+
+Register operations, cash reconciliation, partial refunds, intent-bound independent manager approvals, pricing controls, immutable receipt reprinting and operational reporting are implemented. See [register operations](POS_REGISTER_OPERATIONS.md) for the authoritative Phase 3 contract and [validation](POS_PHASE3_VALIDATION.md) for evidence and limits. The older design sections below are historical proposals where they conflict with these implementation reports.
 
 Phase 2 extends the canonical Label Studio identity with exact position and storage bindings, protected external aliases, authoritative scan precedence and immutable deleted-code history. Cart/checkout lines preserve separate positions of the same item and per-line allocation provenance. Label Studio now uses real Code 128 and isolated physical roll/sheet output. Legacy codes remain supported; current price, owner boundaries, stock locks and retry semantics remain authoritative. See [Label and barcode architecture](LABEL_AND_BARCODE_ARCHITECTURE.md) and [Phase 2 validation](POS_PHASE2_VALIDATION.md). Neither phase is approved for production rollout.
 
