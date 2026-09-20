@@ -1,622 +1,977 @@
 "use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import QRCode from "qrcode";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
-  Archive,
-  Check,
-  Layers3,
-  Printer,
-  QrCode,
-  RefreshCw,
-  Save,
-  Tags,
-} from "lucide-react";
-
-import {
-  LABEL_CATEGORIES,
   LABEL_SIZE_PRESETS,
-  createDefaultLabelTemplate,
-  labelSizePreset,
-  paginateLabels,
-  renderLabel,
   type LabelTemplate,
-  type LabelCategory,
 } from "@/lib/label-studio/label-templates";
-import type { LabelStudioItem, LabelStudioPriceReviewRow } from "@/lib/label-studio/persistence";
 import {
-  clearInventorySelection,
-  selectAllInventoryItems,
-  summarizeInventorySelection,
-  toggleInventorySelection,
-  uniqueSelection,
-} from "@/lib/label-studio/selection";
-
-type LabelStudioPayload = {
+  DEFAULT_PRINT_SETTINGS,
+  PRINT_FIELDS,
+  type LabelTarget,
+  type PrintQueueEntry,
+} from "@/lib/label-studio/print-settings";
+import { retailPresets } from "@/lib/label-studio/retail-presets";
+import type { LabelStudioPriceReviewRow } from "@/lib/label-studio/persistence";
+import "./label-studio.css";
+type Payload = {
   workspaceId: string;
-  source: string;
-  mode: string;
-  contextSelection: string[];
   templates: LabelTemplate[];
-  items: LabelStudioItem[];
   priceReviews: LabelStudioPriceReviewRow[];
   capabilities: {
-    canManageTemplates: boolean;
     canPrint: boolean;
+    canManageTemplates: boolean;
     canReprice: boolean;
   };
-  environment: {
-    supabaseHost: string | null;
-    stagingUnverified: boolean;
-  };
 };
-
-type Status = { tone: "idle" | "success" | "error"; message: string };
-
+async function request<T>(url: string, body?: unknown): Promise<T> {
+  const r = await fetch(
+    url,
+    body
+      ? {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : { cache: "no-store" },
+  );
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error ?? "Label request failed.");
+  return data;
+}
 export function LabelStudioWorkspace() {
-  const [payload, setPayload] = useState<LabelStudioPayload | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [draft, setDraft] = useState<LabelTemplate | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [printing, setPrinting] = useState(false);
-  const [status, setStatus] = useState<Status>({ tone: "idle", message: "Loading staging Label Studio." });
-  const initializedSelectionKey = useRef<string | null>(null);
-
-  const searchParams = typeof window !== "undefined" ? window.location.search : "";
-
+  const [payload, setPayload] = useState<Payload | null>(null),
+    [templates, setTemplates] = useState<LabelTemplate[]>([]);
+  const [draft, setDraft] = useState<LabelTemplate | null>(null),
+    [items, setItems] = useState<LabelTarget[]>([]);
+  const [queue, setQueue] = useState<PrintQueueEntry[]>([]),
+    [query, setQuery] = useState("");
+  const [message, setMessage] = useState("Loading Label Studio…"),
+    [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(""),
+    [zoom, setZoom] = useState(2),
+    [source, setSource] = useState("manual");
+  const [alias, setAlias] = useState(""),
+    [aliasTarget, setAliasTarget] = useState("");
+  const printWindow = useRef<Window | null>(null),
+    inFlight = useRef(false);
   useEffect(() => {
-    void load();
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!payload) return;
-    const nextTemplate = payload.templates.find((template) => template.id === selectedTemplateId) ?? payload.templates[0];
-    if (!nextTemplate) return;
-    setSelectedTemplateId(nextTemplate.id);
-    setDraft(structuredClone(nextTemplate));
-  }, [payload, selectedTemplateId]);
-
-  useEffect(() => {
-    if (!payload) return;
-    const selectionKey = `${payload.workspaceId}:${payload.source}:${payload.mode}:${payload.items.map((item) => item.id).join(",")}`;
-    if (initializedSelectionKey.current === selectionKey) return;
-    initializedSelectionKey.current = selectionKey;
-    setSelectedIds(selectAllInventoryItems(payload.items));
-  }, [payload]);
-
-  const selectedItems = useMemo(
-    () => {
-      const selected = new Set(selectedIds);
-      return (payload?.items ?? []).filter((item) => selected.has(item.id));
-    },
-    [payload?.items, selectedIds],
-  );
-  const renderItems = useMemo(
-    () => selectedItems,
-    [selectedItems],
-  );
-  const selectionSummary = useMemo(
-    () => summarizeInventorySelection(payload?.items ?? [], selectedIds),
-    [payload?.items, selectedIds],
-  );
-  const labels = useMemo(
-    () => draft ? renderItems.map((item) => renderLabel(draft, item)) : [],
-    [draft, renderItems],
-  );
-  const pages = useMemo(() => paginateLabels(labels, labelsPerPage(draft)), [draft, labels]);
-
-  async function load() {
-    setLoading(true);
-    const response = await fetch(`/api/label-studio${window.location.search}`, { cache: "no-store" });
-    const data = await response.json().catch(() => null) as LabelStudioPayload | { error?: string } | null;
-    if (!response.ok || !isLabelStudioPayload(data)) {
-      setStatus({ tone: "error", message: data && "error" in data ? data.error ?? "Label Studio could not load staging data." : "Label Studio could not load staging data." });
-      setLoading(false);
+    let active = true;
+    const params = new URLSearchParams(window.location.search);
+    let selected: string[] | null = null;
+    try {
+      const token = params.get("selection");
+      if (token) {
+        const parsed = JSON.parse(
+          sessionStorage.getItem(`td.label.selection.${token}`) ?? "null",
+        );
+        if (
+          !Array.isArray(parsed) ||
+          !parsed.length ||
+          parsed.length > 500 ||
+          parsed.some((id) => typeof id !== "string")
+        )
+          throw new Error(
+            "The selected inventory could not be restored. Return to Inventory and select it again.",
+          );
+        selected = parsed;
+      }
+    } catch (error) {
+      queueMicrotask(() =>
+        setMessage(
+          error instanceof Error ? error.message : "Selection unavailable.",
+        ),
+      );
       return;
     }
-    setPayload(data);
-    setStatus({
-      tone: "success",
-      message: data.environment.supabaseHost
-        ? `Connected through ${data.environment.supabaseHost}. Confirm this is staging before printing.`
-        : "Supabase host is not visible. Confirm staging configuration before printing.",
-    });
-    setLoading(false);
+    void Promise.all([
+      request<Payload>("/api/label-studio"),
+      selected
+        ? request<LabelTarget[]>("/api/label-studio/targets", { ids: selected })
+        : request<LabelTarget[]>(`/api/label-studio/targets?${params}`),
+    ])
+      .then(([data, targets]) => {
+        if (!active) return;
+        const all = [
+          ...retailPresets(data.workspaceId),
+          ...data.templates.filter((t) => !t.id.startsWith("local-")),
+        ];
+        setPayload(data);
+        setTemplates(all);
+        setDraft(all.find((t) => t.isDefault) ?? all[0]);
+        setItems(targets);
+        setSource(params.get("source") ?? "manual");
+        setAlias(params.get("barcode") ?? "");
+        if (selected || params.has("ids") || params.has("batchId"))
+          setQueue(targets.map((target) => ({ target, copies: 1 })));
+        setMessage("Choose inventory, confirm the preview, then print.");
+      })
+      .catch((error) => {
+        if (active) setMessage(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const firstKey = queue[0]?.target.key;
+  useEffect(() => {
+    if (!draft || !firstKey) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void fetch("/api/label-studio/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          template: draft,
+          queue: [{ key: firstKey, copies: 1 }],
+          preview: true,
+        }),
+      })
+        .then(async (r) => {
+          if (!r.ok) throw new Error((await r.json()).error);
+          return r.text();
+        })
+        .then(setPreview)
+        .catch((error) => {
+          if (error.name !== "AbortError") {
+            setPreview("");
+            setMessage(error.message);
+          }
+        });
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [draft, firstKey]);
+  const count = queue.reduce((n, row) => n + row.copies, 0),
+    settings = draft?.print ?? DEFAULT_PRINT_SETTINGS;
+  const system = draft?.id.startsWith("system-");
+  function edit(patch: Partial<LabelTemplate>) {
+    if (draft) setDraft({ ...draft, ...patch });
   }
-
-  async function saveTemplate() {
+  function printEdit(patch: Partial<typeof settings>) {
+    edit({ print: { ...settings, ...patch } });
+  }
+  async function act(fn: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await fn();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Request failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  function add(target: LabelTarget) {
+    setQueue((rows) =>
+      rows.some((row) => row.target.key === target.key)
+        ? rows
+        : [...rows, { target, copies: 1 }],
+    );
+  }
+  async function refresh() {
+    await act(async () => {
+      const targets = await request<LabelTarget[]>(
+        "/api/label-studio/targets",
+        { ids: queue.map((row) => row.target.key) },
+      );
+      setQueue((rows) =>
+        rows.map((row) => ({
+          ...row,
+          target: targets.find((t) => t.key === row.target.key) ?? row.target,
+        })),
+      );
+      setMessage(
+        "Current prices and identities refreshed. Missing stock is checked again before printing.",
+      );
+    });
+  }
+  async function print(test = false) {
+    if (!draft || inFlight.current) return;
+    if (printWindow.current && !printWindow.current.closed) {
+      printWindow.current.focus();
+      setMessage(
+        "Close the existing print window before preparing another job.",
+      );
+      return;
+    }
+    if (
+      !test &&
+      count > 500 &&
+      !window.confirm(`You are about to print ${count} labels. Continue?`)
+    )
+      return;
+    inFlight.current = true;
+    const popup = window.open("", "td-label-print", "width=850,height=750");
+    printWindow.current = popup;
+    if (!popup) {
+      inFlight.current = false;
+      setMessage("Allow the print window in your browser and retry.");
+      return;
+    }
+    popup.document.body.textContent = "Preparing labels…";
+    await act(async () => {
+      try {
+        const r = await fetch("/api/label-studio/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            template: draft,
+            queue: queue.map((row) => ({
+              key: row.target.key,
+              copies: row.copies,
+            })),
+            source,
+            test,
+          }),
+        });
+        if (!r.ok) throw new Error((await r.json()).error);
+        const html = await r.text();
+        popup.document.open();
+        popup.document.write(html);
+        popup.document.close();
+        setMessage(
+          "Prepared. Use Print in the isolated window; verify media and 100% scale.",
+        );
+      } catch (error) {
+        popup.close();
+        throw error;
+      } finally {
+        inFlight.current = false;
+      }
+    });
+  }
+  function duplicate() {
     if (!draft) return;
-    setSaving(true);
-    const response = await post({ action: "save-template", template: draft });
-    setSaving(false);
-    if (!response.ok) return;
-    const template = response.data.template as LabelTemplate;
-    setPayload((current) => current ? {
-      ...current,
-      templates: [template, ...current.templates.filter((item) => item.id !== template.id)],
-    } : current);
-    setSelectedTemplateId(template.id);
-    setStatus({ tone: "success", message: "Template saved to staging label_templates." });
+    const next = {
+      ...structuredClone(draft),
+      id: `local-${crypto.randomUUID()}`,
+      name: `${draft.name} copy`,
+      isDefault: false,
+    };
+    setTemplates((all) => [...all, next]);
+    setDraft(next);
   }
-
-  async function archiveTemplate() {
-    if (!draft || draft.id.startsWith("local-")) return;
-    setSaving(true);
-    const response = await post({ action: "archive-template", templateId: draft.id });
-    setSaving(false);
-    if (!response.ok) return;
-    setPayload((current) => current ? {
-      ...current,
-      templates: current.templates.filter((item) => item.id !== draft.id),
-    } : current);
-    setSelectedTemplateId("");
-    setStatus({ tone: "success", message: "Template archived in staging." });
-  }
-
-  async function resolveIdentities() {
-    const ids = renderItems.map((item) => item.id);
-    if (!ids.length) {
-      setStatus({ tone: "error", message: "Select inventory before resolving labels." });
-      return;
-    }
-    const response = await post({ action: "resolve-identities", inventoryItemIds: ids });
-    if (!response.ok) return;
-    const items = response.data.items as LabelStudioItem[];
-    setPayload((current) => current ? {
-      ...current,
-      items: current.items.map((item) => items.find((next) => next.id === item.id) ?? item),
-    } : current);
-    setStatus({ tone: "success", message: "Real SKU and QR identities resolved from staging." });
-  }
-
-  async function printLabels() {
-    if (!draft || !payload?.capabilities.canPrint) return;
-    if (!renderItems.length) {
-      setStatus({ tone: "error", message: "Select inventory before printing labels." });
-      return;
-    }
-    if (renderItems.some((item) => !item.identity)) {
-      await resolveIdentities();
-      setTimeout(() => void printLabels(), 250);
-      return;
-    }
-    setPrinting(true);
-    const response = await post({
-      action: "record-print-job",
-      templateId: draft.id,
-      templateName: draft.name,
-      source: payload.source,
-      mode: payload.mode,
-      selectedIds: uniqueSelection(selectedIds),
-      labelCount: labels.length,
-      pageCount: pages.length,
-    });
-    setPrinting(false);
-    if (!response.ok) return;
-    setStatus({ tone: "success", message: `Print job ${response.data.printJobId} recorded. Opening browser print.` });
-    window.setTimeout(() => window.print(), 100);
-  }
-
-  async function reviewPrice(reviewId: string, decision: "approve" | "dismiss") {
-    const response = await post({ action: "review-price", reviewId, decision });
-    if (!response.ok) return;
-    setPayload((current) => current ? {
-      ...current,
-      priceReviews: current.priceReviews.filter((review) => review.id !== reviewId),
-    } : current);
-    setStatus({ tone: "success", message: decision === "approve" ? "Price update applied after explicit approval." : "Repricing suggestion dismissed." });
-  }
-
-  async function post(body: Record<string, unknown>) {
-    const response = await fetch("/api/label-studio", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({})) as Record<string, unknown>;
-    if (!response.ok) {
-      setStatus({ tone: "error", message: typeof data.error === "string" ? data.error : "Label Studio action failed." });
-      return { ok: false as const, data };
-    }
-    return { ok: true as const, data };
-  }
-
+  const sizeFactor = draft?.unit === "in" ? 96 : 96 / 25.4;
+  const shortSide =
+      Math.min(draft?.width ?? 2, draft?.height ?? 1) * sizeFactor,
+    longSide = Math.max(draft?.width ?? 2, draft?.height ?? 1) * sizeFactor;
   return (
-    <section className="space-y-6 text-td-primary">
-      <style>{printCss(draft)}</style>
-      <header className="rounded-[2rem] border border-td-accent/[0.13] bg-td-surface px-6 py-6 text-td-primary shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.28*var(--td-shadow-strength)))]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-td-accent-text">Operations</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">Label Studio</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-td-secondary">
-              Staging-backed labels for singles, sealed products, card shows, QR labels, barcode labels,
-              bulk printing, repricing review, and future POS reprints.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-td-warning/20 bg-td-warning/[0.07] px-4 py-3 text-xs text-td-warning">
-            Staging safety: {payload?.environment.supabaseHost ?? "host unavailable"}
-          </div>
+    <section className="label-studio">
+      <header>
+        <div>
+          <p className="label-eyebrow">INVENTORY OPERATIONS</p>
+          <h1>Label Studio</h1>
+          <p>Durable identities. Current prices. Exact inventory positions.</p>
         </div>
+        <nav>
+          <Link href="/dashboard/pos">POS register</Link>
+          <Link href="/dashboard/pos/hardware">Scanner & printer test</Link>
+        </nav>
       </header>
-
-      <StatusBanner status={status} loading={loading} />
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.82fr)_minmax(360px,1.18fr)_minmax(300px,0.92fr)]">
-        <aside className="space-y-4">
-          <Panel title="Templates" icon={Tags}>
-            <div className="space-y-2">
-              {(payload?.templates ?? []).map((template) => (
-                <button
-                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedTemplateId === template.id ? "border-td-accent/45 bg-td-accent/[0.10] text-td-primary shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.06)]" : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-primary hover:border-td-accent/25 hover:bg-td-ink/[0.04]"}`}
-                  key={template.id}
-                  onClick={() => setSelectedTemplateId(template.id)}
-                >
-                  <p className="font-semibold">{template.name}</p>
-                  <p className="mt-1 text-xs text-td-muted">
-                    {template.category.replace(/_/g, " ")} / {template.width} x {template.height} {template.unit}
-                  </p>
-                </button>
-              ))}
-            </div>
-            <button
-              className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[0.055] px-3 text-xs font-semibold text-td-accent-text transition hover:border-td-accent/30 hover:bg-td-accent/[0.09]"
-              onClick={() => {
-                const workspaceId = payload?.workspaceId ?? "workspace";
-                const template = createDefaultLabelTemplate({
-                  id: `local-${Date.now()}`,
-                  workspaceId,
-                  name: "New Label Template",
-                  category: "single",
-                  sizePresetId: "2x1",
-                });
-                setDraft(template);
-                setSelectedTemplateId(template.id);
-              }}
+      <p role="status" aria-live="polite" className="label-status">
+        {message}
+      </p>
+      <div className="label-workbench">
+        <aside className="label-settings">
+          <h2>Template</h2>
+          <label>
+            Preset / organization template
+            <select
+              value={draft?.id ?? ""}
+              onChange={(e) =>
+                setDraft(templates.find((t) => t.id === e.target.value) ?? null)
+              }
             >
-              <Layers3 className="h-4 w-4" /> New template
-            </button>
-          </Panel>
-
-          <Panel title="Template settings" icon={Save}>
-            {draft ? (
-              <div className="space-y-3">
-                <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-                <label className="block text-xs font-semibold text-td-secondary">
-                  Category
-                  <select className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as LabelCategory })}>
-                    {LABEL_CATEGORIES.map((category) => <option key={category} value={category}>{category.replace(/_/g, " ")}</option>)}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-td-secondary">
-                  Size
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.isDefault ? " (default)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          {draft && (
+            <>
+              <label>
+                Name
+                <input
+                  maxLength={100}
+                  value={draft.name}
+                  onChange={(e) => edit({ name: e.target.value })}
+                />
+              </label>
+              <label>
+                Label size
+                <select
+                  value={draft.sizePresetId}
+                  onChange={(e) => {
+                    const size = LABEL_SIZE_PRESETS.find(
+                      (s) => s.id === e.target.value,
+                    )!;
+                    edit({
+                      width: size.width,
+                      height: size.height,
+                      unit: size.unit,
+                      sizePresetId: size.id,
+                      orientation:
+                        size.width >= size.height ? "landscape" : "portrait",
+                    });
+                  }}
+                >
+                  {LABEL_SIZE_PRESETS.map((size) => (
+                    <option key={size.id} value={size.id}>
+                      {size.name} {size.unit}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="label-pair">
+                {(["width", "height"] as const).map((key) => (
+                  <NumberField
+                    key={key}
+                    label={key}
+                    value={draft[key]}
+                    onChange={(value) =>
+                      edit({ [key]: value, sizePresetId: "custom" })
+                    }
+                  />
+                ))}
+              </div>
+              <div className="label-pair">
+                <label>
+                  Units
                   <select
-                    className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45"
-                    value={draft.sizePresetId}
-                    onChange={(event) => {
-                      const preset = labelSizePreset(event.target.value as LabelTemplate["sizePresetId"]);
-                      setDraft({ ...draft, sizePresetId: preset.id, width: preset.width, height: preset.height, unit: preset.unit });
+                    value={draft.unit}
+                    onChange={(e) => {
+                      const unit = e.target.value as "in" | "mm",
+                        f =
+                          unit === draft.unit
+                            ? 1
+                            : unit === "mm"
+                              ? 25.4
+                              : 1 / 25.4;
+                      edit({
+                        unit,
+                        width: Number((draft.width * f).toFixed(4)),
+                        height: Number((draft.height * f).toFixed(4)),
+                        sizePresetId: "custom",
+                      });
                     }}
                   >
-                    {LABEL_SIZE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+                    <option value="in">inches</option>
+                    <option value="mm">millimeters</option>
                   </select>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <NumberField label="Width" value={draft.width} onChange={(width) => setDraft({ ...draft, width })} />
-                  <NumberField label="Height" value={draft.height} onChange={(height) => setDraft({ ...draft, height })} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Toggle label="QR" checked={draft.qrEnabled} onChange={(qrEnabled) => setDraft({ ...draft, qrEnabled })} />
-                  <Toggle label="Barcode" checked={draft.barcodeEnabled} onChange={(barcodeEnabled) => setDraft({ ...draft, barcodeEnabled })} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <NumberField
-                    label="Market %"
-                    value={draft.pricingRule?.percentage ?? 100}
-                    onChange={(percentage) => setDraft({ ...draft, pricingRule: { ...(draft.pricingRule ?? { mode: "market_percentage" }), mode: "market_percentage", percentage } })}
-                  />
-                  <NumberField
-                    label="Min price"
-                    value={draft.pricingRule?.minimumPrice ?? 0}
-                    onChange={(minimumPrice) => setDraft({ ...draft, pricingRule: { ...(draft.pricingRule ?? { mode: "market_percentage" }), minimumPrice } })}
-                  />
-                </div>
-                <button disabled={!payload?.capabilities.canManageTemplates || saving} onClick={saveTemplate} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent shadow-[0_10px_28px_rgb(var(--td-accent-rgb)/.16)] transition hover:bg-td-accent-hover disabled:opacity-40">
-                  <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save template"}
-                </button>
-                <button disabled={!payload?.capabilities.canManageTemplates || draft.id.startsWith("local-")} onClick={archiveTemplate} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-danger/20 bg-td-danger/[0.035] text-xs font-semibold text-td-danger transition hover:bg-td-danger/[0.07] disabled:opacity-40">
-                  <Archive className="h-4 w-4" /> Archive template
-                </button>
-              </div>
-            ) : <Empty message="Load or create a template." />}
-          </Panel>
-        </aside>
-
-        <main className="space-y-4">
-          <Panel title="Live physical preview" icon={QrCode}>
-            <div className="rounded-[1.75rem] border border-td-ink/[0.07] bg-td-canvas p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.035)]">
-              {draft && renderItems[0] ? <PhysicalLabelPreview template={draft} item={renderItems[0]} /> : <Empty message="Select inventory to preview a real label." />}
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <Metric label="Selected" value={String(renderItems.length)} />
-              <Metric label="Pages" value={String(pages.length)} />
-              <Metric label="Identities" value={`${renderItems.filter((item) => item.identity).length}/${renderItems.length}`} />
-            </div>
-          </Panel>
-
-          <section id="label-print-area" className="hidden print:block">
-            {pages.map((page) => (
-              <div className="label-print-page" key={page.pageNumber}>
-                {page.labels.map((label, index) => (
-                  <PrintedLabel
-                    key={`${page.pageNumber}-${index}`}
-                    label={label}
-                    item={renderItems[(page.pageNumber - 1) * labelsPerPage(draft) + index]}
-                    template={draft}
-                  />
-                ))}
-              </div>
-            ))}
-          </section>
-
-          <Panel title="Repricing review" icon={RefreshCw}>
-            {payload?.priceReviews.length ? (
-              <div className="space-y-2">
-                {payload.priceReviews.map((review) => (
-                  <div className="rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] p-4" key={review.id}>
-                    <p className="text-xs font-semibold text-td-primary">Inventory item {review.inventory_item_id}</p>
-                    <p className="mt-1 text-xs text-td-muted">
-                      Current {money(review.current_asking_price)} / Market {money(review.market_price)} / Proposed {money(review.proposed_asking_price)}
-                    </p>
-                    <div className="mt-3 flex gap-2">
-                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "approve")} className="h-9 rounded-xl bg-td-success px-3 text-xs font-bold text-td-primary disabled:opacity-40">Approve/update</button>
-                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "dismiss")} className="h-9 rounded-xl border border-td-ink/[0.09] px-3 text-xs font-semibold text-td-secondary disabled:opacity-40">Dismiss</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : <Empty message="No pending repricing reviews in staging." />}
-          </Panel>
-        </main>
-
-        <aside className="space-y-4">
-          <Panel title="Selected inventory" icon={Layers3}>
-            <div className="overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-td-canvas">
-              <div className="sticky top-0 z-10 border-b border-td-ink/[0.08] bg-td-surface/95 p-3 backdrop-blur">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-td-primary">{selectionSummary.selectedCount} selected</p>
-                    <p className="mt-0.5 text-[11px] text-td-muted">{selectionSummary.totalCount} visible inventory records</p>
-                  </div>
-                  <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${selectionSummary.allSelected ? "border-td-accent/25 bg-td-accent/[0.08] text-td-accent-text" : selectionSummary.partiallySelected ? "border-td-warning/20 bg-td-warning/[0.07] text-td-warning" : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary"}`}>
-                    {selectionSummary.allSelected ? "All" : selectionSummary.partiallySelected ? "Partial" : "None"}
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={!payload?.items.length || selectionSummary.allSelected}
-                    onClick={() => setSelectedIds(selectAllInventoryItems(payload?.items ?? []))}
-                    className="h-9 rounded-xl border border-td-accent/15 bg-td-accent/[0.055] px-3 text-xs font-bold text-td-accent-text transition hover:bg-td-accent/[0.09] disabled:cursor-not-allowed disabled:opacity-40"
+                <label>
+                  Orientation
+                  <select
+                    value={draft.orientation}
+                    onChange={(e) =>
+                      edit({
+                        orientation: e.target.value as "portrait" | "landscape",
+                      })
+                    }
                   >
-                    Select all
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!selectionSummary.selectedCount}
-                    onClick={() => setSelectedIds(clearInventorySelection())}
-                    className="h-9 rounded-xl border border-td-ink/[0.09] bg-td-ink/[0.025] px-3 text-xs font-semibold text-td-secondary transition hover:bg-td-ink/[0.045] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Clear selection
-                  </button>
-                </div>
-              </div>
-              <div className="max-h-[480px] space-y-2 overflow-auto p-2">
-              {(payload?.items ?? []).map((item) => (
-                <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${selectedIds.includes(item.id) ? "border-td-accent/30 bg-td-accent/[0.075]" : "border-td-ink/[0.07] bg-td-ink/[0.025] hover:border-td-accent/20 hover:bg-td-ink/[0.04]"}`} key={item.id}>
-                  <input
-                    className="mt-1 h-4 w-4 accent-td-accent"
-                    type="checkbox"
-                    checked={selectedIds.includes(item.id)}
-                    onChange={(event) => setSelectedIds((current) => toggleInventorySelection(current, item.id, event.target.checked))}
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-td-primary">{item.sealed?.product_name || item.card?.name || "Inventory item"}</span>
-                    <span className="mt-1 block text-xs text-td-muted">{item.inventory?.sku || "No SKU yet"} / {item.identity ? "QR ready" : "Needs identity"}</span>
-                  </span>
+                    <option>landscape</option>
+                    <option>portrait</option>
+                  </select>
                 </label>
-              ))}
               </div>
-            </div>
-            {!payload?.items.length ? <Empty message="No workspace inventory found for this Label Studio context." /> : null}
-          </Panel>
-
-          <Panel title="Print controls" icon={Printer}>
-            <div className="space-y-3 text-sm">
-              <button disabled={!payload?.capabilities.canPrint || !renderItems.length} onClick={resolveIdentities} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/20 bg-td-accent/[0.07] text-xs font-bold text-td-accent-text transition hover:bg-td-accent/[0.11] disabled:opacity-40">
-                <QrCode className="h-4 w-4" /> Resolve real SKU + QR
-              </button>
-              <button disabled={!payload?.capabilities.canPrint || printing || !labels.length} onClick={printLabels} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent shadow-[0_14px_34px_rgb(var(--td-accent-rgb)/.18)] transition hover:bg-td-accent-hover disabled:opacity-40">
-                <Printer className="h-4 w-4" /> {printing ? "Recording..." : "Print labels"}
-              </button>
-              <p className="text-xs leading-5 text-td-muted">
-                Printing uses browser print CSS with exact template dimensions. Print jobs store audit metadata only.
-              </p>
-            </div>
-          </Panel>
+              <label>
+                Print mode
+                <select
+                  value={settings.mode}
+                  onChange={(e) =>
+                    printEdit({ mode: e.target.value as "roll" | "sheet" })
+                  }
+                >
+                  <option value="roll">Roll — one label per page</option>
+                  <option value="sheet">Sheet — Letter grid</option>
+                </select>
+              </label>
+              {settings.mode === "sheet" && (
+                <details open>
+                  <summary>Sheet dimensions (mm)</summary>
+                  <div className="label-pair">
+                    {(
+                      [
+                        "width",
+                        "height",
+                        "rows",
+                        "columns",
+                        "margin",
+                        "gapX",
+                        "gapY",
+                      ] as const
+                    ).map((key) => (
+                      <NumberField
+                        key={key}
+                        label={key}
+                        value={settings.sheet[key]}
+                        onChange={(value) =>
+                          printEdit({
+                            sheet: { ...settings.sheet, [key]: value },
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </details>
+              )}
+              <details open>
+                <summary>Visible fields & order</summary>
+                {PRINT_FIELDS.map((field) => (
+                  <div className="label-field" key={field}>
+                    <Toggle
+                      label={field}
+                      checked={settings.fields.includes(field)}
+                      onChange={(checked) =>
+                        printEdit({
+                          fields: checked
+                            ? [...settings.fields, field]
+                            : settings.fields.filter((f) => f !== field),
+                        })
+                      }
+                    />
+                    <button
+                      aria-label={`Move ${field} up`}
+                      disabled={settings.fields.indexOf(field) <= 0}
+                      onClick={() => {
+                        const fields = [...settings.fields],
+                          i = fields.indexOf(field);
+                        [fields[i - 1], fields[i]] = [fields[i], fields[i - 1]];
+                        printEdit({ fields });
+                      }}
+                    >
+                      ↑{" "}
+                      {settings.fields.includes(field)
+                        ? settings.fields.indexOf(field) + 1
+                        : ""}
+                    </button>
+                  </div>
+                ))}
+              </details>
+              <NumberField
+                label="Font size (6–14 pt)"
+                value={settings.fontPt}
+                onChange={(fontPt) => printEdit({ fontPt })}
+              />
+              <label>
+                Store name
+                <input
+                  maxLength={80}
+                  value={settings.storeName}
+                  onChange={(e) => printEdit({ storeName: e.target.value })}
+                />
+              </label>
+              <Toggle
+                label="Code 128"
+                checked={draft.barcodeEnabled}
+                onChange={(barcodeEnabled) => edit({ barcodeEnabled })}
+              />
+              <Toggle
+                label="Use unique product UPC when available"
+                checked={Boolean(settings.useUpc)}
+                onChange={(useUpc) => printEdit({ useUpc })}
+              />
+              <Toggle
+                label="QR (opaque code)"
+                checked={draft.qrEnabled}
+                onChange={(qrEnabled) => edit({ qrEnabled })}
+              />
+              {(["humanReadable", "priceEmphasis", "border"] as const).map(
+                (key) => (
+                  <Toggle
+                    key={key}
+                    label={
+                      {
+                        humanReadable: "Human-readable code",
+                        priceEmphasis: "Emphasize price",
+                        border: "Border",
+                      }[key]
+                    }
+                    checked={settings[key]}
+                    onChange={(checked) => printEdit({ [key]: checked })}
+                  />
+                ),
+              )}
+              {payload?.capabilities.canManageTemplates && (
+                <div className="label-actions">
+                  <button onClick={duplicate}>Create / duplicate</button>
+                  <button
+                    disabled={busy || system}
+                    onClick={() =>
+                      void act(async () => {
+                        const data = await request<{ template: LabelTemplate }>(
+                          "/api/label-studio",
+                          { action: "save-template", template: draft },
+                        );
+                        setTemplates((all) => [
+                          ...all.filter((t) => t.id !== data.template.id),
+                          data.template,
+                        ]);
+                        setDraft(data.template);
+                        setMessage("Organization template saved.");
+                      })
+                    }
+                  >
+                    Save / rename
+                  </button>
+                  <button
+                    disabled={busy || system || draft.id.startsWith("local-")}
+                    onClick={() =>
+                      void act(async () => {
+                        await request("/api/label-studio", {
+                          action: "default-template",
+                          templateId: draft.id,
+                        });
+                        setTemplates((all) =>
+                          all.map((t) => ({
+                            ...t,
+                            isDefault: t.id === draft.id,
+                          })),
+                        );
+                        setMessage("Default template updated.");
+                      })
+                    }
+                  >
+                    Set default
+                  </button>
+                  <button
+                    disabled={busy || system || draft.id.startsWith("local-")}
+                    onClick={() =>
+                      void act(async () => {
+                        await request("/api/label-studio", {
+                          action: "archive-template",
+                          templateId: draft.id,
+                        });
+                        setTemplates((all) =>
+                          all.filter((t) => t.id !== draft.id),
+                        );
+                        setDraft(templates[0]);
+                      })
+                    }
+                  >
+                    Archive
+                  </button>
+                </div>
+              )}
+              {system && (
+                <small>
+                  System presets remain available. Duplicate to save an
+                  organization template.
+                </small>
+              )}
+            </>
+          )}
         </aside>
+        <main>
+          <section>
+            <div className="label-toolbar">
+              <h2>Physical preview</h2>
+              <label>
+                Zoom
+                <select
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                >
+                  {[1, 1.5, 2, 3].map((n) => (
+                    <option key={n} value={n}>
+                      {n * 100}%
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span>
+                {draft?.width} × {draft?.height} {draft?.unit} ·{" "}
+                {draft?.orientation}
+              </span>
+            </div>
+            <div className="label-preview-scroll">
+              {preview && firstKey ? (
+                <iframe
+                  title="Actual label preview"
+                  sandbox=""
+                  srcDoc={preview}
+                  style={{
+                    width:
+                      draft?.orientation === "portrait" ? shortSide : longSide,
+                    height:
+                      draft?.orientation === "portrait" ? longSide : shortSide,
+                    transform: `scale(${zoom})`,
+                    transformOrigin: "top left",
+                  }}
+                />
+              ) : (
+                <p>Add inventory to preview the actual renderer.</p>
+              )}
+            </div>
+          </section>
+          <section>
+            <div className="label-toolbar">
+              <h2>Print queue</h2>
+              <strong>{count} labels</strong>
+              <button
+                disabled={busy || !queue.length}
+                onClick={() => void refresh()}
+              >
+                Refresh prices / identities
+              </button>
+              <button onClick={() => setQueue([])}>Clear</button>
+            </div>
+            <div className="label-toolbar">
+              <span>Copies per position</span>
+              <button
+                onClick={() =>
+                  setQueue((rows) => rows.map((row) => ({ ...row, copies: 1 })))
+                }
+              >
+                1 label
+              </button>
+              <button
+                onClick={() =>
+                  setQueue((rows) =>
+                    rows.map((row) => ({
+                      ...row,
+                      copies: Math.min(1000, row.target.quantity),
+                    })),
+                  )
+                }
+              >
+                Inventory quantity
+              </button>
+            </div>
+            <div className="label-queue">
+              {queue.map((row, index) => (
+                <article key={`${row.target.key}:${index}`}>
+                  <div>
+                    <strong>{row.target.name}</strong>
+                    <small>
+                      {[
+                        row.target.set,
+                        row.target.number,
+                        row.target.condition,
+                        row.target.finish,
+                        row.target.language,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </small>
+                    <small>
+                      {row.target.location} · {row.target.batch} ·{" "}
+                      {row.target.sku ?? "Resolve identity before printing"}
+                    </small>
+                    <small>
+                      {row.target.price === null
+                        ? "Price unset"
+                        : `$${Number(row.target.price).toFixed(2)}`}
+                    </small>
+                  </div>
+                  <div className="label-copies">
+                    <button
+                      aria-label={`Decrease ${row.target.name}`}
+                      onClick={() =>
+                        setQueue((rows) =>
+                          rows.map((r, i) =>
+                            i === index
+                              ? { ...r, copies: Math.max(1, r.copies - 1) }
+                              : r,
+                          ),
+                        )
+                      }
+                    >
+                      −
+                    </button>
+                    <input
+                      aria-label={`Copies ${row.target.name}`}
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={row.copies}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isInteger(n) && n > 0 && n <= 1000)
+                          setQueue((rows) =>
+                            rows.map((r, i) =>
+                              i === index ? { ...r, copies: n } : r,
+                            ),
+                          );
+                      }}
+                    />
+                    <button
+                      aria-label={`Increase ${row.target.name}`}
+                      onClick={() =>
+                        setQueue((rows) =>
+                          rows.map((r, i) =>
+                            i === index
+                              ? { ...r, copies: Math.min(1000, r.copies + 1) }
+                              : r,
+                          ),
+                        )
+                      }
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => setQueue((rows) => [...rows, { ...row }])}
+                    >
+                      Duplicate
+                    </button>
+                    <button
+                      disabled={!row.target.sku}
+                      onClick={() =>
+                        void act(async () => {
+                          await navigator.clipboard.writeText(row.target.sku!);
+                          setMessage("Barcode copied.");
+                        })
+                      }
+                    >
+                      Copy barcode
+                    </button>
+                    <button
+                      onClick={() =>
+                        setQueue((rows) => rows.filter((_, i) => i !== index))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <p className="label-note">
+              Copies share the same position barcode. Each sale decrements that
+              position. POS uses current prices.
+            </p>
+            <div className="label-actions">
+              <button
+                className="label-primary"
+                disabled={busy || !count || !payload?.capabilities.canPrint}
+                onClick={() => void print()}
+              >
+                Prepare {count} labels
+              </button>
+              <button
+                disabled={busy || !payload?.capabilities.canPrint}
+                onClick={() => void print(true)}
+              >
+                Print Test Label
+              </button>
+            </div>
+          </section>
+          <section>
+            <h2>Find inventory / recent additions</h2>
+            <button
+              onClick={() =>
+                void act(async () => {
+                  setItems(
+                    await request<LabelTarget[]>(
+                      "/api/label-studio/targets?kind=location",
+                    ),
+                  );
+                  setDraft(retailPresets(payload!.workspaceId)[4]);
+                })
+              }
+            >
+              Storage / location labels
+            </button>
+            <form
+              className="label-toolbar"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void act(async () =>
+                  setItems(
+                    await request<LabelTarget[]>(
+                      `/api/label-studio/targets?query=${encodeURIComponent(query)}`,
+                    ),
+                  ),
+                );
+              }}
+            >
+              <input
+                aria-label="Find inventory for labels"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Name, SKU, location or batch"
+              />
+              <button disabled={busy}>Search / refresh</button>
+              <button type="button" onClick={() => items.forEach(add)}>
+                Add results
+              </button>
+            </form>
+            <div className="label-results">
+              {items.map((item) => (
+                <button key={item.key} onClick={() => add(item)}>
+                  <strong>{item.name}</strong>
+                  <small>
+                    {[
+                      item.set,
+                      item.number,
+                      item.condition,
+                      item.finish,
+                      item.language,
+                      item.location,
+                      item.batch,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}{" "}
+                    · {item.quantity} copies
+                  </small>
+                  <span>Add to queue +</span>
+                </button>
+              ))}
+            </div>
+          </section>
+          {payload?.capabilities.canManageTemplates && (
+            <section>
+              <h2>Assign external barcode</h2>
+              <p>
+                Aliases retain their original target. Refresh queue identities
+                before assigning.
+              </p>
+              <div className="label-toolbar">
+                <select
+                  aria-label="Barcode target"
+                  value={aliasTarget}
+                  onChange={(e) => setAliasTarget(e.target.value)}
+                >
+                  <option value="">Choose target</option>
+                  {queue
+                    .filter((row) => row.target.identityId)
+                    .map((row, i) => (
+                      <option key={i} value={row.target.identityId!}>
+                        {row.target.name} · {row.target.sku}
+                      </option>
+                    ))}
+                </select>
+                <input
+                  aria-label="External barcode"
+                  maxLength={160}
+                  value={alias}
+                  onChange={(e) => setAlias(e.target.value)}
+                />
+                <button
+                  disabled={busy || !aliasTarget || !alias}
+                  onClick={() =>
+                    void act(async () => {
+                      await request("/api/label-studio/aliases", {
+                        identityId: aliasTarget,
+                        value: alias,
+                        type: /^\d{8,13}$/.test(alias) ? "upc_ean" : "external",
+                      });
+                      setMessage(
+                        "Barcode alias assigned. It now resolves through POS.",
+                      );
+                    })
+                  }
+                >
+                  Assign barcode
+                </button>
+              </div>
+            </section>
+          )}
+          {!!payload?.priceReviews?.length && (
+            <section>
+              <h2>Price review</h2>
+              {payload.priceReviews.map((review) => (
+                <p key={review.id}>
+                  {review.inventory_item_id}:{" "}
+                  {String(review.current_asking_price)} →{" "}
+                  {String(review.proposed_asking_price)}{" "}
+                  {(["approve", "dismiss"] as const).map((decision) => (
+                    <button
+                      key={decision}
+                      disabled={busy || !payload.capabilities.canReprice}
+                      onClick={() =>
+                        void act(async () => {
+                          await request("/api/label-studio", {
+                            action: "review-price",
+                            reviewId: review.id,
+                            decision,
+                          });
+                          setPayload({
+                            ...payload,
+                            priceReviews: payload.priceReviews.filter(
+                              (r) => r.id !== review.id,
+                            ),
+                          });
+                          setMessage(
+                            decision === "approve"
+                              ? "Price updated. Refresh the queue before reprinting."
+                              : "Price suggestion dismissed.",
+                          );
+                        })
+                      }
+                    >
+                      {decision === "approve"
+                        ? "Approve price update"
+                        : "Dismiss"}
+                    </button>
+                  ))}
+                </p>
+              ))}
+            </section>
+          )}
+          <details>
+            <summary>Printer settings & help</summary>
+            <p>
+              Use 100% scale, margins None, headers/footers Off, exact media
+              dimensions, and matching orientation. Configure your printer
+              through the operating system. Test one label before a large job.
+            </p>
+            <p>
+              For price reprints, search by name, location or batch, add
+              results, and refresh prices. Narrow stock may require QR/text-only
+              output. Browser output cannot certify physical alignment or scan
+              quality.
+            </p>
+          </details>
+        </main>
       </div>
     </section>
   );
 }
-
-function PhysicalLabelPreview({ template, item }: { template: LabelTemplate; item: LabelStudioItem }) {
-  const label = renderLabel(template, item);
+function NumberField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+}) {
   return (
-    <div className="mx-auto max-w-full overflow-auto">
-      <div
-        data-print-surface
-        className="relative mx-auto bg-white text-td-on-accent shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(.45*var(--td-shadow-strength)))]"
-        style={{
-          width: `min(${Math.min(template.width * 180, 620)}px, 100%)`,
-          aspectRatio: `${template.width} / ${template.height}`,
-        }}
-      >
-        {label.elements.map((element) => (
-          <LabelElement key={element.id} element={element} item={item} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LabelElement({ element, item }: { element: ReturnType<typeof renderLabel>["elements"][number]; item: LabelStudioItem }) {
-  const style = {
-    left: `${element.x * 100}%`,
-    top: `${element.y * 100}%`,
-    width: `${element.width * 100}%`,
-    height: `${element.height * 100}%`,
-  };
-  if (element.type === "qr") return <QrImage className="absolute" style={style} value={item.qrUrl} />;
-  if (element.type === "barcode") return <Barcode className="absolute" style={style} value={item.barcodeValue ?? item.inventory?.sku ?? ""} />;
-  return (
-    <div className={`absolute overflow-hidden px-1 ${element.emphasis === "price" ? "text-2xl font-black" : element.emphasis === "strong" ? "text-sm font-bold" : "text-[10px] font-semibold"}`} style={style}>
-      {element.value}
-    </div>
-  );
-}
-
-function QrImage({ value, className, style }: { value: string | null; className?: string; style?: React.CSSProperties }) {
-  const [src, setSrc] = useState("");
-  useEffect(() => {
-    if (!value) {
-      setSrc("");
-      return;
-    }
-    void QRCode.toDataURL(value, { margin: 1, width: 180, errorCorrectionLevel: "M" }).then(setSrc);
-  }, [value]);
-  return (
-    <div className={`${className ?? ""} flex items-center justify-center border border-td-line bg-white`} style={style}>
-      {src ? <img alt="Inventory QR code" className="h-full w-full object-contain" src={src} /> : <span className="text-[8px] font-bold text-td-secondary">QR pending</span>}
-    </div>
-  );
-}
-
-function Barcode({ value, className, style }: { value: string; className?: string; style?: React.CSSProperties }) {
-  return (
-    <div className={`${className ?? ""} flex flex-col justify-end overflow-hidden`} style={style}>
-      <div className="flex h-8 items-end gap-px">
-        {Array.from({ length: 34 }).map((_, index) => (
-          <span className="bg-td-canvas" style={{ width: index % 5 === 0 ? 2 : 1, height: `${35 + ((index * 17) % 55)}%` }} key={index} />
-        ))}
-      </div>
-      <span className="truncate text-[8px] font-mono">{value}</span>
-    </div>
-  );
-}
-
-function PrintedLabel({ label, item, template }: { label: ReturnType<typeof renderLabel>; item: LabelStudioItem | undefined; template: LabelTemplate | null }) {
-  if (!template || !item) return null;
-  return (
-    <div data-print-surface className="label-print-label relative border border-td-line bg-white">
-      {label.elements.map((element) => (
-        <LabelElement key={element.id} element={element} item={item} />
-      ))}
-    </div>
-  );
-}
-
-function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Tags; children: React.ReactNode }) {
-  return (
-    <section className="rounded-[1.5rem] border border-td-ink/[0.075] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.035),0_18px_55px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))]">
-      <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-td-accent-text" />
-        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-td-secondary">{title}</h2>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function StatusBanner({ status, loading }: { status: Status; loading: boolean }) {
-  return (
-    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${status.tone === "error" ? "border-td-danger/25 bg-td-danger/[0.07] text-td-danger" : "border-td-accent/20 bg-td-accent/[0.07] text-td-accent-text"}`}>
-      {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-      {status.message}
-    </div>
-  );
-}
-
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <label className="block text-xs font-semibold text-td-secondary">
+    <label>
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/40 disabled:opacity-45" value={value} onChange={(event) => onChange(event.target.value)} />
+      <input
+        type="number"
+        step="0.01"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
     </label>
   );
 }
-
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (b: boolean) => void;
+}) {
   return (
-    <label className="block text-xs font-semibold text-td-secondary">
+    <label className="label-toggle">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45" type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
-}
-
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <label className="flex h-10 items-center justify-between rounded-xl border border-td-ink/[0.09] bg-td-ink/[0.025] px-3 text-xs font-semibold text-td-secondary">
-      {label}
-      <input className="h-4 w-4 accent-td-accent" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-    </label>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-td-ink/[0.075] bg-td-ink/[0.025] p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-td-muted">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-td-primary">{value}</p>
-    </div>
-  );
-}
-
-function Empty({ message }: { message: string }) {
-  return <p className="rounded-2xl border border-dashed border-td-ink/[0.10] bg-td-ink/[0.025] p-4 text-sm text-td-muted">{message}</p>;
-}
-
-function labelsPerPage(template: LabelTemplate | null) {
-  if (!template) return 1;
-  if (template.width <= 2 && template.height <= 1) return 12;
-  if (template.width <= 3 && template.height <= 2) return 6;
-  return 2;
-}
-
-function printCss(template: LabelTemplate | null) {
-  const width = template?.width ?? 2;
-  const height = template?.height ?? 1;
-  const unit = template?.unit ?? "in";
-  return `
-    @media print {
-      body * { visibility: hidden !important; }
-      #label-print-area, #label-print-area * { visibility: visible !important; }
-      #label-print-area { display: block !important; position: absolute; inset: 0; background: white; }
-      .label-print-page { page-break-after: always; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0; padding: 0.125in; }
-      .label-print-label { width: ${width}${unit}; height: ${height}${unit}; break-inside: avoid; color: #020617; }
-    }
-  `;
-}
-
-function money(value: unknown) {
-  const numeric = typeof value === "string" ? Number(value) : value;
-  if (typeof numeric !== "number" || !Number.isFinite(numeric)) return "n/a";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(numeric);
-}
-
-function isLabelStudioPayload(value: LabelStudioPayload | { error?: string } | null): value is LabelStudioPayload {
-  return Boolean(value && "workspaceId" in value && Array.isArray(value.templates) && Array.isArray(value.items));
 }

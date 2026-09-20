@@ -1,7 +1,9 @@
 # Trading Docks POS architecture
 
-Status: Partially Implemented. Accepted architecture and Phase 1 source implementation, 2026-09-20. Later phases remain Planned. Hosted rollout Requires Production Configuration and staging acceptance.
+Status: Partially Implemented. Accepted architecture with Phase 1 cash POS and Phase 2 barcode/label source implementation, 2026-09-20. Phase 3 onward remains Planned. Hosted rollout Requires Production Configuration and staging acceptance.
 Audited source: `121297b`; working branch: `codex/pos-foundation`.
+
+Phase 2 extends the canonical Label Studio identity with exact position and storage bindings, protected external aliases, authoritative scan precedence and immutable deleted-code history. Cart/checkout lines preserve separate positions of the same item and per-line allocation provenance. Label Studio now uses real Code 128 and isolated physical roll/sheet output. Legacy codes remain supported; current price, owner boundaries, stock locks and retry semantics remain authoritative. See [Label and barcode architecture](LABEL_AND_BARCODE_ARCHITECTURE.md) and [Phase 2 validation](POS_PHASE2_VALIDATION.md). Neither phase is approved for production rollout.
 
 The original audit below is retained as the accepted design direction. Phase 1 implementation, deliberate scope refinements, actual routes/schema, validation evidence and remaining release gates are recorded in [POS_PHASE1_VALIDATION.md](./POS_PHASE1_VALIDATION.md). No production database, deployment or payment connection was changed. Source inspection does not establish which migrations are applied to a hosted database.
 

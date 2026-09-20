@@ -68,6 +68,7 @@ import {
   type SelectedPrinting,
 } from "./PrintingSelector";
 import { labelStudioHref } from "@/lib/label-studio/routes";
+import { PrintLabelsLink } from "@/components/dashboard/label-studio/PrintLabelsLink";
 
 type LocationType =
   | "chaos"
@@ -2281,7 +2282,7 @@ function LocationContentsModal({
 
         {selectedIds.length ? (
           <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-td-accent/[0.12] bg-td-accent/[0.045] px-5 py-3 sm:px-6">
-            <CheckSquare2 className="h-4 w-4 text-td-accent-text" /><span className="text-[11px] font-semibold text-td-accent-text">{selectedIds.length} selected</span>
+            <CheckSquare2 className="h-4 w-4 text-td-accent-text" /><span className="text-[11px] font-semibold text-td-accent-text">{selectedIds.length} selected</span><PrintLabelsLink ids={selectedIds} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold">Print Labels ({selectedIds.length})</PrintLabelsLink>
             <label className="relative ml-auto min-w-[210px]">
               <select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-9 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary"><option value="">Choose destination…</option>{locations.filter((destination) => destination.id !== location.id).map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
@@ -2313,7 +2314,7 @@ function LocationContentsModal({
                         <td className="px-3 py-2.5 text-td-muted">{item.set || "—"}{item.collectorNumber ? <span className="text-td-muted"> · #{item.collectorNumber}</span> : null}</td>
                         <td className="px-3 py-2.5 text-td-secondary">{item.condition || "—"}</td><td className="px-3 py-2.5 text-td-secondary">{item.finish || "—"}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-td-primary">{item.quantity.toLocaleString("en-US")}</td><td className="px-3 py-2.5 text-right text-td-muted">{currency(unitValue)}</td><td className="px-3 py-2.5 text-right font-semibold text-td-success">{currency(item.value)}</td>
-                        <td className="px-4 py-2.5"><button type="button" onClick={(event) => { event.stopPropagation(); setFocusedItemId(item.id); }} className="rounded-lg border border-td-ink/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-td-muted hover:border-td-accent/20 hover:text-td-accent-text">Details</button></td>
+                        <td className="px-4 py-2.5"><Link href={labelStudioHref("inventory", "print-labels", [item.id])} onClick={event=>event.stopPropagation()} className="mr-2 inline-flex min-h-9 items-center text-xs font-bold">Print Label</Link><button type="button" onClick={(event) => { event.stopPropagation(); setFocusedItemId(item.id); }} className="rounded-lg border border-td-ink/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-td-muted hover:border-td-accent/20 hover:text-td-accent-text">Details</button></td>
                       </tr>
                     );
                   })}
@@ -2324,7 +2325,7 @@ function LocationContentsModal({
               <aside className="hidden w-[310px] shrink-0 overflow-y-auto border-l border-td-ink/[0.06] bg-td-surface p-5 xl:block">
                 <div className="flex items-start justify-between gap-3"><p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">Inventory detail</p><button type="button" onClick={() => setFocusedItemId("")} className="text-td-muted hover:text-td-secondary"><X className="h-3.5 w-3.5" /></button></div>
                 <div className="mx-auto mt-5 flex h-[210px] w-[150px] items-center justify-center overflow-hidden rounded-xl border border-td-ink/[0.08] bg-black/20">{focusedItem.imageUrl ? <img src={focusedItem.imageUrl} alt="" className="h-full w-full object-cover" /> : <PackageCheck className="h-8 w-8 text-td-muted" />}</div>
-                <h3 className="mt-5 text-base font-semibold text-td-primary">{focusedItem.name}</h3>
+                <h3 className="mt-5 text-base font-semibold text-td-primary">{focusedItem.name}</h3><Link href={labelStudioHref("inventory", "print-labels", [focusedItem.id])} className="inline-flex min-h-9 items-center text-xs font-bold">Print Label</Link>
                 <p className="mt-1 text-[11px] text-td-muted">{[focusedItem.set, focusedItem.collectorNumber ? `#${focusedItem.collectorNumber}` : "", focusedItem.condition, focusedItem.finish].filter(Boolean).join(" · ")}</p>
                 <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Quantity" value={focusedItem.quantity.toLocaleString("en-US")} /><CompactMetric label="Total value" value={currency(focusedItem.value)} /></div>
                 <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Move this inventory</p>
@@ -2895,7 +2896,7 @@ function BinderCardDetail({
             <button type="button" onClick={onClose} aria-label="Close card details" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted transition hover:border-td-ink/[0.14] hover:text-td-primary"><X className="h-4 w-4" /></button>
           </div>
           <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
-            <button type="button" onClick={onMove} className="flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent text-[11px] font-bold text-td-on-accent transition hover:bg-td-accent-hover"><ArrowRightLeft className="h-3.5 w-3.5" /> Move</button>
+            <Link href={labelStudioHref("inventory", "print-labels", [item.id])} className="flex h-10 items-center justify-center text-xs font-bold">Print Label</Link><button type="button" onClick={onMove} className="flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent text-[11px] font-bold text-td-on-accent transition hover:bg-td-accent-hover"><ArrowRightLeft className="h-3.5 w-3.5" /> Move</button>
             <button type="button" onClick={onRemove} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-td-warning/20 bg-td-warning/[0.045] text-[11px] font-semibold text-td-warning transition hover:bg-td-warning/[0.09]"><PackageOpen className="h-3.5 w-3.5" /> Put Away</button>
             <button type="button" onClick={onDelete} aria-label={`Delete ${item.name} from inventory`} title="Delete from inventory" className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-danger/20 bg-td-danger/[0.035] text-td-danger transition hover:border-td-danger/35 hover:bg-td-danger/[0.09]"><Trash2 className="h-4 w-4" /></button>
           </div>
@@ -3179,7 +3180,7 @@ function PutAwayDrawer({
             <div className="flex items-center justify-between"><p className="text-[11px] font-semibold text-td-warning">{selectedIds.length} selected · {currency(selectedValue)}</p><button type="button" onClick={() => setSelectedIds([])} className="text-[11px] font-semibold text-td-muted hover:text-td-secondary">Clear</button></div>
             <div className="mt-3 flex gap-2">
               <label className="relative min-w-0 flex-1"><select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-canvas px-3 pr-8 text-[11px] text-td-secondary"><option value="">Choose destination…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" /></label>
-              <Link href={labelStudioHref("inventory", "print-labels", selectedIds)} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-td-accent/20 bg-td-accent/[0.055] px-3.5 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/35 hover:bg-td-accent/[0.09]"><Printer className="h-3 w-3" /> Print Labels</Link>
+              <PrintLabelsLink ids={selectedIds} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-td-accent/20 bg-td-accent/[0.055] px-3.5 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/35 hover:bg-td-accent/[0.09]"><Printer className="h-3 w-3" /> Print Labels ({selectedIds.length})</PrintLabelsLink>
               <button type="button" disabled={!bulkDestination} onClick={fileSelected} className="h-10 rounded-xl bg-td-warning px-4 text-[11px] font-bold text-td-on-accent disabled:opacity-35">File selected</button>
             </div>
             <p className="mt-2 text-[11px] text-td-muted">Binder destinations use the first available pockets and safely stop if capacity is reached.</p>

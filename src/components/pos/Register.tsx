@@ -13,6 +13,7 @@ export function Register({ data, workspaceId, actorId }: { data: Bootstrap; work
   const [sessions, setSessions] = useState(data.sessions);
   const [cart, setCart] = useState<CartLine[]>([]); const cartRef = useRef(cart);
   const [query, setQuery] = useState(''); const [results, setResults] = useState<PosItem[]>([]);
+  const [unknownBarcode, setUnknownBarcode] = useState('');
   const [message, setMessage] = useState('Ready to scan'); const [busy, setBusy] = useState(false);
   const [cash, setCash] = useState(''); const [reason, setReason] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
@@ -61,8 +62,9 @@ export function Register({ data, workspaceId, actorId }: { data: Bootstrap; work
       try {
         const value = barcode.match(/^(?:https:\/\/(?:www\.)?tradingdocks\.com)?\/q\/([A-Za-z0-9]+)$/)?.[1] ?? barcode;
         const found = await posRead<PosItem[]>('search', { siteId: site.id, query: value, exact: 'true' });
+        setUnknownBarcode(found.length ? "" : value);
         if (found.length === 1) add(found[0]);
-        else { setResults(found); setMessage(found.length ? 'This barcode matches multiple items. Choose the exact printing.' : 'Barcode not found at this location. Search inventory below.'); }
+        else { setResults([]); setMessage(found.length ? 'Barcode mapping needs attention. Ask a manager to review it.' : 'Barcode not found at this location. Search inventory below.'); }
       } catch (error) { setMessage(error instanceof Error ? error.message : 'Scan failed.'); }
       finally { scanCount.current--; setScanning(scanCount.current); }
     });
@@ -127,6 +129,7 @@ export function Register({ data, workspaceId, actorId }: { data: Bootstrap; work
       <span>{online ? 'Online · Cash' : 'Offline · Checkout unavailable'}</span>
     </div>
     <p className="pos-status" role="status" aria-live="polite">{message}</p>
+    {unknownBarcode && <div className="pos-recovery"><strong>Barcode not found</strong><code>{unknownBarcode}</code><button onClick={() => { setQuery(''); setResults([]); document.querySelector<HTMLInputElement>('.pos-search-label input')?.focus(); }}>Search Inventory</button>{data.canManage && <Link href={`/dashboard/label-studio?source=pos&barcode=${encodeURIComponent(unknownBarcode)}`}>Assign Barcode</Link>}<button onClick={() => setUnknownBarcode('')}>Cancel</button></div>}
     {scanning > 0 && <p role="status">Resolving {scanning} scan(s)…</p>}
     {recoveryBlocked && <p role="alert">Saved checkout recovery requires review. Open <Link href="/dashboard/pos/transactions">transaction history</Link> before starting another sale.</p>}
     {pending && <div className="pos-recovery"><strong>Checkout needs confirmation</strong><p>Keep this checkout reference. Do not take a second payment.</p><code>{pending.key}</code><button disabled={busy || !online} onClick={async () => { setBusy(true); try { finish(await posRead<Completion>('recover', { key: pending.key })); } catch (error) { setMessage(error instanceof Error ? error.message : 'Cannot check status.'); } finally { setBusy(false); } }}>Check checkout status</button><button disabled={busy || !online} onClick={checkout}>Retry original checkout</button><button disabled={busy || !online} onClick={async () => { setBusy(true); try { finish(await posWrite<Completion>('cancel', { key: pending.key })); } catch (error) { setMessage(error instanceof Error ? error.message : 'Cannot cancel checkout.'); } finally { setBusy(false); } }}>Cancel uncompleted checkout</button></div>}
@@ -138,16 +141,16 @@ export function Register({ data, workspaceId, actorId }: { data: Bootstrap; work
         if (!site) return; setBusy(true);
         try {
           const refreshed = await Promise.all(cart.map(async line => {
-            const found = await posRead<PosItem[]>('search', { siteId: site.id, query: line.item.id, exact: 'true' });
+            const found = await posRead<PosItem[]>('search', { siteId: site.id, query: line.item.barcodeIdentity ? line.item.sku : line.item.id, exact: 'true' });
             return { ...line, item: found.find(item => item.id === line.item.id) ?? { ...line.item, available: 0 } };
           }));
           updateCart(refreshed); setMessage('Prices and stock refreshed. Remove unavailable items and confirm the total.');
         } catch (error) { setMessage(error instanceof Error ? error.message : 'Refresh failed.'); } finally { setBusy(false); }
       }}>Refresh prices & stock</button></div>
       {!cart.length && <div className="pos-empty"><h3>Ready for the first item</h3><p>Scan a label or search your inventory. Repeated scans add another copy.</p></div>}
-      {cart.map(line => <article className="pos-cart-line" key={line.item.id}><div><strong>{line.item.name}</strong><small>{[line.item.set_code,line.item.collector_number,line.item.condition,line.item.finish,line.item.language].filter(Boolean).join(' · ')}</small><small>{line.item.location} · {line.item.sku}</small>
+      {cart.map(line => <article className="pos-cart-line" key={`${line.item.id}:${line.positionId ?? ""}`}><div><strong>{line.item.name}</strong><small>{[line.item.set_code,line.item.collector_number,line.item.condition,line.item.finish,line.item.language].filter(Boolean).join(' · ')}</small><small>{line.item.location} · {line.item.sku}</small>
         {(line.item.available < line.quantity || line.item.unit_price_minor === null) && <small role="alert">Unavailable at this quantity or missing price</small>}
-        {line.item.positions.length > 0 && <label>Batch position<select value={line.positionId ?? ''} disabled={locked} onChange={e => updateCart(cart.map(l => l === line ? { ...l, positionId: e.target.value || undefined } : l))}><option value="">Oldest available at this location</option>{line.item.positions.map(p => <option key={p.id} value={p.id}>{p.id} · {p.quantity} copies</option>)}</select></label>}
+        {line.item.positions.length > 0 && <label>Batch position<select value={line.positionId ?? ''} disabled={locked || Boolean(line.item.positionId)} onChange={e => updateCart(cart.map(l => l === line ? { ...l, positionId: e.target.value || undefined } : l))}><option value="">Oldest available at this location</option>{line.item.positions.map(p => <option key={p.id} value={p.id}>{p.id} · {p.quantity} copies</option>)}</select></label>}
         {data.canManage && <label>Discount %<input type="number" min="0" max="100" step="1" value={line.discountBps / 100} disabled={locked} onChange={e => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= 0 && n <= 100) updateCart(cart.map(l => l === line ? { ...l, discountBps: n * 100 } : l)); }} /></label>}
       </div><label>Quantity<input type="number" min="1" max={Math.min(line.item.available,1000)} value={line.quantity} disabled={locked} onChange={e => { const n = Number(e.target.value); if (Number.isInteger(n) && n > 0 && n <= Math.min(line.item.available,1000)) updateCart(cart.map(l => l === line ? { ...l, quantity: n } : l)); }} /></label><strong>{money(previewLine(line.item.unit_price_minor!,line.quantity,line.discountBps,0).total)}</strong><button aria-label={`Remove ${line.item.name}`} disabled={locked} onClick={() => updateCart(cart.filter(l => l !== line))}>Remove</button></article>)}
     </section><aside className="pos-checkout" aria-label="Cash checkout"><h2>Checkout</h2><p>Guest · {site?.name}</p><dl><div><dt>Subtotal</dt><dd>{money(totals.subtotal)}</dd></div><div><dt>Discount</dt><dd>−{money(totals.discount)}</dd></div><div><dt>Tax ({(site?.tax_bps ?? 0)/100}%)</dt><dd>{money(totals.tax)}</dd></div><div className="pos-total"><dt>Total</dt><dd>{money(totals.total)}</dd></div></dl>

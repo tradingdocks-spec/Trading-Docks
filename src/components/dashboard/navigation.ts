@@ -468,6 +468,8 @@ export function getAccountAwareNavigationGroups(
       { href: "/dashboard/pos", label: "Register", icon: ShoppingBag, exact: true },
       { href: "/dashboard/pos/transactions", label: "Transactions", icon: History },
       { href: "/dashboard/pos/setup", label: "POS setup", icon: Settings },
+      { href: "/dashboard/label-studio?source=pos", label: "Label Printing", icon: Tags },
+      { href: "/dashboard/pos/hardware", label: "Hardware", icon: Settings },
     ], clientAccess));
   }
 

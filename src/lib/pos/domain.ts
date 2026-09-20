@@ -1,4 +1,5 @@
 export type PosItem = {
+  positionId?: string | null; barcodeIdentity?: string; targetType?: string;
   id: string; name: string; sku: string; set_code: string | null;
   collector_number: string | null; condition: string | null; finish: string | null;
   language: string | null; location_id: string; location: string;
@@ -44,12 +45,15 @@ export function previewLine(unitPriceMinor: number, quantity: number, discountBp
 }
 export function addScan(lines: CartLine[], item: PosItem): CartLine[] {
   if (item.unit_price_minor === null) throw new Error('Set an asking price in inventory before selling this item.');
-  const current = lines.find(line => line.item.id === item.id);
+  const current = lines.find(line => line.item.id === item.id && (line.positionId ?? '') === (item.positionId ?? ''));
   if ((current?.quantity ?? 0) + 1 > Math.min(item.available, 1000)) throw new Error('No more available copies.');
   return current ? lines.map(line => line === current ? { ...line, item, quantity: line.quantity + 1 } : line)
-    : [...lines, { item, quantity: 1, discountBps: 0 }];
+    : [...lines, { item, quantity: 1, discountBps: 0, ...(item.positionId ? { positionId: item.positionId } : {}) }];
 }
 export const POS_ERRORS: Record<string, string> = {
+  POS_BARCODE_AMBIGUOUS: 'Barcode mapping needs attention. A manager must review the mapping before this barcode can be sold.',
+  POS_BARCODE_INACTIVE: 'This label references inventory that is no longer active or available at this location. Search inventory for a replacement.',
+  POS_BARCODE_WRONG_CLASS: 'This barcode identifies storage or intake, not a sellable item.',
   POS_RATE_LIMIT: 'Too many POS requests. Wait a moment and retry the same checkout.',
   POS_CHECKOUT_CANCELED: 'This checkout was canceled. Start a new sale after checking any cash taken.',
   POS_DISABLED: 'POS is not enabled for this workspace yet.',

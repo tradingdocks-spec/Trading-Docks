@@ -25,6 +25,8 @@ export type LabelStudioTemplateRow = {
   template_data: {
     sizePresetId?: LabelTemplate["sizePresetId"];
     elements?: LabelTemplateElement[];
+    print?: LabelTemplate['print'];
+    isDefault?: boolean;
   } | null;
 };
 
@@ -101,6 +103,8 @@ export function templateFromRow(row: LabelStudioTemplateRow): LabelTemplate {
   });
   return {
     ...fallback,
+    print: row.template_data?.print,
+    isDefault: row.template_data?.isDefault,
     id: row.id,
     workspaceId: row.workspace_id,
     name: row.name,
@@ -136,6 +140,8 @@ export function templateToRow(template: LabelTemplate, workspaceId: string) {
     price_field: template.priceField,
     pricing_rule: template.pricingRule ?? { mode: "none" },
     template_data: {
+      print: template.print,
+      isDefault: template.isDefault,
       sizePresetId: template.sizePresetId,
       elements: template.elements,
     },

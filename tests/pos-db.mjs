@@ -5,6 +5,7 @@ import EmbeddedPostgres from '../.local-fixtures/pos-db/node_modules/embedded-po
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 const root = resolve('.local-fixtures/pos-db');
@@ -32,7 +33,11 @@ try {
   await admin.query(sql('tests/fixtures/pos-prerequisites.sql'));
   for (const file of ['202607280004_inventory_persistence.sql','20260917014520_entitlement_production_repair.sql','202608090001_label_studio_inventory_qr_proposal.sql',...(process.argv.includes('--enum-ledger') ? ['202608120002_inventory_event_ledger.sql'] : ['202609060002_inventory_events.sql']),'202609070001_chaos_sort_sessions_and_positions.sql','20260918173226_selling_marketplace_platform_foundation.sql','20260918174321_selling_allocation_and_candidate_workflow.sql','20260918190000_selling_chaos_position_multiplicity.sql']) await admin.query(sql(`supabase/migrations/${file}`));
   await admin.query(sql('supabase/migrations/20260920181448_pos_cash_foundation.sql'));
-  console.log('Migration applied to disposable PostgreSQL');
+  await admin.query(sql('supabase/migrations/20260920190428_pos_barcode_labels.sql'));
+  console.log('Migrations applied to disposable PostgreSQL');
+  if (process.argv.includes('--advisors')) {
+    try { console.log(execFileSync('powershell.exe',['-NoProfile','-Command','supabase db advisors --db-url postgresql://postgres:pos-test-only@127.0.0.1:55439/postgres?sslmode=disable --type security --level warn --fail-on error'],{encoding:'utf8',timeout:60000})); } catch(error) { console.log('LOCAL ADVISORS:',error.stdout?.toString(),error.stderr?.toString()); }
+  }
   await admin.query(`insert into auth.users(id) values($1),($2);`,[owner,other]);
   await admin.query(`insert into workspaces values($1,'Store A',$2),($3,'Store B',$4)`,[workspace,owner,otherWorkspace,other]);
   await admin.query(`insert into workspace_members values($1,$2,'owner'),($3,$4,'owner');`,[workspace,owner,otherWorkspace,other]);
@@ -95,8 +100,13 @@ try {
     await check('raw client cannot execute private helpers',async()=>{await assert.rejects(a.query('select pos_private.authorize($1)',[workspace]),/permission denied/);});
     await check('closed register prevents checkout',async()=>{await command(a,'close',{registerId:setup.registerId});await assert.rejects(command(a,'checkout',{...request(),lines:[{itemId:'positioned',quantity:1}]}),/POS_SESSION_CLOSED/);});
     await check('rollout off blocks new actions but permits receipt recovery',async()=>{await admin.query('update pos_workspace_settings set enabled=false where workspace_id=$1',[workspace]);await assert.rejects(command(a,'search',{siteId:setup.siteId,query:'Bolt'}),/POS_DISABLED/);assert.equal((await command(a,'receipt',{saleId:completed.saleId})).status,'completed');});
+    await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
+    const { verifyLabels } = await import('./label-db.mjs');
+    await verifyLabels({admin,a,stranger,command,workspace,otherWorkspace,owner,other,check});
     if (process.argv.includes('--browser')) {
       await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
+      const { verifyLabelWorkflow }=await import('./label-workflow-browser.mjs');
+      await verifyLabelWorkflow({a,admin,command:(action,body)=>command(a,action,body),workspace,owner});
       const { verifyBrowser }=await import('./pos-browser.mjs');
       await verifyBrowser({admin, command: (action,body)=>command(a,action,body), workspace, owner});
     }

@@ -17,5 +17,6 @@ export async function posCommand(action: string, body: Record<string, unknown>) 
     console.warn('pos.command.failed', { action, code: code ?? error.code });
     return { response: Response.json({ error: code ? POS_ERRORS[code] : transient ? 'Inventory changed during checkout. Retry this checkout.' : 'POS could not complete this request. Check setup or try again.', code: code ?? (transient ? 'POS_RETRY' : 'POS_UNAVAILABLE') }, { status: code === 'POS_FORBIDDEN' || code === 'POS_DISABLED' ? 403 : code ? 409 : 503, headers: { 'Cache-Control': 'no-store' } }) };
   }
+  if (action === 'search' && String(body.exact) === 'true' && Array.isArray(data) && data.length === 0) console.info('pos.barcode.unresolved', { outcome: 'not_found' });
   return { data };
 }
