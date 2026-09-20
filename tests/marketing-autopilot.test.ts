@@ -98,6 +98,15 @@ test("production capture uses the signed route, ready marker, and pinned Chromiu
   assert.match(page, /data-marketing-capture-ready="true"/);
 });
 
+test("canonical capture uses the default browser page and closes capture resources", () => {
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  assert.match(runner, /browser\.newPage\(\)/);
+  assert.doesNotMatch(runner, /createBrowserContext\(\)/);
+  assert.doesNotMatch(runner, /createIncognitoBrowserContext\(\)/);
+  assert.match(runner, /page\.close\(\)/);
+  assert.match(runner, /browser\.close\(\)/);
+});
+
 test("Autopilot renders and exports real PNG variants only after proof is loaded", () => {
   const route = readFileSync("src/app/api/admin/marketing/autopilot/route.ts", "utf8");
   const rendering = readFileSync("src/lib/marketing/marketing-autopilot-rendering.ts", "utf8");

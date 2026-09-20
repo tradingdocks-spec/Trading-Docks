@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer-core";
+import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { buildCanonicalCaptureMetadata, type CanonicalCaptureRequest } from "./canonical-capture";
 import { createCanonicalCaptureToken } from "./canonical-capture-auth";
 import { CanonicalBrowserRuntimeError, resolveCanonicalBrowserRuntime } from "./canonical-capture-runtime";
@@ -26,14 +26,14 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
     logCaptureFailure(code, "runtime", error);
     throw new CanonicalCaptureError(code, error instanceof Error ? error.message : "Chromium runtime could not be resolved.");
   }
-  let browser;
+  let browser: Browser;
   try { browser = await puppeteer.launch({ args: runtime.args, defaultViewport: { width: request.width, height: request.height, deviceScaleFactor: 2 }, executablePath: runtime.executablePath, headless: runtime.headless }); } catch (error) {
     logCaptureFailure("BROWSER_LAUNCH_FAILED", "launch", error);
     throw new CanonicalCaptureError("BROWSER_LAUNCH_FAILED", `Browser launch failed: ${safeCaptureMessage(error)}`);
   }
+  let page: Page | undefined;
   try {
-    const context = await browser.createBrowserContext();
-    const page = await context.newPage();
+    page = await browser.newPage();
     page.setDefaultTimeout(15_000);
     const token = createCanonicalCaptureToken(request.feature, request.state, options.secret);
     const baseUrl = options.baseUrl.replace(/\/+$/, "");
@@ -56,9 +56,9 @@ export async function captureCanonicalPage(request: CanonicalCaptureRequest, opt
       logCaptureFailure("SCREENSHOT_FAILED", "screenshot", error);
       throw new CanonicalCaptureError("SCREENSHOT_FAILED", "Canonical product capture screenshot failed.");
     });
-    await context.close();
     return { png, metadata: buildCanonicalCaptureMetadata(request, options.featureId) };
   } finally {
+    if (page) await page.close().catch(() => undefined);
     await browser.close();
   }
 }
