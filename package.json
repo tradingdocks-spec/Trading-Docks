@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "test:pos:db": "node tests/pos-db.mjs && node tests/pos-db.mjs --enum-ledger",
+    "test:pos:browser": "node tests/pos-db.mjs --browser",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:update": "playwright test --update-snapshots",

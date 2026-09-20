@@ -27,6 +27,7 @@ export type RouteAccessRule = {
 };
 
 export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
+  { id: "pos", pattern: /^\/dashboard\/pos(\/|$)/, kind: "capability", capability: "pos.sell", label: "Point of sale" },
   { id: "home", pattern: /^\/$/, kind: "public", label: "Home" },
   { id: "pricing", pattern: /^\/pricing\/?$/, kind: "public", label: "Pricing" },
   { id: "legal", pattern: /^\/(privacy|terms|security|robots\.txt|icon\.png|apple-icon\.png)\/?$/, kind: "public", label: "Legal and static routes" },

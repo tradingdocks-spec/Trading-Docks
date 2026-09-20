@@ -400,3 +400,9 @@ Status: Partially Implemented
 - Implemented: `src/lib/deck-architect/commander-meta-provider.ts` defines an EDHREC-compatible provider boundary for commander profiles, strategies, commander-card evidence, and strategy-card evidence. EDHREC is not integrated, scraped, crawled, mirrored, or used as a backend; a licensed implementation can be attached later after commercial permission is secured.
 - Implemented: Lawful-source boundary is explicit. Trading Docks may use Scryfall's documented API/bulk-data model for card facts, Commander Spellbook's documented/open combo project for combo relationships, user-imported decks where permission is clear, and future licensed commander-meta feeds. Direct EDHREC production use requires explicit commercial/API permission before automated access.
 - Planned: Add saved proposal persistence, Deck Vault proposal history, reviewed corpus persistence, provider freshness checks, and licensed external commander-meta providers after legal/data review.
+
+## POS Phase 1
+
+- Implemented: The gated `/dashboard/pos` register uses a bounded client cart/scanner, `/api/pos`, and one server-authoritative transactional `pos_command` RPC. Immutable sales, receipts and cancellation records support retry/recovery.
+- Implemented: Shared stock constraints and the existing marketplace reservation RPC coordinate item/position quantities without a separate POS inventory system.
+- Requires Production Configuration: Default-off workspace rollout, staged migration replay and physical hardware QA. Shared employee stock remains outside the current owner-only mutation boundary. See `docs/POS_PHASE1_VALIDATION.md` for schema, scope and evidence.

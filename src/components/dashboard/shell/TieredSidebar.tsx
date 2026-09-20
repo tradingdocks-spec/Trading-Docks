@@ -45,6 +45,7 @@ type SidebarProps = {
   userName: string;
   isOwner: boolean;
   clientAccess?: ClientSafePlatformAccess;
+  posEnabled?: boolean;
   collapsed: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -56,6 +57,7 @@ export function TieredSidebar({
   userName,
   isOwner,
   clientAccess,
+  posEnabled = false,
   collapsed,
   mobileOpen,
   onCloseMobile,
@@ -71,8 +73,8 @@ export function TieredSidebar({
   );
   const accessForNavigation = clientAccess ?? fallbackAccess;
   const groups = useMemo(
-    () => getAccountAwareNavigationGroups(plan, isOwner, accessForNavigation),
-    [accessForNavigation, isOwner, plan],
+    () => getAccountAwareNavigationGroups(plan, isOwner, accessForNavigation, posEnabled),
+    [accessForNavigation, isOwner, plan, posEnabled],
   );
   const groupSignature = groups.map((group) => group.id).join("|");
   const activeSectionId = useMemo(

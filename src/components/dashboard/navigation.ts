@@ -452,6 +452,7 @@ export function getAccountAwareNavigationGroups(
   accountType: unknown,
   isOwner: boolean,
   clientAccess?: ClientSafePlatformAccess,
+  posEnabled = false,
 ): AccountAwareNavigationGroup[] {
   const tier = normalizeAccountType(accountType);
   const receivesFullSurface = Boolean(clientAccess && hasTrustedFullPlatformAccess(clientAccess));
@@ -462,6 +463,13 @@ export function getAccountAwareNavigationGroups(
   const groups: Array<AccountAwareNavigationGroup | null> = [
     group("collector", "Inventory", INVENTORY_WORKSPACE_NAV, clientAccess),
   ];
+  if (posEnabled && clientAccess && hasCapability(clientAccess, "pos.sell")) {
+    groups.push(group("pos", "POS", [
+      { href: "/dashboard/pos", label: "Register", icon: ShoppingBag, exact: true },
+      { href: "/dashboard/pos/transactions", label: "Transactions", icon: History },
+      { href: "/dashboard/pos/setup", label: "POS setup", icon: Settings },
+    ], clientAccess));
+  }
 
   if (isAtLeast(effectiveTier, "seller")) {
     groups.push(

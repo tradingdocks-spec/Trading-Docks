@@ -167,3 +167,9 @@
 - Planned: Required migration proposal only: add `inventory_identity`, `label_templates`, `label_print_jobs`, and `inventory_price_reviews` with workspace RLS, unique `(workspace_id, sku)`, unique QR token, token revocation, and template/print-job audit metadata.
 - Planned: Public QR routes must resolve through server-side sanitized views and never expose cost basis, internal ids, private customer data, or workspace-private notes.
 - Partially Implemented: Label render data now includes generic game, product type, variant, and language fields; Magic `finish` remains Magic-only output and sealed labels continue to use sealed product names.
+
+## POS Cash Foundation
+
+- Implemented in source: Additive `20260920181448_pos_cash_foundation.sql` adds workspace rollout, retail sites/storage mapping, registers/sessions, immutable sales/lines/allocations/tenders, canceled checkout intents and private request counters.
+- Implemented: Uses canonical inventory and inventory events. `quantity_removed` / `system` plus `related_entity_type=pos_sale` works with both historical ledger definitions. Existing marketplace reservation signature is retained with shared parent locking.
+- Requires Production Configuration: Migration is locally tested, not applied to hosted production. See `docs/POS_PHASE1_VALIDATION.md` for exact table/function names and compatibility/rollout gates.

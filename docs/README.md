@@ -22,6 +22,8 @@ This directory is the engineering foundation baseline for the current Trading Do
 - [OFFLINE_SYNC.md](./OFFLINE_SYNC.md): Current mobile offline queue state.
 - [DEFINITION_OF_DONE.md](./DEFINITION_OF_DONE.md): Engineering completion bar.
 - [REPOSITORY_HEALTH.md](./REPOSITORY_HEALTH.md): Risks, debt, and recommended Sprint 1.
+- [POS_ARCHITECTURE.md](./POS_ARCHITECTURE.md): Accepted POS architecture and inventory/security integration boundaries (Partially Implemented).
+- [POS_PHASE1_VALIDATION.md](./POS_PHASE1_VALIDATION.md): Cash register implementation, migrations, validation results and staging rollout gates.
 
 ## Current Repository Shape
 
