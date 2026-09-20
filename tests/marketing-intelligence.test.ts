@@ -76,7 +76,10 @@ test("canonical capture diagnostics distinguish safe token failures", () => {
   assert.equal(verifyCanonicalCaptureTokenDetailed(token, "not-registered", "primary", secret, 1_001).code, "FIXTURE_UNREGISTERED");
   assert.equal(verifyCanonicalCaptureTokenDetailed("bad", "chaos-sort", "primary", secret, 1_001).code, "TOKEN_FORMAT_INVALID");
   assert.equal(verifyCanonicalCaptureTokenDetailed(`v2.${token.split(".").slice(1).join(".")}`, "chaos-sort", "primary", secret, 1_001).code, "TOKEN_VERSION_INVALID");
-  assert.equal(verifyCanonicalCaptureTokenDetailed(`${token.slice(0, -1)}x`, "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_INVALID");
+  const tokenParts = token.split(".");
+  // Change significant signature bits; the final base64url character can alias padding bits.
+  tokenParts[2] = (tokenParts[2][0] === "A" ? "B" : "A") + tokenParts[2].slice(1);
+  assert.equal(verifyCanonicalCaptureTokenDetailed(tokenParts.join("."), "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_INVALID");
   assert.equal(verifyCanonicalCaptureTokenDetailed(`v1.${token.split(".")[1]}.AA`, "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_LENGTH_INVALID");
   assert.equal(verifyCanonicalCaptureTokenDetailed(signedPayload("not-json", secret), "chaos-sort", "primary", secret, 1_001).code, "PAYLOAD_INVALID");
   const featureMismatchToken = createCanonicalCaptureToken("inventory", "locations", secret, 1_000);
