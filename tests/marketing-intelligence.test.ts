@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildCampaignDraftPlan, rankMarketingOpportunities } from "../src/lib/marketing/marketing-intelligence.ts";
@@ -8,6 +9,18 @@ import { MARKETING_PRODUCT_REGISTRY } from "../src/lib/marketing/product-marketi
 import { captureSecretFingerprint, createCanonicalCaptureToken, verifyCanonicalCaptureToken, verifyCanonicalCaptureTokenDetailed } from "../src/lib/marketing/canonical-capture-auth.ts";
 
 const proof = { id: "capture-1", name: "Chaos Sort primary capture", featureIds: ["chaos-sort"], role: "primary", source: "canonical_product_capture", approved: true, marketingApproved: true, archived: false };
+
+function signedClaims(claims: Record<string, unknown>, secret: string) {
+  const payload = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `v1.${payload}.${signature}`;
+}
+
+function signedPayload(raw: string, secret: string) {
+  const payload = Buffer.from(raw, "utf8").toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `v1.${payload}.${signature}`;
+}
 
 test("product discovery registry covers the requested promotable features", () => {
   assert.deepEqual(MARKETING_PRODUCT_REGISTRY.map((feature) => feature.slug), ["chaos-sort", "inventory", "orders", "analytics", "collection-buying", "tournaments", "showcase", "marketplaces"]);
@@ -64,10 +77,21 @@ test("canonical capture diagnostics distinguish safe token failures", () => {
   assert.equal(verifyCanonicalCaptureTokenDetailed("bad", "chaos-sort", "primary", secret, 1_001).code, "TOKEN_FORMAT_INVALID");
   assert.equal(verifyCanonicalCaptureTokenDetailed(`v2.${token.split(".").slice(1).join(".")}`, "chaos-sort", "primary", secret, 1_001).code, "TOKEN_VERSION_INVALID");
   assert.equal(verifyCanonicalCaptureTokenDetailed(`${token.slice(0, -1)}x`, "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_INVALID");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(`v1.${token.split(".")[1]}.AA`, "chaos-sort", "primary", secret, 1_001).code, "SIGNATURE_LENGTH_INVALID");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(signedPayload("not-json", secret), "chaos-sort", "primary", secret, 1_001).code, "PAYLOAD_INVALID");
   const featureMismatchToken = createCanonicalCaptureToken("inventory", "locations", secret, 1_000);
   assert.equal(verifyCanonicalCaptureTokenDetailed(featureMismatchToken, "chaos-sort", "locations", secret, 1_001).code, "FEATURE_MISMATCH");
   const stateMismatchToken = createCanonicalCaptureToken("chaos-sort", "locations", secret, 1_000);
   assert.equal(verifyCanonicalCaptureTokenDetailed(stateMismatchToken, "chaos-sort", "primary", secret, 1_001).code, "STATE_MISMATCH");
+  assert.equal(verifyCanonicalCaptureTokenDetailed(signedClaims({ feature: "chaos-sort", state: "primary", exp: 2_000, nonce: "bad" }, secret), "chaos-sort", "primary", secret, 1_001).code, "NONCE_INVALID");
+  const previousDeploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+  process.env.VERCEL_DEPLOYMENT_ID = "verifier-deployment";
+  try {
+    assert.equal(verifyCanonicalCaptureTokenDetailed(signedClaims({ feature: "chaos-sort", state: "primary", exp: 2_000, nonce: "a".repeat(32), issuerDeploymentId: "issuer-deployment" }, secret), "chaos-sort", "primary", secret, 1_001).code, "CAPTURE_DEPLOYMENT_MISMATCH");
+  } finally {
+    if (previousDeploymentId === undefined) delete process.env.VERCEL_DEPLOYMENT_ID;
+    else process.env.VERCEL_DEPLOYMENT_ID = previousDeploymentId;
+  }
   assert.equal(verifyCanonicalCaptureTokenDetailed(token, "chaos-sort", "primary", secret, 1_301).code, "TOKEN_EXPIRED");
   assert.match(captureSecretFingerprint(secret), /^[a-f0-9]{8}$/);
   assert.notEqual(captureSecretFingerprint(secret), secret);
