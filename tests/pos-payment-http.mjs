@@ -5,7 +5,7 @@ export async function paymentHttp(
   url,
   client,
   workspace,
-  { loseResponse = false } = {},
+  { loseResponse = false, providerFactory } = {},
 ) {
   if (!url.pathname.startsWith("/api/pos/payments")) return false;
   const store = async (action, body, refund = false) =>
@@ -17,7 +17,7 @@ export async function paymentHttp(
         [workspace, action, body],
       )
     ).rows[0].result;
-  const service = new PaymentOrchestrator(store, "test");
+  const service = new PaymentOrchestrator(store, "test", providerFactory ? providerFactory(store) : {});
   let body = {};
   if (req.method === "POST") {
     let raw = "";

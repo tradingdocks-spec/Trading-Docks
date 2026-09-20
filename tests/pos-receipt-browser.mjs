@@ -7,19 +7,19 @@ mkdirSync(dir, { recursive: true });
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   const page = await browser.newPage();
-  for (const provider of ["CASH", "MOCK"])
+  for (const provider of ["CASH", "MOCK", "SQUARE"])
     for (const width of ["58", "80", "Letter"])
       for (const count of [1, 25]) {
         const receipt = {
-          ...(provider === "MOCK"
+          ...(provider !== "CASH"
             ? {
                 payment: {
-                  provider: "MOCK",
+                  provider,
                   status: "SUCCEEDED",
                   metadata: {
-                    brand: "Mock",
+                    brand: provider === "MOCK" ? "Mock" : "VISA",
                     last4: "4242",
-                    verification: "Simulated",
+                    verification: provider === "MOCK" ? "Simulated" : "Square Sandbox",
                   },
                 },
               }
@@ -75,6 +75,7 @@ try {
           assert.ok(text.includes("Mock •••• 4242"));
           assert.ok(!text.includes("Change $"));
         }
+        if(provider === "SQUARE") { assert.ok(text.includes("VISA •••• 4242")); assert.ok(text.includes("Square Sandbox")); assert.ok(!text.includes("Change $")); }
         assert.ok(!text.includes("never-print-internal-id"));
         assert.ok(!text.includes("internal-item"));
         assert.ok(!text.includes("internal-location"));

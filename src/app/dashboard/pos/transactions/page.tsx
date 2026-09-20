@@ -103,6 +103,7 @@ export default async function Transactions({
               <option value="mock">Mock</option>
             )}
             <option value="external">External</option>
+            <option value="square">Square Sandbox</option>
           </select>
         </label>
         <label>

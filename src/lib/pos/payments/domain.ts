@@ -63,6 +63,8 @@ export type Payment = {
   }[];
 };
 export type SafeMetadata = {
+  environment?: string;
+  locationId?: string;
   brand?: string;
   last4?: string;
   verification?: string;

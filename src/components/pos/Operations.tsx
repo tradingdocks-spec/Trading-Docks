@@ -79,6 +79,8 @@ type Access = {
   }[];
 };
 type Daily = {
+  squareSalesMinor?: number;
+  squareRefundsMinor?: number;
   cashNetMinor: number;
   noncashMinor: number;
   date: string;
@@ -991,6 +993,7 @@ export function Operations({
             {daily.sales.count} sales · {daily.refunds.count} refunds · Noncash:{" "}
             {money(Number(daily.noncashMinor))}
           </p>
+          <p>Square Sandbox sales: {money(Number(daily.squareSalesMinor ?? 0))} · Square refunds: {money(Number(daily.squareRefundsMinor ?? 0))}. These are transaction totals; settlement and payouts are not included.</p>
           <section className="pos-panel">
             <h3>By register</h3>
             {daily.byRegister.map((r) => (

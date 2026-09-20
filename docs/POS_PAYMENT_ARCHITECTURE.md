@@ -2,6 +2,27 @@
 
 Status: Implemented in development source, 2026-09-20. Phase 4 development accepted; production remains blocked. See [validation](POS_PHASE4_VALIDATION.md).
 
+## Phase 5 extension
+
+Square Sandbox now supplies an injected `SquarePaymentProvider`, confidential-server OAuth,
+encrypted credentials, merchant/location administration, explicit site mappings, payment and
+refund HTTP operations, official SDK webhook verification, and provider reconciliation.
+See [Square integration](POS_SQUARE_INTEGRATION.md) and [Phase 5 validation](POS_PHASE5_VALIDATION.md).
+The audit sections below describe the original Phase 4 starting point.
+
+The additive Phase 5 migration expands the canonical provider/tender constraints and command
+functions. Private Square observation tables are populated only by the restricted server RPC;
+authenticated `observe` consumes those records through the accepted state machine. Sale and
+refund finalizers remain unchanged. Browser statuses and arbitrary payment location/source
+fields are not authority. Square IDs use immutable attempt/refund UUIDs for provider idempotency.
+
+Square webhooks verify raw bytes using `square@46.0.0` and the configured public notification
+URL. A durable deduplicated inbox supports retry/revocation. Webhook observation persistence
+does not bypass original-cashier finalization: current authenticated permission is still
+required to finish stock/sale/receipt effects. No service-role inventory worker was introduced.
+Cash and external tender are independent; Sandbox test-source creation is development/test
+only. Real Sandbox credentials/consent and public webhook delivery remain unconfigured here.
+
 ## Audit before implementation
 
 Phases 1–3 already provide canonical immutable `pos_sales`, `pos_sale_items`, allocation snapshots, multiple-row `pos_tenders`, item refunds and cash ledger. The tender method constraint is cash-only. `pos_private.cash_command` owns atomic stock/sale/receipt finalization; `pos_private.refund` owns canonical returns. `pos_operation_receipts` provides actor/key/intent replay. Reuse these instead of building another sales or inventory system.

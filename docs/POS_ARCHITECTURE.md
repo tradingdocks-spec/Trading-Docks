@@ -1,6 +1,6 @@
 # Trading Docks POS architecture
 
-Status: Partially Implemented. Phases 1–4 are implemented in development source. Phase 5 onward remains Planned. Hosted rollout Requires Production Configuration and separate staging/hardware acceptance. Working branch: `codex/pos-foundation`.
+Status: Partially Implemented. Phases 1–5 are implemented in development source. Square HTTP contracts are validated locally; real Sandbox consent/webhook acceptance remains unconfigured. Phase 6 onward remains Planned. Hosted rollout Requires Production Configuration and separate staging/hardware acceptance. Working branch: `codex/pos-foundation`.
 
 Phase 4 adds provider-neutral payment attempts, frozen checkouts, explicit payment/sale state separation, idempotent finalization, deterministic mock/external adapters, provider refunds and manual reconciliation. Mock operation is disabled by default and rejected by production servers. Cash retains its synchronous path; drawer reports distinguish noncash. See [payment architecture](POS_PAYMENT_ARCHITECTURE.md) and [Phase 4 validation](POS_PHASE4_VALIDATION.md). No live processor or production change is included.
 

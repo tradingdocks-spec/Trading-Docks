@@ -7,19 +7,29 @@ import type { Payment, RefundAttempt } from "./domain.ts";
 export class PaymentOrchestrator {
   private store: PaymentStore;
   private environment: string | undefined;
-  constructor(store: PaymentStore, environment: string | undefined) {
+  private providers: Partial<Record<Payment["provider"], PaymentProvider>>;
+  constructor(
+    store: PaymentStore,
+    environment: string | undefined,
+    providers: Partial<Record<Payment["provider"], PaymentProvider>> = {},
+  ) {
     this.store = store;
     this.environment = environment;
+    this.providers = providers;
   }
   private adapter(p: Payment) {
-    return providerFor(p.provider, this.store, this.environment);
+    return (
+      this.providers[p.provider] ??
+      providerFor(p.provider, this.store, this.environment)
+    );
   }
   async begin(body: Record<string, unknown>) {
-    providerFor(
-      body.provider as Payment["provider"],
-      this.store,
-      this.environment,
-    );
+    if (!this.providers[body.provider as Payment["provider"]])
+      providerFor(
+        body.provider as Payment["provider"],
+        this.store,
+        this.environment,
+      );
     const p = await this.store<Payment>("create", body);
     await this.adapter(p).createPayment(p.id);
     return this.observe(p.id);

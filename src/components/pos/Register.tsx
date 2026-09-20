@@ -884,6 +884,7 @@ export function Register({
           </label>
           {pricingError && <p role="alert">{pricingError}</p>}
           <PaymentPanel
+            siteId={site?.id}
             scope={`${workspaceId}.${actorId}`}
             disabled={
               busy ||

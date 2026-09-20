@@ -4,9 +4,12 @@ import { POS_ERRORS } from "../domain";
 import { normalizeProviderError } from "./domain";
 import { PaymentOrchestrator } from "./orchestrator";
 import type { PaymentStore } from "./provider";
+import { squareAccounts } from "./square/server";
+import { SquarePaymentProvider } from "./square/provider";
 const errors: Record<string, string> = {
   ...POS_ERRORS,
   POS_MOCK_DISABLED: "Simulated payments are disabled.",
+  POS_SQUARE_UNAVAILABLE: "Square is unavailable for this store. Review the checkout and choose another payment method.",
   POS_PAYMENT_ACTIVE:
     "Resolve the current payment before starting another payment or closing this register.",
   POS_PAYMENT_UNCERTAIN: "Payment status is being verified.",
@@ -57,6 +60,7 @@ export async function paymentRoute(
     }
     const ctx = await posContext();
     if (!ctx.ok) return ctx.response;
+    if (!ctx.access.userId) return Response.json({ error: "Authentication required." }, { status: 403 });
     const store: PaymentStore = async <T>(
       operation: string,
       payload: Record<string, unknown>,
@@ -76,18 +80,24 @@ export async function paymentRoute(
       }
       return data as T;
     };
-    const service = new PaymentOrchestrator(store, process.env.NODE_ENV);
+    let square: SquarePaymentProvider | undefined;
+    try { square = new SquarePaymentProvider(store, squareAccounts(), ctx.workspaceId, ctx.access.userId, process.env.NODE_ENV); } catch {}
+    const service = new PaymentOrchestrator(store, process.env.NODE_ENV, square ? { SQUARE: square } : {});
     let result: unknown;
-    if (action === "create") result = await service.begin(body);
+    if (action === "create") {
+      if (body.provider === "SQUARE" && process.env.NODE_ENV === "production") throw Error("CONFIGURATION_ERROR");
+      result = await service.begin(body);
+    }
     else if (action === "check") result = await service.check(id!);
     else if (action === "cancel") result = await service.cancel(id!);
     else if (action === "refund")
       result = await service.refund({ ...body, paymentId: id });
     else if (action === "checkRefund") result = await service.checkRefund(id!);
     else if (action === "capabilities") {
-      const data = await store<{ mockEnabled: boolean }>("capabilities", {});
+      const data = await store<{ mockEnabled: boolean; squareSites?: string[] }>("capabilities", {});
       result = {
         mockEnabled: process.env.NODE_ENV !== "production" && data.mockEnabled,
+        squareSites: square && process.env.NODE_ENV !== "production" ? data.squareSites ?? [] : [],
       };
     } else
       result = await store(action, {
@@ -115,7 +125,7 @@ export async function paymentRoute(
   } catch (err) {
     const code = err instanceof Error ? err.message : "UNKNOWN_STATUS";
     const normalized = normalizeProviderError(err);
-    const safe = errors[code] ?? normalized.message;
+    const safe = (action === "refund" || action === "checkRefund") && code === "UNAUTHORIZED_PROVIDER_ACCOUNT" ? "Reconnect Square before processing this refund." : errors[code] ?? normalized.message;
     console.warn("pos.payment.failed", {
       action,
       payment_attempt_id: id ?? null,

@@ -10,6 +10,7 @@ import {
 import { money } from "@/lib/pos/domain";
 export function PaymentPanel({
   scope,
+  siteId,
   disabled,
   intent,
   onLock,
@@ -17,6 +18,7 @@ export function PaymentPanel({
   onMethod,
 }: {
   scope: string;
+  siteId?: string;
   disabled: boolean;
   intent: () => Record<string, unknown>;
   onLock: (locked: boolean) => void;
@@ -26,6 +28,7 @@ export function PaymentPanel({
   const key = `td.pos.payment.${scope}`;
   const [ready, setReady] = useState(false);
   const [mock, setMock] = useState(false);
+  const [squareSites, setSquareSites] = useState<string[]>([]);
   const [provider, setProvider] = useState("CASH");
   const [outcome, setOutcome] = useState("APPROVE");
   const [reference, setReference] = useState("");
@@ -59,8 +62,9 @@ export function PaymentPanel({
         onLock(true);
       }
     });
-    paymentRequest<{ mockEnabled: boolean }>("/capabilities")
+    paymentRequest<{ mockEnabled: boolean; squareSites?: string[] }>("/capabilities")
       .then((v) => {
+        if (active) setSquareSites(v.squareSites ?? []);
         if (active)
           setMock(process.env.NODE_ENV !== "production" && v.mockEnabled);
       })
@@ -134,8 +138,10 @@ export function PaymentPanel({
           <option value="CASH">Cash</option>
           <option value="EXTERNAL">External — externally recorded</option>
           {mock && <option value="MOCK">Mock Card — development only</option>}
+          {process.env.NODE_ENV !== "production" && squareSites.includes(siteId ?? "") && <option value="SQUARE">Square Sandbox — developer test</option>}
         </select>
       </label>
+      {provider === "SQUARE" && <p>SANDBOX — No real money is processed. This developer test uses Square’s Sandbox test source.</p>}
       {provider === "MOCK" && (
         <label>
           Mock outcome
@@ -227,6 +233,7 @@ export function PaymentPanel({
           "POS_PRICE_REQUIRED",
           "POS_DISCOUNT_REASON",
           "POS_MOCK_DISABLED",
+          "POS_SQUARE_UNAVAILABLE",
         ].includes(errorCode) && (
           <button
             disabled={busy}
@@ -297,6 +304,7 @@ export function PaymentPanel({
               ? "Starting payment…"
               : provider === "MOCK"
                 ? "Pay with Mock Card"
+                : provider === "SQUARE" ? "Run Square Sandbox payment"
                 : "Record external payment"}
           </button>
         )

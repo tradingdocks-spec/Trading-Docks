@@ -12,6 +12,7 @@ export async function verifyPaymentsBrowser({
   owner,
   other,
   setup,
+  squareFixture,
 }) {
   const reg = await command(a, "configure_register", {
     siteId: setup.siteId,
@@ -28,7 +29,7 @@ export async function verifyPaymentsBrowser({
   let loseResponse = false;
   const bundle = await build({
     stdin: {
-      contents: `import React from 'react';import {createRoot} from 'react-dom/client';import {Register} from './src/components/pos/Register';import {Operations} from './src/components/pos/Operations';import {RefundPanel} from './src/components/pos/RefundPanel';import {PaymentHistory} from './src/components/pos/PaymentHistory';const d=window.seed;createRoot(document.getElementById('app')).render(d.mode==='payments'?<PaymentHistory/>:d.mode==='register'?<Register data={d.data} workspaceId="${workspace}" actorId={d.actor}/>:d.mode==='refund'?<RefundPanel data={d.data} items={d.items} saleId={d.saleId} scope={'${workspace}.'+d.actor}/>:<Operations data={d.data} scope={'${workspace}.'+d.actor} mode={d.mode}/>);`,
+      contents: `import React from 'react';import {createRoot} from 'react-dom/client';import {Register} from './src/components/pos/Register';import {Operations} from './src/components/pos/Operations';import {RefundPanel} from './src/components/pos/RefundPanel';import {PaymentHistory} from './src/components/pos/PaymentHistory';import {SquareSettings} from './src/components/pos/SquareSettings';const d=window.seed;createRoot(document.getElementById('app')).render(d.mode==='settings'?<SquareSettings/>:d.mode==='payments'?<PaymentHistory/>:d.mode==='register'?<Register data={d.data} workspaceId="${workspace}" actorId={d.actor}/>:d.mode==='refund'?<RefundPanel data={d.data} items={d.items} saleId={d.saleId} scope={'${workspace}.'+d.actor}/>:<Operations data={d.data} scope={'${workspace}.'+d.actor} mode={d.mode}/>);`,
       resolveDir: process.cwd(),
       loader: "tsx",
     },
@@ -65,12 +66,19 @@ export async function verifyPaymentsBrowser({
         res.end(bundle.outputFiles[0].text);
         return;
       }
+      if (url.pathname === "/api/pos/payments/square") {
+        let body={};if(req.method==='POST'){let raw='';for await(const chunk of req)raw+=chunk;body=JSON.parse(raw);}
+        if(body.action==='check'||body.action==='disconnect')await squareFixture.accounts.manage(body.action,workspace,owner,body.connectionId);
+        const result=(await a.query('select public.pos_square_settings($1,$2,$3) result',[workspace,body.action==='map'?'map':'get',body])).rows[0].result;
+        res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...result,configured:true}));return;
+      }
       if (url.pathname.startsWith("/api/pos/payments")) {
         const lose = loseResponse && req.method === "POST";
         loseResponse = false;
         if (
           await paymentHttp(req, res, url, client, workspace, {
             loseResponse: lose,
+            providerFactory: squareFixture?.providerFactory,
           })
         )
           return;
@@ -281,6 +289,29 @@ export async function verifyPaymentsBrowser({
     await page
       .getByRole("button", { name: "Cancel payment", exact: true })
       .click();
+    if(squareFixture) {
+      await page.getByRole('button',{name:'Try Another Payment Method'}).click();
+      await cart();
+      await page.getByLabel('Payment method',{exact:true}).selectOption('SQUARE');
+      await expect(page.getByText('SANDBOX — No real money is processed.',{exact:false})).toBeVisible();
+      loseResponse=true;
+      await page.getByRole('button',{name:'Run Square Sandbox payment'}).click();
+      await expect(page.getByRole('alert')).toContainText('Response lost');
+      const before=(await admin.query("select count(*)::int n from pos_sales where register_id=$1",[reg.id])).rows[0].n;
+      await page.reload();await page.getByRole('button',{name:'Check Payment Status',exact:true}).click();
+      await expect(page.getByText('Payment Complete',{exact:true})).toBeVisible();
+      expect((await admin.query("select count(*)::int n from pos_sales where register_id=$1",[reg.id])).rows[0].n).toBe(before);
+      await page.screenshot({path:'.local-fixtures/pos-db/square-sandbox-complete.png',fullPage:true});
+      console.log('PASS browser Square Sandbox lost response reload recovers one sale');
+      await page.goto('http://127.0.0.1:4204?mode=settings');
+      await expect(page.getByRole('heading',{name:'Square Test Shop'})).toBeVisible();
+      await expect(page.getByLabel(/Square location for/).first()).toHaveValue('square-location');
+      await page.screenshot({path:'.local-fixtures/pos-db/square-settings-tablet.png',fullPage:true});
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+      page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Disconnect Square',exact:true}).click();
+      await expect(page.getByRole('button',{name:'Connect Square Sandbox'})).toBeVisible();
+      console.log('PASS Square settings mapping, tablet layout and confirmed disconnect');
+    }
     expect(errors).toEqual([]);
     console.log("PASS payment tablet layout and no page errors");
   } finally {
