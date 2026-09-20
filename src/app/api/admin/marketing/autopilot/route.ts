@@ -5,8 +5,11 @@ import { buildMarketingAutopilotPackage } from "@/lib/marketing/marketing-autopi
 import { loadMarketingIntelligenceContext } from "@/app/api/admin/marketing/intelligence/route";
 import { registryFeatureFor } from "@/lib/marketing/product-marketing-registry";
 import type { IntelligenceProof } from "@/lib/marketing/marketing-intelligence";
+import { randomUUID } from "node:crypto";
+import { renderAutopilotVariants } from "@/lib/marketing/marketing-autopilot-rendering";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const audiences = ["local_game_store", "multi_location_store", "high_volume_online_seller", "collector", "other"] as const;
 const objectives = ["awareness", "workflow_education", "demo_request", "product_launch", "re_engagement"] as const;
@@ -21,6 +24,8 @@ export async function GET() {
 async function captureMissingProof(featureSlug: string): Promise<{ proof: IntelligenceProof; assetId: string; assetName: string; role: string }> {
   const baseUrl = process.env.MARKETING_CAPTURE_BASE_URL;
   if (!baseUrl) throw new Error("Marketing capture is not configured. Set MARKETING_CAPTURE_BASE_URL before using full Autopilot generation.");
+  const secret = process.env.MARKETING_CAPTURE_SECRET;
+  if (!secret) throw new Error("Marketing capture signing is not configured.");
 
   let captureCanonicalPage: typeof import("@/lib/marketing/canonical-capture-runner").captureCanonicalPage;
   let registerCanonicalCapture: typeof import("@/lib/marketing/canonical-capture-registration").registerCanonicalCapture;
@@ -36,8 +41,8 @@ async function captureMissingProof(featureSlug: string): Promise<{ proof: Intell
     registerCanonicalCapture = registrationModule.registerCanonicalCapture;
     resolveCanonicalFeatureId = registrationModule.resolveCanonicalFeatureId;
     validateCanonicalCaptureRequest = requestModule.validateCanonicalCaptureRequest;
-  } catch {
-    throw new Error("Canonical product capture is unavailable in this deployment environment.");
+  } catch (error) {
+    throw new Error(`BROWSER_MODULE_UNAVAILABLE: ${error instanceof Error ? error.message : "Browser capture modules could not be loaded."}`);
   }
 
   const feature = registryFeatureFor(featureSlug);
@@ -64,7 +69,7 @@ async function captureMissingProof(featureSlug: string): Promise<{ proof: Intell
       captured = await captureCanonicalPage(request, {
         baseUrl,
         featureId,
-        storageState: process.env.MARKETING_CAPTURE_STORAGE_STATE,
+        secret,
       });
       captureError = null;
       break;
@@ -74,10 +79,14 @@ async function captureMissingProof(featureSlug: string): Promise<{ proof: Intell
   }
 
   if (!captured) {
-    throw new Error(captureError instanceof Error ? `Canonical product capture failed: ${captureError.message}` : "Canonical product capture failed.");
+    if (captureError instanceof Error) {
+      const code = typeof (captureError as unknown as { code?: unknown }).code === "string" ? (captureError as unknown as { code: string }).code : "CAPTURE_FAILED";
+      throw new Error(`${code}: ${captureError.message}`);
+    }
+    throw new Error("CAPTURE_FAILED: Canonical product capture did not return an image.");
   }
 
-  const asset = await registerCanonicalCapture(captured.metadata, captured.png);
+  const asset = await registerCanonicalCapture(captured.metadata, Buffer.from(captured.png));
   return {
     proof: {
       id: asset.id,
@@ -126,6 +135,29 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
+    const proofId = packageData.plan.productProof?.id;
+    if (!proofId) return NextResponse.json({ error: "A product proof is required before the campaign can be created." }, { status: 503 });
+    const proofRecord = await admin.from("marketing_assets").select("storage_path,mime_type").eq("id", proofId).maybeSingle();
+    if (proofRecord.error || !proofRecord.data?.storage_path) return NextResponse.json({ error: "The selected product proof could not be loaded. No campaign was created." }, { status: 503 });
+    const proofDownload = await admin.storage.from("marketing-assets").download(proofRecord.data.storage_path);
+    if (proofDownload.error || !proofDownload.data) return NextResponse.json({ error: "The selected product proof could not be loaded. No campaign was created." }, { status: 503 });
+    let renderedVariants;
+    try {
+      const rendered = await renderAutopilotVariants(packageData, Buffer.from(await proofDownload.data.arrayBuffer()));
+      const renderBatch = randomUUID();
+      renderedVariants = await Promise.all(rendered.map(async (variant) => {
+        const storagePath = `autopilot/${renderBatch}/${variant.filename}`;
+        const upload = await admin.storage.from("marketing-assets").upload(storagePath, variant.png, { contentType: "image/png", upsert: false });
+        if (upload.error) throw new Error("Rendered creative upload failed.");
+        const metadata = await admin.from("marketing_assets").insert({ name: variant.filename.replace(/\.png$/, ""), asset_type: "social_export", storage_path: storagePath, mime_type: "image/png", width: variant.width, height: variant.height, feature_ids: [packageData.feature.id], tags: [`platform:${variant.platform}`, "source:marketing_autopilot"], approved_for_marketing: false, approval_status: "draft", source: "marketing_autopilot_render", marketing_use_approved: false, product_display_allowed: false, created_by: actor.user.id }).select("id,name,storage_path,width,height,approval_status").single();
+        if (metadata.error || !metadata.data) throw new Error("Rendered creative registration failed.");
+        const signed = await admin.storage.from("marketing-assets").createSignedUrl(storagePath, 600);
+        return { platform: variant.platform, width: variant.width, height: variant.height, filename: variant.filename, assetId: metadata.data.id, previewUrl: signed.data?.signedUrl ?? null };
+      }));
+    } catch {
+      return NextResponse.json({ error: "Creative rendering or registration failed. No campaign was created." }, { status: 503 });
+    }
+    packageData = { ...packageData, renderedVariants };
     const campaign = await admin.from("marketing_outbound_campaigns").insert({
       name: `${packageData.feature.name} · ${objective}`,
       feature_id: packageData.feature.id,

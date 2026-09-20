@@ -5,6 +5,7 @@ import { buildCampaignDraftPlan, rankMarketingOpportunities } from "../src/lib/m
 import { marketingCaptureImportsAreSafe, validateCanonicalCaptureRequest } from "../src/lib/marketing/canonical-capture.ts";
 import { getMarketingDemoFixture } from "../src/lib/marketing/marketing-demo-fixtures.ts";
 import { MARKETING_PRODUCT_REGISTRY } from "../src/lib/marketing/product-marketing-registry.ts";
+import { createCanonicalCaptureToken, verifyCanonicalCaptureToken } from "../src/lib/marketing/canonical-capture-auth.ts";
 
 const proof = { id: "capture-1", name: "Chaos Sort primary capture", featureIds: ["chaos-sort"], role: "primary", source: "canonical_product_capture", approved: true, marketingApproved: true, archived: false };
 
@@ -39,6 +40,32 @@ test("canonical capture requests use synthetic fixtures and safe metadata", () =
   assert.throws(() => validateCanonicalCaptureRequest({ feature: "chaos-sort", state: "missing" }), /Unknown synthetic/);
   assert.equal(marketingCaptureImportsAreSafe(readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8")), true);
   assert.equal(marketingCaptureImportsAreSafe(readFileSync("src/app/api/admin/marketing/intelligence/capture/route.ts", "utf8")), true);
+});
+
+test("canonical capture tokens are signed, short-lived, and fixture-scoped", () => {
+  const secret = "test-only-capture-secret";
+  const token = createCanonicalCaptureToken("chaos-sort", "primary", secret, 1_000);
+  assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "primary", secret, 1_001), true);
+  assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "primary", secret, 1_301), false);
+  assert.equal(verifyCanonicalCaptureToken(token, "not-registered", "primary", secret, 1_001), false);
+  assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "locations", secret, 1_001), false);
+  assert.equal(verifyCanonicalCaptureToken(`${token.slice(0, -1)}x`, "chaos-sort", "primary", secret, 1_001), false);
+  assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "primary", "different-secret", 1_001), false);
+  assert.throws(() => createCanonicalCaptureToken("chaos-sort", "not-registered", secret, 1_000), /Unknown canonical capture fixture/);
+});
+
+test("canonical capture auth remains limited to the synthetic internal page", () => {
+  const page = readFileSync("src/app/internal/marketing-capture/[feature]/[state]/page.tsx", "utf8");
+  const runner = readFileSync("src/lib/marketing/canonical-capture-runner.ts", "utf8");
+  assert.match(page, /verifyCanonicalCaptureToken/);
+  assert.match(page, /requireServerPlatformRole\("admin"\)/);
+  assert.match(page, /if \(token\) notFound\(\)/);
+  assert.doesNotMatch(page, /"use client"/);
+  assert.doesNotMatch(page, /NEXT_PUBLIC_MARKETING_CAPTURE_SECRET/);
+  assert.doesNotMatch(runner, /storageState/);
+  assert.match(runner, /MARKETING_CAPTURE_BASE_URL|options\.baseUrl/);
+  assert.match(runner, /capture_token/);
+  assert.equal(marketingCaptureImportsAreSafe(page), true);
 });
 
 test("intelligence endpoints remain admin-only and never send or publish", () => {
