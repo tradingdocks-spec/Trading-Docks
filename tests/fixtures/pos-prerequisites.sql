@@ -9,7 +9,7 @@ grant usage on schema auth to authenticated,anon;
 grant execute on function auth.uid() to authenticated,anon;
 create table public.workspaces(id uuid primary key,name text,owner_id uuid references auth.users(id));
 create table public.workspace_members(workspace_id uuid references public.workspaces(id),user_id uuid references auth.users(id),role text,primary key(workspace_id,user_id));
-create table public.workspace_employees(id uuid primary key default gen_random_uuid(),workspace_id uuid,linked_user_id uuid,employment_status text);
+create table public.workspace_employees(id uuid primary key default gen_random_uuid(),workspace_id uuid,linked_user_id uuid,employment_status text, full_name text default 'Test operator', permissions jsonb not null default '{}');
 create table public.user_preferences(user_id uuid primary key,active_workspace_id uuid,preferences jsonb default '{}');
 create table public.profiles(id uuid primary key);
 create table public.admin_membership_overrides(user_id uuid primary key,plan_id text);

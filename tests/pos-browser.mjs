@@ -45,6 +45,8 @@ export async function verifyBrowser({ admin, command, workspace, owner }) {
     const receiptPage=await browser.newPage();await receiptPage.goto('http://127.0.0.1:4199'+receiptHref);await expect(receiptPage.getByRole('button',{name:'Print receipt',exact:true})).toBeVisible();
     await receiptPage.pdf({path:'.local-fixtures/pos-db/receipt.pdf',width:'80mm',height:'200mm',printBackground:true});await receiptPage.close();
     console.log('PASS browser open register → scan twice → edit quantity → cash/change → receipt');
+    await page.locator('h1').click();await page.keyboard.type('ROLLBACK',{delay:5});await page.keyboard.press('Enter');await expect(page.getByLabel('Quantity',{exact:true})).toHaveCount(0);
+    await page.getByRole('button',{name:'New Sale',exact:true}).click();
     await page.locator('h1').click();await page.keyboard.type('UNKNOWN',{delay:5});await page.keyboard.press('Enter');await expect(page.getByRole('status').filter({hasText:'Barcode not found'})).toBeVisible();
     await page.getByLabel('Scan barcode or search inventory').fill('Rollback');await expect(page.getByRole('button').filter({hasText:'Rollback'})).toBeVisible();await page.getByRole('button').filter({hasText:'Rollback'}).click();
     await page.getByLabel('Cash received').fill('2.00');loseResponse=true;await page.getByRole('button',{name:'Complete cash sale',exact:true}).click();
@@ -53,7 +55,8 @@ export async function verifyBrowser({ admin, command, workspace, owner }) {
     console.log('PASS browser unknown scan, manual search and lost-response recovery after reload');
     await page.setViewportSize({width:768,height:1024});await page.screenshot({path:'.local-fixtures/pos-db/register-tablet.png',fullPage:true});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
-    await page.getByRole('button',{name:'Close register',exact:true}).click();await expect(page.getByRole('button',{name:'Open register',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'New Sale',exact:true}).click();
+    await page.getByRole('button',{name:'Close register',exact:true}).click();await page.getByLabel('Counted cash').fill('4.35');await page.getByRole('button',{name:'Confirm drawer close',exact:true}).click();await expect(page.getByRole('button',{name:'Open register',exact:true})).toBeVisible();
     expect(errors).toEqual([]);console.log('PASS browser tablet width, register close, no page errors');
     const stock=(await admin.query("select quantity from inventory_items where id='rollback'")).rows[0].quantity;expect(stock).toBe(5);
   }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

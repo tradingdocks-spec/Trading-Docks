@@ -26,6 +26,15 @@ async function client(user=owner) {
   await c.query('set role authenticated'); await c.query("select set_config('request.jwt.claim.sub',$1,false)",[user]); return c;
 }
 async function command(c, action, body={}, w=workspace) {
+  if (!['availability','bootstrap','search','history','receipt','recover','cancel','setup','access','sessions','session_detail','daily','approvals','quote'].includes(action)) {
+    body={...body,key:body.key??randomUUID()};
+    if(action==='open') body.openingMinor??=0;
+    if(['close','begin_close','resume','cash_event'].includes(action)&&!body.sessionId){
+      const current=(await admin.query('select id from pos_register_sessions where register_id=$1 and closed_at is null',[body.registerId])).rows[0];
+      body.sessionId=current?.id;
+    }
+    if(action==='close'&&body.countedMinor===undefined) body.countedMinor=Number((await admin.query('select pos_private.expected_cash($1) n',[body.sessionId])).rows[0].n);
+  }
   return (await c.query('select public.pos_command($1,$2,$3) as result',[w,action,body])).rows[0].result;
 }
 async function check(name, fn) { await fn(); passed++; console.log(`PASS ${name}`); }
@@ -35,6 +44,8 @@ try {
   for (const file of ['202607280004_inventory_persistence.sql','20260917014520_entitlement_production_repair.sql','202608090001_label_studio_inventory_qr_proposal.sql',...(process.argv.includes('--enum-ledger') ? ['202608120002_inventory_event_ledger.sql'] : ['202609060002_inventory_events.sql']),'202609070001_chaos_sort_sessions_and_positions.sql','20260918173226_selling_marketplace_platform_foundation.sql','20260918174321_selling_allocation_and_candidate_workflow.sql','20260918190000_selling_chaos_position_multiplicity.sql']) await admin.query(sql(`supabase/migrations/${file}`));
   await admin.query(sql('supabase/migrations/20260920181448_pos_cash_foundation.sql'));
   await admin.query(sql('supabase/migrations/20260920190428_pos_barcode_labels.sql'));
+  await admin.query(sql('supabase/migrations/20260920201259_pos_staff_delegation.sql'));
+  await admin.query(sql('supabase/migrations/20260920201754_pos_register_operations.sql'));
   console.log('Migrations applied to disposable PostgreSQL');
   if (process.argv.includes('--advisors')) {
     try { console.log(execFileSync('powershell.exe',['-NoProfile','-Command','supabase db advisors --db-url postgresql://postgres:pos-test-only@127.0.0.1:55439/postgres?sslmode=disable --type security --level warn --fail-on error'],{encoding:'utf8',timeout:60000})); } catch(error) { console.log('LOCAL ADVISORS:',error.stdout?.toString(),error.stderr?.toString()); }
@@ -56,7 +67,7 @@ try {
     const second=await admin.query(`insert into pos_registers(workspace_id,site_id,name) values($1,$2,'Second') returning id`,[workspace,setup.siteId]);
     const session2=await command(b,'open',{registerId:second.rows[0].id});
     const request=(sessionId=session.id)=>({key:randomUUID(),siteId:setup.siteId,sessionId,expectedMinor:1409,cashMinor:2000,discountReason:'',lines:[{itemId:'bolt',quantity:1,discountBps:0}]});
-    await verifyStaffingBoundary({ admin, staff: stranger, owner, other, workspace, setup, request, command, check });
+    await verifyStaffingBoundary({ admin, staff: stranger, ownerClient:a, owner, other, workspace, setup, request, command, check });
     await check('exact barcode resolves only authorized real inventory',async()=>{const rows=await command(a,'search',{siteId:setup.siteId,query:'TD-ABCD-EFGH',exact:true});assert.equal(rows.length,1);assert.equal(rows[0].unit_price_minor,1299);});
     await check('canonical label SKU remains stable through repricing',async()=>{
       const identity=(await a.query(`insert into inventory_label_identities(workspace_id,inventory_user_id,inventory_item_id,target_type,sku,qr_token) values($1,$2,'bolt','single','','') returning sku,qr_token`,[workspace,owner])).rows[0];
@@ -89,7 +100,7 @@ try {
     await check('exact unavailable position cannot fall back to another batch',async()=>{await assert.rejects(command(a,'checkout',{...request(),expectedMinor:217,lines:[{itemId:'positioned',quantity:2,positionId:'p1'}]}),/POS_STOCK_UNAVAILABLE/);assert.equal((await admin.query("select quantity from inventory_items where id='positioned'")).rows[0].quantity,2);});
     await check('discounts require manager and reason; totals calculated by database',async()=>{await assert.rejects(command(a,'checkout',{...request(),expectedMinor:55,lines:[{itemId:'positioned',quantity:1,discountBps:5000}]}),/POS_DISCOUNT_REASON/);const r=await command(a,'checkout',{...request(),expectedMinor:54,discountReason:'Manager markdown',lines:[{itemId:'positioned',quantity:1,discountBps:5000}]});assert.equal(r.receipt.discountMinor,50);assert.equal(r.receipt.taxMinor,4);});
     await check('same-tenant viewer cannot open/search/checkout',async()=>{await admin.query("update workspace_members set role='viewer' where user_id=$1",[owner]);await assert.rejects(command(a,'bootstrap'),/POS_FORBIDDEN/);await admin.query("update workspace_members set role='owner' where user_id=$1",[owner]);});
-    await check('member cannot configure sites or discount',async()=>{await admin.query("update workspace_members set role='member' where user_id=$1",[owner]);await assert.rejects(command(a,'setup',{name:'X',registerName:'X',locationId:'spare',taxBps:0}),/POS_FORBIDDEN/);await assert.rejects(command(a,'checkout',{...request(),expectedMinor:54,discountReason:'Not authorized',lines:[{itemId:'positioned',quantity:1,discountBps:5000}]}),/POS_FORBIDDEN/);await admin.query("update workspace_members set role='owner' where user_id=$1",[owner]);});
+    await check('member cannot configure sites or discount',async()=>{await admin.query("update workspace_members set role='member' where user_id=$1",[owner]);await assert.rejects(command(a,'setup',{name:'X',registerName:'X',locationId:'spare',taxBps:0}),/POS_FORBIDDEN/);await assert.rejects(command(a,'checkout',{...request(),expectedMinor:54,discountReason:'Not authorized',lines:[{itemId:'positioned',quantity:1,discountBps:5000}]}),/POS_APPROVAL_REQUIRED/);await admin.query("update workspace_members set role='owner' where user_id=$1",[owner]);});
     await check('suspended account and inactive employee denied',async()=>{await admin.query("update auth.users set banned_until=now()+interval '1 day' where id=$1",[owner]);await assert.rejects(command(a,'bootstrap'),/POS_FORBIDDEN/);await admin.query('update auth.users set banned_until=null where id=$1',[owner]);await admin.query("insert into workspace_employees(workspace_id,linked_user_id,employment_status) values($1,$2,'inactive')",[workspace,owner]);await assert.rejects(command(a,'bootstrap'),/POS_FORBIDDEN/);await admin.query("update workspace_employees set employment_status='active'");});
     await a.query(`insert into inventory_items(id,user_id,workspace_id,location_id,card_name,sku,quantity,asking_price,data) values('rollback',$1,$2,'case','Rollback','ROLLBACK',10,1,'{}'),('no-price',$1,$2,'case','No price','NO-PRICE',1,null,'{}'),('exempt',$1,$2,'case','Exempt','EXEMPT',1,1,'{"taxable":false}')`,[owner,workspace]);
     await check('missing price and inadequate cash never commit',async()=>{await assert.rejects(command(a,'checkout',{...request(),expectedMinor:0,lines:[{itemId:'no-price',quantity:1}]}),/POS_PRICE_REQUIRED/);await assert.rejects(command(a,'checkout',{...request(),expectedMinor:109,cashMinor:100,lines:[{itemId:'rollback',quantity:1}]}),/POS_CASH_INSUFFICIENT/);});
@@ -105,12 +116,19 @@ try {
     await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
     const { verifyLabels } = await import('./label-db.mjs');
     await verifyLabels({admin,a,stranger,command,workspace,otherWorkspace,owner,other,check});
+    const staffedSession=await command(a,'open',{registerId:setup.registerId});
+    await verifyStaffingBoundary({ admin, staff:stranger, ownerClient:a, owner, other, workspace, setup, request:()=>request(staffedSession.id), command, check, extended:true });
+    await command(a,'close',{registerId:setup.registerId});
+    const {verifyOperations}=await import('./pos-operations-db.mjs');
+    await verifyOperations({admin,a,b,staff:stranger,command,workspace,owner,other,setup,check,createClient:client});
     if (process.argv.includes('--browser')) {
       await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
       const { verifyLabelWorkflow }=await import('./label-workflow-browser.mjs');
       await verifyLabelWorkflow({a,admin,command:(action,body)=>command(a,action,body),workspace,owner});
       const { verifyBrowser }=await import('./pos-browser.mjs');
       await verifyBrowser({admin, command: (action,body)=>command(a,action,body), workspace, owner});
+      const {verifyOperationsBrowser}=await import('./pos-operations-browser.mjs');
+      await verifyOperationsBrowser({admin,a,staff:stranger,command,workspace,owner,other,setup});
     }
   } finally { for(const c of clients) await c.end(); }
   console.log(`POS database checks: ${passed} passed`);

@@ -25,7 +25,7 @@ export {
 
 export type PlatformRole = 'owner' | 'admin' | 'support' | 'analyst' | 'user';
 export type PlatformRoleAuthority = 'trusted' | 'client';
-export type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
+export type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'member' | 'employee' | 'viewer';
 
 export type PlatformCapability =
   | 'collection.read'
@@ -129,6 +129,7 @@ export const PLATFORM_ROLE_RANK: Record<PlatformRole, number> = {
 
 export const WORKSPACE_ROLE_RANK: Record<WorkspaceRole, number> = {
   viewer: 0,
+  employee: 0.5,
   member: 1,
   manager: 2,
   admin: 3,
@@ -148,7 +149,7 @@ export const CAPABILITY_REGISTRY: Record<PlatformCapability, CapabilityRequireme
   'label.manage_templates': { capability: 'label.manage_templates', label: 'Manage label templates', minimumTier: 'seller', minimumWorkspaceRole: 'manager' },
   'label.print': { capability: 'label.print', label: 'Print inventory labels', minimumTier: 'seller', minimumWorkspaceRole: 'member' },
   'inventory.reprice': { capability: 'inventory.reprice', label: 'Review inventory repricing', minimumTier: 'seller', minimumWorkspaceRole: 'manager' },
-  'pos.sell': { capability: 'pos.sell', label: 'Sell through POS', minimumTier: 'seller', minimumWorkspaceRole: 'member' },
+  'pos.sell': { capability: 'pos.sell', label: 'Sell through POS', minimumTier: 'seller', minimumWorkspaceRole: 'employee' },
   'buying.manage': { capability: 'buying.manage', label: 'Manage buying workflows', minimumTier: 'seller', entitlement: 'deal-desk' },
   'orders.manage': { capability: 'orders.manage', label: 'Manage orders', minimumTier: 'seller' },
   'marketplaces.manage': { capability: 'marketplaces.manage', label: 'Manage marketplaces', minimumTier: 'seller' },
@@ -188,7 +189,7 @@ export function normalizePlatformRole(value: unknown): PlatformRole {
 }
 
 export function normalizeWorkspaceRole(value: unknown): WorkspaceRole | null {
-  if (value === 'owner' || value === 'admin' || value === 'manager' || value === 'member' || value === 'viewer') {
+  if (value === 'owner' || value === 'admin' || value === 'manager' || value === 'member' || value === 'employee' || value === 'viewer') {
     return value;
   }
   return null;
@@ -295,7 +296,10 @@ export function hasCapability(access: PlatformAccessContext | ClientSafePlatform
       requirement.platformRoles.includes(access.platformRole as Exclude<PlatformRole, 'user'>);
   }
 
-  if (requirement.minimumTier && MEMBERSHIP_TIER_RANK[access.membershipTier] < MEMBERSHIP_TIER_RANK[requirement.minimumTier]) {
+  // Employee route eligibility only. POS SQL independently requires an active
+  // employee permission, paid inventory owner and explicit site delegation.
+  const delegatedPosEntry = capability === 'pos.sell' && access.workspaceRole === 'employee';
+  if (!delegatedPosEntry && requirement.minimumTier && MEMBERSHIP_TIER_RANK[access.membershipTier] < MEMBERSHIP_TIER_RANK[requirement.minimumTier]) {
     return false;
   }
   if (requirement.accountTypes && !requirement.accountTypes.includes(access.accountType)) return false;

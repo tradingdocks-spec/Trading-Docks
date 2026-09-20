@@ -3,7 +3,7 @@ import { posCommand } from '@/lib/pos/server';
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const action = params.get('action') ?? 'bootstrap';
-  if (!['bootstrap', 'search', 'history', 'receipt', 'recover'].includes(action)) return Response.json({ error: 'Unknown POS action.' }, { status: 400 });
+  if (!['bootstrap', 'search', 'history', 'receipt', 'recover', 'access', 'sessions', 'session_detail', 'daily', 'approvals'].includes(action)) return Response.json({ error: 'Unknown POS action.' }, { status: 400 });
   const body = Object.fromEntries(params.entries());
   const result = await posCommand(action, body);
   return result.response ?? Response.json(result.data, { headers: { 'Cache-Control': 'no-store' } });
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
   let body: Record<string, unknown>;
   try { body = JSON.parse(raw + decoder.decode()); } catch { return Response.json({ error: 'Invalid request.' }, { status: 400 }); }
-  if (!body || Array.isArray(body) || typeof body !== 'object' || !['setup', 'open', 'close', 'checkout', 'cancel'].includes(String(body.action))) return Response.json({ error: 'Unknown POS action.' }, { status: 400 });
+  if (!body || Array.isArray(body) || typeof body !== 'object' || !['setup', 'open', 'close', 'checkout', 'cancel', 'begin_close', 'resume', 'cash_event', 'configure_register', 'settings', 'request_approval', 'approve', 'refund', 'grant', 'revoke', 'staff_permissions', 'join_site', 'quote'].includes(String(body.action))) return Response.json({ error: 'Unknown POS action.' }, { status: 400 });
   const { action, ...payload } = body;
   const result = await posCommand(String(action), payload);
   return result.response ?? Response.json(result.data, { headers: { 'Cache-Control': 'no-store' } });

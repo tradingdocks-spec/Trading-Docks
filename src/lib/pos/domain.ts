@@ -1,4 +1,5 @@
 export type PosItem = {
+  ownerId?: string;
   positionId?: string | null; barcodeIdentity?: string; targetType?: string;
   id: string; name: string; sku: string; set_code: string | null;
   collector_number: string | null; condition: string | null; finish: string | null;
@@ -6,7 +7,7 @@ export type PosItem = {
   unit_price_minor: number | null; available: number; taxable: boolean;
   positions: { id: string; batchId: string; quantity: number; locationId: string }[];
 };
-export type CartLine = { item: PosItem; quantity: number; discountBps: number; positionId?: string };
+export type CartLine = { item: PosItem; quantity: number; discountBps: number; positionId?: string; discountMinor?: number; overrideMinor?: number };
 export type ReceiptLine = {
   itemId: string; name: string; sku: string; quantity: number; unitPriceMinor: number;
   discountMinor: number; taxMinor: number; lineTotalMinor: number;
@@ -14,14 +15,17 @@ export type ReceiptLine = {
   finish: string | null; language: string | null; locationId: string;
 };
 export type Receipt = {
+  timezone?: string; employeeName?: string; settings?: { receiptWidth?: string; address?: string; footer?: string; returnPolicy?: string; showEmployee?: boolean; showSku?: boolean; showLocation?: boolean };
   version: number; number: string; site: string; register: string; actorId: string;
   createdAt: string; currency: string; lines: ReceiptLine[]; subtotalMinor: number;
   discountMinor: number; taxMinor: number; totalMinor: number; cashMinor: number; changeMinor: number;
 };
 export type Bootstrap = {
-  sites: { id: string; name: string; tax_bps: number }[];
-  registers: { id: string; site_id: string; name: string }[];
-  sessions: { id: string; register_id: string; site_id: string }[];
+  operatorName?: string;
+  operators?: { id: string; name: string }[];
+  sites: { id: string; name: string; tax_bps: number; timezone?: string; settings?: Record<string, unknown> }[];
+  registers: { id: string; site_id: string; name: string; active?: boolean }[];
+  sessions: { id: string; register_id: string; site_id: string; status?: string }[];
   locations: { id: string; name: string }[];
   canManage: boolean;
 };
@@ -45,19 +49,22 @@ export function previewLine(unitPriceMinor: number, quantity: number, discountBp
 }
 export function addScan(lines: CartLine[], item: PosItem): CartLine[] {
   if (item.unit_price_minor === null) throw new Error('Set an asking price in inventory before selling this item.');
-  const current = lines.find(line => line.item.id === item.id && (line.positionId ?? '') === (item.positionId ?? ''));
+  const current = lines.find(line => line.item.id === item.id && line.item.ownerId === item.ownerId && (line.positionId ?? '') === (item.positionId ?? ''));
   if ((current?.quantity ?? 0) + 1 > Math.min(item.available, 1000)) throw new Error('No more available copies.');
   return current ? lines.map(line => line === current ? { ...line, item, quantity: line.quantity + 1 } : line)
     : [...lines, { item, quantity: 1, discountBps: 0, ...(item.positionId ? { positionId: item.positionId } : {}) }];
 }
 export const POS_ERRORS: Record<string, string> = {
+  POS_APPROVAL_REQUIRED: 'This action needs approval from an independently signed-in manager.',
+  POS_REASON_REQUIRED: 'Enter a reason for the cash variance.',
+  POS_REFUND_EXCEEDED: 'The refund quantity exceeds the remaining quantity on this sale.',
   POS_BARCODE_AMBIGUOUS: 'Barcode mapping needs attention. A manager must review the mapping before this barcode can be sold.',
   POS_BARCODE_INACTIVE: 'This label references inventory that is no longer active or available at this location. Search inventory for a replacement.',
   POS_BARCODE_WRONG_CLASS: 'This barcode identifies storage or intake, not a sellable item.',
   POS_RATE_LIMIT: 'Too many POS requests. Wait a moment and retry the same checkout.',
   POS_CHECKOUT_CANCELED: 'This checkout was canceled. Start a new sale after checking any cash taken.',
   POS_DISABLED: 'POS is not enabled for this workspace yet.',
-  POS_FORBIDDEN: 'Your account cannot perform this POS action. Check workspace membership and inventory ownership.',
+  POS_FORBIDDEN: 'You do not have permission to perform this operation on inventory at this location. Check staff permissions and owner-granted access.',
   POS_INVALID: 'Check the checkout details and try again.',
   POS_STOCK_UNAVAILABLE: 'An item is no longer available. Refresh inventory and review the cart.',
   POS_PROVENANCE_CONFLICT: 'Inventory locations or batch counts need review before this item can be sold.',

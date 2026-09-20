@@ -237,7 +237,7 @@ test("workspace roles do not grant platform admin or paid membership by themselv
 test("workspace role ordering is normalized and capability scoped", () => {
   const roles: WorkspaceRole[] = ["viewer", "member", "manager", "admin", "owner"];
   for (const role of roles) assert.equal(normalizeWorkspaceRole(role), role);
-  assert.equal(normalizeWorkspaceRole("employee"), null);
+  assert.equal(normalizeWorkspaceRole("employee"), "employee");
 
   const storeMember = access({ tier: "store", workspaceRole: "member" });
   const storeManager = access({ tier: "store", workspaceRole: "manager" });
@@ -246,6 +246,14 @@ test("workspace role ordering is normalized and capability scoped", () => {
   assert.equal(hasCapability(storeMember, "employees.manage"), false);
   assert.equal(hasCapability(storeManager, "employees.manage"), true);
   assert.equal(hasCapability(storeManager, "billing.manage"), false);
+});
+
+test("employee POS entry does not grant paid inventory administration", () => {
+  const employee = access({ tier: "free", workspaceRole: "employee" });
+  assert.equal(hasCapability(employee, "pos.sell"), true);
+  assert.equal(hasCapability(employee, "employees.manage"), false);
+  assert.equal(hasCapability(employee, "orders.manage"), false);
+  assert.equal(hasCapability(employee, "label.manage_templates"), false);
 });
 
 test("trusted platform admin receives full access and does not corrupt normal membership identity", () => {

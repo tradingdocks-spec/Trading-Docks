@@ -211,9 +211,11 @@ export async function verifyLabelWorkflow({
         )
       ).rows[0].metadata.allocations[0].position_id,
     ).toBe("label-p1");
-    await page
-      .getByRole("button", { name: "Close register", exact: true })
-      .click();
+    await page.getByRole('button', { name: 'New Sale', exact: true }).click();
+    await page.getByRole('button', { name: 'Close register', exact: true }).click();
+    await page.getByLabel('Counted cash').fill('21.69');
+    await page.getByRole('button', { name: 'Confirm drawer close', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Open register', exact: true })).toBeVisible();
     expect(errors).toEqual([]);
     console.log(
       "PASS browser inventory selection → canonical Label Studio → five-page PDF → exact position scan → cash sale → provenance event; duplicate-window guard and tablet layout",
