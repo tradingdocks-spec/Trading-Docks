@@ -1,6 +1,36 @@
 # Production POS Pilot Phase A — cash-only retry
 
-**AWAITING OWNER TRANSACTION CONFIRMATION — no sale attempted.**
+**PHASE A FAIL — POS DISABLED.**
+
+## Retry outcome — 2026-09-21
+
+Owner confirmed Sultai Charm KTK #204, NM/normal, quantity 1, exact tracked position below, $1.00 price, 8.5% tax ($0.09), $1.09 total, $2.00 tender and $0.91 change. Language and physical slot must remain unrecorded. Refund was authorized to restore the original position.
+
+The application created UC Bulk Boxes / Front Register at **23:21:36 UTC**, mapped to the existing storage, with tax 850 basis points and America/Phoenix timezone. Register session opened at **23:21:44 UTC** with exactly one $200.00 opening-float ledger event. Owner attribution was correct.
+
+**Stop condition:** inventory search returned the exact Sultai Charm printing, one available, with a disabled **Price required** result. Its `asking_price` remains NULL. The current Register component prevents adding an unpriced item; its cart price override cannot be reached for this item. No alternate API checkout, persistent asking-price edit, or guard bypass was attempted. The approved $1.09/$0.91 quote was therefore not produced and checkout was never submitted.
+
+At **23:22:30 UTC**, the incident disable below was executed for the sole pilot workspace. Verified enabled-workspace count: **0**. Production Square connection and credential counts: **0**.
+
+| Verification | Result |
+| --- | --- |
+| Inventory rows / units / events before and after | 1,515 / 1,788 / 1,550 — unchanged |
+| Exact item and original position quantities | 1 / 1 — unchanged |
+| Sales / tenders / refunds | 0 / 0 / 0 |
+| Cash ledger | One OPENING_FLOAT event, 20,000 cents; no other movements |
+| Calculated drawer balance | $200.00; not a physical count |
+| Register session | OPEN, preserved; close/count still outstanding |
+| Sale / refund / receipt acceptance | Not reached |
+| POS / production Square | Disabled / disabled and unconfigured |
+
+Site ID: `52837f8e-62a8-4145-92f8-ca6eba8dc12c`.
+Register ID: `adce5a44-1f5b-44b4-b91b-24519bc2699f`.
+Session ID: `4645a34f-e3d4-46f4-bc5d-19dcbddcfd35`.
+Opening event ID: `cdadeed1-f455-4a52-b014-972d68ca6af5`.
+
+Next owner gate: resolve the unset inventory asking-price prerequisite and confirm actual drawer count before authorized session cleanup/retry. Do not open a second session or claim zero variance. No runtime code or schema changes were made. Hardware certification is unchanged.
+
+## Earlier preparation record (superseded by outcome above)
 
 The earlier Phase A failure was the missing POS installation prerequisite. That prerequisite is now resolved; this retry has no final PASS/FAIL verdict until the authorized sale, refund and close are verified.
 
@@ -64,4 +94,4 @@ where workspace_id = '4e775109-9f6f-4264-88c8-2c3c5b944a9b';
 commit;
 ```
 
-This incident disable was not needed or executed in this retry. No success verdict or zero-variance result is claimed while owner confirmation is pending.
+The incident disable was executed as recorded in the retry outcome. The preparation notes above describe the earlier state, not current readiness.
