@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { MEMBERSHIP_PLANS } from '../../src/lib/membership-catalog';
 import { expectNoDocumentOverflow } from './helpers';
+import { createDemoMarketCards, rankPreviewCards } from '../../src/lib/market-preview';
 
 test('homepage sample is useful without a market provider and controls work', async ({ page }) => {
   let marketRequests = 0;
@@ -11,19 +12,21 @@ test('homepage sample is useful without a market provider and controls work', as
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const market = page.locator('#market');
-  await expect(market).toContainText('sample market snapshot');
-  await expect(market.locator('tbody tr')).toHaveCount(3);
-  await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');
+  // e3f6fd3 replaced the three-row table with the explicitly illustrative feed.
+  await expect(market).toContainText('Interactive demo');
+  await expect(market).toContainText('prices, movement, demand and positions are simulated');
+  await expect(market.locator('[data-card-id]')).toHaveCount(5);
+  await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveAttribute('href', '/dashboard/market-intelligence');
   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {
     const button = market.getByRole('button', { name: game, exact: true });
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'true');
-    await expect(market.locator('tbody tr')).toHaveCount(3);
+    await expect(market.locator('[data-card-id]')).toHaveCount(game === 'Magic' ? 5 : 3);
   }
   await market.getByRole('button', { name: 'Spread', exact: true }).click();
-  await expect(market.locator('tbody tr').first()).toContainText('Sample rare');
+  await expect(market.locator('[data-card-id]').first()).toHaveAttribute('data-card-id', rankPreviewCards(createDemoMarketCards('magic'), 'opportunities')[0].id);
   await market.getByRole('button', { name: 'Demand', exact: true }).click();
-  await expect(market.locator('tbody tr').first()).toContainText('Sample uncommon');
+  await expect(market.locator('[data-card-id]').first()).toHaveAttribute('data-card-id', rankPreviewCards(createDemoMarketCards('magic'), 'volume')[0].id);
   await expect(market).not.toContainText(/Connecting|Pending|Loading market/);
   expect(marketRequests).toBe(0);
   await expectNoDocumentOverflow(page);

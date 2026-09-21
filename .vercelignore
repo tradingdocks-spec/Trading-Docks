@@ -1,0 +1,16 @@
+.git
+.env*
+.local-fixtures
+mobile
+mobile_backup
+mobile-sdk54-clean-backup
+mobile-sdk57-backup
+tests
+docs
+supabase
+playwright-report
+test-results
+.playwright-results
+.playwright-auth
+*.log
+*.tsbuildinfo

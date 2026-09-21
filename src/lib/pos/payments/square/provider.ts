@@ -1,4 +1,5 @@
 import { terminalPayment, terminalRefund } from "./terminal.ts";
+import { squareRuntimeAllowed } from "./runtime.ts";
 import type { PaymentProvider, PaymentStore } from "../provider.ts";
 import type { Payment, RefundAttempt } from "../domain.ts";
 import { SquareAccounts, type CredentialContext } from "./service.ts";
@@ -77,8 +78,8 @@ export class SquarePaymentProvider implements PaymentProvider {
           token,
         );
       else {
-        // Test tokens are never supplied by browser input, and cannot execute in production builds.
-        if (!["development", "test"].includes(this.environment ?? ""))
+        // Test tokens are server-owned and only execute in an approved Sandbox runtime.
+        if (!squareRuntimeAllowed(this.environment))
           throw Error("CONFIGURATION_ERROR");
         data = await this.accounts.http.request("/v2/payments", token, {
           idempotency_key: id,

@@ -29,6 +29,15 @@ test('keyboard wedge terminator, typing exclusion and slow human typing', () => 
   assert.deepEqual(scans,['TD-AAAA-BBBB','TD-AAAA-BBBB']);
   scan({key:'a',timeStamp:now+1,ctrlKey:true},false);scan({key:'Enter',timeStamp:now+2},false);assert.equal(scans.length,2);
 });
+
+test('500 distinct cart lines preserve quantities and reject a 501st identity', () => {
+  const item: PosItem = { id: '0', name: 'Scale', sku: 'scale', set_code: null, collector_number: null, condition: null, finish: null, language: null, location_id: 'case', location: 'Case', unit_price_minor: 101, available: 3, taxable: true, positions: [] };
+  let cart = Array.from({ length: 499 }, (_, i) => ({ item: { ...item, id: String(i) }, quantity: 1, discountBps: 0 }));
+  cart = addScan(cart, { ...item, id: '499' });
+  assert.equal(cart.length, 500);
+  assert.throws(() => addScan(cart, { ...item, id: '500' }), /500 distinct/);
+  assert.equal(addScan(cart, item)[0].quantity, 2);
+});
 test('receipt escapes product/customer-controlled text and preserves recorded totals', () => {
   const r: Receipt={version:1,number:'TD-1',site:'<script>bad()</script>',register:'Front',actorId:'owner',createdAt:'2026-09-20',currency:'USD',lines:[{itemId:'one',name:'<img src=x onerror=alert(1)>',sku:'S',quantity:1,unitPriceMinor:1299,discountMinor:0,taxMinor:110,lineTotalMinor:1409,setCode:'M11',collectorNumber:'1',condition:'NM',finish:'nonfoil',language:'EN',locationId:'case'}],subtotalMinor:1299,discountMinor:0,taxMinor:110,totalMinor:1409,cashMinor:2000,changeMinor:591};
   const html=renderReceipt(r); assert.ok(!html.includes('<img src=x')); assert.ok(!html.includes('<script>bad'));assert.ok(html.includes('Change $5.91'));assert.ok(html.includes('Total $14.09'));

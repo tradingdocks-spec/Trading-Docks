@@ -1,5 +1,6 @@
 import "server-only";
 import { posContext } from "../../server";
+import { providerBudget } from "../../provider-budget";
 import { squareAccounts } from "./server";
 import { terminalPair } from "./terminal";
 import { normalizeProviderError } from "../domain";
@@ -36,6 +37,8 @@ export async function terminalRoute(request: Request) {
         throw Error("CONFIGURATION_ERROR");
     }
     const action = String(body.action ?? "get");
+    const limited = await providerBudget(ctx.supabase, ctx.workspaceId, 'device');
+    if (limited) return limited;
     if (
       !["get", "pair", "check", "rename", "assign", "disable"].includes(action)
     )

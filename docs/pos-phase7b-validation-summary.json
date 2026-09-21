@@ -1,0 +1,37 @@
+{
+  "at": "2026-09-21T03:03:06.601482+00:00",
+  "branch": "codex/pos-foundation",
+  "stagingProject": "ukrcbmujzdyclrkghbvo",
+  "readiness": "ENGINEERING READY / EXTERNAL ACCEPTANCE PENDING",
+  "pilotReadiness": "NOT READY",
+  "productionMutated": false,
+  "unresolvedCriticalEngineeringBlockers": 0,
+  "rootTests": 947,
+  "mobileTests": 580,
+  "ledgerVariantGroups": {
+    "text": 126,
+    "enum": 126
+  },
+  "originalBrowserFailuresResolved": 58,
+  "hostedDashboard": {
+    "passed": 41,
+    "failed": 0,
+    "skipped": 0
+  },
+  "publicFullRun": {
+    "passed": 229,
+    "failed": 1,
+    "skipped": 8
+  },
+  "publicFinalTargetedRetest": {
+    "passed": 16,
+    "failed": 0,
+    "projects": 8,
+    "repetitions": 2
+  },
+  "publicUnresolvedFailures": 0,
+  "cartDistinctLineLimit": 500,
+  "requestBytes": 262144,
+  "mixedShiftTransactions": 100,
+  "externalGates": "POS_EXTERNAL_ACCEPTANCE_CHECKLIST.md"
+}

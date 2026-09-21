@@ -113,9 +113,8 @@ export async function verifyPaymentsBrowser({
   await new Promise((resolve) => server.listen(4204, "127.0.0.1", resolve));
   const browser = await chromium.launch({ channel: "chrome", headless: true });
   try {
-    const page = await browser.newPage({
-      viewport: { width: 1280, height: 1000 },
-    });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+    const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     async function cart(outcome = "APPROVE") {
@@ -205,9 +204,27 @@ export async function verifyPaymentsBrowser({
       ).rows[0].n,
     );
     await page.reload();
-    await page
-      .getByRole("button", { name: "Check Payment Status", exact: true })
-      .click();
+    const secondTab = await page.context().newPage();
+    await secondTab.goto('http://127.0.0.1:4204');
+    const seenTabs = new Set();
+    let retryRequests = 0;
+    const throttleOnce = async route => {
+      const tab = route.request().frame().page();
+      retryRequests++;
+      if (!seenTabs.has(tab)) {
+        seenTabs.add(tab);
+        return route.fulfill({ status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '1' }, body: JSON.stringify({ code: 'POS_RATE_LIMIT' }) });
+      }
+      return route.continue();
+    };
+    await page.context().route(/\/api\/pos\/payments(?:\/[^/]+\/check)?$/, throttleOnce);
+    await Promise.all([page, secondTab].map(tab => tab.getByRole('button', { name: 'Check Payment Status', exact: true }).click()));
+    await Promise.all([page, secondTab].map(tab => expect(tab.getByRole('alert')).toContainText('Payment status checks are temporarily limited. Trading Docks will retry shortly.')));
+    await Promise.all([page, secondTab].map(tab => expect(tab.getByText('Payment Complete', { exact: true })).toBeVisible()));
+    expect(retryRequests).toBe(4);
+    await page.context().unroute(/\/api\/pos\/payments(?:\/[^/]+\/check)?$/, throttleOnce);
+    await secondTab.close();
+    console.log('PASS two browser tabs retain one payment through 429 bounded retry and local completion');
     await expect(
       page.getByText("Payment Complete", { exact: true }),
     ).toBeVisible();
@@ -314,9 +331,14 @@ export async function verifyPaymentsBrowser({
     }
     expect(errors).toEqual([]);
     console.log("PASS payment tablet layout and no page errors");
+    if (process.argv.includes('--mixed-shift')) {
+      const { verifyMixedShiftBrowser } = await import('./pos-mixed-shift-browser.mjs');
+      await verifyMixedShiftBrowser({page,admin,a,command,owner,workspace,setup,reg,priorSession:session});
+      console.log('PASS 100 mixed browser sales, refund, accounting, positions, batches, locations and memory');
+    }
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
   }
-  await command(a, "close", { registerId: reg.id, sessionId: session.id });
+  if (!process.argv.includes('--mixed-shift')) await command(a, "close", { registerId: reg.id, sessionId: session.id });
 }

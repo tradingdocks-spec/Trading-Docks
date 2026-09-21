@@ -4,11 +4,13 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { POS_ERRORS } from '../src/lib/pos/domain.ts';
+import * as limits from '../src/lib/pos/limits.ts';
 
 function load(path: string, dependencies: Record<string, unknown>) {
   const exports: Record<string, (...args: unknown[]) => Promise<Response>> = {};
   const js = ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   vm.runInNewContext(js,{exports,Response,URL,TextDecoder,console:{warn(){}},require:(name: string)=>{
+    if (name === '@/lib/pos/limits') return limits;
     if (!(name in dependencies)) throw new Error(`Unexpected dependency ${name}`);
     return dependencies[name];
   }});
@@ -22,7 +24,16 @@ test('POS mutation refuses cross-origin requests before executing commands',asyn
 });
 test('POS body limit checks actual stream length without Content-Length',async()=>{
   const api=load('src/app/api/pos/route.ts',{'@/lib/pos/server':{posCommand:async()=>{throw new Error('must not run');}}});
-  const result=await api.POST(new Request(origin+'/api/pos',{method:'POST',headers:{origin},body:'x'.repeat(32769)}));assert.equal(result.status,413);
+  const result=await api.POST(new Request(origin+'/api/pos',{method:'POST',headers:{origin},body:'x'.repeat(limits.POS_MAX_REQUEST_BYTES+1)}));assert.equal(result.status,413);
+});
+test('500-line HTTP request exceeds the old 32 KiB ceiling and reaches authoritative SQL intact',async()=>{
+  let received: unknown;
+  const api=load('src/app/api/pos/route.ts',{'@/lib/pos/server':{posCommand:async(_action: string,body: unknown)=>{received=body;return {data:{}};}}});
+  const lines=Array.from({length:500},(_,i)=>({ownerId:'11111111-1111-4111-8111-111111111111',itemId:`500-line-acceptance-${i}`,quantity:1,discountBps:1250}));
+  const payload=JSON.stringify({action:'checkout',key:'same-key',lines});
+  assert.ok(Buffer.byteLength(payload)>32768);
+  assert.equal((await api.POST(new Request(origin+'/api/pos',{method:'POST',headers:{origin},body:payload}))).status,200);
+  assert.deepEqual(JSON.parse(JSON.stringify(received)),{key:'same-key',lines});
 });
 test('POS API rejects malformed JSON and read-side mutation attempts',async()=>{
   const api=load('src/app/api/pos/route.ts',{'@/lib/pos/server':{posCommand:async()=>{throw new Error('must not run');}}});

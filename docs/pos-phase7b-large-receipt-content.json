@@ -1,0 +1,30 @@
+[
+  {
+    "file": "phase7b-large-chrome-80.pdf",
+    "pages": 1,
+    "blankPages": 0,
+    "lastItemPresent": true,
+    "status": "PASS"
+  },
+  {
+    "file": "phase7b-large-chrome-Letter.pdf",
+    "pages": 30,
+    "blankPages": 0,
+    "lastItemPresent": true,
+    "status": "PASS"
+  },
+  {
+    "file": "phase7b-large-msedge-80.pdf",
+    "pages": 1,
+    "blankPages": 0,
+    "lastItemPresent": true,
+    "status": "PASS"
+  },
+  {
+    "file": "phase7b-large-msedge-Letter.pdf",
+    "pages": 30,
+    "blankPages": 0,
+    "lastItemPresent": true,
+    "status": "PASS"
+  }
+]

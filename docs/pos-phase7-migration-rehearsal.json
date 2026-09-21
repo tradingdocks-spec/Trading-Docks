@@ -1,0 +1,116 @@
+[
+  {
+    "file": "20260920181448_pos_cash_foundation.sql",
+    "time": "2026-09-21T00:36:15.167Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920190428_pos_barcode_labels.sql",
+    "time": "2026-09-21T00:36:24.854Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920201259_pos_staff_delegation.sql",
+    "time": "2026-09-21T00:36:27.002Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920201754_pos_register_operations.sql",
+    "time": "2026-09-21T00:36:29.066Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920211929_pos_payment_framework.sql",
+    "time": "2026-09-21T00:36:31.152Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920220340_pos_square_sandbox.sql",
+    "time": "2026-09-21T00:36:33.117Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260920235705_pos_square_terminal.sql",
+    "time": "2026-09-21T00:36:37.3Z",
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"success\":true}"
+        }
+      ],
+      "isError": false
+    }
+  },
+  {
+    "file": "20260921004339_pos_provider_request_budget.sql",
+    "hostedVersion": "20260921004420",
+    "result": "success",
+    "note": "Forward request-budget safety correction"
+  },
+  {
+    "file": "20260921010637_pos_employee_permission_precedence.sql",
+    "result": "success",
+    "note": "Hosted pos.sell=false bypass reproduced, corrected by forward migration, and retested as denied"
+  },
+  {
+    "file": "20260921014756_pos_search_authority_scope.sql",
+    "hostedVersion": "20260921014944",
+    "result": "success",
+    "note": "10,000-row broad search timeout corrected by per-statement materialized owner/location authority; exact checkout authorization unchanged."
+  },
+  {
+    "file": "20260921020747_pos_cart_scale_500.sql",
+    "hostedVersion": "20260921021607",
+    "result": "success",
+    "note": "Forward 500-line / 256 KiB bounds; all eleven migrations recreated in both disposable ledger variants, 126 groups each."
+  }
+]

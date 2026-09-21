@@ -1,3 +1,4 @@
+import { POS_MAX_CART_LINES } from './limits.ts';
 export type PosItem = {
   ownerId?: string;
   positionId?: string | null; barcodeIdentity?: string; targetType?: string;
@@ -51,6 +52,7 @@ export function previewLine(unitPriceMinor: number, quantity: number, discountBp
 export function addScan(lines: CartLine[], item: PosItem): CartLine[] {
   if (item.unit_price_minor === null) throw new Error('Set an asking price in inventory before selling this item.');
   const current = lines.find(line => line.item.id === item.id && line.item.ownerId === item.ownerId && (line.positionId ?? '') === (item.positionId ?? ''));
+  if (!current && lines.length >= POS_MAX_CART_LINES) throw new Error('This sale supports up to 500 distinct lines. Complete this sale before adding another item.');
   if ((current?.quantity ?? 0) + 1 > Math.min(item.available, 1000)) throw new Error('No more available copies.');
   return current ? lines.map(line => line === current ? { ...line, item, quantity: line.quantity + 1 } : line)
     : [...lines, { item, quantity: 1, discountBps: 0, ...(item.positionId ? { positionId: item.positionId } : {}) }];

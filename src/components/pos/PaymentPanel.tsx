@@ -111,8 +111,10 @@ export function PaymentPanel({
         ? await paymentRequest<Payment>(
             `/${payment.id}/${action === "cancel" ? "cancel" : "check"}`,
             {},
+            setError,
           )
-        : await paymentRequest<Payment>("", request);
+        : await paymentRequest<Payment>("", request, setError);
+      setError("");
       setPayment(result);
       if (result.saleState === "COMPLETED") {
         localStorage.removeItem(key);

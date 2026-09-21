@@ -103,7 +103,7 @@ export async function verifyStaffingBoundary({
       [workspace, other],
     );
     await admin.query(
-      "update workspace_members set role='employee' where workspace_id=$1 and user_id=$2",
+      "update workspace_members set role='member' where workspace_id=$1 and user_id=$2",
       [workspace, other],
     );
     await ownerClient.query(

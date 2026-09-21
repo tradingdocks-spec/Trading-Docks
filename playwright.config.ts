@@ -11,13 +11,13 @@ if (useLocalServer) {
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??= "sb_publishable_playwright_local_smoke";
 }
 
-export default defineConfig({
+const config = defineConfig({
   testDir: "./tests/e2e",
   outputDir: ".playwright-results",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 2, // Bound local image/browser contention as well as CI.
   reporter: [
     ["list"],
     ["html", { open: "never" }],
@@ -123,3 +123,15 @@ export default defineConfig({
     },
   ],
 });
+
+// Dedicated baseline/device cases are selected at collection time rather than
+// reported as 26 redundant runtime skips on inapplicable projects.
+for (const project of config.projects ?? []) {
+  if (project.name === 'auth-setup') continue;
+  const omitted = [];
+  if (project.name !== 'desktop-chromium-1440') omitted.push('homepage desktop visual shell|pricing desktop visual shell');
+  if (project.name !== 'mobile-webkit-390') omitted.push('homepage mobile visual shell');
+  if (!project.name?.startsWith('mobile-')) omitted.push('mobile public menu opens closes');
+  if (omitted.length) project.grepInvert = new RegExp(omitted.join('|'));
+}
+export default config;

@@ -1,0 +1,13 @@
+{
+  "scope": "Chromium heap snapshot after 100 keyboard-driven cash sales in the actual Register component with disposable SQL",
+  "snapshotBytes": 8222596,
+  "observed": {
+    "liveElementsAfter25And100": 80,
+    "eventListenersAfter25And100": 169,
+    "nativeDomNodesAfter25": 289,
+    "nativeDomNodesAfter100": 439
+  },
+  "retainerPath": ["Text", "blink::UndoStep", "blink::HeapVectorBacking<UndoStep>", "blink::UndoStack", "blink::Editor", "blink::LocalFrame"],
+  "interpretation": "The snapshot identifies native input editing/undo retention. The original aggregate node threshold was not a valid application DOM leak assertion. Preserve aggregate measurements; assert stable live element and event-listener counts instead.",
+  "limitations": "A 100-transaction accelerated run is not an eight-hour shift or a proof that every possible JavaScript allocation is bounded. The native editing history is not removed or disabled by application code."
+}

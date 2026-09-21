@@ -1,0 +1,45 @@
+{
+  "scope": "100 accelerated cash transactions through Register and disposable SQL; not an eight-hour physical shift",
+  "measurements": [
+    {
+      "transactions": 0,
+      "elapsedMs": 17,
+      "liveElements": 81,
+      "documents": 1,
+      "nodes": 234,
+      "jsEventListeners": 170
+    },
+    {
+      "transactions": 25,
+      "elapsedMs": 30802,
+      "liveElements": 80,
+      "documents": 1,
+      "nodes": 289,
+      "jsEventListeners": 169
+    },
+    {
+      "transactions": 50,
+      "elapsedMs": 61555,
+      "liveElements": 80,
+      "documents": 1,
+      "nodes": 339,
+      "jsEventListeners": 169
+    },
+    {
+      "transactions": 75,
+      "elapsedMs": 92055,
+      "liveElements": 80,
+      "documents": 1,
+      "nodes": 389,
+      "jsEventListeners": 169
+    },
+    {
+      "transactions": 100,
+      "elapsedMs": 122628,
+      "liveElements": 80,
+      "documents": 1,
+      "nodes": 439,
+      "jsEventListeners": 169
+    }
+  ]
+}

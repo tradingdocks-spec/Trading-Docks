@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import assert from "node:assert/strict";
 const dir = ".local-fixtures/pos-receipts";
 mkdirSync(dir, { recursive: true });
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: process.argv.includes("--edge") ? "msedge" : "chrome", headless: true });
 try {
   const page = await browser.newPage();
   for (const provider of ["CASH", "MOCK", "SQUARE"])

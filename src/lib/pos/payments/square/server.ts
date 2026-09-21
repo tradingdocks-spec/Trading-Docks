@@ -1,9 +1,12 @@
 import "server-only";
 import { createAdminClient } from "../../../supabase/admin";
 import { posContext } from "../../server";
+import { providerBudget } from "../../provider-budget";
 import { squareConfig, SQUARE_RETURN_PATH } from "./config";
 import { SquareAccounts, type SquareStore } from "./service";
+import { squareRuntimeAllowed } from "./runtime";
 export function squareAccounts() {
+  if (!squareRuntimeAllowed()) throw Error("CONFIGURATION_ERROR");
   const config = squareConfig();
   const admin = createAdminClient();
   const store: SquareStore = async (action, body) => {
@@ -40,6 +43,8 @@ export async function squareSettingsRoute(request: Request, callback = false) {
   const headers = { "Cache-Control": "no-store" };
   try {
     if (callback) {
+      const limited = await providerBudget(ctx.supabase, ctx.workspaceId, 'oauth');
+      if (limited) return limited;
       const target = await squareAccounts().callback(
         ctx.workspaceId,
         ctx.access.userId,
@@ -75,6 +80,8 @@ export async function squareSettingsRoute(request: Request, callback = false) {
       if (!body || Array.isArray(body) || typeof body !== "object")
         throw Error("CONFIGURATION_ERROR");
     }
+    const limited = await providerBudget(ctx.supabase, ctx.workspaceId, 'oauth');
+    if (limited) return limited;
     const { data, error } = await ctx.supabase.rpc("pos_square_settings", {
       p_workspace_id: ctx.workspaceId,
       p_action: body.action === "map" ? "map" : "get",

@@ -1,4 +1,5 @@
 import { posCommand } from '@/lib/pos/server';
+import { POS_MAX_REQUEST_BYTES } from '@/lib/pos/limits';
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   for (;;) {
     const { value, done } = await reader.read(); if (done) break;
     size += value.byteLength;
-    if (size > 32768) { await reader.cancel(); return Response.json({ error: 'Cart is too large.' }, { status: 413 }); }
+    if (size > POS_MAX_REQUEST_BYTES) { await reader.cancel(); return Response.json({ error: 'Cart is too large.' }, { status: 413 }); }
     raw += decoder.decode(value, { stream: true });
   }
   let body: Record<string, unknown>;

@@ -249,11 +249,14 @@ test("workspace role ordering is normalized and capability scoped", () => {
 });
 
 test("employee POS entry does not grant paid inventory administration", () => {
-  const employee = access({ tier: "free", workspaceRole: "employee" });
-  assert.equal(hasCapability(employee, "pos.sell"), true);
-  assert.equal(hasCapability(employee, "employees.manage"), false);
-  assert.equal(hasCapability(employee, "orders.manage"), false);
-  assert.equal(hasCapability(employee, "label.manage_templates"), false);
+  for (const workspaceRole of ['employee', 'member'] as const) {
+    const employee = access({ tier: "free", workspaceRole });
+    assert.equal(hasCapability(employee, "pos.sell"), true);
+    assert.equal(hasCapability(employee, "employees.manage"), false);
+    assert.equal(hasCapability(employee, "orders.manage"), false);
+    assert.equal(hasCapability(employee, "label.manage_templates"), false);
+  }
+  assert.equal(hasCapability(access({ tier: 'free', workspaceRole: 'viewer' }), 'pos.sell'), false);
 });
 
 test("trusted platform admin receives full access and does not corrupt normal membership identity", () => {

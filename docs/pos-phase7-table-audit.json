@@ -1,0 +1,354 @@
+[
+  {
+    "schema": "pos_private",
+    "name": "approval_uses",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "label_tombstones",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "mock_payments",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "mock_refunds",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_context",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_test_config",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "request_limits",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_connections",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_credentials",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_device_codes",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_events",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_hardware_audit",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_locations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_mappings",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_oauth",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_observations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_refund_observations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_terminal_attempts",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_terminal_refunds",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "stock_permits",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_access_events",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_approval_decisions",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_approval_requests",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_cash_events",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_checkout_cancellations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_inventory_delegations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_location_inventory_locations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_operation_receipts",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_attempts",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_audit",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_checkouts",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_devices",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_events",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_refund_attempts",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_refund_items",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_refunds",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_register_sessions",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_registers",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_sale_allocations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_sale_items",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_sales",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_store_locations",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_tenders",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_workspace_settings",
+    "rls": true,
+    "anon_select": false,
+    "browser_select": false,
+    "browser_write": false
+  }
+]

@@ -296,9 +296,10 @@ export function hasCapability(access: PlatformAccessContext | ClientSafePlatform
       requirement.platformRoles.includes(access.platformRole as Exclude<PlatformRole, 'user'>);
   }
 
-  // Employee route eligibility only. POS SQL independently requires an active
+  // Staff route eligibility only; hosted staff use the member role. POS SQL
+  // independently requires an active
   // employee permission, paid inventory owner and explicit site delegation.
-  const delegatedPosEntry = capability === 'pos.sell' && access.workspaceRole === 'employee';
+  const delegatedPosEntry = capability === 'pos.sell' && (access.workspaceRole === 'employee' || access.workspaceRole === 'member');
   if (!delegatedPosEntry && requirement.minimumTier && MEMBERSHIP_TIER_RANK[access.membershipTier] < MEMBERSHIP_TIER_RANK[requirement.minimumTier]) {
     return false;
   }

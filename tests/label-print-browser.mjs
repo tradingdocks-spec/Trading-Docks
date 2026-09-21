@@ -23,13 +23,13 @@ const target = {
   identityId: "identity",
   qrToken: "opaque",
 };
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: process.argv.includes("--edge") ? "msedge" : "chrome", headless: true });
 let passed = 0;
 try {
   const page = await browser.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  for (const count of [1, 2, 5, 10, 50, 100, 250, 500]) {
+  for (const count of [1, 2, 5, 10, 50, 100, 250, 500, 1000]) {
     const start = performance.now();
     const html = await buildLabelDocument(retailPresets("w")[0], [
       { target, copies: count },

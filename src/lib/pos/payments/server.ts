@@ -1,11 +1,15 @@
 import "server-only";
 import { posContext } from "../server";
+import { providerBudget } from "../provider-budget";
+import { POS_MAX_REQUEST_BYTES } from "../limits";
 import { POS_ERRORS } from "../domain";
 import { normalizeProviderError } from "./domain";
 import { PaymentOrchestrator } from "./orchestrator";
+import { budgetedProvider } from "./budgeted-provider";
 import type { PaymentStore } from "./provider";
 import { squareAccounts } from "./square/server";
 import { SquarePaymentProvider } from "./square/provider";
+import { squareRuntimeAllowed } from "./square/runtime";
 const errors: Record<string, string> = {
   ...POS_ERRORS,
   POS_TERMINAL_UNAVAILABLE: "The assigned Terminal is unavailable. Check Hardware or choose another payment method.",
@@ -45,7 +49,7 @@ export async function paymentRoute(
         const { value, done } = await reader.read();
         if (done) break;
         size += value.byteLength;
-        if (size > 32768) {
+        if (size > POS_MAX_REQUEST_BYTES) {
           await reader.cancel();
           return Response.json(
             { error: "Request too large." },
@@ -86,10 +90,13 @@ export async function paymentRoute(
     };
     let square: SquarePaymentProvider | undefined;
     try { square = new SquarePaymentProvider(store, squareAccounts(), ctx.workspaceId, ctx.access.userId, process.env.NODE_ENV); } catch {}
-    const service = new PaymentOrchestrator(store, process.env.NODE_ENV, square ? { SQUARE: square } : {});
+    const service = new PaymentOrchestrator(store, process.env.NODE_ENV, square ? { SQUARE: budgetedProvider(square, async () => {
+      const limited = await providerBudget(ctx.supabase, ctx.workspaceId, 'payment');
+      if (limited) throw limited;
+    }) } : {});
     let result: unknown;
     if (action === "create") {
-      if (body.provider === "SQUARE" && process.env.NODE_ENV === "production") throw Error("CONFIGURATION_ERROR");
+      if (body.provider === "SQUARE" && !squareRuntimeAllowed()) throw Error("CONFIGURATION_ERROR");
       result = await service.begin(body);
     }
     else if (action === "check") result = await service.check(id!);
@@ -100,9 +107,9 @@ export async function paymentRoute(
     else if (action === "capabilities") {
       const data = await store<{ mockEnabled: boolean; squareSites?: string[]; terminals?: unknown[] }>("capabilities", {});
       result = {
-        terminals: square && process.env.NODE_ENV !== "production" ? data.terminals ?? [] : [],
+        terminals: square ? data.terminals ?? [] : [],
         mockEnabled: process.env.NODE_ENV !== "production" && data.mockEnabled,
-        squareSites: square && process.env.NODE_ENV !== "production" ? data.squareSites ?? [] : [],
+        squareSites: square ? data.squareSites ?? [] : [],
       };
     } else
       result = await store(action, {
@@ -128,6 +135,7 @@ export async function paymentRoute(
     });
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
+    if (err instanceof Response) return err;
     const code = err instanceof Error ? err.message : "UNKNOWN_STATUS";
     const normalized = normalizeProviderError(err);
     const safe = (action === "refund" || action === "checkRefund") && code === "UNAUTHORIZED_PROVIDER_ACCOUNT" ? "Reconnect Square before processing this refund." : errors[code] ?? normalized.message;

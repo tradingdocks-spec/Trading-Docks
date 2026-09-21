@@ -1,0 +1,255 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "status": "PASS",
+  "passed": 41,
+  "failed": 0,
+  "skipped": 0,
+  "cases": [
+    {
+      "file": "auth.setup.ts",
+      "test": "creates storage state for Representative account",
+      "project": "auth-setup",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "authenticated session survives dashboard navigation refresh new tab and history",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Dashboard home route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Inventory route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Orders route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Analytics route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Customers / CRM route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Deck Vault route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "CSV / Imports route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Settings route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Billing / Plans route renders for representative authenticated account",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Settings Data & Privacy beta actions are reachable but non-destructive",
+      "project": "desktop-chromium-1440",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "desktop-chromium-1920",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "desktop-firefox-1280",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "desktop-webkit-1024",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Dashboard home route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Inventory route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Orders route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Analytics route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Customers / CRM route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Deck Vault route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "CSV / Imports route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Settings route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Billing / Plans route renders for representative authenticated account",
+      "project": "tablet-chromium-768",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "mobile dashboard drawer opens navigates closes and restores page interaction",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Dashboard home route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Inventory route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Orders route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Analytics route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Customers / CRM route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Deck Vault route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "CSV / Imports route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Settings route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "Billing / Plans route renders for representative authenticated account",
+      "project": "mobile-chromium-430",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "mobile-webkit-390",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "mobile dashboard drawer opens navigates closes and restores page interaction",
+      "project": "mobile-webkit-390",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "dashboard shell renders account controls and sign-out affordance",
+      "project": "mobile-webkit-375",
+      "status": "expected"
+    },
+    {
+      "file": "dashboard-auth.spec.ts",
+      "test": "mobile dashboard drawer opens navigates closes and restores page interaction",
+      "project": "mobile-webkit-375",
+      "status": "expected"
+    }
+  ]
+}

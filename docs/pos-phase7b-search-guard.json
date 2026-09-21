@@ -1,0 +1,90 @@
+{
+  "inventoryRows": 10030,
+  "scope": "20 real authenticated hosted round trips per broad search, including first call; generous p95 ceiling, not exact CI millisecond equality",
+  "results": [
+    {
+      "query": "performance card",
+      "timings": [
+        276,
+        279,
+        261,
+        290,
+        300,
+        272,
+        258,
+        227,
+        239,
+        229,
+        228,
+        215,
+        251,
+        256,
+        235,
+        388,
+        219,
+        226,
+        237,
+        249
+      ],
+      "p95Ms": 300,
+      "ceilingMs": 2000,
+      "status": "PASS"
+    },
+    {
+      "query": "Acceptance Set",
+      "timings": [
+        245,
+        262,
+        268,
+        251,
+        242,
+        246,
+        259,
+        274,
+        234,
+        253,
+        249,
+        270,
+        244,
+        250,
+        251,
+        300,
+        254,
+        267,
+        276,
+        248
+      ],
+      "p95Ms": 276,
+      "ceilingMs": 2000,
+      "status": "PASS"
+    },
+    {
+      "query": "location",
+      "timings": [
+        274,
+        284,
+        290,
+        289,
+        274,
+        290,
+        286,
+        300,
+        276,
+        285,
+        279,
+        280,
+        289,
+        284,
+        293,
+        289,
+        275,
+        281,
+        300,
+        271
+      ],
+      "p95Ms": 300,
+      "ceilingMs": 2000,
+      "status": "PASS"
+    }
+  ]
+}

@@ -49,6 +49,10 @@ try {
   await admin.query(sql('supabase/migrations/20260920211929_pos_payment_framework.sql'));
   await admin.query(sql('supabase/migrations/20260920220340_pos_square_sandbox.sql'));
   await admin.query(sql('supabase/migrations/20260920235705_pos_square_terminal.sql'));
+  await admin.query(sql('supabase/migrations/20260921004339_pos_provider_request_budget.sql'));
+  await admin.query(sql('supabase/migrations/20260921010637_pos_employee_permission_precedence.sql'));
+  await admin.query(sql('supabase/migrations/20260921014756_pos_search_authority_scope.sql'));
+  await admin.query(sql('supabase/migrations/20260921020747_pos_cart_scale_500.sql'));
   console.log('Migrations applied to disposable PostgreSQL');
   if (process.argv.includes('--advisors')) {
     try { console.log(execFileSync('powershell.exe',['-NoProfile','-Command','supabase db advisors --db-url postgresql://postgres:pos-test-only@127.0.0.1:55439/postgres?sslmode=disable --type security --level warn --fail-on error'],{encoding:'utf8',timeout:60000})); } catch(error) { console.log('LOCAL ADVISORS:',error.stdout?.toString(),error.stderr?.toString()); }
@@ -130,18 +134,28 @@ try {
     const squareFixture=await verifySquare({admin,a,b,stranger,command,workspace,owner,setup,check});
     const {verifyTerminal}=await import('./pos-terminal-db.mjs');
     const terminalFixture=await verifyTerminal({admin,a,b,stranger,command,workspace,owner,setup,check});
+    const {verifyMixedShift}=await import('./pos-mixed-shift.mjs');
+    await verifyMixedShift({admin,a,command,workspace,owner,setup,check});
+    if (process.argv.includes('--large-cart')) {
+      const { verifyLargeCart } = await import('./pos-large-cart.mjs');
+      await verifyLargeCart({admin,a,b,command,workspace,owner,setup,check});
+    }
     if (process.argv.includes('--browser')) {
       await admin.query('update pos_workspace_settings set enabled=true where workspace_id=$1',[workspace]);
-      const {verifyTerminalBrowser}=await import('./pos-terminal-browser.mjs');
-      await verifyTerminalBrowser({admin,a,command,workspace,owner,setup,terminalFixture});
-      const { verifyLabelWorkflow }=await import('./label-workflow-browser.mjs');
-      await verifyLabelWorkflow({a,admin,command:(action,body)=>command(a,action,body),workspace,owner});
+      if (!process.argv.includes('--shift')) {
+        const {verifyTerminalBrowser}=await import('./pos-terminal-browser.mjs');
+        await verifyTerminalBrowser({admin,a,command,workspace,owner,setup,terminalFixture});
+        const { verifyLabelWorkflow }=await import('./label-workflow-browser.mjs');
+        await verifyLabelWorkflow({a,admin,command:(action,body)=>command(a,action,body),workspace,owner});
+      }
       const { verifyBrowser }=await import('./pos-browser.mjs');
-      await verifyBrowser({admin, command: (action,body)=>command(a,action,body), workspace, owner});
-      const {verifyOperationsBrowser}=await import('./pos-operations-browser.mjs');
-      await verifyOperationsBrowser({admin,a,staff:stranger,command,workspace,owner,other,setup});
-      const {verifyPaymentsBrowser}=await import('./pos-payments-browser.mjs');
-      await verifyPaymentsBrowser({admin,a,command,workspace,owner,setup,squareFixture});
+      await verifyBrowser({admin, a, command: (action,body)=>command(a,action,body), workspace, owner});
+      if (!process.argv.includes('--shift')) {
+        const {verifyOperationsBrowser}=await import('./pos-operations-browser.mjs');
+        await verifyOperationsBrowser({admin,a,staff:stranger,command,workspace,owner,other,setup});
+        const {verifyPaymentsBrowser}=await import('./pos-payments-browser.mjs');
+        await verifyPaymentsBrowser({admin,a,command,workspace,owner,setup,squareFixture});
+      }
     }
   } finally { for(const c of clients) await c.end(); }
   console.log(`POS database checks: ${passed} passed`);

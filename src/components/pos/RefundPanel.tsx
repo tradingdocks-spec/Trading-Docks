@@ -77,11 +77,14 @@ export function RefundPanel({
         ? await paymentRequest<RefundAttempt>(
             `/refunds/${refundResult.id}/check`,
             {},
+            setProviderError,
           )
         : await paymentRequest<RefundAttempt>(
             `/${payment.id}/refunds`,
             request,
+            setProviderError,
           );
+      setProviderError("");
       setRefundResult(result);
       if (result.status === "SUCCEEDED" && !result.recovery_required) {
         localStorage.removeItem(refundKey);

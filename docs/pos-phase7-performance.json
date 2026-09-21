@@ -1,0 +1,66 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "at": "2026-09-21T01:28:17.642Z",
+  "scope": "Hosted RPC round-trip, 1000 synthetic inventory rows; not UI timing or retail-scale certification",
+  "results": [
+    {
+      "name": "Hosted marketplace reservation versus checkout race",
+      "status": "PASS",
+      "winner": "reservation",
+      "loserError": "POS_STOCK_UNAVAILABLE"
+    },
+    {
+      "name": "1000 inventory name search",
+      "ms": 1316,
+      "matches": 30
+    },
+    {
+      "name": "1000 inventory SKU search",
+      "ms": 161,
+      "matches": 1
+    },
+    {
+      "name": "1000 inventory set search",
+      "ms": 1268,
+      "matches": 30
+    },
+    {
+      "name": "25 line quote",
+      "ms": 160,
+      "status": "PASS",
+      "totalMinor": 2725
+    },
+    {
+      "name": "25 line checkout",
+      "ms": 402,
+      "status": "PASS"
+    },
+    {
+      "name": "25 line canonical receipt",
+      "ms": 166,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line quote",
+      "ms": 367,
+      "status": "PASS",
+      "totalMinor": 10900
+    },
+    {
+      "name": "100 line checkout",
+      "ms": 546,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line canonical receipt",
+      "ms": 129,
+      "status": "PASS"
+    },
+    {
+      "name": "250 line quote",
+      "ms": 117,
+      "status": "UNSUPPORTED",
+      "error": "POS_INVALID"
+    }
+  ]
+}

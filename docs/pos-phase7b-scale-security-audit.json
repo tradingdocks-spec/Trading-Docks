@@ -1,0 +1,63 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "status": "PASS",
+  "source": "Hosted pg_proc/pg_namespace/has_function_privilege query after applied scale migration",
+  "functions": [
+    {
+      "name": "calculate",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "cash_command",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "command",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "payment_command",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "payment_refund_command",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "payment_refund_quote",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    },
+    {
+      "name": "refund",
+      "schema": "pos_private",
+      "securityDefiner": true,
+      "searchPath": "empty",
+      "anonExecute": false,
+      "authenticatedExecute": false
+    }
+  ]
+}

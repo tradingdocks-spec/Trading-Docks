@@ -1,0 +1,47 @@
+{
+  "productionOnly": [
+    {
+      "table_name": "inventory_items",
+      "column_name": "game_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "product_type",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "'card'::text"
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "tcgplayer_product_id",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "inventory_items",
+      "column_name": "tcgplayer_sku_id",
+      "data_type": "bigint",
+      "udt_name": "int8",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "stagingOnly": [
+    {
+      "table_name": "inventory_items",
+      "column_name": "bulk_purchase_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "typeDifferences": []
+}

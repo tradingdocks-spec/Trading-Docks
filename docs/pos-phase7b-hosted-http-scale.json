@@ -1,0 +1,31 @@
+{
+  "results": [
+    {
+      "name": "500-line authenticated Next HTTP quote above former 32 KiB limit",
+      "bytes": 50500,
+      "ms": 3042,
+      "status": "PASS"
+    },
+    {
+      "name": "501 lines and oversized streamed HTTP body rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "500-line Next HTTP checkout, complete canonical receipt and exact drawer close",
+      "ms": 6051,
+      "status": "PASS"
+    },
+    {
+      "name": "nondelegated actual Next API barcode/quote/checkout denied for owner inventory",
+      "status": "PASS"
+    },
+    {
+      "name": "manager actual Next API barcode/quote/checkout denied for owner inventory",
+      "status": "PASS"
+    },
+    {
+      "name": "other actual Next API barcode/quote/checkout denied for owner inventory",
+      "status": "PASS"
+    }
+  ]
+}

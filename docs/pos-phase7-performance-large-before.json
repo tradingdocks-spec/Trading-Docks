@@ -1,0 +1,75 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "at": "2026-09-21T01:46:50.461Z",
+  "scope": "Hosted RPC round-trip, 10000 synthetic inventory rows; not UI timing or certification for every store size",
+  "results": [
+    {
+      "name": "Hosted marketplace reservation versus checkout race",
+      "status": "PASS",
+      "winner": "reservation",
+      "loserError": "POS_STOCK_UNAVAILABLE"
+    },
+    {
+      "name": "10000 inventory name search",
+      "status": "FAIL",
+      "ms": 8145,
+      "error": "canceling statement due to statement timeout"
+    },
+    {
+      "name": "10000 inventory SKU search",
+      "status": "PASS",
+      "ms": 132,
+      "matches": 1
+    },
+    {
+      "name": "10000 inventory set search",
+      "status": "FAIL",
+      "ms": 8115,
+      "error": "canceling statement due to statement timeout"
+    },
+    {
+      "name": "10000 inventory location search",
+      "status": "FAIL",
+      "ms": 8094,
+      "error": "canceling statement due to statement timeout"
+    },
+    {
+      "name": "25 line quote",
+      "ms": 198,
+      "status": "PASS",
+      "totalMinor": 2725
+    },
+    {
+      "name": "25 line checkout",
+      "ms": 237,
+      "status": "PASS"
+    },
+    {
+      "name": "25 line canonical receipt",
+      "ms": 106,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line quote",
+      "ms": 318,
+      "status": "PASS",
+      "totalMinor": 10900
+    },
+    {
+      "name": "100 line checkout",
+      "ms": 546,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line canonical receipt",
+      "ms": 125,
+      "status": "PASS"
+    },
+    {
+      "name": "250 line cart",
+      "ms": 107,
+      "status": "UNSUPPORTED",
+      "error": "POS_INVALID"
+    }
+  ]
+}

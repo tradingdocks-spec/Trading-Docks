@@ -1,0 +1,101 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "at": "2026-09-21T02:37:24.693Z",
+  "scope": "Hosted RPC round-trip, 10000 synthetic inventory rows; not UI timing or certification for every store size",
+  "results": [
+    {
+      "name": "Hosted marketplace reservation versus checkout race",
+      "status": "PASS",
+      "winner": "checkout",
+      "loserError": "Insufficient available physical quantity (requested 1, available 0)"
+    },
+    {
+      "name": "10000 inventory name search",
+      "status": "PASS",
+      "ms": 242,
+      "matches": 30
+    },
+    {
+      "name": "10000 inventory SKU search",
+      "status": "PASS",
+      "ms": 136,
+      "matches": 1
+    },
+    {
+      "name": "10000 inventory set search",
+      "status": "PASS",
+      "ms": 241,
+      "matches": 30
+    },
+    {
+      "name": "10000 inventory location search",
+      "status": "PASS",
+      "ms": 245,
+      "matches": 30
+    },
+    {
+      "name": "25 line quote",
+      "ms": 155,
+      "status": "PASS",
+      "totalMinor": 2725
+    },
+    {
+      "name": "25 line checkout",
+      "ms": 278,
+      "status": "PASS"
+    },
+    {
+      "name": "25 line canonical receipt",
+      "ms": 111,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line quote",
+      "ms": 320,
+      "status": "PASS",
+      "totalMinor": 10900
+    },
+    {
+      "name": "100 line checkout",
+      "ms": 567,
+      "status": "PASS"
+    },
+    {
+      "name": "100 line canonical receipt",
+      "ms": 120,
+      "status": "PASS"
+    },
+    {
+      "name": "250 line quote",
+      "ms": 913,
+      "status": "PASS",
+      "totalMinor": 27250
+    },
+    {
+      "name": "250 line checkout",
+      "ms": 1571,
+      "status": "PASS"
+    },
+    {
+      "name": "250 line canonical receipt",
+      "ms": 126,
+      "status": "PASS"
+    },
+    {
+      "name": "500 line quote",
+      "ms": 2674,
+      "status": "PASS",
+      "totalMinor": 54500
+    },
+    {
+      "name": "500 line checkout",
+      "ms": 3843,
+      "status": "PASS"
+    },
+    {
+      "name": "500 line canonical receipt",
+      "ms": 233,
+      "status": "PASS"
+    }
+  ]
+}

@@ -31,11 +31,14 @@ export class PaymentOrchestrator {
         this.environment,
       );
     const p = await this.store<Payment>("create", body);
+    if (p.saleState === 'COMPLETED' || p.status === 'SUCCEEDED') return this.check(p.id);
     await this.adapter(p).createPayment(p.id);
     return this.observe(p.id);
   }
   async check(id: string) {
     const p = await this.store<Payment>("get", { id });
+    if (p.saleState === 'COMPLETED') return p;
+    if (p.status === 'SUCCEEDED') return this.observe(id);
     const provider = this.adapter(p);
     if (p.status === "CREATED") await provider.createPayment(id);
     await provider.getPayment(id);

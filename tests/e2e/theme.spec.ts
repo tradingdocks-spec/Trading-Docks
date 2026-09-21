@@ -65,7 +65,7 @@ test("theme choice persists across navigation, reloads, tabs and system changes"
   context,
 }) => {
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   // Firefox can reset the emulated preference during the first navigation.
   await page.emulateMedia({ colorScheme: "dark" });
   const picker = page.getByRole("combobox", { name: "Color theme" });
@@ -81,7 +81,7 @@ test("theme choice persists across navigation, reloads, tabs and system changes"
     .click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   const second = await context.newPage();
-  await second.goto("/pricing");
+  await second.goto("/pricing", { waitUntil: "domcontentloaded" });
   await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
   await second
     .getByRole("combobox", { name: "Color theme" })

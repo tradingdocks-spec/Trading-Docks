@@ -123,6 +123,9 @@ export async function verifyLabels({
   await check(
     "cashier may issue own labels but cannot assign aliases",
     async () => {
+      // This identity was linked as an employee by the suspension regression.
+      // A hosted member-role cashier now needs explicit selling permission.
+      await admin.query("update workspace_employees set permissions=permissions||'{\"pos.sell\":true}'::jsonb where workspace_id=$1 and linked_user_id=$2", [workspace, owner]);
       await admin.query(
         "update workspace_members set role='member' where user_id=$1",
         [owner],
