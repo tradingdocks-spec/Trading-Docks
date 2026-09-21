@@ -62,7 +62,11 @@ test("canonical capture tokens are signed, short-lived, and fixture-scoped", () 
   assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "primary", secret, 1_301), false);
   assert.equal(verifyCanonicalCaptureToken(token, "not-registered", "primary", secret, 1_001), false);
   assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "locations", secret, 1_001), false);
-  assert.equal(verifyCanonicalCaptureToken(`${token.slice(0, -1)}x`, "chaos-sort", "primary", secret, 1_001), false);
+  const parts = token.split(".");
+  const alteredSignature = Buffer.from(parts[2], "base64url");
+  alteredSignature[0] ^= 1; // Change signature bytes, not possibly ignored Base64 padding bits.
+  parts[2] = alteredSignature.toString("base64url");
+  assert.equal(verifyCanonicalCaptureToken(parts.join("."), "chaos-sort", "primary", secret, 1_001), false);
   assert.equal(verifyCanonicalCaptureToken(token, "chaos-sort", "primary", "different-secret", 1_001), false);
   assert.throws(() => createCanonicalCaptureToken("chaos-sort", "not-registered", secret, 1_000), /Unknown canonical capture fixture/);
 });
