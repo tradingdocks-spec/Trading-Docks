@@ -1,0 +1,51 @@
+{
+  "decision": "SAFE TO ASSIGN + CONTINUE",
+  "assignment": {
+    "file": "20260921201424_inventory_workspace_assignment.sql",
+    "sha256": "21f16cb0a178c481529e578e65a7f9aeff532ab1556cf76ba0e1c6153d6c950e",
+    "classification": {
+      "total": 1489,
+      "positive": 1460,
+      "zero": 29,
+      "deterministic": 1489,
+      "ambiguous": 0,
+      "unresolved": 0,
+      "intentionallyUnscoped": 0,
+      "rules": {
+        "sole_eligible_owner_workspace": 1470,
+        "inventory_event": 19
+      }
+    },
+    "milliseconds": 523,
+    "invariants": {
+      "rows": 1515,
+      "quantity": 1788,
+      "events": 1550,
+      "allocations": 0,
+      "onlyWorkspaceChanged": true,
+      "guardRestored": true,
+      "policiesUnchanged": true
+    },
+    "chaosCommitAfterAssignment": true,
+    "currentChaosWriterStillOmitsWorkspace": true,
+    "ownerReadCount": 1514,
+    "labelTargets": 500
+  },
+  "browserStore": {
+    "status": "PASS",
+    "scope": "production component + local SQL adapter",
+    "targets": 1,
+    "preparedLabels": 1,
+    "pageErrors": []
+  },
+  "browserOwner": {
+    "status": "PASS",
+    "targets": 500,
+    "exactPositionLabel": true,
+    "scope": "production component + local SQL adapter"
+  },
+  "rootTests": 960,
+  "posTextChecks": 129,
+  "posEnumChecks": 129,
+  "scope": "Read-only production classification; disposable assignment only. Sanitized aggregate evidence; no production mutation."
+}

@@ -1,0 +1,77 @@
+{
+  "decision": "SAFE TO APPLY",
+  "scope": "Disposable production-shaped rehearsal only; production untouched",
+  "migrationOrder": [
+    "20260921195747_label_production_compatibility.sql",
+    "20260921195836_chaos_and_pos_authority_compatibility.sql",
+    "20260921203415_inventory_authoritative_workspace_writer.sql",
+    "20260921201424_inventory_workspace_assignment.sql"
+  ],
+  "assignment": {
+    "file": "20260921201424_inventory_workspace_assignment.sql",
+    "sha256": "21f16cb0a178c481529e578e65a7f9aeff532ab1556cf76ba0e1c6153d6c950e",
+    "classification": {
+      "total": 1489,
+      "positive": 1460,
+      "zero": 29,
+      "deterministic": 1489,
+      "ambiguous": 0,
+      "unresolved": 0,
+      "intentionallyUnscoped": 0,
+      "rules": {
+        "sole_eligible_owner_workspace": 1470,
+        "inventory_event": 19
+      }
+    },
+    "milliseconds": 603,
+    "invariants": {
+      "rows": 1515,
+      "quantity": 1788,
+      "events": 1550,
+      "allocations": 0,
+      "onlyWorkspaceChanged": true,
+      "guardRestored": true,
+      "policiesUnchanged": true
+    },
+    "chaosCommitAfterAssignment": true,
+    "currentChaosWriterStillOmitsWorkspace": false,
+    "ownerReadCount": 1514,
+    "labelTargets": 500
+  },
+  "futureWriter": {
+    "checks": [
+      "manual RPC scopes owner inventory and its creation event",
+      "direct manual/import upserts receive scope before insertion",
+      "existing scoped upsert keeps scope and rejects tenant injection",
+      "collection lot split carries authoritative source scope",
+      "ambiguous implicit workspace fails closed; explicit validated operation succeeds",
+      "identical Chaos identity in two workspaces never merges across scope",
+      "private resolver is not callable by browser roles",
+      "required workspace with no eligible relationship fails closed",
+      "legitimate personal collector inventory remains nullable",
+      "ineligible owner cannot create scoped inventory",
+      "writer triggers remain enabled and private functions expose no API execution"
+    ],
+    "unscopedActiveWorkspaceInventory": 0,
+    "creationTimeScope": true
+  },
+  "browserStore": {
+    "status": "PASS",
+    "scope": "production component + local SQL adapter",
+    "targets": 1,
+    "preparedLabels": 1,
+    "pageErrors": []
+  },
+  "browserOwner": {
+    "status": "PASS",
+    "targets": 500,
+    "exactPositionLabel": true,
+    "scope": "production component + local SQL adapter"
+  },
+  "rootTests": 960,
+  "posTextChecks": 134,
+  "posEnumChecks": 134,
+  "maximumCartLines": 500,
+  "physicalHardware": "PENDING",
+  "productionExecution": "NOT AUTHORIZED"
+}

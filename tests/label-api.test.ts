@@ -68,7 +68,11 @@ test("label context never accepts a browser supplied workspace", async () => {
   const result = (await server({
     ok: true,
     access: { workspaceId: "trusted" },
-    supabase: {},
+    supabase: { rpc: async (name: string, args: { p_workspace_id: string }) => {
+      assert.equal(name, "label_access");
+      assert.equal(args.p_workspace_id, "trusted");
+      return { data: true, error: null };
+    } },
   }).labelContext()) as { workspaceId: string };
   assert.equal(result.workspaceId, "trusted");
   const denied = (await server({
@@ -76,6 +80,15 @@ test("label context never accepts a browser supplied workspace", async () => {
     response: Response.json({}, { status: 401 }),
   }).labelContext()) as { response: Response };
   assert.equal(denied.response.status, 401);
+});
+test("label application entitlement cannot override database denial", async () => {
+  for (const rpcResult of [{ data: false, error: null }, { data: null, error: { message: "POS_FORBIDDEN" } }]) {
+    const result = await server({ ok: true, access: { workspaceId: "trusted" },
+      supabase: { rpc: async () => rpcResult },
+    }).labelContext("label.manage_templates") as { ok: boolean; response: Response };
+    assert.equal(result.ok, false);
+    assert.equal(result.response.status, 403);
+  }
 });
 test("label target issue preserves exact IDs and trusted scope across target classes", async () => {
   const calls: unknown[] = [];
