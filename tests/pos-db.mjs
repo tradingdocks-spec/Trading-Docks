@@ -87,6 +87,10 @@ try {
     const second=await admin.query(`insert into pos_registers(workspace_id,site_id,name) values($1,$2,'Second') returning id`,[workspace,setup.siteId]);
     const session2=await command(b,'open',{registerId:second.rows[0].id});
     const request=(sessionId=session.id)=>({key:randomUUID(),siteId:setup.siteId,sessionId,expectedMinor:1409,cashMinor:2000,discountReason:'',lines:[{itemId:'bolt',quantity:1,discountBps:0}]});
+    if(process.argv.includes('--workspace-assignment')){
+      const {verifyAssignedPosScope}=await import('./production-workspace-assignment.mjs');
+      await verifyAssignedPosScope({admin,owner,other,workspace,setup,command,check});
+    }
     await verifyStaffingBoundary({ admin, staff: stranger, ownerClient:a, owner, other, workspace, setup, request, command, check });
     await check('exact barcode resolves only authorized real inventory',async()=>{const rows=await command(a,'search',{siteId:setup.siteId,query:'TD-ABCD-EFGH',exact:true});assert.equal(rows.length,1);assert.equal(rows[0].unit_price_minor,1299);});
     await check('canonical label SKU remains stable through repricing',async()=>{

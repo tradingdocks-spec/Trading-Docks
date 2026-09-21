@@ -1,5 +1,7 @@
 # Production compatibility repair — September 21, 2026
 
+Historical compatibility review: the existing-row workspace hold below is superseded by the [workspace-assignment review](POS_PRODUCTION_WORKSPACE_ASSIGNMENT_REVIEW.md). Its current verdict is SAFE TO ASSIGN + CONTINUE for the reviewed cohort only. Production execution still needs owner approval; the recurring Chaos writer omission and broader POS installation ordering remain separate follow-ups.
+
 **NOT SAFE TO APPLY. Draft repair complete for the three original defects; owner action required for newly exposed inventory/workspace scope.**
 
 Branch: `codex/production-compatibility-repair`, based on current `origin/main` (`14a0488`). No historical migration was edited. No production SQL mutation, deployment, migration, POS enablement or Square configuration was performed. All repair execution was on loopback disposable PostgreSQL. Production inspection used explicit read-only transactions.
@@ -32,8 +34,8 @@ The production identity inspected read-only:
 
 | Predicate | Observed value |
 | --- | --- |
-| Authenticated user / canonical owner | `3ea45327-7984-4108-ada8-511748e73fd8` |
-| Owned workspace | `4e775109-9f6f-4264-88c8-2c3c5b944a9b` |
+| Authenticated user / canonical owner | `Owner A (sanitized)` |
+| Owned workspace | `Workspace A (sanitized)` |
 | Workspace membership | owner |
 | Trusted platform role | owner |
 | Effective paid tier | free |

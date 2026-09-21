@@ -48,6 +48,14 @@ try{
    for(const [key,table] of [['locations','inventory_locations'],['sessions','chaos_sort_sessions'],['batches','chaos_sort_batches'],['positions','chaos_sort_inventory_positions']])for(const row of chaos[key])await insert('public.'+table,row);
  }
  const labelFixture=JSON.parse(readFileSync('.local-fixtures/production-labels-sanitized.json','utf8'));for(const r of labelFixture)await insert('public.inventory_label_identities',r);
+ if(process.argv.includes('--workspace-assignment')){
+   const evidence=JSON.parse(readFileSync('.local-fixtures/workspace-assignment-evidence.json','utf8'));
+   for(const p of evidence.provenance){
+     const extra={};if(p.source)extra.source=p.source;if(p.batch_id)extra.batch_id=p.batch_id;if(p.removed_at)extra.removedAt=p.removed_at;
+     await db.query('update inventory_items set data=data||$1::jsonb where user_id=$2 and id=$3',[JSON.stringify(extra),p.user_id,p.id]);
+   }
+   for(const e of evidence.events)await insert('public.inventory_events',e);
+ }
  for(const t of snap.tables){await db.query(`alter table ${name(t)} owner to ${ident(t.owner)}`);await acl('table',name(t),t.acl);if(t.rls)await db.query(`alter table ${name(t)} enable row level security`);if(t.force)await db.query(`alter table ${name(t)} force row level security`);}
  for(const f of snap.functions){const object=f.identity;await db.query(`alter function ${object} owner to ${ident(f.owner)}`);await acl('function',object,f.acl);}
  for(const p of snap.policies)await db.query(`create policy ${ident(p.policyname)} on ${ident(p.schemaname)}.${ident(p.tablename)} as ${p.permissive} for ${p.cmd} to ${p.roles.map(r=>r==='public'?'public':ident(r))}${p.qual?' using ('+p.qual+')':''}${p.with_check?' with check ('+p.with_check+')':''}`);

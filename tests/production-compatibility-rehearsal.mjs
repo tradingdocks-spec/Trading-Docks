@@ -93,7 +93,12 @@ export async function verifyLabelRepair({db,pg,snap,fixture,report,check}){
  await db.query('commit');
  console.log('CHAOS',JSON.stringify({before:report.baselineChaosCommit,after:report.candidateChaosCommit}));
  const {verifyMinimalLabelBrowser}=await import('./label-production-repair-browser.mjs');
+ if(process.argv.includes('--workspace-assignment')){
+   const {verifyWorkspaceAssignment}=await import('./production-workspace-assignment.mjs');
+   await verifyWorkspaceAssignment({db,report,check,platformOwner,platformWorkspace,other});
+ }
  await verifyMinimalLabelBrowser({db,pg,owner,workspace,platformOwner,platformWorkspace,report,expectOwnerPass:true});
  report.status='REVIEW_COMPLETE';
  report.decision=report.browserPlatformOwner.targets===0?'NOT SAFE TO APPLY':'REHEARSAL PASS';
+ if(process.argv.includes('--workspace-assignment'))report.decision='SAFE TO ASSIGN + CONTINUE';
 }
