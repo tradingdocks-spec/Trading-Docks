@@ -1,7 +1,13 @@
 .git
 .env*
 .local-fixtures
-mobile
+**/.env*
+mobile/node_modules
+mobile/.expo
+mobile/.cache
+mobile/dist
+mobile/fixtures
+mobile/benchmark-output
 mobile_backup
 mobile-sdk54-clean-backup
 mobile-sdk57-backup
