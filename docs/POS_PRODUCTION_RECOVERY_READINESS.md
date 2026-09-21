@@ -1,8 +1,91 @@
 # Production recovery readiness — September 21, 2026
 
-**RECOVERY NOT READY.** A full logical database archive exists and passes file/archive inspection, but the isolated restore rehearsal did not succeed. No production repair migrations, merge, deployment, POS enablement or Square configuration occurred. The approved four-file schema-first plan remains unchanged and must not start on the strength of this archive alone.
+**RECOVERY READY — Supabase-compatible database restore successfully rehearsed and verified on September 21, 2026.** No production repair migrations, merge, deployment, POS enablement or Square configuration occurred. The four-file schema-first repair remains unchanged and requires the next owner approval before execution. The historical failed attempts below are superseded by this verified result.
 
-## Supabase-compatible target follow-up
+## Successful Supabase-compatible rehearsal
+
+After the owner repaired Docker startup, a dedicated local Supabase project, `trading-docks-recovery-test`, was initialized outside the repository. Production and staging were not restored over or changed. The existing unrelated local Supabase project was not touched.
+
+Target: official `public.ecr.aws/supabase/postgres:17.6.1.167`, PostgreSQL 17.6 on Linux. Production uses PostgreSQL 17.6 / Supabase build 17.6.1.147. All installed extension versions match:
+
+| Extension | Production and target |
+| --- | --- |
+| pg_stat_statements | 1.11 |
+| pgcrypto | 1.3 |
+| plpgsql | 1.0 |
+| supabase_vault | 0.3.1 |
+| uuid-ossp | 1.1 |
+
+The CLI initially bootstrapped Auth v2.196.0, which lacked a production MFA table. Its attempted restore rolled back. The isolated target was then bootstrapped with official Auth v2.197.0; both Auth migration heads became `20260831180000`. The local Storage bootstrap image is v1.72.1 versus the recorded source v1.73.1: bucket/object counts, all four managed Storage trigger identities, and the six restored custom policies were verified; Storage HTTP/file operations were not exercised. This is database recovery validation, not a full platform/media-service acceptance claim.
+
+### Additional backup set
+
+Original `production.dump` and `roles.sql` remain unchanged at their original location, sizes and timestamps; their SHA-256 checksums were reverified after the successful rehearsal.
+
+Additional owner-controlled, access-restricted directory outside Git:
+
+`C:\Users\Jerem\TradingDocksRecovery\trading-docks-supabase-aware-20260921`
+
+Supabase CLI 2.117.0 successfully executed separate role-only, schema, COPY data, and explicit `supabase_migrations` schema/data exports. All dump commands exited 0. Export interval: **21:13:10–21:14:56 UTC**; application data export completed **21:14:27 UTC**. These separate commands are not a single cross-file snapshot. Post-export source comparisons matched the restored critical data; refresh/revalidate before a later production maintenance window if the source changes.
+
+| File | Bytes | Purpose |
+| --- | ---: | --- |
+| roles.sql | 370 | Supabase-aware role settings/grants; no reserved-role recreation/password replay |
+| schema.sql | 520,292 | Application schema, functions, types, constraints, indexes, policies and grants |
+| data.sql | 277,337,377 | COPY data, including Auth/Storage data and sequence state |
+| history-schema.sql | 1,116 | Explicit migration-history schema |
+| history-data.sql | 57,649 | All 12 production migration records |
+| managed-customizations.sql | 2,942 | Six Storage policies and the Auth user-created trigger, extracted from the preserved raw archive and verified against current source definitions |
+| source-api-acl.sql | 209,936 | Read-only source-catalog ACL snapshot for exact restoration of application API privileges |
+
+The secure directory's `manifest.json` records full SHA-256 hashes and UTC times for every file. Main COPY data SHA-256:
+
+`24E61C0D40B4FEBC65D959AF934F1D0C3002AAE5426FFDE4F1547F6DD23C1117`
+
+No database contents, role SQL, access tokens, encrypted marketplace credentials, private verification captures or backups were committed. Only this non-sensitive evidence report is in the repository.
+
+### Restore method and isolation
+
+The empty target was bootstrapped first. Before loading production data, all Auth/Storage/API/mail/worker services were stopped, and every Docker network attachment was removed from its database container. Verification confirmed an empty network attachment map. Only `docker exec` was used for database access; no Vercel or application environment was pointed at it. No production SMTP/webhook/Square/marketplace service configuration or application encryption key was provisioned. Production Vault contains zero secrets. Existing encrypted credential rows are retained as database data, without an application runtime or key to execute integrations.
+
+Restore used the local Supabase platform administrator, `psql --single-transaction --set ON_ERROR_STOP=1`, in this order: roles, schema, transaction-local `session_replication_role=replica`, data, history schema/data. The primary restore completed with **exit 0 at 21:18:01 UTC**, approximately 13 seconds after starting. The replica setting applied only to that disposable restore session; later verification confirmed `origin` and zero disabled application triggers.
+
+Managed customizations were restored separately with exit 0. A fresh target's default grants added unwanted anonymous table and authenticated function privileges despite otherwise correct schema restoration. The captured source ACL supplement restored the **exact source permissions**, with exit 0; no source authorization was weakened. Final ACL comparison has zero differences. The unmodified raw dump remains retained; the target was corrected through explicit restore supplements, not by fabricating platform functions or accepting skipped errors.
+
+After verification the database container was stopped. All recovery services are stopped, and the dedicated Docker volume retains the recovered database. Do not use `supabase start` casually on this recovered project: it can reattach networks/start APIs. Any further inspection must retain the isolation controls. No emails, external webhooks or real integrations were invoked.
+
+### Restored verification
+
+| Check | Restored result |
+| --- | ---: |
+| Inventory rows / units | 1,515 / 1,788 |
+| Inventory events | 1,550 |
+| Workspaces / memberships | 5 / 5 |
+| Auth users / identities | 5 / 5 |
+| Chaos batches / sessions / positions | 22 / 22 / 1,488 |
+| Inventory locations / label identities | 5 / 26 |
+| Migration-history rows | 12 |
+| Storage buckets / object metadata rows | 3 / 31 |
+| Unscoped inventory, intentionally still pre-repair | 1,489 |
+| Missing Auth users for workspace memberships | 0 |
+
+Full-row fingerprints matched the read-only source for all 12 critical tables covering inventory, events, workspaces/members, Chaos, locations, label identities, migration history and Auth users/identities. This includes ownership and all recorded relationship fields, not just aggregate counts.
+
+Exact source/target comparisons passed for **79 public functions, 195 public/Auth/Storage policies, 133 public-table RLS settings, 29 application/custom Auth triggers, 3 enums, 272 public types, 1,818 columns, 711 constraints, 398 indexes, 4 public sequences, 137 table/sequence ACLs and 79 function ACLs**. Catalog comparison used the same `search_path`; 64-bit sequence limits were compared as strings to avoid JSON numeric rounding. No actual policy or sequence mismatch was concealed by those representation corrections.
+
+Read-only authenticated usability passed: the canonical owner sees 1,514 inventory rows, 1,787 units, four locations, 22 batches, 1,488 positions and 25 label identities; the other inventory owner sees one row and zero foreign-owner rows. Anonymous inventory SELECT is denied. The Chaos commit RPC exists with the source definition; no commit was invoked. Label identity reads and current prerequisite-column checks match the source **pre-repair** shape, including its known missing identity-position column. Recovery reproduces that state; it does not restore Label Studio's functionality by applying the pending repair.
+
+### Corrected future recovery procedure and limits
+
+Use the Supabase-aware export set **plus explicit migration history, managed customizations and a source ACL snapshot**, not the raw custom archive alone. Provision compatible platform roles/extensions and the matching Auth schema; restore transactionally, apply the reviewed restore supplements, compare effective grants/RLS and data, and verify read-only usability. Preserve the original raw archive as additional evidence. The local platform administrator was needed for a platform parameter grant in the role export; a hosted restore must use that target's supported privilege-handling process and must be rehearsed separately rather than assuming local superuser access exists there.
+
+Storage file payloads, Vercel settings, application secrets, custom login passwords, external integrations and full hosted-service disaster recovery are outside this database-only proof. Vault was empty; nonempty Vault or column-encryption recovery would require a separate key-recovery check. The source's encrypted application credential values are preserved, but credential decryption/use was deliberately not tested. This is a local owner-controlled copy, not verified offsite or encrypted-disk disaster protection.
+
+The data restore itself took about 13 seconds after bootstrap; full environment provisioning, supplements and verification took longer. Do not treat that as a production recovery-time guarantee. Keep the verified artifacts and manifest, recheck source drift/backup freshness before eventual execution, and obtain owner approval before any production restore or compatibility migration.
+
+**Current gate: RECOVERY READY for the verified Supabase-compatible database backup set. Stop at owner approval.**
+
+## Historical blocked target follow-up — superseded
 
 The subsequent authorized Supabase-compatible validation attempt remains **BLOCKED / NOT READY**:
 
