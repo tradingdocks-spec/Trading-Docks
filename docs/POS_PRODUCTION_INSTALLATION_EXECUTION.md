@@ -43,7 +43,7 @@ A separate fresh backup of repaired production was created before installation i
 
 `C:\Users\Jerem\TradingDocksRecovery\trading-docks-production-pre-pos-install-20260921`
 
-It contains CLI roles/schema/COPY data/explicit migration-history exports, managed customizations, current API ACL supplement and a SHA-256/timestamp manifest. All dump commands exited 0. Original artifacts were not overwritten. The new restore ran **22:33:40.152–22:33:57.294 UTC**, exit 0, in isolated `pos_install_recovery_current` on official Supabase PostgreSQL 17.6.1.167. Complete application catalog and all 138 table fingerprints including migration history matched live production. Auth linkage, permissions and original inventory data were preserved. The exact installation wrapper was then rehearsed on this recovered current state. No recovery target was attached to a runtime/network or external services.
+It contains CLI roles/schema/COPY data/explicit migration-history exports, managed customizations, current API ACL supplement and a SHA-256/timestamp manifest. All dump commands exited 0; fresh export files completed 22:30:58–22:31:53 UTC (data completed 22:31:40.615 UTC). Original artifacts were not overwritten. The fresh manifest was reverified after use. The new restore ran **22:33:40.152–22:33:57.294 UTC**, exit 0, in isolated `pos_install_recovery_current` on official Supabase PostgreSQL 17.6.1.167. Complete application catalog and all 138 table fingerprints including migration history matched live production. Auth linkage, permissions and original inventory data were preserved. The exact installation wrapper was then rehearsed on this recovered current state. No recovery target was attached to a runtime/network or external services.
 
 This remains database recovery evidence; Storage file payloads, offsite recovery, application secrets and hosted platform cutover limitations are unchanged from the recovery report. No backup/customer contents or secrets are committed.
 
@@ -65,6 +65,19 @@ Pre-merge production checks passed: signed-in Dashboard, Inventory/Collection, C
 
 Local validation: `npm run validate` passed (ESLint, TypeScript, 960 unit tests, production dependency audit and Next.js build). No Expo/mobile runtime changes; no new Native build is claimed. The canonical migration is the only new migration in the PR; unrelated earlier local pilot/documentation commits are excluded.
 
-PR / merge SHA / Vercel deployment / post-deployment logs: **pending repository promotion and verification**.
+## Completed repository and deployment verification
+
+- Installation PR: [#121](https://github.com/tradingdocks-spec/Trading-Docks/pull/121).
+- Merge SHA: `0e1bc539d3c326786f28cd26b9525a91a779f05d`.
+- GitHub Actions [Quality and security run 35664360039](https://github.com/tradingdocks-spec/Trading-Docks/actions/runs/35664360039): PASS, including dependency install, full checks and web build. Vercel preview check: PASS.
+- Production deployment: `dpl_HVWpHRZuoviFH6qQcXUYVYUk9eFx`, **READY** at **2026-09-21 22:50:03.299 UTC**, commit matches the merge SHA; production aliases include `www.tradingdocks.com` and `tradingdocks.com`.
+- The SQL stored in production migration history and the canonical file fetched from `origin/main` both hash to the exact SHA-256 above. No repository/history mismatch remains.
+- Public marketing homepage: HTTP 200 after deployment. Signed-in Dashboard, Inventory, Collection storage (`UC Bulk Boxes`), Chaos Sort intake, populated Label Studio targets and populated Orders Center all load successfully.
+- POS register route: **POS is not available yet**. Payments page: **Connect Square Sandbox disabled**. No checkout, register session, staff delegation or merchant connection was created.
+- Production log queries since 22:39 UTC and deployment-specific queries after release returned **zero 5xx, error or fatal entries in the observed window through approximately 22:52 UTC**. This is a bounded observation, not a claim about future traffic or unavailable retention.
+- Final read-only database check at **22:50:15 UTC**: 1,515 rows, 1,788 units, 1,550 events, 0 unscoped, 0 enabled workspaces, 0 Square connections/credentials/devices, 17 ledger entries.
+- Recovery container stopped again with original preload configuration restored; it remains network-disconnected. All backups and restore databases retained.
+
+The documentation-only follow-up publishes these post-merge facts; it changes no migration, application behavior, configuration or rollout state.
 
 No automatic workspace enablement or Phase A retry is authorized by this installation. Return to the owner gate after deployment verification.
