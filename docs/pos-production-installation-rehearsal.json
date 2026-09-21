@@ -1,0 +1,31 @@
+{
+  "verdict": "PASS",
+  "scope": "Local isolated Supabase database only; production and staging read-only",
+  "started": "2026-09-21T22:21:56.149Z",
+  "finished": "2026-09-21T22:23:07.837Z",
+  "migration": "20260921220051_pos_forward_installation.sql",
+  "sha256": "995ba7c269204cbf8c967cf0c43da436c654ef1eaf198f2737dd5d5d7166a7e7",
+  "installRuntimeMs": 3460,
+  "tablesAdded": 43,
+  "functionsAdded": 49,
+  "originalTablesFingerprinted": 137,
+  "inventory": {
+    "rows": 1515,
+    "units": 1788,
+    "events": 1550,
+    "unscoped": 0
+  },
+  "enabledWorkspaces": 0,
+  "checks": [
+    "all original application/Auth table rows and full-row hashes unchanged",
+    "only the new installation ledger entry added; exact SQL retained",
+    "all original tables, constraints, indexes, policies, triggers and enums preserved",
+    "all original functions and grants preserved except exact reviewed collector stock hook",
+    "exact missing object set installed, without unrelated staging features",
+    "new sensitive tables all RLS-enabled with no browser table access",
+    "private helpers and server-only Square entry point deny browser execution",
+    "new constraints and indexes valid, writer triggers active, zero enabled workspaces",
+    "cash pilot and owner/delegated/manager/cross-tenant/anonymous/credential security SQL passed; fixtures rolled back",
+    "all original data and ledger unchanged after pilot rollback; rollout disabled"
+  ]
+}
