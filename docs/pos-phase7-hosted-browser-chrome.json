@@ -1,0 +1,39 @@
+{
+  "at": "2026-09-21T02:50:12.491Z",
+  "role": "owner",
+  "transport": "Loopback HTTPS Next.js production build; real hosted staging Auth and database",
+  "results": [
+    {
+      "name": "Actual Next.js sign-in with hosted Supabase Auth",
+      "status": "PASS"
+    },
+    {
+      "name": "Authenticated production Register screen using staging database",
+      "status": "PASS"
+    },
+    {
+      "name": "Hosted keyboard-driven cash checkout, canonical receipt and new sale",
+      "status": "PASS"
+    },
+    {
+      "name": "Hosted register layout 1920x1080",
+      "status": "PASS"
+    },
+    {
+      "name": "Hosted register layout 1366x768",
+      "status": "PASS"
+    },
+    {
+      "name": "Hosted register layout 1024x768",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual Next.js cross-origin POS mutation denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Actual Next.js anonymous POS/payment/Square/device APIs denied",
+      "status": "PASS"
+    }
+  ]
+}

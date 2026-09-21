@@ -4,6 +4,10 @@ const games = ["Magic", "Pokemon", "Pokemon JP", "Lorcana", "One Piece"];
 const modes = ["Balanced signal", "Price movement", "Demand", "Spread"];
 
 for (const width of [1728, 1440, 1024, 430, 390]) test(`homepage artwork at ${width}px across every game and signal`, async ({ page }) => {
+  // Twenty game/mode combinations include real image loading. Keep each image
+  // bounded at 30s, but do not share one 30s deadline across the entire matrix.
+  test.setTimeout(120_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width, height: 1000 });
   await page.goto("/#market");
   const market = page.getByRole("region", { name: "Market intelligence", exact: true });
@@ -26,20 +30,31 @@ for (const width of [1728, 1440, 1024, 430, 390]) test(`homepage artwork at ${wi
 });
 
 test("image errors preserve layout and another game recovers", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   let failRequests!: () => void;
   const failureGate = new Promise<void>(resolve => { failRequests = resolve; });
   await page.route("**/_next/image?**", async route => { await failureGate; await route.abort(); });
   await page.goto("/#market", { waitUntil: "domcontentloaded" });
   const market = page.getByRole("region", { name: "Market intelligence", exact: true });
+  // SSR conservatively pauses motion. The enabled pause control proves the
+  // client has subscribed to matchMedia before we click a game tab.
+  await expect(market.getByRole('button', { name: 'Pause movement', exact: true })).toBeEnabled();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(market.getByRole('button', { name: 'Reduced motion · paused' })).toBeDisabled();
   await market.getByRole("button", { name: "Pokemon", exact: true }).click();
+  await expect(market.getByRole("button", { name: "Pokemon", exact: true })).toHaveAttribute('aria-pressed', 'true');
   const featured = market.locator('[data-market-artwork="featured"]');
   await expect(featured).toHaveAttribute("data-artwork-state", "verified");
+  // Trigger the lazy image request before releasing the network-failure gate.
+  // Firefox can leave the featured image below the viewport after the tab click.
+  await featured.scrollIntoViewIfNeeded();
   const before = await featured.boundingBox();
   failRequests();
   await expect(featured).toHaveAttribute("data-artwork-state", "paused");
   await expect(featured.getByText("Preview paused")).toBeVisible();
   await expect(featured.locator("img")).toHaveCount(0);
-  expect((await featured.boundingBox())?.height).toBe(before?.height);
+  // Subpixel layout rounding differs between Firefox/WebKit and animation frames.
+  expect(Math.abs((await featured.boundingBox())!.height - before!.height)).toBeLessThan(1);
   await page.unroute("**/_next/image?**");
   await market.getByRole("button", { name: "Lorcana", exact: true }).click();
   await expect(featured).toHaveAttribute("data-artwork-state", "verified");

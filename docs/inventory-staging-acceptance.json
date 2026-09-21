@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-21T15:55:50.683Z",
+  "base": "https://trading-docks-pos-staging.vercel.app",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "status": "PASS",
+  "results": [
+    "Authenticated magic game filter PASS",
+    "Authenticated pokemon game filter PASS",
+    "POS inventory search PASS",
+    "POS exact barcode PASS",
+    "Hosted Inventory renders and search narrows results PASS",
+    "Hosted game-context filter excludes other games and restores legacy Magic PASS",
+    "Deployed POS search/barcode API PASS"
+  ]
+}

@@ -20,6 +20,8 @@ const API_AUTH_EXEMPT_PREFIXES = [
 
 export function apiRequiresAuthentication(pathname: string) {
   if (!pathname.startsWith("/api/")) return false;
+  // Square authenticates the exact webhook route using its raw-body signature.
+  if (pathname === "/api/payments/webhooks/square") return false;
   if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return false;
   }

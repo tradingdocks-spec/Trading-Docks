@@ -1,0 +1,96 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "timestamp": "2026-09-21T02:36:41.144Z",
+  "results": [
+    {
+      "name": "Owner reaches hosted POS",
+      "status": "PASS",
+      "ms": 231
+    },
+    {
+      "name": "admin cannot access owner stock without delegation",
+      "status": "PASS",
+      "ms": 164
+    },
+    {
+      "name": "manager cannot access owner stock without delegation",
+      "status": "PASS",
+      "ms": 143
+    },
+    {
+      "name": "nondelegated cannot access owner stock without delegation",
+      "status": "PASS",
+      "ms": 130
+    },
+    {
+      "name": "Other organization RPC access denied",
+      "status": "PASS",
+      "ms": 904
+    },
+    {
+      "name": "Anonymous RPC execution denied",
+      "status": "PASS",
+      "ms": 107
+    },
+    {
+      "name": "Direct financial table reads denied to every browser identity",
+      "status": "PASS",
+      "ms": 3018
+    },
+    {
+      "name": "Delegated employee sells owner stock with real JWT attribution",
+      "status": "PASS",
+      "ms": 493
+    },
+    {
+      "name": "Hosted last-item race commits exactly one sale",
+      "status": "PASS",
+      "ms": 572
+    },
+    {
+      "name": "100 cash transactions across five concurrent registers reconcile independently",
+      "status": "PASS",
+      "ms": 4993
+    },
+    {
+      "name": "Hosted paid-out retry emits one cash movement",
+      "status": "PASS",
+      "ms": 143
+    },
+    {
+      "name": "Delegation revocation invalidates an already quoted cart",
+      "status": "PASS",
+      "ms": 446
+    },
+    {
+      "name": "Separate authenticated manager approves cashier discount",
+      "status": "PASS",
+      "ms": 1189
+    },
+    {
+      "name": "Five drawers close against independent cash ledger sums",
+      "status": "PASS",
+      "ms": 1098
+    },
+    {
+      "name": "Hosted paid-in and cash-drop lifecycle reconciles",
+      "status": "PASS",
+      "ms": 690
+    },
+    {
+      "name": "Hosted checkout versus close serializes without orphan cash or stock",
+      "status": "PASS",
+      "ms": 523
+    },
+    {
+      "name": "Hosted competing drawer closes create one immutable close event",
+      "status": "PASS",
+      "ms": 447
+    },
+    {
+      "name": "Hosted provider budget is atomic and fails closed after twelve OAuth calls",
+      "status": "PASS",
+      "ms": 525
+    }
+  ]
+}

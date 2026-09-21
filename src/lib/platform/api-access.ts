@@ -22,6 +22,8 @@ export type ApiAccessRule = {
 };
 
 export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
+  { id: "pos", pattern: /^\/api\/pos(\/|$)/, kind: "capability", capability: "pos.sell", label: "Point of sale" },
+  { id: "square-webhook", pattern: /^\/api\/payments\/webhooks\/square\/?$/, kind: "webhook", label: "Square webhook" },
   { id: "revenuecat-webhook", pattern: /^\/api\/webhooks\/revenuecat\/?$/, kind: "webhook", label: "RevenueCat webhook" },
   { id: "cloudflare-email-webhook", pattern: /^\/api\/webhooks\/cloudflare-email\/?$/, kind: "webhook", label: "Cloudflare email webhook" },
   { id: "public-card-images", pattern: /^\/api\/(catalog\/product-image|landing-card-image|scryfall-image|scryfall-card-image|tcg-image|tcgcsv\/image|card-shows\/image)(\/|$)/, kind: "public", label: "Public card image proxy" },

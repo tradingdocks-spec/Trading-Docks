@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-21T02:13:26.176Z",
+  "measurements": [
+    {
+      "lines": 25,
+      "constructMs": 305,
+      "checkoutMs": 87,
+      "receiptMs": 398,
+      "receiptPages": 1,
+      "receiptBytes": 40938,
+      "status": "PASS"
+    },
+    {
+      "lines": 100,
+      "constructMs": 1874,
+      "checkoutMs": 295,
+      "receiptMs": 223,
+      "receiptPages": 1,
+      "receiptBytes": 83261,
+      "status": "PASS"
+    },
+    {
+      "lines": 250,
+      "constructMs": 5976,
+      "checkoutMs": 630,
+      "receiptMs": 295,
+      "receiptPages": 1,
+      "receiptBytes": 168133,
+      "status": "PASS"
+    },
+    {
+      "lines": 500,
+      "constructMs": 31478,
+      "checkoutMs": 2225,
+      "receiptMs": 379,
+      "receiptPages": 1,
+      "receiptBytes": 310015,
+      "status": "PASS"
+    }
+  ]
+}

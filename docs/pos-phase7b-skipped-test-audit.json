@@ -1,0 +1,326 @@
+{
+  "originalSkipped": 34,
+  "entries": [
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "desktop-chromium-1440",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "desktop-chromium-1920",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "desktop-firefox-1280",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "desktop-webkit-1024",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "tablet-chromium-768",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "mobile-chromium-430",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "mobile-webkit-390",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "dashboard-auth.spec.ts",
+      "testName": "authenticated dashboard browser QA / requires environment-provided QA credentials",
+      "project": "mobile-webkit-375",
+      "classification": "staging prerequisite missing",
+      "reason": "Requires real staging Auth.",
+      "requiredAction": "None; authenticated shell executed for this project, plus route/lifecycle/mobile cases where applicable.",
+      "status": "EXECUTED - PASS",
+      "evidence": "pos-phase7b-hosted-dashboard.json"
+    },
+    {
+      "testFile": "public-smoke.spec.ts",
+      "testName": "public product surface / mobile public menu opens closes and restores body scrolling",
+      "project": "desktop-chromium-1440",
+      "classification": "unsupported environment",
+      "reason": "Mobile-only interaction on desktop browser project.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "public-smoke.spec.ts",
+      "testName": "public product surface / mobile public menu opens closes and restores body scrolling",
+      "project": "desktop-chromium-1920",
+      "classification": "unsupported environment",
+      "reason": "Mobile-only interaction on desktop browser project.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "public-smoke.spec.ts",
+      "testName": "public product surface / mobile public menu opens closes and restores body scrolling",
+      "project": "desktop-firefox-1280",
+      "classification": "unsupported environment",
+      "reason": "Mobile-only interaction on desktop browser project.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "public-smoke.spec.ts",
+      "testName": "public product surface / mobile public menu opens closes and restores body scrolling",
+      "project": "desktop-webkit-1024",
+      "classification": "unsupported environment",
+      "reason": "Mobile-only interaction on desktop browser project.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "public-smoke.spec.ts",
+      "testName": "public product surface / mobile public menu opens closes and restores body scrolling",
+      "project": "tablet-chromium-768",
+      "classification": "unsupported environment",
+      "reason": "Mobile-only interaction on desktop browser project.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "desktop-chromium-1440",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "desktop-chromium-1920",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "desktop-chromium-1920",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "desktop-chromium-1920",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "desktop-firefox-1280",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "desktop-firefox-1280",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "desktop-firefox-1280",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "desktop-webkit-1024",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "desktop-webkit-1024",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "desktop-webkit-1024",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "tablet-chromium-768",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "tablet-chromium-768",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "tablet-chromium-768",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "mobile-chromium-430",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "mobile-chromium-430",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "mobile-chromium-430",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "mobile-webkit-390",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "mobile-webkit-390",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage desktop visual shell remains stable",
+      "project": "mobile-webkit-375",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / homepage mobile visual shell remains stable",
+      "project": "mobile-webkit-375",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    },
+    {
+      "testFile": "visual-regression.spec.ts",
+      "testName": "stable visual baselines / pricing desktop visual shell remains stable",
+      "project": "mobile-webkit-375",
+      "classification": "obsolete",
+      "reason": "Duplicate instance of designated browser baseline.",
+      "requiredAction": "Select applicable project at collection, not runtime skip.",
+      "status": "REMOVED REDUNDANT INSTANCE"
+    }
+  ],
+  "summary": {
+    "original": 34,
+    "removedDuplicateOrInapplicableInstances": 26,
+    "credentialPlaceholdersCoveredByHostedSuite": 8,
+    "hostedPassed": 41,
+    "unresolvedEngineeringSkips": 0
+  }
+}

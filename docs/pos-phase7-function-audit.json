@@ -1,0 +1,574 @@
+[
+  {
+    "schema": "pos_private",
+    "name": "access_command",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "approved",
+    "arguments": "w uuid, site uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "authorize",
+    "arguments": "w uuid, management boolean, require_enabled boolean",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "calculate",
+    "arguments": "w uuid, site_id uuid, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "can_transact",
+    "arguments": "w uuid, site uuid, stock_owner uuid, operation text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "cash_command",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "check_stock",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "command",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "cost_snapshot",
+    "arguments": "data jsonb",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "delegation_history",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "expected_cash",
+    "arguments": "session uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "guard_label_identity",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "immutable",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "label_identity",
+    "arguments": "w uuid, item text, v_position_id text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "lock_authority",
+    "arguments": "w uuid, site uuid, stock_owner uuid, operation text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "operations",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_audit",
+    "arguments": "payment uuid, action text, previous text, next text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_authorize",
+    "arguments": "w uuid, checkout uuid, manage boolean",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_close_guard",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_command",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_refund_command",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_refund_quote",
+    "arguments": "w uuid, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_transition",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_validate_stock",
+    "arguments": "w uuid, site uuid, quote jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "payment_view",
+    "arguments": "payment uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "permission",
+    "arguments": "w uuid, operation text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "permitted_stock_update",
+    "arguments": "previous jsonb, next_row jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "protect_event_origin",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "protect_refund_event",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "read_operations",
+    "arguments": "w uuid, action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "record_sale_cash",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "refund",
+    "arguments": "w uuid, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "resolve_barcode",
+    "arguments": "w uuid, site uuid, input text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "resolve_owner_barcode",
+    "arguments": "w uuid, site uuid, input text, stock_owner uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "retire_position_label",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "session_transition",
+    "arguments": "",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "site_access",
+    "arguments": "w uuid, site uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_admin",
+    "arguments": "w uuid, actor uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "square_settings",
+    "arguments": "w uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_attempt_context",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_attempt_guard",
+    "arguments": "",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_busy",
+    "arguments": "d uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_devices",
+    "arguments": "w uuid",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_scoped",
+    "arguments": "scopes text[]",
+    "security_definer": false,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "pos_private",
+    "name": "terminal_service",
+    "arguments": "action text, body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_command",
+    "arguments": "p_workspace_id uuid, p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_command",
+    "arguments": "p_workspace_id uuid, p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  },
+  {
+    "schema": "public",
+    "name": "pos_payment_refund_command",
+    "arguments": "p_workspace_id uuid, p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  },
+  {
+    "schema": "public",
+    "name": "pos_provider_request_budget",
+    "arguments": "p_workspace_id uuid, p_bucket text",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  },
+  {
+    "schema": "public",
+    "name": "pos_square_service",
+    "arguments": "p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": false
+  },
+  {
+    "schema": "public",
+    "name": "pos_square_settings",
+    "arguments": "p_workspace_id uuid, p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  },
+  {
+    "schema": "public",
+    "name": "pos_terminal_devices",
+    "arguments": "p_workspace_id uuid, p_action text, p_body jsonb",
+    "security_definer": true,
+    "settings": [
+      "search_path=\"\""
+    ],
+    "anon_execute": false,
+    "browser_execute": true
+  }
+]

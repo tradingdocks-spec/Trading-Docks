@@ -113,6 +113,7 @@ test("label template presets and dynamic bindings cover initial categories", () 
     "2 x 2",
     "3 x 2",
     "4 x 2",
+    "4 x 6",
     "Custom",
   ]);
   assert.equal(LABEL_BINDINGS.includes("card.collector_number"), true);

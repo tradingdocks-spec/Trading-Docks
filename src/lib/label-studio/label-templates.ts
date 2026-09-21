@@ -1,3 +1,4 @@
+import { validatePrintSettings, type PrintSettings } from './print-settings.ts';
 export type LabelUnit = "in" | "mm";
 export type LabelOrientation = "portrait" | "landscape";
 export type LabelCategory =
@@ -18,6 +19,7 @@ export type LabelSizePresetId =
   | "2x2"
   | "3x2"
   | "4x2"
+  | "4x6"
   | "custom";
 
 export type LabelElementType =
@@ -76,6 +78,8 @@ export type PricingRule = {
 };
 
 export type LabelTemplate = {
+  print?: PrintSettings;
+  isDefault?: boolean;
   id: string;
   workspaceId: string;
   name: string;
@@ -146,6 +150,7 @@ export const LABEL_SIZE_PRESETS: LabelSizePreset[] = [
   { id: "2x2", name: "2 x 2", width: 2, height: 2, unit: "in" },
   { id: "3x2", name: "3 x 2", width: 3, height: 2, unit: "in" },
   { id: "4x2", name: "4 x 2", width: 4, height: 2, unit: "in" },
+  { id: "4x6", name: "4 x 6", width: 4, height: 6, unit: "in" },
   { id: "custom", name: "Custom", width: 2, height: 1, unit: "in" },
 ];
 
@@ -237,10 +242,17 @@ export function paginateLabels(labels: LabelRenderResult[], labelsPerPage: numbe
 export function validateLabelTemplate(template: LabelTemplate) {
   const errors: string[] = [];
   if (!template.workspaceId) errors.push("workspace_required");
-  if (!template.name.trim()) errors.push("name_required");
-  if (template.width <= 0 || template.height <= 0) errors.push("positive_dimensions_required");
+  if (typeof template.name !== 'string' || !template.name.trim() || template.name.length > 100) errors.push("name_required");
+  const factor = template.unit === 'in' ? 25.4 : 1;
+  if (!['in','mm'].includes(template.unit) || ![template.width,template.height].every(Number.isFinite) || Math.min(template.width,template.height)*factor < 10 || Math.max(template.width,template.height)*factor > 300) errors.push("invalid_dimensions");
+  if (!['portrait','landscape'].includes(template.orientation)) errors.push('invalid_orientation');
+  if (!['asking_price','market_price','none'].includes(template.priceField)) errors.push('invalid_price_field');
+  for (const key of ['qrEnabled','barcodeEnabled','logoEnabled'] as const) if(typeof template[key] !== 'boolean') errors.push(`invalid_${key}`);
+  errors.push(...validatePrintSettings(template.print));
   if (!LABEL_CATEGORIES.includes(template.category)) errors.push("invalid_category");
+  if (!Array.isArray(template.elements) || template.elements.length > 30) return { ok: false, errors: [...errors,'invalid_elements'] };
   for (const element of template.elements) {
+    if (!element || typeof element !== 'object') { errors.push('invalid_element'); continue; }
     if (element.binding && !LABEL_BINDINGS.includes(element.binding)) {
       errors.push(`invalid_binding:${element.id}`);
     }

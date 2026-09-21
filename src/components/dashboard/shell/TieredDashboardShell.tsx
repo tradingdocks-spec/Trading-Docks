@@ -18,6 +18,7 @@ export function TieredDashboardShell({
   userName,
   isOwner,
   clientAccess,
+  posEnabled = false,
 }: {
   children: ReactNode;
   accountType: string;
@@ -25,6 +26,7 @@ export function TieredDashboardShell({
   userName: string;
   isOwner: boolean;
   clientAccess?: ClientSafePlatformAccess;
+  posEnabled?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -51,6 +53,7 @@ export function TieredDashboardShell({
         userName={userName}
         isOwner={isOwner}
         clientAccess={clientAccess}
+        posEnabled={posEnabled}
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}

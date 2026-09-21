@@ -1,0 +1,121 @@
+{
+  "at": "2026-09-21T15:53:53.489Z",
+  "results": [
+    {
+      "name": "nondelegated denied search on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "nondelegated denied search barcode on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "nondelegated denied quote on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "nondelegated denied checkout on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "manager denied search on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "manager denied search barcode on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "manager denied quote on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "manager denied checkout on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "other denied search on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "other denied search barcode on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "other denied quote on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "other denied checkout on owner stock",
+      "status": "PASS"
+    },
+    {
+      "name": "owner authorized search",
+      "status": "PASS"
+    },
+    {
+      "name": "owner authorized barcode",
+      "status": "PASS"
+    },
+    {
+      "name": "delegated authorized search",
+      "status": "PASS"
+    },
+    {
+      "name": "delegated authorized barcode",
+      "status": "PASS"
+    },
+    {
+      "name": "Delegated sell-only employee cannot refund",
+      "status": "PASS"
+    },
+    {
+      "name": "Delegated sell-only employee cannot read manager daily report",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit refund permission and return delegation allow one restocking refund",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via search",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via search barcode",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via quote",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via checkout",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via refund",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via daily",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via pos_payment_command",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via pos_payment_refund_command",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via pos_terminal_devices",
+      "status": "PASS"
+    },
+    {
+      "name": "Explicit sell=false cannot bypass via pos_square_settings",
+      "status": "PASS"
+    }
+  ]
+}

@@ -27,6 +27,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const platformAccess = await resolvePlatformAccessForUser(supabase, user);
   const clientAccess = toClientSafeAccess(platformAccess);
   const effectivePlan = await getEffectivePlan();
+  const posAvailability = platformAccess.workspaceId && hasCapability(clientAccess, "pos.sell")
+    ? await supabase.rpc("pos_command", { p_workspace_id: platformAccess.workspaceId, p_action: "availability", p_body: {} })
+    : null;
 
   return (
     <LegacyAccountDataCleanup userId={user.id}>
@@ -46,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         }
         isOwner={access.isAdmin || hasCapability(clientAccess, "platform.admin")}
         clientAccess={clientAccess}
+        posEnabled={!posAvailability?.error && posAvailability?.data?.enabled === true}
       >
         {children}
       </TieredDashboardShell>

@@ -106,3 +106,9 @@
 - Staging rollout: replay migrations into disposable staging, apply the proposal, run the verification SQL, test mobile direct writes and web API writes for Free/Collector/Seller/Store users, then inspect structured errors in Supabase client responses.
 - Production approval gates: product owner must approve total-quantity limit interpretation, engineering must approve service-role/import impact, and database owner must approve applying the trigger/RPC migration.
 - Rollback plan: disable the three proposed `enforce_collector_inventory_mutation_*` triggers first, revoke the proposed RPC if needed, then drop proposal functions only after confirming no deployed client depends on them. Do not rewrite historical migrations.
+
+## POS Phase 1 Boundary
+
+- Implemented: New POS tables enable RLS with no client table grants. A narrow authenticated RPC delegates to private helpers with fixed search paths and explicit tenant/owner predicates. Immutable sale/event guards, idempotency locks, shared stock constraints, cancellation tombstones, same-origin mutations, body limits and escaped receipts protect the cash workflow.
+- Implemented: No processor credentials, raw card data or service-role clients are introduced. Safe logs include action/error code only.
+- Requires Production Configuration: Hosted Supabase auth/PostgREST, advisor review, complete migration replay and existing stock consistency audit remain staging gates. Local database/browser evidence is recorded in `docs/POS_PHASE1_VALIDATION.md`.

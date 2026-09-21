@@ -1,0 +1,21 @@
+{
+  "ledger": "text",
+  "at": "2026-09-21T18:06:45.732Z",
+  "status": "PASS",
+  "amounts": "integer USD cents",
+  "sales": 100,
+  "cashSales": 50,
+  "mockSales": 50,
+  "gross": 10000,
+  "discount": 1250,
+  "tax": 775,
+  "refund": 54,
+  "net": 9471,
+  "cash": 4021,
+  "card": 5450,
+  "drawer": 24021,
+  "initialStock": 200,
+  "sold": 100,
+  "returned": 1,
+  "endingStock": 101
+}

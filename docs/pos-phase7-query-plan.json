@@ -1,0 +1,112 @@
+{
+  "scope": "Underlying full-text inventory predicate only; privileged EXPLAIN does not include hosted Auth/RLS/POS permission cost. Broad match on 1000 synthetic rows.",
+  "plan": [
+    {
+      "QUERY PLAN": [
+        {
+          "Plan": {
+            "Node Type": "Limit",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 373.82,
+            "Total Cost": 373.9,
+            "Plan Rows": 30,
+            "Plan Width": 56,
+            "Actual Startup Time": 9.123,
+            "Actual Total Time": 9.13,
+            "Actual Rows": 30,
+            "Actual Loops": 1,
+            "Shared Hit Blocks": 67,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Sort",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 373.82,
+                "Total Cost": 376.3,
+                "Plan Rows": 991,
+                "Plan Width": 56,
+                "Actual Startup Time": 9.122,
+                "Actual Total Time": 9.125,
+                "Actual Rows": 30,
+                "Actual Loops": 1,
+                "Sort Key": [
+                  "card_name",
+                  "id"
+                ],
+                "Sort Method": "top-N heapsort",
+                "Sort Space Used": 29,
+                "Sort Space Type": "Memory",
+                "Shared Hit Blocks": 67,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Seq Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Relation Name": "inventory_items",
+                    "Alias": "inventory_items",
+                    "Startup Cost": 0,
+                    "Total Cost": 344.55,
+                    "Plan Rows": 991,
+                    "Plan Width": 56,
+                    "Actual Startup Time": 0.039,
+                    "Actual Total Time": 8.485,
+                    "Actual Rows": 1001,
+                    "Actual Loops": 1,
+                    "Filter": "(to_tsvector('simple'::regconfig, ((((((COALESCE(card_name, ''::text) || ' '::text) || COALESCE(product_name, ''::text)) || ' '::text) || COALESCE(set_code, ''::text)) || ' '::text) || COALESCE(collector_number, ''::text))) @@ '''performance'' & ''card'''::tsquery)",
+                    "Rows Removed by Filter": 10,
+                    "Shared Hit Blocks": 64,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "Planning": {
+            "Shared Hit Blocks": 352,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0
+          },
+          "Planning Time": 4.03,
+          "Triggers": [],
+          "Execution Time": 9.204
+        }
+      ]
+    }
+  ]
+}

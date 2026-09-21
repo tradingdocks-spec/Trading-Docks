@@ -78,9 +78,21 @@ export async function expectNoDocumentOverflow(page: Page) {
 
     for (const element of Array.from(document.body.querySelectorAll<HTMLElement>("*"))) {
       if (["SCRIPT", "STYLE", "META", "LINK"].includes(element.tagName)) continue;
-      if (element.getAttribute("aria-hidden") === "true") continue;
+      if (element.closest('[aria-hidden="true"], [inert]')) continue;
+      let hidden = false;
+      for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor);
+        if (css.display === 'none' || css.visibility === 'hidden' || css.opacity === '0') { hidden = true; break; }
+      }
+      if (hidden) continue;
       const style = window.getComputedStyle(element);
       if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") continue;
+      // A closed, translated drawer is intentionally outside the viewport and
+      // does not widen the document. Still audit it when opened or partly visible.
+      const drawer = element.closest('aside');
+      if (drawer && drawer.querySelector('nav[aria-label="Dashboard navigation"]') &&
+          document.body.dataset.dashboardMobileMenu !== 'open' &&
+          getComputedStyle(drawer).position === 'fixed' && drawer.getBoundingClientRect().right <= 1) continue;
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) continue;
       const text = element.innerText?.replace(/\s+/g, " ").trim() ?? "";
@@ -128,9 +140,21 @@ export async function recordSmallTextAudit(page: Page, testInfo: TestInfo) {
 
     while (walker.nextNode()) {
       const element = walker.currentNode as HTMLElement;
+      // A closed, translated drawer is intentionally outside the viewport and
+      // does not widen the document. Still audit it when opened or partly visible.
+      const drawer = element.closest('aside');
+      if (drawer && drawer.querySelector('nav[aria-label="Dashboard navigation"]') &&
+          document.body.dataset.dashboardMobileMenu !== 'open' &&
+          getComputedStyle(drawer).position === 'fixed' && drawer.getBoundingClientRect().right <= 1) continue;
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) continue;
-      if (element.getAttribute("aria-hidden") === "true") continue;
+      if (element.closest('[aria-hidden="true"], [inert]')) continue;
+      let hidden = false;
+      for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+        const css = getComputedStyle(ancestor);
+        if (css.display === 'none' || css.visibility === 'hidden' || css.opacity === '0') { hidden = true; break; }
+      }
+      if (hidden) continue;
 
       const text = element.innerText?.replace(/\s+/g, " ").trim();
       if (!text || text.length < 3) continue;

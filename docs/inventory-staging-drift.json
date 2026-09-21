@@ -1,0 +1,73 @@
+{
+  "at": "2026-09-21T15:57:04.461Z",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "status": "PASS",
+  "scope": "inventory_items columns declared by repository CREATE/ALTER migrations; authenticated Data API schema-cache validation",
+  "columns": [
+    "asking_price",
+    "barcode_value",
+    "bulk_purchase_id",
+    "card_name",
+    "collector_number",
+    "created_at",
+    "data",
+    "game_id",
+    "id",
+    "inventory_value",
+    "item_kind",
+    "label_price",
+    "language",
+    "location_id",
+    "market_price",
+    "product_name",
+    "product_type",
+    "provider_category_id",
+    "provider_product_id",
+    "provider_sku_id",
+    "public_label_enabled",
+    "qr_public_enabled",
+    "quantity",
+    "scryfall_id",
+    "set_code",
+    "sku",
+    "tcgplayer_product_id",
+    "tcgplayer_sku_id",
+    "upc",
+    "updated_at",
+    "user_id",
+    "variant",
+    "workspace_id"
+  ],
+  "missingColumns": [],
+  "boundaries": [
+    "other: inventory mutation denied; no backfill RPC",
+    "delegated: inventory mutation denied; no backfill RPC",
+    "anonymous: inventory mutation denied; no backfill RPC"
+  ],
+  "sources": [
+    {
+      "file": "202607280004_inventory_persistence.sql",
+      "sha256": "92461d5581e4b7c4b29273e5d084c2c57e76e09da416720f300dd47fa361ccd8"
+    },
+    {
+      "file": "202607290001_bulk_purchase_profitability.sql",
+      "sha256": "ffdb056bfa818d80f6113af2214b98c88020ac3ac939340e8ee0d9cb7a7b48b8"
+    },
+    {
+      "file": "202607300001_durable_account_data.sql",
+      "sha256": "e11ad2a1357663b70b0ec030f0cff4371968fde7809576938849dda6f0f6c0ed"
+    },
+    {
+      "file": "202608090001_label_studio_inventory_qr_proposal.sql",
+      "sha256": "db9cc542f6f4781b9cb0eaf8c51895c657567ea125ba99debbb605f1dd657a03"
+    },
+    {
+      "file": "202608120001_multi_tcg_inventory_identity_proposal.sql",
+      "sha256": "49d3c4c5b4c6de71329bc427d18fdcc0d65e18311d0780afa9689bd9bf59f0e6"
+    },
+    {
+      "file": "20260921154907_inventory_identity_trusted_backfill.sql",
+      "sha256": "1b409c839cf8c34000bea22eaab5a1b2ea08b7d25c65df795f65ed1adc294b54"
+    }
+  ]
+}

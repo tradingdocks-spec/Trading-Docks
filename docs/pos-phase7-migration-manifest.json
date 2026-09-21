@@ -1,0 +1,134 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "note": "Original repository sequence retained; MCP assigns hosted rehearsal version timestamps. Do not replay already applied DDL.",
+  "migrations": [
+    {
+      "file": "202608050001_collector_mutation_security_proposal.sql",
+      "sha256": "abb752a244a83ba1bd5649872e445ce9ede3b51871153b4ea219980ca96bfba6"
+    },
+    {
+      "file": "202608090001_label_studio_inventory_qr_proposal.sql",
+      "sha256": "db9cc542f6f4781b9cb0eaf8c51895c657567ea125ba99debbb605f1dd657a03"
+    },
+    {
+      "file": "202608110001_purchase_history_ledger_proposal.sql",
+      "sha256": "2db54ba8e7f7301f28c8da864b917d74214142240eb0e5fe494d4b3826913778"
+    },
+    {
+      "file": "202608110002_tcgtracking_enrichment_cache_proposal.sql",
+      "sha256": "f9d004858c8bce0ed3b1eb6fd6da09ecb76e4a95ff7e5d413a02d5399e5b5d2e"
+    },
+    {
+      "file": "202608120001_multi_tcg_inventory_identity_proposal.sql",
+      "sha256": "49d3c4c5b4c6de71329bc427d18fdcc0d65e18311d0780afa9689bd9bf59f0e6"
+    },
+    {
+      "file": "202608270001_crm_marketing_campaigns_proposal.sql",
+      "sha256": "beeacb4ee25b4123f12b69c3ef3396fb3bc002b60857fe67b8169469d37fb0ca"
+    },
+    {
+      "file": "202609070001_chaos_sort_sessions_and_positions.sql",
+      "sha256": "6fec479d75a2ffe2045a990c66eec48e51562a6f73696a9e356bab2f23e0c9f1",
+      "hosted": {
+        "version": "202609070001",
+        "name": "chaos_sort_sessions_and_positions"
+      }
+    },
+    {
+      "file": "20260918190000_selling_chaos_position_multiplicity.sql",
+      "sha256": "fb789d77e11b341643713aa564ede8519588689f801b19c17e11e4be25cac59b",
+      "hosted": {
+        "version": "20260918190000",
+        "name": "selling_chaos_position_multiplicity"
+      }
+    },
+    {
+      "file": "20260920181448_pos_cash_foundation.sql",
+      "sha256": "a908835e6721360d1500969670891978d99f0775b8b5c79942668bfaf078d14e",
+      "hosted": {
+        "version": "20260921003613",
+        "name": "pos_cash_foundation"
+      }
+    },
+    {
+      "file": "20260920190428_pos_barcode_labels.sql",
+      "sha256": "119f262520b8615522f0cb6fbee9f28d5344ae24d6bb88d7dd1bcf6f41e7d12f",
+      "hosted": {
+        "version": "20260921003623",
+        "name": "pos_barcode_labels"
+      }
+    },
+    {
+      "file": "20260920201259_pos_staff_delegation.sql",
+      "sha256": "83af875e37eedf62995741212a686b37a2f8c8f2fa23d6487d53648349986521",
+      "hosted": {
+        "version": "20260921003625",
+        "name": "pos_staff_delegation"
+      }
+    },
+    {
+      "file": "20260920201754_pos_register_operations.sql",
+      "sha256": "5587df5b6469c632c68b755e428a23fc5f77e06c2894e91b1ba81c931dabd021",
+      "hosted": {
+        "version": "20260921003627",
+        "name": "pos_register_operations"
+      }
+    },
+    {
+      "file": "20260920211929_pos_payment_framework.sql",
+      "sha256": "796fca4f92d70043a2e07dabfc08d0184406830225f204a74129a7fbad6f3507",
+      "hosted": {
+        "version": "20260921003630",
+        "name": "pos_payment_framework"
+      }
+    },
+    {
+      "file": "20260920220340_pos_square_sandbox.sql",
+      "sha256": "05e8bfd98a286cda2e7f24ccc0d78554c2ac1f6c90e8004265192e9910b7d9e4",
+      "hosted": {
+        "version": "20260921003632",
+        "name": "pos_square_sandbox"
+      }
+    },
+    {
+      "file": "20260920235705_pos_square_terminal.sql",
+      "sha256": "d5e93bfb4b26f2ceab6e76db8612b0c4d77d8464a850f590ae124f312cdbd04e",
+      "hosted": {
+        "version": "20260921003636",
+        "name": "pos_square_terminal"
+      }
+    },
+    {
+      "file": "20260921004339_pos_provider_request_budget.sql",
+      "sha256": "84e49cb2d0c36b76e3d4595ae0d5d1c2e54a5eabf6360bcb2c8182a7892e11c8",
+      "hosted": {
+        "version": "20260921004420",
+        "name": "pos_provider_request_budget"
+      }
+    },
+    {
+      "file": "20260921010637_pos_employee_permission_precedence.sql",
+      "sha256": "2ee4c7396759516efa1656fa1920e62a8147a0efcc225a208178e4e2da092f54",
+      "hosted": {
+        "version": "20260921010658",
+        "name": "pos_employee_permission_precedence"
+      }
+    },
+    {
+      "file": "20260921014756_pos_search_authority_scope.sql",
+      "sha256": "8917f589392d04e9bcab301805452785803fda139a64b23330a05307f3a7a7bd",
+      "hosted": {
+        "version": "20260921014944",
+        "name": "pos_search_authority_scope"
+      }
+    },
+    {
+      "file": "20260921020747_pos_cart_scale_500.sql",
+      "sha256": "2adaa01f03dfcc7274ab662f10775cb8d621b8170420379f45c2582f8a5231cf",
+      "hosted": {
+        "version": "20260921021607",
+        "name": "pos_cart_scale_500"
+      }
+    }
+  ]
+}

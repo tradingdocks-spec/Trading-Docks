@@ -2,6 +2,7 @@
 
 import { ArrowRight, Menu, X } from "lucide-react";
 import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { usePathname } from 'next/navigation';
 
 import { TransitionLink } from "@/components/navigation/PolishedNavigation";
 import { BrandMark } from "./BrandMark";
@@ -12,9 +13,11 @@ const PRODUCT_NAV = [
   { label: "Platform", href: "#platform" },
   { label: "Market", href: "#market" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Hardware", href: "/hardware" },
 ];
 
 export function Header() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const menuPanel = useRef<HTMLDivElement>(null);
@@ -23,7 +26,7 @@ export function Header() {
     event: MouseEvent<HTMLAnchorElement>,
     href: string,
   ) {
-    if (!href.startsWith("#")) return;
+    if (!href.startsWith("#") || pathname !== '/') return;
 
     const target = document.querySelector(href);
     if (!target) return;
@@ -86,7 +89,7 @@ export function Header() {
           {PRODUCT_NAV.map((item) => (
             <a
               key={item.href}
-              href={item.href}
+              href={item.href.startsWith('#') && pathname !== '/' ? `/${item.href}` : item.href}
               onClick={(event) => navigateToSection(event, item.href)}
               className="px-3 py-2 text-sm font-medium text-td-muted transition hover:text-td-primary"
             >
@@ -138,7 +141,7 @@ export function Header() {
             {PRODUCT_NAV.map((item) => (
               <a
                 key={item.href}
-                href={item.href}
+                href={item.href.startsWith('#') && pathname !== '/' ? `/${item.href}` : item.href}
                 onClick={(event) => navigateToSection(event, item.href)}
                 className="flex min-h-[52px] items-center justify-between border-b border-td-ink/[0.08] px-1 text-base font-semibold text-td-primary last:border-b-0"
               >

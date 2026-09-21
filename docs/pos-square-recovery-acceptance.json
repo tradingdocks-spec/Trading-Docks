@@ -1,0 +1,291 @@
+{
+  "at": "2026-09-21T16:36:06.790Z",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "siteId": "8bda45a8-c316-48a1-988c-1c49f319a945",
+  "registerId": "0509421d-5cdb-4f1d-9d17-d98bdba47d13",
+  "sessionId": "79ec07d5-4798-4122-84c9-e036bf951d59",
+  "initialQuantity": 19,
+  "results": [
+    "PASS real payment browser-response loss, reload, identical-key recovery, one stock deduction",
+    "PASS real Square refund, browser-response loss/reload/reconciliation, one inventory restoration",
+    "PASS cash checkout after Square configuration",
+    "PASS register closes with zero variance; net inventory change equals cash sale"
+  ],
+  "payment": {
+    "id": "b129285e-d0d4-4712-980b-f702d912728f",
+    "saleId": "202130e1-9ae3-44d7-95a7-b1a0b1dcf14f",
+    "providerReference": "tYTX1rUfdSaZG7w7KtV0ytS0zUEZY",
+    "amountMinor": 109,
+    "receipt": {
+      "site": "Sandbox counter",
+      "lines": [
+        {
+          "sku": "SANDBOX-1",
+          "name": "Sandbox sample 1",
+          "finish": null,
+          "gameId": null,
+          "itemId": "sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60-0",
+          "ownerId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+          "setCode": null,
+          "language": null,
+          "quantity": 1,
+          "taxMinor": 9,
+          "condition": null,
+          "locationId": "pos-sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+          "positionId": null,
+          "scryfallId": null,
+          "discountBps": 0,
+          "priceSource": "asking_price",
+          "productType": null,
+          "discountMinor": 0,
+          "lineTotalMinor": 109,
+          "unitPriceMinor": 100,
+          "collectorNumber": null,
+          "cartDiscountMinor": 0,
+          "lineDiscountMinor": 0,
+          "tcgplayerProductId": null,
+          "originalUnitPriceMinor": 100,
+          "overrideDifferenceMinor": 0
+        }
+      ],
+      "number": "TD-202130E19AE344D795A7B1A0B1DCF14F",
+      "actorId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+      "payment": {
+        "status": "SUCCEEDED",
+        "metadata": {
+          "brand": "VISA",
+          "last4": "5858",
+          "locationId": "LZ2H61E38DWB3",
+          "environment": "SANDBOX",
+          "verification": "Square Sandbox"
+        },
+        "provider": "SQUARE",
+        "reference": "tYTX1rUfdSaZG7w7KtV0ytS0zUEZY"
+      },
+      "version": 2,
+      "currency": "USD",
+      "register": "Square recovery acceptance 1790008562882",
+      "settings": {
+        "footer": "Thank you for shopping with us.",
+        "address": "",
+        "showSku": true,
+        "blindClose": false,
+        "receiptWidth": "80",
+        "returnPolicy": "",
+        "showEmployee": true,
+        "showLocation": true,
+        "noteThresholdMinor": 0,
+        "approvalThresholdMinor": 2000
+      },
+      "taxMinor": 9,
+      "timezone": "America/Phoenix",
+      "cashMinor": 0,
+      "createdAt": "2026-09-21T16:36:05.114577+00:00",
+      "totalMinor": 109,
+      "changeMinor": 0,
+      "employeeName": "tradingdocks",
+      "discountMinor": 0,
+      "subtotalMinor": 100,
+      "discountReason": null
+    }
+  },
+  "refund": {
+    "id": "bdb66ef3-ddea-4049-9bea-1978b69da1e1",
+    "intent": {
+      "key": "1e5cdc08-73b7-448b-893e-93a88efc2cb2",
+      "lines": [
+        {
+          "quantity": 1,
+          "saleItemId": "bd89be27-55c9-4e25-a382-260c3f82159f",
+          "returnInventory": true
+        }
+      ],
+      "reason": "Sandbox response-loss acceptance",
+      "saleId": "202130e1-9ae3-44d7-95a7-b1a0b1dcf14f",
+      "sessionId": "79ec07d5-4798-4122-84c9-e036bf951d59",
+      "expectedMinor": 109
+    },
+    "status": "SUCCEEDED",
+    "actor_id": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+    "refund_id": "4e751e89-fc2a-4206-9e37-0d0ab23df536",
+    "created_at": "2026-09-21T16:36:09.439418+00:00",
+    "payment_id": "b129285e-d0d4-4712-980b-f702d912728f",
+    "updated_at": "2026-09-21T16:36:13.122071+00:00",
+    "amount_minor": 109,
+    "failure_code": null,
+    "workspace_id": "16610216-bfa9-432b-b0c1-cdfc162038f2",
+    "idempotency_key": "3c09fb78-f168-4140-9f24-1b11a59e2ce1",
+    "recovery_required": false,
+    "provider_refund_id": "tYTX1rUfdSaZG7w7KtV0ytS0zUEZY_LEhgfSMnCTpmtQKqMSbYOZ1ckcY3VTGPbJRf6cyC7yJ"
+  },
+  "cashSaleId": "4291849f-f71d-4985-84d8-0e8b705d81fd",
+  "cashReceipt": {
+    "site": "Sandbox counter",
+    "lines": [
+      {
+        "sku": "SANDBOX-1",
+        "name": "Sandbox sample 1",
+        "finish": null,
+        "gameId": null,
+        "itemId": "sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60-0",
+        "ownerId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+        "setCode": null,
+        "language": null,
+        "quantity": 1,
+        "taxMinor": 9,
+        "condition": null,
+        "locationId": "pos-sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+        "positionId": null,
+        "scryfallId": null,
+        "discountBps": 0,
+        "priceSource": "asking_price",
+        "productType": null,
+        "discountMinor": 0,
+        "lineTotalMinor": 109,
+        "unitPriceMinor": 100,
+        "collectorNumber": null,
+        "cartDiscountMinor": 0,
+        "lineDiscountMinor": 0,
+        "tcgplayerProductId": null,
+        "originalUnitPriceMinor": 100,
+        "overrideDifferenceMinor": 0
+      }
+    ],
+    "number": "TD-4291849FF71D498584D80E8B705D81FD",
+    "actorId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+    "version": 2,
+    "currency": "USD",
+    "register": "Square recovery acceptance 1790008562882",
+    "settings": {
+      "footer": "Thank you for shopping with us.",
+      "address": "",
+      "showSku": true,
+      "blindClose": false,
+      "receiptWidth": "80",
+      "returnPolicy": "",
+      "showEmployee": true,
+      "showLocation": true,
+      "noteThresholdMinor": 0,
+      "approvalThresholdMinor": 2000
+    },
+    "taxMinor": 9,
+    "timezone": "America/Phoenix",
+    "cashMinor": 109,
+    "createdAt": "2026-09-21T16:36:14.526993+00:00",
+    "totalMinor": 109,
+    "changeMinor": 0,
+    "employeeName": "tradingdocks",
+    "discountMinor": 0,
+    "subtotalMinor": 100,
+    "discountReason": null
+  },
+  "close": {
+    "id": "79ec07d5-4798-4122-84c9-e036bf951d59",
+    "status": "CLOSED",
+    "site_id": "8bda45a8-c316-48a1-988c-1c49f319a945",
+    "actor_id": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+    "closed_at": "2026-09-21T16:36:15.51004+00:00",
+    "closed_by": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+    "opened_at": "2026-09-21T16:35:59.587107+00:00",
+    "close_notes": "",
+    "register_id": "0509421d-5cdb-4f1d-9d17-d98bdba47d13",
+    "workspace_id": "16610216-bfa9-432b-b0c1-cdfc162038f2",
+    "counted_minor": 109,
+    "opening_minor": 0,
+    "expected_minor": 109,
+    "variance_minor": 0,
+    "closing_started_at": null
+  },
+  "finalQuantity": 18,
+  "daily": {
+    "cash": [
+      {
+        "kind": "CASH_SALE",
+        "count": 1,
+        "amount_minor": 109
+      },
+      {
+        "kind": "OPENING_FLOAT",
+        "count": 2,
+        "amount_minor": 0
+      },
+      {
+        "kind": "REGISTER_CLOSE",
+        "count": 2,
+        "amount_minor": 0
+      }
+    ],
+    "date": "2026-09-21",
+    "sales": {
+      "count": 3,
+      "netMinor": 300,
+      "taxMinor": 27,
+      "grossMinor": 300,
+      "totalMinor": 327,
+      "averageMinor": 109,
+      "discountMinor": 0
+    },
+    "byHour": [
+      {
+        "hour": 9,
+        "count": 3,
+        "total_minor": 327
+      }
+    ],
+    "refunds": {
+      "count": 1,
+      "netMinor": 100,
+      "taxMinor": 9,
+      "totalMinor": 109
+    },
+    "sessions": [
+      {
+        "id": "79ec07d5-4798-4122-84c9-e036bf951d59",
+        "status": "CLOSED",
+        "registerId": "0509421d-5cdb-4f1d-9d17-d98bdba47d13",
+        "expectedMinor": 109,
+        "varianceMinor": 0
+      },
+      {
+        "id": "f08bbb6f-a694-442e-b739-e6eba928d33c",
+        "status": "CLOSED",
+        "registerId": "b43e3b6b-735d-4af6-bea9-766d1a3d51c8",
+        "expectedMinor": 0,
+        "varianceMinor": 0
+      }
+    ],
+    "timezone": "America/Phoenix",
+    "byEmployee": [
+      {
+        "name": "tradingdocks",
+        "count": 3,
+        "actor_id": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+        "gross_minor": 300,
+        "total_minor": 327,
+        "refund_count": 1,
+        "refund_minor": 109,
+        "average_minor": 109,
+        "session_count": 2,
+        "discount_minor": 0,
+        "override_count": 0,
+        "variance_minor": 0
+      }
+    ],
+    "byRegister": [
+      {
+        "name": "Square recovery acceptance 1790008562882",
+        "count": 2,
+        "total_minor": 218
+      },
+      {
+        "name": "Square external acceptance 1790008215272",
+        "count": 1,
+        "total_minor": 109
+      }
+    ],
+    "cashNetMinor": 109,
+    "noncashMinor": 109,
+    "squareSalesMinor": 218,
+    "squareRefundsMinor": 109
+  }
+}

@@ -53,6 +53,7 @@ const eslintConfig = defineConfig([
     // Generated output that is not product source.
     "dist/**",
     "coverage/**",
+    ".local-fixtures/**",
     "mobile/dist/**",
     "mobile/.expo/**",
   ]),

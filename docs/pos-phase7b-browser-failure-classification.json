@@ -1,0 +1,1382 @@
+{
+  "originalRun": {
+    "failed": 58,
+    "passed": 172,
+    "skipped": 34
+  },
+  "baselineRun": {
+    "failed": 40,
+    "passed": 190,
+    "skipped": 34
+  },
+  "classificationLegend": {
+    "A": "POS regression",
+    "B": "Pre-existing unrelated failure",
+    "C": "Environment/fixture",
+    "D": "Test expectation drift",
+    "E": "Shared-infrastructure regression",
+    "F": "External dependency",
+    "G": "Non-deterministic test"
+  },
+  "failures": [
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    13 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "desktop-chromium-1440",
+      "failure": "Test timeout of 30000ms exceeded.",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/visual-regression.spec.ts",
+      "testName": "homepage desktop visual shell remains stable",
+      "project": "desktop-chromium-1440",
+      "failure": "Error: expect(locator).toHaveCount(expected) failed\n\n    Locator:  locator('#market tbody tr')\n    Expected: 3\n    Received: 0\n    Timeout:  5000ms\n\n    Call log:\n      - Expect \"toHaveCount\" with timeout 5000ms\n      - waiting for locator('#market tbody tr')\n        13 \u00d7 locator resolved to 0 elements\n           - unexpected value \"0\"\n\n\n      21 | async function waitForPublicHomepageVisualState(page: Page) {\n      22 |   await expect(page.locator(\"#market\")).toBeVisible();\n    > 23 |   await expect(page.locator(\"#market tbody tr\")).toHaveCount(3);\n         |                                                  ^\n      24 |   await expect(page.locator(\"#market\")).toContainText(\"Illustrative sample\");\n      25 | }\n      26 |\n        at waitForPublicHomepageVisualState (C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\visual-regression.spec.ts:23:50)\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\visual-regression.spec.ts:37:5",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('#market tbody tr')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market tbody tr')\u001b[22m\n\u001b[2m    14 \u00d7 locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n\n  21 | async function waitForPublicHomepageVisualState(page: Page) {\n  22 |   await expect(page.locator(\"#market\")).toBeVisible();\n> 23 |   await expect(page.locator(\"#market tbody tr\")).toHaveCount(3);\n     |                                                  ^\n  24 |   await expect(page.locator(\"#market\")).toContainText(\"Illustrative sample\");\n  25 | }\n  26 |\n    at waitForPublicHomepageVisualState (C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\visual-regression.spec.ts:23:50)\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\visual-regression.spec.ts:37:5"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    14 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "desktop-chromium-1920",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: expect(locator).toHaveCount(expected) failed\n\n    Locator:  getByRole('region', { name: 'Market intelligence', exact: true }).locator('[data-artwork-state=\"paused\"]')\n    Expected: 0\n    Received: undefined\n\n    Call log:\n      - Expect \"toHaveCount\" with timeout 5000ms\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).locator('[data-artwork-state=\"paused\"]')\n      - Protocol error (Runtime.callFunctionOn): Internal server error, session closed.\n\n\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n    > 22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n         |                                                                     ^\n      23 |       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);\n      24 |     }\n      25 |   }\n        at C:\\Users\\Jerem\\Documents\\GitHub",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "game changes dispose old tick intervals and media changes stop the current loop",
+      "project": "desktop-chromium-1920",
+      "failure": "Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: 1\n    Received: 0\n\n    Call Log:\n    - Timeout 5000ms exceeded while waiting on the predicate\n\n      93 |   for (const game of [\"Pokemon\", \"Lorcana\", \"Magic\"]) {\n      94 |     await page.getByRole(\"button\", { name: game, exact: true }).click();\n    > 95 |     await expect.poll(activeTimers).toBe(1);\n         |                                     ^\n      96 |     await expect(page.locator(\"[data-feed-tick]\")).toHaveAttribute(\"data-feed-tick\", \"0\");\n      97 |   }\n      98 |   await page.emulateMedia({ reducedMotion: \"reduce\" });\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:95:37",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Scroll the observed keyed feed into view before timer assertion; retain motion/disposal assertions.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    13 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "desktop-firefox-1280",
+      "failure": "Test timeout of 30000ms exceeded.",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "desktop-firefox-1280",
+      "failure": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "desktop-webkit-1024",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    13 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "desktop-webkit-1024",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).locator('img').nth(3)\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: Test timeout of 30000ms exceeded\n\n  17 |       for (const image of await images.all()) {\n  18 |         await image.scrollIntoViewIfNeeded();\n> 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n     |                                                                                                                                                  ^\n  20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n  21 |       }\n  22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-artwork.spec.ts:19:146"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "desktop-webkit-1024",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).locator('img').nth(5)\n        - locator resolved to visible <img loading=\"lazy\" decoding=\"async\" data-nimg=\"fill\" class=\"object-contain\" alt=\"Lightning Greaves \u2014 Magic: The Gathering card artwork (English)\" src=\"https://cards.scryfall.io/small/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg?1783903217\"/>\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "desktop-webkit-1024",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.click: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).getByRole('button', { name: 'Pokemon', exact: true })\n\n\n       9 |   const market = page.getByRole(\"region\", { name: \"Market intelligence\", exact: true });\n      10 |   for (const game of games) {\n    > 11 |     await market.getByRole(\"button\", { name: game, exact: true }).click();\n         |                                                                   ^\n      12 |     for (const mode of modes) {\n      13 |       await market.getByRole(\"button\", { name: mode, exact: true }).click();\n      14 |       await expect(market.locator('[data-artwork-mode=\"normal\"]')).toBeVisible();\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:11:67",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: Test timeout of 30000ms exceeded\n\n  17 |       for (const image of await images.all()) {\n  18 |         await image.scrollIntoViewIfNeeded();\n> 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n     |                                                                                                                                                  ^\n  20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n  21 |       }\n  22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-artwork.spec.ts:19:146"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "desktop-webkit-1024",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "desktop-webkit-1024",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: Test timeout of 30000ms exceeded\n\n  17 |       for (const image of await images.all()) {\n  18 |         await image.scrollIntoViewIfNeeded();\n> 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n     |                                                                                                                                                  ^\n  20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n  21 |       }\n  22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-artwork.spec.ts:19:146"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "desktop-webkit-1024",
+      "failure": "Error: page.goto: Could not connect to server\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: Could not connect to server\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "tablet-chromium-768",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    14 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "tablet-chromium-768",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "tablet-chromium-768",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.evaluate: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).locator('img').nth(2)\n\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                       ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at _test.expect.poll.timeout (C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:39)\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:9",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "tablet-chromium-768",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.click: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).getByRole('button', { name: 'Price movement', exact: true })\n        - locator resolved to <button type=\"button\" aria-pressed=\"false\" class=\"MarketPreview-module__l2Tloa__tab\">Price movement</button>\n      - attempting click action\n        - waiting for element to be visible, enabled and stable\n\n\n      11 |     await market.getByRole(\"button\", { name: game, exact: true }).click();\n      12 |     for (const mode of modes) {\n    > 13 |       await market.getByRole(\"button\", { name: mode, exact: true }).click();\n         |                                                                     ^\n      14 |       await expect(market.locator('[data-artwork-mode=\"normal\"]')).toBeVisible();\n      15 |       const images = market.locator(\"img\");\n      16 |       await expect(images).toHaveCount(game === \"M",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "tablet-chromium-768",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "tablet-chromium-768",
+      "failure": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false, ignoreHTTPSErrors: new URL(baseURL!).hostname === '127.0.0.1' });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(new URL('/#market', baseURL).href);\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20\n\n    Error: b",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "mobile-chromium-430",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    14 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "mobile-chromium-430",
+      "failure": "Error: expect(received).toBe(expected) // Object.is equality\n\n    Expected: true\n    Received: false\n\n    Call Log:\n    - Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "mobile-chromium-430",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "mobile-chromium-430",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "mobile-chromium-430",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "mobile-chromium-430",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "expected",
+        "exactBaselineFailure": [],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "mobile-chromium-430",
+      "failure": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false, ignoreHTTPSErrors: new URL(baseURL!).hostname === '127.0.0.1' });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(new URL('/#market', baseURL).href);\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4186/#market\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "mobile-webkit-390",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    13 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "mobile-webkit-390",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "mobile-webkit-390",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "mobile-webkit-390",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: Test timeout of 30000ms exceeded\n\n  17 |       for (const image of await images.all()) {\n  18 |         await image.scrollIntoViewIfNeeded();\n> 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n     |                                                                                                                                                  ^\n  20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n  21 |       }\n  22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-artwork.spec.ts:19:146"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "mobile-webkit-390",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.evaluate: Test timeout of 30000ms exceeded.\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                       ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at _test.expect.poll.timeout (C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:39)\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:9",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "mobile-webkit-390",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "mobile-webkit-390",
+      "failure": "Error: page.goto: Could not connect to server\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false, ignoreHTTPSErrors: new URL(baseURL!).hostname === '127.0.0.1' });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(new URL('/#market', baseURL).href);\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: Could not connect to server\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/visual-regression.spec.ts",
+      "testName": "homepage mobile visual shell remains stable",
+      "project": "mobile-webkit-390",
+      "failure": "Error: expect(page).toHaveScreenshot(expected) failed\n\n    Timeout: 5000ms\n      Failed to take two consecutive stable screenshots.\n\n      Snapshot: homepage-mobile.png\n\n    Call log:\n      - Expect \"toHaveScreenshot(homepage-mobile.png)\" with timeout 5000ms\n        - verifying given screenshot expectation\n      - taking page screenshot\n        - disabled all CSS animations\n      - waiting for fonts to load...\n      - fonts loaded\n      - Expected an image 390px by 9396px, received 390px by 13252px. 1666084 pixels (ratio 0.33 of all image pixels) are different.\n      - waiting 100ms before taking screenshot\n      - taking page screenshot\n        - disabled all CSS animations\n      - waiting for fonts to load...\n      - fonts loaded\n      - Expected an image 390px by 13252px, received 390px by 13213px. 235547 pixels (ratio 0.05 of all image pixels) are different.\n      - waiting 250ms before taking screenshot\n      - Timeout 5000ms exceeded.\n\n\n      49 |     const monitor = monitorPageE",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveScreenshot\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\n  Expected an image 390px by 9396px, received 390px by 13213px. 1654250 pixels (ratio 0.33 of all image pixels) are different.\n\n  Snapshot: homepage-mobile.png\n\nCall log:\n\u001b[2m  - Expect \"toHaveScreenshot(homepage-mobile.png)\" with timeout 5000ms\u001b[22m\n\u001b[2m    - verifying given screenshot expectation\u001b[22m\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m    - disabled all CSS animations\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n\u001b[2m  - Expected an image 390px by 9396px, received 390px by 13252px. 1666084 pixels (ratio 0.33 of all image pixels) are different.\u001b[22m\n\u001b[2m  - waiting 100ms before taking screenshot\u001b[22m\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m    - disabled all CSS animations\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n\u001b[2m  - Expected an image 390px by 13252px, received 390px by 13213px. 235547 pixels (ratio 0.05 of all image pixels) are different.\u001b[22m\n\u001b[2m  - waiting 250ms before taking screenshot\u001b[22m\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m    - disabled all CSS animations\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n\u001b[2m  - captured a stable screenshot\u001b[22m\n\u001b[2m  - Expected an image 390px by 9396px, received 390px by 13213px. 1654250 pixels (ratio 0.33 of all image pixels) are different.\u001b[22m\n\n\n  49 |     const monitor = monitorPageErrors(page);\n  50 |     await gotoAndAssertLoaded(page, \"/\");\n> 51 |     await expect(page).toHaveScreenshot(\"homepage-mobile.png\", {\n     |                        ^\n  52 |       fullPage: true,\n  53 |       animations: \"disabled\",\n  54 |       maxDiffPixelRatio: 0.03,\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\visual-regression.spec.ts:51:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "visualBaselineCommit": "36182a6",
+        "visualReview": "Old scan-to-sale hero and sample table compared against accepted every-card marketing redesign; only homepage snapshots updated.",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Review and replace pre-redesign homepage image baseline; current marketing layout was approved before POS.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/home-pricing.spec.ts",
+      "testName": "homepage sample is useful without a market provider and controls work",
+      "project": "mobile-webkit-375",
+      "failure": "Error: expect(locator).toContainText(expected) failed\n\n    Locator: locator('#market')\n    Expected substring: \"sample market snapshot\"\n    Received string:    \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / po",
+      "classification": "D",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#market')\nExpected substring: \u001b[32m\"\u001b[7msample market snapsho\u001b[27mt\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7m03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coas\u001b[27mt\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#market')\u001b[22m\n\u001b[2m    13 \u00d7 locator resolved to <section id=\"market\" aria-label=\"Market intelligence\" class=\"relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12\">\u2026</section>\u001b[22m\n\u001b[2m       - unexpected value \"03 / Market intelligenceSee market signals in context.Cards move. Your next decision comes into focus. Explore changing quotes, the copies you own, and the signals behind a move.Open Market CenterMagicPokemonPokemon JPLorcanaOne PieceInteractive demoSimulated movement \u00b7 USDReduced motion \u00b7 pausedBalanced signalPrice movementDemandSpreadFind the next move for your copies.Signal focusOpening snapshotCavern of SoulsThe Lost Caverns of Ixalan \u00b7 269English printingMarket \u00b7 demo$47.18\u00b7+5.77% 7d7 days ago \u00b7 demoCurrent demo quoteOpportunity69/100Ready to list4 copiesYour position \u00b7 demoOwned5 copiesListed1 copiesAverage cost$38.69Unrealized gain / loss+$42.45LIST 4Strong demo demand meets copies ready to list.Illustrative signal, not a trading recommendation.Magic: The GatheringOpportunity & actionPosition value \u00b7 demo$851.60Card / positionMarket \u00b7 USDOpportunity & actionCavern of Soulslci \u00b7 2695 owned \u00b7 1 listedMarket \u00b7 demo$47.18\u00b7Demo quoteOpportunity 69/100LIST 4Mox Amberdom \u00b7 2246 owned \u00b7 2 listedMarket \u00b7 demo$24.16\u00b7Demo quoteOpportunity 66/100LIST 4Rhystic Studyj22 \u00b7 1148 owned \u00b7 5 listedMarket \u00b7 demo$31.92\u00b7Demo quoteOpportunity 54/100REPRICE 5The One Ringltr \u00b7 2462 owned \u00b7 0 listedMarket \u00b7 demo$82.73\u00b7Demo quoteOpportunity 51/100REVIEW 2Lightning Greavesmsc \u00b7 2024 owned \u00b7 3 listedMarket \u00b7 demo$12.48\u00b7Demo quoteOpportunity 38/100REPRICE 3How to read this viewOpportunity blends demand, spread, seven-day movement and unlisted copies. The action is tied to the position you own.Ranking refreshes when you select a view. Illustrative sample: prices, movement, demand and positions are simulated. Artwork depicts real card printings.Artwork via Scryfall \u00b7 \u00a9 Wizards of the Coast\"\u001b[22m\n\n\n  12 |   await page.goto('/');\n  13 |   const market = page.locator('#market');\n> 14 |   await expect(market).toContainText('sample market snapshot');\n     |                        ^\n  15 |   await expect(market.locator('tbody tr')).toHaveCount(3);\n  16 |   await expect(market.getByRole('link', { name: 'Open Market Center' })).toHaveCSS('color', await page.locator('html').getAttribute('data-theme') === 'dark' ? 'rgb(6, 21, 38)' : 'rgb(255, 255, 255)');\n  17 |   for (const game of ['Pokemon', 'Pokemon JP', 'Lorcana', 'One Piece', 'Magic']) {\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\home-pricing.spec.ts:14:24"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": "e3f6fd3",
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Replace obsolete three-row sample expectations using approved e3f6fd3 interactive demo contract; inspect visual baseline separately.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1728px across every game and signal",
+      "project": "mobile-webkit-375",
+      "failure": "Error: Test timeout of 30000ms exceeded\n\n      17 |       for (const image of await images.all()) {\n      18 |         await image.scrollIntoViewIfNeeded();\n    > 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n         |                                                                                                                                                  ^\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n      22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:19:146",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1440px across every game and signal",
+      "project": "mobile-webkit-375",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: Test timeout of 30000ms exceeded\n\n  17 |       for (const image of await images.all()) {\n  18 |         await image.scrollIntoViewIfNeeded();\n> 19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n     |                                                                                                                                                  ^\n  20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n  21 |       }\n  22 |       await expect(market.locator('[data-artwork-state=\"paused\"]')).toHaveCount(0);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-artwork.spec.ts:19:146"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 1024px across every game and signal",
+      "project": "mobile-webkit-375",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 430px across every game and signal",
+      "project": "mobile-webkit-375",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - waiting for getByRole('region', { name: 'Market intelligence', exact: true }).locator('img').nth(2)\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-artwork.spec.ts",
+      "testName": "homepage artwork at 390px across every game and signal",
+      "project": "mobile-webkit-375",
+      "failure": "Test timeout of 30000ms exceeded.\n\n    Error: locator.scrollIntoViewIfNeeded: Test timeout of 30000ms exceeded.\n    Call log:\n      - attempting scroll into view action\n        - waiting for element to be stable\n\n\n      16 |       await expect(images).toHaveCount(game === \"Magic\" ? 6 : 4);\n      17 |       for (const image of await images.all()) {\n    > 18 |         await image.scrollIntoViewIfNeeded();\n         |                     ^\n      19 |         await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0), { timeout: 30000 }).toBe(true);\n      20 |         await expect(image).toHaveCSS(\"object-fit\", \"contain\");\n      21 |       }\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-artwork.spec.ts:18:21",
+      "classification": "G",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Bound workers, use reduced motion, give the 20-combination matrix 120 seconds while retaining 30-second per-image limit; rerun exact case.",
+      "status": "RESOLVED \u2014 PASS"
+    },
+    {
+      "testFile": "tests/e2e/market-preview.spec.ts",
+      "testName": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings",
+      "project": "mobile-webkit-375",
+      "failure": "Error: page.goto: Could not connect to server\n    Call log:\n      - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\n\n\n       5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false, ignoreHTTPSErrors: new URL(baseURL!).hostname === '127.0.0.1' });\n       6 |   const serverPage = await serverContext.newPage();\n    >  7 |   await serverPage.goto(new URL('/#market', baseURL).href);\n         |                    ^\n       8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n       9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n      10 |   expect(await quotes(serverPage)).toEqual(expected);\n        at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\tests\\e2e\\market-preview.spec.ts:7:20",
+      "classification": "C",
+      "evidence": {
+        "baselineCommit": "09bf765",
+        "exactBaselineStatus": "unexpected",
+        "exactBaselineFailure": [
+          "Error: page.goto: Could not connect to server\nCall log:\n\u001b[2m  - navigating to \"http://localhost:4186/#market\", waiting until \"load\"\u001b[22m\n\n\n   5 |   const serverContext = await browser.newContext({ javaScriptEnabled: false });\n   6 |   const serverPage = await serverContext.newPage();\n>  7 |   await serverPage.goto(\"http://localhost:4186/#market\");\n     |                    ^\n   8 |   const expected = createDemoMarketCards(\"magic\").map(card => [card.id, String(card.marketPrice)]).sort();\n   9 |   const quotes = async (target: typeof page) => target.locator(\"#market [data-card-id]\").evaluateAll(nodes => nodes.map(node => [node.getAttribute(\"data-card-id\"), node.getAttribute(\"data-quote\")]).sort());\n  10 |   expect(await quotes(serverPage)).toEqual(expected);\n    at C:\\Users\\Jerem\\Documents\\GitHub\\Trading-Docks\\.local-fixtures\\phase7-baseline\\tests\\e2e\\market-preview.spec.ts:7:20"
+        ],
+        "baselineMethod": "Full 264-case detached-worktree rerun with unchanged application/tests, two workers. Webpack build required by shared dependency junction.",
+        "approvedHomepageChange": null,
+        "phase7bFinalPublicRun": {
+          "status": "expected",
+          "file": ".local-fixtures/phase7b-final-e2e.json"
+        }
+      },
+      "affectedProductArea": "Public homepage market demo / visual regression",
+      "introducedByPosChanges": false,
+      "requiredAction": "Use configured HTTPS base URL instead of hard-coded localhost:4186; preserve SSR/hydration equality.",
+      "status": "RESOLVED \u2014 PASS"
+    }
+  ],
+  "phase7bPublicRun": {
+    "passed": 229,
+    "failed": 1,
+    "skipped": 8,
+    "remainingFailure": "WebKit rendered bounding-box rounding in live-price test, outside original 58",
+    "targetedFinalRetest": {
+      "passed": 16,
+      "failed": 0,
+      "projects": 8,
+      "repetitions": 2,
+      "fix": "Await font readiness; assert exact layout offsetHeight, excluding composited bounding-box scaling.",
+      "evidence": ".local-fixtures/phase7b-layout-retest.json"
+    },
+    "unresolvedFailures": 0
+  }
+}

@@ -1,0 +1,48 @@
+[
+  {
+    "channel": "chrome",
+    "width": "80",
+    "lines": 500,
+    "pages": 1,
+    "status": "PASS",
+    "scope": "Print CSS and PDF pagination"
+  },
+  {
+    "channel": "chrome",
+    "width": "Letter",
+    "lines": 500,
+    "pages": 30,
+    "status": "PASS",
+    "scope": "Print CSS and PDF pagination"
+  },
+  {
+    "channel": "msedge",
+    "width": "80",
+    "lines": 500,
+    "pages": 1,
+    "status": "PASS",
+    "scope": "Print CSS and PDF pagination"
+  },
+  {
+    "channel": "msedge",
+    "width": "Letter",
+    "lines": 500,
+    "pages": 30,
+    "status": "PASS",
+    "scope": "Print CSS and PDF pagination"
+  },
+  {
+    "channel": "webkit",
+    "width": "80",
+    "lines": 500,
+    "status": "PASS",
+    "scope": "Print CSS browser rendering; no PDF API"
+  },
+  {
+    "channel": "webkit",
+    "width": "Letter",
+    "lines": 500,
+    "status": "PASS",
+    "scope": "Print CSS browser rendering; no PDF API"
+  }
+]

@@ -1,0 +1,76 @@
+{
+  "at": "2026-09-21T15:53:55.674Z",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "results": [
+    {
+      "name": "other organization: pos_command",
+      "status": "PASS",
+      "sqlstate": "P0001"
+    },
+    {
+      "name": "other organization: pos_payment_command",
+      "status": "PASS",
+      "sqlstate": "P0001"
+    },
+    {
+      "name": "other organization: pos_payment_refund_command",
+      "status": "PASS",
+      "sqlstate": "P0001"
+    },
+    {
+      "name": "other organization: pos_terminal_devices",
+      "status": "PASS",
+      "sqlstate": "P0001"
+    },
+    {
+      "name": "other organization: pos_square_settings",
+      "status": "PASS",
+      "sqlstate": "P0001"
+    },
+    {
+      "name": "other organization: label targets",
+      "status": "PASS"
+    },
+    {
+      "name": "other organization: service-only Square RPC",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous: pos_command",
+      "status": "PASS",
+      "sqlstate": "42501"
+    },
+    {
+      "name": "anonymous: pos_payment_command",
+      "status": "PASS",
+      "sqlstate": "42501"
+    },
+    {
+      "name": "anonymous: pos_payment_refund_command",
+      "status": "PASS",
+      "sqlstate": "42501"
+    },
+    {
+      "name": "anonymous: pos_terminal_devices",
+      "status": "PASS",
+      "sqlstate": "42501"
+    },
+    {
+      "name": "anonymous: pos_square_settings",
+      "status": "PASS",
+      "sqlstate": "42501"
+    },
+    {
+      "name": "anonymous: label targets",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous: service-only Square RPC",
+      "status": "PASS"
+    },
+    {
+      "name": "Other organization: label template RLS",
+      "status": "PASS"
+    }
+  ]
+}

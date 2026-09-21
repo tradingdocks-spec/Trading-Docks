@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "codex/pos-foundation": false
+    }
+  },
   "crons": [
     {
       "path": "/api/buylist/mtgjson",

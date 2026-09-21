@@ -1,0 +1,12 @@
+{
+  "fullPublicBrowserRun": { "passed": 172, "failed": 58, "skipped": 34, "total": 264, "workers": 8 },
+  "cleanHead": "09bf765",
+  "baselineMethod": "Detached worktree with unchanged application source and original tests. Shared dependencies required a Webpack build because Turbopack rejected the node_modules junction outside the worktree root. Only the build command was adapted.",
+  "representativeBaseline": [
+    { "test": "homepage sample is useful without a market provider and controls work", "status": "PRE-EXISTING FAIL", "reason": "Expected obsolete sample market snapshot text; current homepage renders the interactive market demo." },
+    { "test": "SSR and reduced-motion snapshots use identical stable quotes without hydration warnings", "status": "PRE-EXISTING FAIL", "reason": "Hard-coded localhost:4186 conflicts with configured HTTPS loopback server." },
+    { "test": "homepage artwork at 1728px across every game and signal", "status": "PASS in isolated clean-HEAD run", "reason": "The broader eight-worker external-artwork failures were not reproduced by this representative isolated test; do not classify all artwork failures as confirmed product regressions." }
+  ],
+  "correctedSsrFixture": { "project": "desktop-chromium-1440", "passed": 1, "failed": 0 },
+  "limits": "Not every one of the 58 failures was rerun individually on clean HEAD. One mobile WebKit visual difference remains unclassified. Existing authenticated-dashboard/visual skips are not passes."
+}

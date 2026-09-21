@@ -39,9 +39,15 @@ async function openAuthenticatedPage(
   browser: Browser,
   account: QaAccount,
 ) {
+  const device = test.info().project.use;
   const context = await browser.newContext({
+    viewport: device.viewport,
+    isMobile: device.isMobile,
+    hasTouch: device.hasTouch,
+    deviceScaleFactor: device.deviceScaleFactor,
+    userAgent: device.userAgent,
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173",
-    ignoreHTTPSErrors: !process.env.PLAYWRIGHT_BASE_URL,
+    ignoreHTTPSErrors: ["127.0.0.1", "localhost"].includes(new URL(process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173").hostname),
     storageState: account.statePath,
   });
   const page = await context.newPage();
@@ -50,7 +56,8 @@ async function openAuthenticatedPage(
 }
 
 async function assertAuthenticatedShell(page: Page) {
-  await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByRole("main", { name: "Loading page", exact: true })).toHaveCount(0);
+  await expect(page.locator("main").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /open account menu/i })).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: /dashboard navigation|mobile dashboard navigation/i }).first(),
@@ -86,7 +93,7 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
         await assertAuthenticatedShell(page);
 
         await page.getByRole("button", { name: /open account menu/i }).click();
-        await expect(page.getByRole("button", { name: /sign out/i })).toBeVisible();
+        await expect(page.locator("header").getByRole("button", { name: /^sign out$/i })).toBeVisible();
         await expectNoDocumentOverflow(page);
         await expectNoUnexpectedBrowserErrors(monitor);
       } finally {
@@ -111,13 +118,16 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
           "/dashboard/analytics",
           "/dashboard/deck-vault",
         ]) {
+          console.info("Auth lifecycle navigating", route);
           const sidebarLink = page.locator(`nav[aria-label="Dashboard navigation"] a[href="${route}"]:visible`).first();
           if (await sidebarLink.count()) {
-            await sidebarLink.click();
+            const groupToggle = sidebarLink.locator('xpath=ancestor::div[button[@aria-expanded]][1]').locator(':scope > button[aria-expanded]');
+            if (await groupToggle.count() && await groupToggle.getAttribute('aria-expanded') === 'false') await groupToggle.click();
+            await sidebarLink.click({ timeout: 15000 });
           } else {
             await page.goto(route);
           }
-          await page.waitForURL(new RegExp(`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[/?#])`));
+          await page.waitForURL(new RegExp(`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[/?#])`), { waitUntil: "domcontentloaded", timeout: 15000 });
           await expect(page).not.toHaveURL(/\/sign-in(?:$|[/?#])/);
           await assertAuthenticatedShell(page);
         }
@@ -155,27 +165,32 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
         await gotoAndAssertLoaded(page, "/dashboard");
         await page.getByRole("button", { name: /open all dashboard menus/i }).click();
         await expect(page.locator("body")).toHaveAttribute("data-dashboard-mobile-menu", "open");
-        await expect(page.getByRole("button", { name: /close sidebar/i }).first()).toBeVisible();
+        await expect(page.locator("aside").getByRole("button", { name: "Close navigation", exact: true })).toBeVisible();
 
-        const sidebar = page.getByRole("navigation", { name: /dashboard navigation/i });
+        const sidebar = page.getByRole("navigation", { name: "Dashboard navigation", exact: true });
         await expect(sidebar).toBeVisible();
         await sidebar.evaluate((element) => {
           element.scrollTop = element.scrollHeight;
         });
 
-        const settingsLink = sidebar.getByRole("link", { name: /settings/i }).first();
-        await settingsLink.click();
+        const settingsLink = sidebar.locator('a[href="/dashboard/settings"]');
+        const settingsGroup = settingsLink.locator('xpath=ancestor::div[button[@aria-expanded]][1]').locator(':scope > button[aria-expanded]');
+        if (await settingsGroup.count() && await settingsGroup.getAttribute('aria-expanded') === 'false') await settingsGroup.click();
+        console.info("Mobile drawer selecting Settings");
+        await settingsLink.click({ timeout: 15000 });
         await page.waitForURL(/\/dashboard\/settings(?:$|[/?#])/, { timeout: 20_000 });
         await expect(page.locator("body")).not.toHaveAttribute("data-dashboard-mobile-menu", "open");
 
         await page.getByRole("button", { name: /open all dashboard menus/i }).click();
         await expect(page.locator("body")).toHaveAttribute("data-dashboard-mobile-menu", "open");
-        await page.getByRole("button", { name: /close sidebar/i }).first().click();
+        console.info("Mobile drawer closing by header button");
+        await page.locator("aside").getByRole("button", { name: "Close navigation", exact: true }).click({ timeout: 15000 });
         await expect(page.locator("body")).not.toHaveAttribute("data-dashboard-mobile-menu", "open");
 
         await page.getByRole("button", { name: /open all dashboard menus/i }).click();
-        await page.mouse.click(390, 20);
+        await page.mouse.click((page.viewportSize()?.width ?? 390) - 5, 20);
         await expect(page.locator("body")).not.toHaveAttribute("data-dashboard-mobile-menu", "open");
+        await expect.poll(() => sidebar.locator('xpath=ancestor::aside').evaluate(node => node.getBoundingClientRect().right)).toBeLessThanOrEqual(1);
         await expectNoDocumentOverflow(page);
         await expectNoUnexpectedBrowserErrors(monitor);
       } finally {
@@ -214,7 +229,7 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
       try {
         await gotoAndAssertLoaded(page, "/dashboard/settings");
         await page.getByRole("button", { name: /data & privacy/i }).click();
-        await expect(page.getByText(/support-assisted/i)).toBeVisible();
+        await expect(page.getByText("Support-assisted", { exact: true })).toBeVisible();
         await expect(page.getByRole("link", { name: /download inventory backup/i })).toHaveAttribute(
           "href",
           "/dashboard/tools/csv-converter",

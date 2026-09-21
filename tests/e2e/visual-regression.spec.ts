@@ -8,9 +8,15 @@ import {
 } from "./helpers";
 
 async function openAuthenticatedPage(browser: Browser, account: QaAccount) {
+  const device = test.info().project.use;
   const context = await browser.newContext({
+    viewport: device.viewport,
+    isMobile: device.isMobile,
+    hasTouch: device.hasTouch,
+    deviceScaleFactor: device.deviceScaleFactor,
+    userAgent: device.userAgent,
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173",
-    ignoreHTTPSErrors: !process.env.PLAYWRIGHT_BASE_URL,
+    ignoreHTTPSErrors: ["127.0.0.1", "localhost"].includes(new URL(process.env.PLAYWRIGHT_BASE_URL ?? "https://127.0.0.1:4173").hostname),
     storageState: account.statePath,
   });
   const page = await context.newPage();
@@ -20,8 +26,14 @@ async function openAuthenticatedPage(browser: Browser, account: QaAccount) {
 
 async function waitForPublicHomepageVisualState(page: Page) {
   await expect(page.locator("#market")).toBeVisible();
-  await expect(page.locator("#market tbody tr")).toHaveCount(3);
+  await expect(page.locator("#market [data-card-id]")).toHaveCount(5);
   await expect(page.locator("#market")).toContainText("Illustrative sample");
+  // Full-page screenshots do not trigger loading of offscreen lazy images.
+  for (const image of await page.locator('#market img').all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0), { timeout: 30000 }).toBe(true);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 test.describe("stable visual baselines", () => {
@@ -48,6 +60,7 @@ test.describe("stable visual baselines", () => {
 
     const monitor = monitorPageErrors(page);
     await gotoAndAssertLoaded(page, "/");
+    await waitForPublicHomepageVisualState(page);
     await expect(page).toHaveScreenshot("homepage-mobile.png", {
       fullPage: true,
       animations: "disabled",

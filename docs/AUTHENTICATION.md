@@ -55,3 +55,8 @@
 - Implemented: Billing status is separate from membership tier and is read from `billing_subscriptions` when available.
 - Implemented: Entitlement sets are derived from resolved membership tier, with `admin.command-center` added only by platform role.
 - Implemented: Admin users with Free membership keep Free product entitlements and gain Command Center access separately.
+
+## POS Authorization
+
+- Implemented: POS pages/API reuse Supabase sessions and `pos.sell`; database functions independently enforce workspace membership, effective membership, role, suspension, active employee state, rollout and inventory ownership. No alternate authentication or service-role user mutation path was added.
+- Partially Implemented: Operator attribution is durable, but employees cannot mutate another user's inventory under the existing collector ownership trigger. Shared employee stock requires a reviewed ownership extension; see `docs/POS_PHASE1_VALIDATION.md`.

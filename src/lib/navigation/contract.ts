@@ -43,6 +43,7 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
   ],
   store: [
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
+    { label: "POS", href: "/dashboard/pos", status: "implemented" },
     { label: "Inventory", href: "/dashboard/inventory", status: "implemented" },
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },
     { label: "Employees", href: "/dashboard/employees", status: "implemented" },
@@ -64,9 +65,10 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
   ],
 };
 
-export function getWebNavigationContract(accountType: unknown) {
+export function getWebNavigationContract(accountType: unknown, posEnabled = false) {
   return WEB_NAVIGATION_CONTRACT[normalizeAccountTier(accountType)].filter((item) =>
-    !isDeckArchitectRoute(item.href) || shouldShowDeckArchitectEntry(),
+    (!item.href.startsWith("/dashboard/pos") || posEnabled) &&
+    (!isDeckArchitectRoute(item.href) || shouldShowDeckArchitectEntry()),
   );
 }
 

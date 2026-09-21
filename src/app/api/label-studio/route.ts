@@ -14,6 +14,7 @@ import {
   type LabelStudioTemplateRow,
 } from "@/lib/label-studio/persistence";
 import { createDefaultLabelTemplate, validateLabelTemplate, type LabelTemplate } from "@/lib/label-studio/label-templates";
+import { labelBody, labelFailure } from '@/lib/label-studio/server';
 
 export const runtime = "nodejs";
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       .eq("workspace_id", workspaceId)
       .is("archived_at", null)
       .order("updated_at", { ascending: false }),
-    inventoryQuery(context.supabase, workspaceId, selectedIds),
+    inventoryQuery(context.supabase, workspaceId, selectedIds, context.user!.id),
     context.supabase
       .from("inventory_price_reviews")
       .select("id,workspace_id,inventory_identity_id,inventory_item_id,current_asking_price,proposed_asking_price,market_price,variance_percent,status")
@@ -46,9 +47,9 @@ export async function GET(request: NextRequest) {
       .limit(50),
   ]);
 
-  if (templatesResult.error) return NextResponse.json({ error: templatesResult.error.message }, { status: 500 });
-  if (inventoryResult.error) return NextResponse.json({ error: inventoryResult.error.message }, { status: 500 });
-  if (reviewsResult.error) return NextResponse.json({ error: reviewsResult.error.message }, { status: 500 });
+  if (templatesResult.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
+  if (inventoryResult.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
+  if (reviewsResult.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
 
   const inventoryRows = (inventoryResult.data ?? []) as LabelStudioInventoryRow[];
   const itemIds = inventoryRows.map((item) => item.id);
@@ -57,11 +58,13 @@ export async function GET(request: NextRequest) {
       .from("inventory_label_identities")
       .select("id,workspace_id,inventory_user_id,inventory_item_id,target_type,sku,qr_token,barcode_value,status,public_enabled,revoked_at")
       .eq("workspace_id", workspaceId)
+      .eq("inventory_user_id", context.user!.id)
+      .is("inventory_position_id", null)
       .in("inventory_item_id", itemIds)
       .eq("status", "active")
       .is("revoked_at", null)
     : { data: [], error: null };
-  if (identityResult.error) return NextResponse.json({ error: identityResult.error.message }, { status: 500 });
+  if (identityResult.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
 
   const identities = new Map(
     ((identityResult.data ?? []) as LabelStudioIdentityRow[]).map((identity) => [identity.inventory_item_id, identity]),
@@ -96,11 +99,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null) as { action?: string; [key: string]: unknown } | null;
+  let body: { action?: string; [key: string]: unknown };
+  try { body = await labelBody(request) as typeof body; } catch (error) { return labelFailure(error); }
   if (!body?.action) return NextResponse.json({ error: "Choose a Label Studio action." }, { status: 400 });
 
   if (body.action === "save-template") return saveTemplate(body);
   if (body.action === "archive-template") return archiveTemplate(body);
+  if (body.action === "default-template") {
+    const context = await requireLabelStudio('label.manage_templates');
+    if (!context.ok) return context.response;
+    const { error } = await context.supabase.rpc('set_default_label_template', { p_workspace_id: context.access.workspaceId, p_template_id: body.templateId });
+    return error ? labelFailure(new Error('Default template could not be updated.')) : NextResponse.json({ ok: true });
+  }
   if (body.action === "resolve-identities") return resolveIdentities(request, body);
   if (body.action === "record-print-job") return recordPrintJob(body);
   if (body.action === "review-price") return reviewPrice(body);
@@ -115,8 +125,10 @@ async function saveTemplate(body: Record<string, unknown>) {
   if (!workspaceId) return NextResponse.json({ error: "Choose an active workspace before saving templates." }, { status: 400 });
 
   const template = body.template as LabelTemplate | undefined;
+  if (typeof template?.id === 'string' && template.id.startsWith("system-")) return NextResponse.json({ error: "Duplicate a system preset before saving it." }, { status: 400 });
   if (!template) return NextResponse.json({ error: "Template payload is required." }, { status: 400 });
   const validation = validateLabelTemplate({ ...template, workspaceId });
+  if (typeof template.id !== 'string') return NextResponse.json({ error: 'Invalid template id.' }, { status: 400 });
   if (!validation.ok) return NextResponse.json({ error: "Fix template fields before saving.", details: validation.errors }, { status: 400 });
 
   const row = templateToRow({ ...template, workspaceId }, workspaceId);
@@ -124,7 +136,7 @@ async function saveTemplate(body: Record<string, unknown>) {
     ? context.supabase.from("label_templates").update(row).eq("workspace_id", workspaceId).eq("id", template.id).select("id,workspace_id,name,category,width,height,unit,orientation,qr_enabled,barcode_enabled,logo_enabled,price_field,pricing_rule,template_data").single()
     : context.supabase.from("label_templates").insert(row).select("id,workspace_id,name,category,width,height,unit,orientation,qr_enabled,barcode_enabled,logo_enabled,price_field,pricing_rule,template_data").single();
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   return NextResponse.json({ template: templateFromRow(data as LabelStudioTemplateRow) });
 }
 
@@ -139,7 +151,7 @@ async function archiveTemplate(body: Record<string, unknown>) {
     .update({ archived_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("workspace_id", workspaceId)
     .eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -153,8 +165,8 @@ async function resolveIdentities(request: NextRequest, body: Record<string, unkn
     : [];
   if (!ids.length) return NextResponse.json({ identities: [] });
 
-  const inventory = await inventoryQuery(context.supabase, workspaceId, ids);
-  if (inventory.error) return NextResponse.json({ error: inventory.error.message }, { status: 500 });
+  const inventory = await inventoryQuery(context.supabase, workspaceId, ids, context.user!.id);
+  if (inventory.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   const rows = (inventory.data ?? []) as LabelStudioInventoryRow[];
   if (rows.length !== ids.length) return NextResponse.json({ error: "Some selected inventory is unavailable in this workspace." }, { status: 403 });
 
@@ -162,10 +174,12 @@ async function resolveIdentities(request: NextRequest, body: Record<string, unkn
     .from("inventory_label_identities")
     .select("id,workspace_id,inventory_user_id,inventory_item_id,target_type,sku,qr_token,barcode_value,status,public_enabled,revoked_at")
     .eq("workspace_id", workspaceId)
+    .eq("inventory_user_id", context.user!.id)
+    .is("inventory_position_id", null)
     .in("inventory_item_id", ids)
     .eq("status", "active")
     .is("revoked_at", null);
-  if (existingResult.error) return NextResponse.json({ error: existingResult.error.message }, { status: 500 });
+  if (existingResult.error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
 
   const existing = new Map(((existingResult.data ?? []) as LabelStudioIdentityRow[]).map((identity) => [identity.inventory_item_id, identity]));
   const missing = rows.filter((row) => !existing.has(row.id));
@@ -180,18 +194,12 @@ async function resolveIdentities(request: NextRequest, body: Record<string, unkn
         sku: "",
         qr_token: "",
         barcode_value: row.barcode_value ?? row.upc ?? null,
-        public_enabled: true,
+        public_enabled: false,
       })))
       .select("id,workspace_id,inventory_user_id,inventory_item_id,target_type,sku,qr_token,barcode_value,status,public_enabled,revoked_at");
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
     for (const identity of (data ?? []) as LabelStudioIdentityRow[]) existing.set(identity.inventory_item_id, identity);
   }
-
-  await context.supabase
-    .from("inventory_items")
-    .update({ public_label_enabled: true, qr_public_enabled: true })
-    .eq("workspace_id", workspaceId)
-    .in("id", ids);
 
   const origin = request.nextUrl.origin;
   return NextResponse.json({
@@ -221,7 +229,7 @@ async function recordPrintJob(body: Record<string, unknown>) {
     })
     .select("id")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   return NextResponse.json({ printJobId: data.id });
 }
 
@@ -240,7 +248,7 @@ async function reviewPrice(body: Record<string, unknown>) {
     .eq("id", reviewId)
     .eq("status", "pending")
     .single();
-  if (reviewError) return NextResponse.json({ error: reviewError.message }, { status: 500 });
+  if (reviewError) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
 
   if (decision === "approve") {
     const { error: itemError } = await context.supabase
@@ -248,7 +256,7 @@ async function reviewPrice(body: Record<string, unknown>) {
       .update({ asking_price: review.proposed_asking_price })
       .eq("workspace_id", workspaceId)
       .eq("id", review.inventory_item_id);
-    if (itemError) return NextResponse.json({ error: itemError.message }, { status: 500 });
+    if (itemError) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   }
 
   const { error } = await context.supabase
@@ -259,7 +267,7 @@ async function reviewPrice(body: Record<string, unknown>) {
     })
     .eq("workspace_id", workspaceId)
     .eq("id", reviewId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Label Studio could not complete this operation. Check workspace access, inventory selection, or the template name." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -267,11 +275,12 @@ function inventoryQuery(
   supabase: Awaited<ReturnType<typeof createClient>>,
   workspaceId: string,
   ids: string[],
+  ownerId: string,
 ) {
   let query = supabase
     .from("inventory_items")
     .select("id,user_id,workspace_id,item_kind,card_name,product_name,set_code,collector_number,sku,barcode_value,upc,asking_price,market_price,data")
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId).eq("user_id", ownerId);
   if (ids.length) query = query.in("id", ids);
   return query.order("updated_at", { ascending: false }).limit(ids.length || 24);
 }

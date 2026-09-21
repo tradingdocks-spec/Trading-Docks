@@ -1,0 +1,99 @@
+{
+  "at": "2026-09-21T16:30:19.550Z",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "payment": {
+    "id": "ef654e41-d9a2-4e79-a7b9-bf2ca8299528",
+    "saleId": "e4e3ce2b-29c7-4f86-bf39-73d44f502d54",
+    "status": "SUCCEEDED",
+    "receipt": {
+      "site": "Sandbox counter",
+      "lines": [
+        {
+          "sku": "SANDBOX-1",
+          "name": "Sandbox sample 1",
+          "finish": null,
+          "gameId": null,
+          "itemId": "sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60-0",
+          "ownerId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+          "setCode": null,
+          "language": null,
+          "quantity": 1,
+          "taxMinor": 9,
+          "condition": null,
+          "locationId": "pos-sandbox-7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+          "positionId": null,
+          "scryfallId": null,
+          "discountBps": 0,
+          "priceSource": "asking_price",
+          "productType": null,
+          "discountMinor": 0,
+          "lineTotalMinor": 109,
+          "unitPriceMinor": 100,
+          "collectorNumber": null,
+          "cartDiscountMinor": 0,
+          "lineDiscountMinor": 0,
+          "tcgplayerProductId": null,
+          "originalUnitPriceMinor": 100,
+          "overrideDifferenceMinor": 0
+        }
+      ],
+      "number": "TD-E4E3CE2B29C74F86BF3973D44F502D54",
+      "actorId": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+      "payment": {
+        "status": "SUCCEEDED",
+        "metadata": {
+          "brand": "VISA",
+          "last4": "5858",
+          "locationId": "LZ2H61E38DWB3",
+          "environment": "SANDBOX",
+          "verification": "Square Sandbox"
+        },
+        "provider": "SQUARE",
+        "reference": "TNG0hKWw8LR5LCyRBmUlb5O7ZtMZY"
+      },
+      "version": 2,
+      "currency": "USD",
+      "register": "Square external acceptance 1790008215272",
+      "settings": {
+        "footer": "Thank you for shopping with us.",
+        "address": "",
+        "showSku": true,
+        "blindClose": false,
+        "receiptWidth": "80",
+        "returnPolicy": "",
+        "showEmployee": true,
+        "showLocation": true,
+        "noteThresholdMinor": 0,
+        "approvalThresholdMinor": 2000
+      },
+      "taxMinor": 9,
+      "timezone": "America/Phoenix",
+      "cashMinor": 0,
+      "createdAt": "2026-09-21T16:30:13.076346+00:00",
+      "totalMinor": 109,
+      "changeMinor": 0,
+      "employeeName": "tradingdocks",
+      "discountMinor": 0,
+      "subtotalMinor": 100,
+      "discountReason": null
+    },
+    "refunds": [],
+    "currency": "USD",
+    "metadata": {
+      "brand": "VISA",
+      "last4": "5858",
+      "locationId": "LZ2H61E38DWB3",
+      "environment": "SANDBOX",
+      "verification": "Square Sandbox"
+    },
+    "provider": "SQUARE",
+    "createdAt": "2026-09-21T16:30:11.628166+00:00",
+    "saleState": "COMPLETED",
+    "checkoutId": "fa58da0a-7513-42c6-9506-baa77f18a897",
+    "amountMinor": 109,
+    "completedAt": "2026-09-21T16:30:12.957814+00:00",
+    "failureCode": null,
+    "reconciledAt": "2026-09-21T16:30:12.957814+00:00",
+    "providerReference": "TNG0hKWw8LR5LCyRBmUlb5O7ZtMZY"
+  }
+}

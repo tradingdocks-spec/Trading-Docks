@@ -792,7 +792,7 @@ export function ChaosSortWorkspace() {
 
         {notice ? (
           <TDCard variant="outlined" className="border-td-success/20 bg-td-success/[0.04] text-td-success">
-            <div className="flex flex-wrap items-center justify-between gap-3"><TDText variant="small">{notice}</TDText>{committedBatchId ? <Link href={`/dashboard/inventory/batches/${committedBatchId}`} className="inline-flex min-h-9 items-center rounded-lg bg-td-success px-3 text-xs font-bold text-td-on-accent">Open batch & print label</Link> : null}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><TDText variant="small">{notice}</TDText>{committedBatchId ? <><Link href={`/dashboard/inventory/batches/${committedBatchId}`} className="inline-flex min-h-9 items-center rounded-lg bg-td-success px-3 text-xs font-bold text-td-on-accent">View Inventory / batch</Link><Link href={`/dashboard/label-studio?source=chaos_sort&batchId=${committedBatchId}`}>Print Labels</Link></> : null}</div>
           </TDCard>
         ) : null}
         {error ? (
