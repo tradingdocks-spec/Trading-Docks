@@ -2,6 +2,12 @@
 
 Status: **Planned — execution not approved.** Production has not been mutated or deployed by Phase 7.
 
+**Current hold:** [Production Compatibility Repair](POS_PRODUCTION_COMPATIBILITY_REPAIR.md) documents the two new draft migrations and newly confirmed NULL-workspace inventory blocker. Do not run this historical 12-file list after the standalone label repair: migration 2 overlaps its objects. A future POS rollout requires a reviewed forward continuation plan. No ledger entries may be fabricated for skipped files.
+
+**Execution hold: NOT SAFE TO APPLY.** The [focused Label Studio repair review](POS_LABEL_STUDIO_PRODUCTION_REPAIR_REVIEW.md) supersedes readiness assumptions in this plan. The 12-file DDL rehearsal passed, but does not resolve the missing earlier language dependency, unsafe historical Chaos function replay, or platform-owner label authorization mismatch. This ordered list is retained as the accepted rehearsal manifest, not an approved execution recipe.
+
+September 21 production-shaped preflight: see [POS_PRODUCTION_MIGRATION_READINESS.md](POS_PRODUCTION_MIGRATION_READINESS.md) and its hash manifest. The 12-file database rehearsal passes, but current production Label Studio fails against the unmigrated identity schema. Production execution remains unapproved; the report records the owner decision gate and exact 1,489-row backfill classification.
+
 ## Exact order
 
 Use `pos-phase7-migration-manifest.json` for filenames, SHA-256 hashes and hosted rehearsal mapping:
@@ -17,6 +23,9 @@ Use `pos-phase7-migration-manifest.json` for filenames, SHA-256 hashes and hoste
 9. `20260921010637_pos_employee_permission_precedence.sql`
 10. `20260921014756_pos_search_authority_scope.sql`
 11. `20260921020747_pos_cart_scale_500.sql`
+12. `20260921154907_inventory_identity_trusted_backfill.sql`
+
+For the current production snapshot, use `pos-production-schema-rehearsal.json` as the complete 12-file hash manifest. The older Phase 7 manifest covers the first 11 files only.
 
 Do not edit applied files or reapply these non-idempotent CREATE migrations. Hosted MCP assigned rehearsal timestamps; reconcile migration history by verified name/hash before any CLI push. Never treat differing timestamps alone as evidence that a migration is missing. No history repair or production push has been performed.
 

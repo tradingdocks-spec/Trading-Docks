@@ -53,6 +53,12 @@ try {
   await admin.query(sql('supabase/migrations/20260921010637_pos_employee_permission_precedence.sql'));
   await admin.query(sql('supabase/migrations/20260921014756_pos_search_authority_scope.sql'));
   await admin.query(sql('supabase/migrations/20260921020747_pos_cart_scale_500.sql'));
+  if(process.argv.includes('--compatibility')){
+    // The simplified fixture lacked this trusted production entitlement table.
+    await admin.query('create table public.user_roles(user_id uuid primary key references auth.users(id),role public.admin_role not null)');
+    await admin.query(sql('supabase/migrations/20260921195747_label_production_compatibility.sql'));
+    await admin.query(sql('supabase/migrations/20260921195836_chaos_and_pos_authority_compatibility.sql'));
+  }
   console.log('Migrations applied to disposable PostgreSQL');
   if (process.argv.includes('--advisors')) {
     try { console.log(execFileSync('powershell.exe',['-NoProfile','-Command','supabase db advisors --db-url postgresql://postgres:pos-test-only@127.0.0.1:55439/postgres?sslmode=disable --type security --level warn --fail-on error'],{encoding:'utf8',timeout:60000})); } catch(error) { console.log('LOCAL ADVISORS:',error.stdout?.toString(),error.stderr?.toString()); }
@@ -63,6 +69,11 @@ try {
   await admin.query(`insert into profiles values($1),($2);`,[owner,other]);
   await admin.query(`insert into user_preferences(user_id,active_workspace_id) values($1,$2),($3,$4)`,[owner,workspace,other,otherWorkspace]);
   await admin.query(`insert into admin_membership_overrides values($1,'store'),($2,'store')`,[owner,other]);
+  if(process.argv.includes('--compatibility')){
+    await admin.query("update admin_membership_overrides set plan_id='free' where user_id=$1",[owner]);
+    await admin.query("insert into user_roles values($1,'owner')",[owner]);
+    await admin.query("create or replace function public.current_admin_role() returns public.admin_role language sql security definer set search_path='' as $$select coalesce((select role from public.user_roles where user_id=auth.uid()),'user'::public.admin_role)$$");
+  }
   await admin.query(`insert into pos_workspace_settings values($1,true),($2,true)`,[workspace,otherWorkspace]);
   const a=await client(); const b=await client(); const stranger=await client(other);
   const clients=[a,b,stranger];

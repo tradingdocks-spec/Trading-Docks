@@ -1,0 +1,194 @@
+{
+  "scope": "Production public schema metadata reconstruction, sanitized inventory relationship fixture; local PG17, no production writes",
+  "checks": [
+    "label migration alone fails atomically without cash foundation",
+    "first two POS migrations reproduce the missing p.language error",
+    "reproduce Chaos commit regression and platform-owner authorization blocker",
+    "candidate migration makes Label Studio targets executable",
+    "migration itself leaves inventory, canonical labels and Chaos rows unchanged",
+    "all existing FKs and constraints preserved except reviewed label count widening",
+    "all existing indexes preserved except reviewed active-item predicate",
+    "new label indexes valid, existing collector authorization preserved",
+    "new restrictive label policies do not widen inventory access"
+  ],
+  "migrations": [],
+  "timings": {},
+  "steps": [
+    {
+      "label": "production baseline",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": false,
+      "labelTargets": {
+        "ok": false,
+        "code": "42883",
+        "error": "function label_targets(unknown, unknown, unknown, unknown, boolean) does not exist"
+      },
+      "pos": "function pos_command(unknown, unknown, unknown) does not exist"
+    },
+    {
+      "label": "20260920181448_pos_cash_foundation.sql",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": false,
+      "labelTargets": {
+        "ok": false,
+        "code": "42883",
+        "error": "function label_targets(unknown, unknown, unknown, unknown, boolean) does not exist"
+      },
+      "pos": "POS_DISABLED"
+    },
+    {
+      "label": "20260920190428_pos_barcode_labels.sql",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": true,
+      "labelTargets": {
+        "ok": false,
+        "code": "42703",
+        "error": "column p.language does not exist"
+      },
+      "pos": "POS_DISABLED"
+    },
+    {
+      "label": "202609070001_chaos_sort_sessions_and_positions.sql",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": false,
+      "labelTargets": {
+        "ok": false,
+        "code": "42883",
+        "error": "function label_targets(unknown, unknown, unknown, unknown, boolean) does not exist"
+      },
+      "pos": "function pos_command(unknown, unknown, unknown) does not exist"
+    },
+    {
+      "label": "20260920181448_pos_cash_foundation.sql",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": false,
+      "labelTargets": {
+        "ok": false,
+        "code": "42883",
+        "error": "function label_targets(unknown, unknown, unknown, unknown, boolean) does not exist"
+      },
+      "pos": "POS_DISABLED"
+    },
+    {
+      "label": "20260920190428_pos_barcode_labels.sql",
+      "inventoryEdit": true,
+      "crossTenantReadDenied": true,
+      "unauthorizedWrite": "TD_COLLECTOR_UNAUTHORIZED",
+      "labelIdentityQuery": true,
+      "labelTargets": {
+        "ok": true,
+        "count": 1
+      },
+      "pos": "POS_DISABLED"
+    }
+  ],
+  "candidateMigrations": [
+    {
+      "file": "202609070001_chaos_sort_sessions_and_positions.sql",
+      "sha256": "6fec479d75a2ffe2045a990c66eec48e51562a6f73696a9e356bab2f23e0c9f1",
+      "milliseconds": 4
+    },
+    {
+      "file": "20260920181448_pos_cash_foundation.sql",
+      "sha256": "a908835e6721360d1500969670891978d99f0775b8b5c79942668bfaf078d14e",
+      "milliseconds": 50
+    },
+    {
+      "file": "20260920190428_pos_barcode_labels.sql",
+      "sha256": "119f262520b8615522f0cb6fbee9f28d5344ae24d6bb88d7dd1bcf6f41e7d12f",
+      "milliseconds": 25
+    }
+  ],
+  "baselineChaosCommit": {
+    "note": "Successful synthetic commit rolled back; random fixture IDs omitted",
+    "rowCount": 1,
+    "ok": true
+  },
+  "labelAlone": {
+    "ok": false,
+    "code": "42P01",
+    "error": "relation \"public.pos_sale_allocations\" does not exist"
+  },
+  "candidateChaosCommit": {
+    "ok": false,
+    "code": "42702",
+    "error": "column reference \"location_id\" is ambiguous"
+  },
+  "platformOwnerLabelTargets": {
+    "ok": false,
+    "code": "P0001",
+    "error": "POS_FORBIDDEN"
+  },
+  "chaosFunctionChanged": true,
+  "counts": {
+    "inventory_items": 1515,
+    "inventory_label_identities": 26,
+    "inventory_locations": 5,
+    "chaos_sort_sessions": 22,
+    "chaos_sort_batches": 22,
+    "chaos_sort_inventory_positions": 1488
+  },
+  "rls": [
+    {
+      "relname": "inventory_label_identities",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "label_templates",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "inventory_items",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "chaos_sort_sessions",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "chaos_sort_inventory_positions",
+      "relrowsecurity": true
+    }
+  ],
+  "inventoryGuardUnchanged": true,
+  "expectedMigrationRowChanges": {
+    "inventoryUpdates": 0,
+    "canonicalLabelUpdates": 0,
+    "positionUpdates": 0,
+    "newIdentityColumnNulls": 26,
+    "newPositionLanguageNulls": 1488,
+    "gameBackfillRun": false
+  },
+  "decision": "NOT SAFE TO APPLY",
+  "browserStore": {
+    "status": "PASS",
+    "scope": "production component + local SQL adapter",
+    "targets": 1,
+    "preparedLabels": 1,
+    "pageErrors": []
+  },
+  "browserPlatformOwner": {
+    "status": "FAIL",
+    "reason": "POS_FORBIDDEN from label_targets despite platform-owner app access",
+    "scope": "production component + local SQL adapter"
+  },
+  "browserErrors": [
+    {
+      "actor": "platform-owner",
+      "path": "/api/label-studio/targets?",
+      "code": "P0001",
+      "message": "POS_FORBIDDEN"
+    }
+  ],
+  "status": "REVIEW_COMPLETE"
+}

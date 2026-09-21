@@ -17,6 +17,18 @@ export async function labelContext(
         { status: 403 },
       ),
     };
+  const { data: allowed, error } = await context.supabase.rpc("label_access", {
+    p_workspace_id: context.access.workspaceId,
+    p_management: capability === "label.manage_templates",
+  });
+  if (error || allowed !== true)
+    return {
+      ok: false as const,
+      response: Response.json(
+        { error: "Label Studio is unavailable for this workspace." },
+        { status: 403 },
+      ),
+    };
   return { ...context, workspaceId: context.access.workspaceId };
 }
 export async function labelBody(

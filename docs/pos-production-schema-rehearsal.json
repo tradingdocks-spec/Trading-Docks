@@ -1,0 +1,405 @@
+{
+  "capturedAt": "2026-09-21T19:25:03.275542+00:00",
+  "commit": "14a0488b842d8731c2b69e33c235234ddf380cf3",
+  "classification": "DATABASE_REHEARSAL_PASS_LIVE_COMPATIBILITY_BLOCKED",
+  "productionMutated": false,
+  "baseline": {
+    "rows": 1515,
+    "labels": 26,
+    "ledger": [
+      {
+        "name": "deck_vault",
+        "version": "202607240001"
+      },
+      {
+        "name": "entitlement_production_repair",
+        "version": "20260917050328"
+      },
+      {
+        "name": "first_time_collection_entitlement_semantics",
+        "version": "20260917050338"
+      },
+      {
+        "name": "production_function_search_path_hardening",
+        "version": "20260917190154"
+      },
+      {
+        "name": "production_function_privilege_hardening",
+        "version": "20260917190205"
+      },
+      {
+        "name": "platform_owner_role_authority_transition",
+        "version": "20260917190220"
+      },
+      {
+        "name": "selling_marketplace_platform_foundation",
+        "version": "20260918230105"
+      },
+      {
+        "name": "selling_allocation_and_candidate_workflow",
+        "version": "20260918230108"
+      },
+      {
+        "name": "selling_chaos_position_multiplicity",
+        "version": "20260918230112"
+      },
+      {
+        "name": "selling_marketplace_operations",
+        "version": "20260918230117"
+      },
+      {
+        "name": "selling_ebay_candidate_preparation_fields",
+        "version": "20260918230119"
+      },
+      {
+        "name": "platform_marketplace_integrations_encryption_metadata",
+        "version": "20260918230123"
+      }
+    ],
+    "quantity": 1788,
+    "pos_tables": 0,
+    "captured_at": "2026-09-21T19:25:03.275542+00:00",
+    "ownership_md5": "dad4e314e4465140076f596e34340847",
+    "missing_game_id": 1489,
+    "nonidentity_md5": "33ab92d9fd17220b1b16682ddc3064a0"
+  },
+  "scope": "Production public schema metadata reconstruction, sanitized inventory relationship fixture; local PG17, no production writes",
+  "checks": [
+    "unmigrated Label Studio dependency failure reproduced: inventory_position_id absent",
+    "original production collector guard restored verbatim",
+    "ordinary unowned metadata update raises TD_COLLECTOR_UNAUTHORIZED before migration",
+    "trusted backfill rejects ownership tampering and restores guard on rollback",
+    "backfill alone works under exact current production collector trigger, then rolls back",
+    "all 1515 rows preserved, exactly 1489 metadata-only backfills and 26 unchanged",
+    "collector function restored to pre-backfill definition and no temporary backfill mechanism remains",
+    "ordinary unowned update remains unauthorized after migration",
+    "POS disabled by default with no enabled workspace",
+    "all public POS and private POS tables have RLS enabled",
+    "existing RLS flags preserved on all 133 public production tables",
+    "existing constraints and indexes preserved except reviewed label migration replacements",
+    "all 26 existing canonical label identities remain unchanged",
+    "Label Studio identity query dependency exists after the ordered migrations",
+    "non-POS owner inventory read, game filtering and metadata update work",
+    "cross-tenant inventory RLS denies reading or changing another owner",
+    "authenticated browser cannot execute temporary backfill or privileged Square functions",
+    "browser POS bootstrap remains gated for all five existing workspaces, including store owner",
+    "anonymous POS RPC denied",
+    "private POS tables and helpers have no browser/anonymous grants",
+    "new indexes valid and new foreign keys/check constraints validated",
+    "all pre-existing policies and triggers preserved",
+    "only reviewed existing function and grant changes occur",
+    "local ledger contains exactly 12 baseline plus 12 reviewed migrations",
+    "published post-migration read-only queries execute on migrated rehearsal"
+  ],
+  "migrations": [
+    {
+      "file": "20260920181448_pos_cash_foundation.sql",
+      "sha256": "a908835e6721360d1500969670891978d99f0775b8b5c79942668bfaf078d14e",
+      "milliseconds": 46
+    },
+    {
+      "file": "20260920190428_pos_barcode_labels.sql",
+      "sha256": "119f262520b8615522f0cb6fbee9f28d5344ae24d6bb88d7dd1bcf6f41e7d12f",
+      "milliseconds": 25
+    },
+    {
+      "file": "20260920201259_pos_staff_delegation.sql",
+      "sha256": "83af875e37eedf62995741212a686b37a2f8c8f2fa23d6487d53648349986521",
+      "milliseconds": 17
+    },
+    {
+      "file": "20260920201754_pos_register_operations.sql",
+      "sha256": "5587df5b6469c632c68b755e428a23fc5f77e06c2894e91b1ba81c931dabd021",
+      "milliseconds": 39
+    },
+    {
+      "file": "20260920211929_pos_payment_framework.sql",
+      "sha256": "796fca4f92d70043a2e07dabfc08d0184406830225f204a74129a7fbad6f3507",
+      "milliseconds": 45
+    },
+    {
+      "file": "20260920220340_pos_square_sandbox.sql",
+      "sha256": "05e8bfd98a286cda2e7f24ccc0d78554c2ac1f6c90e8004265192e9910b7d9e4",
+      "milliseconds": 30
+    },
+    {
+      "file": "20260920235705_pos_square_terminal.sql",
+      "sha256": "d5e93bfb4b26f2ceab6e76db8612b0c4d77d8464a850f590ae124f312cdbd04e",
+      "milliseconds": 25
+    },
+    {
+      "file": "20260921004339_pos_provider_request_budget.sql",
+      "sha256": "84e49cb2d0c36b76e3d4595ae0d5d1c2e54a5eabf6360bcb2c8182a7892e11c8",
+      "milliseconds": 2
+    },
+    {
+      "file": "20260921010637_pos_employee_permission_precedence.sql",
+      "sha256": "2ee4c7396759516efa1656fa1920e62a8147a0efcc225a208178e4e2da092f54",
+      "milliseconds": 1
+    },
+    {
+      "file": "20260921014756_pos_search_authority_scope.sql",
+      "sha256": "8917f589392d04e9bcab301805452785803fda139a64b23330a05307f3a7a7bd",
+      "milliseconds": 3
+    },
+    {
+      "file": "20260921020747_pos_cart_scale_500.sql",
+      "sha256": "2adaa01f03dfcc7274ab662f10775cb8d621b8170420379f45c2582f8a5231cf",
+      "milliseconds": 7
+    },
+    {
+      "file": "20260921154907_inventory_identity_trusted_backfill.sql",
+      "sha256": "1b409c839cf8c34000bea22eaab5a1b2ea08b7d25c65df795f65ed1adc294b54",
+      "milliseconds": 163
+    }
+  ],
+  "timings": {},
+  "backfill": {
+    "total": 1515,
+    "backfilled": 1489,
+    "unchanged": 26,
+    "skippedMissing": 0,
+    "manualReview": 0
+  },
+  "constraintChanges": [
+    {
+      "name": "label_print_jobs_counts_check",
+      "before": "CHECK (label_count >= 0 AND page_count >= 0 AND label_count <= 10000 AND page_count <= 1000)",
+      "after": "CHECK (label_count >= 0 AND label_count <= 10000 AND page_count >= 0 AND page_count <= 10000)"
+    }
+  ],
+  "indexChanges": [
+    {
+      "name": "inventory_label_identities_active_item_uidx",
+      "before": "CREATE UNIQUE INDEX inventory_label_identities_active_item_uidx ON public.inventory_label_identities USING btree (workspace_id, inventory_user_id, inventory_item_id) WHERE ((revoked_at IS NULL) AND (status = 'active'::text))",
+      "after": "CREATE UNIQUE INDEX inventory_label_identities_active_item_uidx ON public.inventory_label_identities USING btree (workspace_id, inventory_user_id, inventory_item_id) WHERE ((revoked_at IS NULL) AND (status = 'active'::text) AND (inventory_position_id IS NULL))"
+    }
+  ],
+  "schemaAfter": {
+    "tables": 178,
+    "functions": 136
+  },
+  "preexistingNotValidConstraints": [
+    {
+      "name": "inventory_items_asking_price_check",
+      "table": "inventory_items"
+    },
+    {
+      "name": "inventory_items_item_kind_check",
+      "table": "inventory_items"
+    },
+    {
+      "name": "inventory_items_label_price_check",
+      "table": "inventory_items"
+    },
+    {
+      "name": "inventory_items_market_price_check",
+      "table": "inventory_items"
+    }
+  ],
+  "functionChanges": [
+    {
+      "identity": "enforce_collector_inventory_mutation()",
+      "definitionChanged": true,
+      "beforeAcl": "{postgres=X/postgres,service_role=X/postgres}",
+      "afterAcl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "identity": "reserve_selling_inventory(uuid,uuid,integer,text)",
+      "definitionChanged": true,
+      "beforeAcl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "afterAcl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    }
+  ],
+  "policyChanges": [],
+  "tableGrantChanges": [
+    {
+      "table": "inventory_label_identities",
+      "before": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "after": "{postgres=arwdDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}"
+    }
+  ],
+  "newTables": [
+    {
+      "schema": "pos_private",
+      "name": "approval_uses"
+    },
+    {
+      "schema": "pos_private",
+      "name": "label_tombstones"
+    },
+    {
+      "schema": "pos_private",
+      "name": "mock_payments"
+    },
+    {
+      "schema": "pos_private",
+      "name": "mock_refunds"
+    },
+    {
+      "schema": "pos_private",
+      "name": "payment_context"
+    },
+    {
+      "schema": "pos_private",
+      "name": "payment_test_config"
+    },
+    {
+      "schema": "pos_private",
+      "name": "request_limits"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_connections"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_credentials"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_device_codes"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_events"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_hardware_audit"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_locations"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_mappings"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_oauth"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_observations"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_refund_observations"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_terminal_attempts"
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_terminal_refunds"
+    },
+    {
+      "schema": "pos_private",
+      "name": "stock_permits"
+    },
+    {
+      "schema": "public",
+      "name": "inventory_barcode_aliases"
+    },
+    {
+      "schema": "public",
+      "name": "pos_access_events"
+    },
+    {
+      "schema": "public",
+      "name": "pos_approval_decisions"
+    },
+    {
+      "schema": "public",
+      "name": "pos_approval_requests"
+    },
+    {
+      "schema": "public",
+      "name": "pos_cash_events"
+    },
+    {
+      "schema": "public",
+      "name": "pos_checkout_cancellations"
+    },
+    {
+      "schema": "public",
+      "name": "pos_inventory_delegations"
+    },
+    {
+      "schema": "public",
+      "name": "pos_location_inventory_locations"
+    },
+    {
+      "schema": "public",
+      "name": "pos_operation_receipts"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_attempts"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_audit"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_checkouts"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_devices"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_events"
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_refund_attempts"
+    },
+    {
+      "schema": "public",
+      "name": "pos_refund_items"
+    },
+    {
+      "schema": "public",
+      "name": "pos_refunds"
+    },
+    {
+      "schema": "public",
+      "name": "pos_register_sessions"
+    },
+    {
+      "schema": "public",
+      "name": "pos_registers"
+    },
+    {
+      "schema": "public",
+      "name": "pos_sale_allocations"
+    },
+    {
+      "schema": "public",
+      "name": "pos_sale_items"
+    },
+    {
+      "schema": "public",
+      "name": "pos_sales"
+    },
+    {
+      "schema": "public",
+      "name": "pos_store_locations"
+    },
+    {
+      "schema": "public",
+      "name": "pos_tenders"
+    },
+    {
+      "schema": "public",
+      "name": "pos_workspace_settings"
+    }
+  ],
+  "status": "PASS"
+}
