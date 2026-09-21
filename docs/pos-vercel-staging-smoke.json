@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-21T15:24:35.200Z",
+  "origin": "https://trading-docks-pos-staging.vercel.app",
+  "database": "ukrcbmujzdyclrkghbvo",
+  "status": "PASS",
+  "checks": [
+    "Unsigned public webhook denied with 403",
+    "Anonymous POS, Square settings and callback denied",
+    "owner: hosted staging Auth login",
+    "Owner Square settings render with Sandbox connect enabled",
+    "Square settings render at mobile width",
+    "OAuth start persists one-time state and returns the real Sandbox authorization URL",
+    "Emulated OAuth denial consumes state; replay fails on deployed staging",
+    "Optimized Preview keeps mock payments disabled",
+    "manager: hosted staging Auth login",
+    "Manager denied Square administration"
+  ],
+  "realSquareConsent": "PENDING",
+  "authenticWebhook": "PENDING"
+}

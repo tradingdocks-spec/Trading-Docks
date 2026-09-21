@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-21T02:34:11.996Z",
+  "at": "2026-09-21T15:11:01.414Z",
   "scope": "Disposable real PostgreSQL; independent integer totals, canonical mock payment state machine and concurrent finalization",
   "measurements": [
     {
@@ -10,9 +10,9 @@
       "tax": 220,
       "total": 2787,
       "quoteMs": 17,
-      "snapshotAndAttemptMs": 40,
-      "finalizeAndConcurrentRetryMs": 48,
-      "receiptMs": 3,
+      "snapshotAndAttemptMs": 43,
+      "finalizeAndConcurrentRetryMs": 51,
+      "receiptMs": 2,
       "status": "PASS",
       "midFinalizationFailure": "not injected"
     },
@@ -23,10 +23,10 @@
       "discount": 466,
       "tax": 894,
       "total": 11313,
-      "quoteMs": 73,
-      "snapshotAndAttemptMs": 173,
-      "finalizeAndConcurrentRetryMs": 208,
-      "receiptMs": 4,
+      "quoteMs": 72,
+      "snapshotAndAttemptMs": 181,
+      "finalizeAndConcurrentRetryMs": 195,
+      "receiptMs": 3,
       "status": "PASS",
       "midFinalizationFailure": "not injected"
     },
@@ -37,10 +37,10 @@
       "discount": 1151,
       "tax": 2236,
       "total": 28305,
-      "quoteMs": 277,
-      "snapshotAndAttemptMs": 626,
-      "finalizeAndConcurrentRetryMs": 661,
-      "receiptMs": 7,
+      "quoteMs": 263,
+      "snapshotAndAttemptMs": 593,
+      "finalizeAndConcurrentRetryMs": 656,
+      "receiptMs": 8,
       "status": "PASS",
       "midFinalizationFailure": "not injected"
     },
@@ -51,10 +51,10 @@
       "discount": 2288,
       "tax": 4478,
       "total": 56655,
-      "quoteMs": 1058,
-      "snapshotAndAttemptMs": 1988,
-      "finalizeAndConcurrentRetryMs": 2211,
-      "receiptMs": 14,
+      "quoteMs": 884,
+      "snapshotAndAttemptMs": 1922,
+      "finalizeAndConcurrentRetryMs": 2029,
+      "receiptMs": 13,
       "status": "PASS",
       "midFinalizationFailure": "PASS"
     }

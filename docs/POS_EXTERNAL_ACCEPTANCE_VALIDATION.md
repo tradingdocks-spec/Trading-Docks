@@ -64,4 +64,21 @@ Read-only Vercel CLI inspection authenticated as tradingdocks-spec and confirmed
 - BLOCKED: current src/lib/pos/payments/server.ts explicitly rejects Square starts with NODE_ENV=production and hides Square sites/terminals in that runtime. The accepted checklist requires an isolated development/test HTTPS runtime. Do not weaken this guard or change NODE_ENV to bypass it.
 - PENDING: secret correctness, real Square OAuth consent, signed webhook delivery, Terminal Sandbox API transactions, refunds and reconciliation. No end-to-end PASS is claimed.
 
-No deployments, remote setting changes, database writes, payment requests, production operations or code changes were performed. Next work requires an approved isolated runtime with staging database identity, accepted POS code, and a public webhook endpoint; a Vercel Preview-compatible guard design would require separate architecture review under the existing acceptance scope.
+No deployments, remote setting changes, database writes, payment requests, production operations or code changes were performed during that preflight. Next work required an approved isolated runtime with staging database identity, accepted POS code, and a public webhook endpoint; a Vercel Preview-compatible guard design required separate architecture review under the existing acceptance scope.
+
+## Authorized staging fixes — September 21, 2026
+
+Owner explicitly authorized staging-only deployment fixes, keeping production untouched. The preflight deployment blockers above are now resolved. Status: **Implemented staging deployment / real Square acceptance PENDING**.
+
+- READY: `https://trading-docks-pos-staging.vercel.app`, Preview deployment `dpl_GhbTtR7pvgvtTXn3Cb49qCbr3eWd`, source `42bcc15` on `codex/pos-foundation`.
+- Staging Supabase URL/public key/service-role overrides apply only to that branch. Nine unrelated inherited integration values are blanked on the branch. Production env metadata, active deployment and project protection were verified unchanged.
+- Runtime guard pins Preview/project/branch/staging DB/Sandbox configuration/exact callback and webhook URLs. Production and other optimized runtimes fail closed. Mock payments remain disabled.
+- Only the dedicated staging alias receives a protection exception. The exact Square webhook route bypasses user-session middleware but still requires a valid Square signature. Its unsigned public request returns 403; anonymous POS/settings/callback requests are denied.
+- Deployed browser checks PASS for automated owner and the requested separate staging owner account: real hosted Auth login, owner settings, desktop/mobile render, Sandbox OAuth URL generation with persisted one-time state, emulated denial/replay rejection, mock-payment denial, and manager Square administration denial. These are not a real Square consent/token exchange.
+- New owner account has its own Sandbox workspace, register and five sample inventory items. Temporary password remains in an ignored local handoff file. No email was sent.
+- One older synthetic staging Auth row with null token strings was repaired without changing its password or privileges; admin user listing now succeeds. No migration or production operation occurred.
+- Validation: root TypeScript and 949 unit tests pass; baseline lint 0 errors/534 existing warnings, changed-file lint pass; mobile TypeScript/580 tests pass; both database ledgers 126 groups pass; optimized Vercel build pass; zero error-level deployment logs during the observed test window. Initial upload-exclusion failures were corrected, not counted as passing builds.
+- PENDING owner action: edit the existing Square Sandbox OAuth redirect and webhook notification URL to this staging origin, preserving the webhook signature key, then authorize through the staging Payments screen. Credentials are configured but real provider authentication/signature-key correctness is not yet proven.
+- Hardware gates remain PENDING; physical Terminal in Sandbox remains NOT AVAILABLE. Pilot remains NOT READY until required external gates pass.
+
+Evidence and disable procedure: [staging deployment](POS_STAGING_DEPLOYMENT.md), `pos-vercel-staging-smoke.json`, `pos-vercel-owner-smoke.json`.
