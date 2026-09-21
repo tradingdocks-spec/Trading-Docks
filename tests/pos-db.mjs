@@ -69,6 +69,8 @@ try {
   try {
     await a.query(`insert into inventory_locations(id,user_id,name) values('case',$1,'Showcase A'),('spare',$1,'Spare')`,[owner]);
     await a.query(`insert into inventory_items(id,user_id,workspace_id,location_id,card_name,sku,quantity,asking_price,data) values('bolt',$1,$2,'case','Lightning Bolt','TD-ABCD-EFGH',1,12.99,'{"condition":"NM","finish":"nonfoil","language":"EN"}')`,[owner,workspace]);
+    const { verifyIdentityBackfill } = await import('./inventory-identity-backfill-db.mjs');
+    await verifyIdentityBackfill({admin,a,stranger,owner,other,check});
     const setup=await command(a,'setup',{name:'Phoenix',registerName:'Front',locationId:'case',taxBps:850});
     const session=await command(a,'open',{registerId:setup.registerId});
     const second=await admin.query(`insert into pos_registers(workspace_id,site_id,name) values($1,$2,'Second') returning id`,[workspace,setup.siteId]);

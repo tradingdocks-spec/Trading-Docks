@@ -286,6 +286,7 @@ export async function verifySquare({
       const req = request();
       lose = true;
       await assert.rejects(orchestrator.begin(req), /NETWORK_ERROR/);
+      assert.equal(remotePayments.size, 1, "provider accepted before its response was lost");
       const attempt = await pay("create", req);
       assert.equal(attempt.status, "PENDING");
       await pay("observe", { id: attempt.id, status: "SUCCEEDED" });
@@ -346,6 +347,7 @@ export async function verifySquare({
       };
       lose = true;
       await assert.rejects(orchestrator.refund(input), /NETWORK_ERROR/);
+      assert.equal(remoteRefunds.size, 1, "provider refunded before its response was lost");
       const pending = await pay("create", input, true);
       const recovered = await orchestrator.checkRefund(pending.id);
       assert.equal(recovered.status, "SUCCEEDED");
@@ -355,6 +357,10 @@ export async function verifySquare({
         (await orchestrator.checkRefund(pending.id)).refund_id,
         recovered.refund_id,
       );
+      assert.equal(remoteRefunds.size, 1);
+      assert.equal((await admin.query(
+        "select count(*)::int n from pos_refunds where sale_id=$1", [paid.saleId],
+      )).rows[0].n, 1, "reconciliation finalizes exactly one local refund");
       assert.equal(
         (await pay("get", { id: paid.id })).status,
         "PARTIALLY_REFUNDED",
@@ -535,6 +541,13 @@ export async function verifySquare({
         )
       ).rows[0];
       assert.equal(stored.refresh_lease, null);
+      assert.deepEqual(await service("refresh_save", {
+        workspaceId: workspace, connectionId: current.id, lease: second,
+        encrypted, expiresAt: body.expiresAt,
+      }), {});
+      assert.equal((await admin.query(
+        "select version from pos_private.square_credentials where connection_id=$1", [current.id],
+      )).rows[0].version, stored.version, "stale refresh cannot overwrite the winning credential");
     },
   );
   await check(

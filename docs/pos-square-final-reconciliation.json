@@ -1,0 +1,48 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "environment": "SANDBOX",
+  "audit": {
+    "sales": [
+      {
+        "id": "e4e3ce2b-29c7-4f86-bf39-73d44f502d54",
+        "totalMinor": 109,
+        "tenderCount": 1,
+        "tenderMinor": 109,
+        "receiptNumber": "TD-E4E3CE2B29C74F86BF3973D44F502D54",
+        "receiptTotalMinor": 109
+      },
+      {
+        "id": "202130e1-9ae3-44d7-95a7-b1a0b1dcf14f",
+        "totalMinor": 109,
+        "tenderCount": 1,
+        "tenderMinor": 109,
+        "receiptNumber": "TD-202130E19AE344D795A7B1A0B1DCF14F",
+        "receiptTotalMinor": 109
+      },
+      {
+        "id": "4291849f-f71d-4985-84d8-0e8b705d81fd",
+        "totalMinor": 109,
+        "tenderCount": 1,
+        "tenderMinor": 109,
+        "receiptNumber": "TD-4291849FF71D498584D80E8B705D81FD",
+        "receiptTotalMinor": 109
+      }
+    ],
+    "refunds": [
+      {
+        "id": "4e751e89-fc2a-4206-9e37-0d0ab23df536",
+        "saleId": "202130e1-9ae3-44d7-95a7-b1a0b1dcf14f",
+        "totalMinor": 109
+      }
+    ],
+    "connection": "CONNECTED",
+    "replayedEvent": [
+      {
+        "status": "PROCESSED",
+        "eventId": "6a0af92f-abdd-3234-a72e-de6462ad0ec6",
+        "processedAt": "2026-09-21T16:30:14.494371+00:00"
+      }
+    ],
+    "credentialExpiry": "2026-10-21T16:26:58+00:00"
+  }
+}

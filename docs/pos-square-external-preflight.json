@@ -1,0 +1,51 @@
+{
+  "at": "2026-09-21T16:28:42.420Z",
+  "origin": "https://trading-docks-pos-staging.vercel.app",
+  "project": "ukrcbmujzdyclrkghbvo",
+  "configured": true,
+  "settingsKeys": [
+    "sites",
+    "mappings",
+    "locations",
+    "connections",
+    "configured"
+  ],
+  "connections": [
+    {
+      "id": "b22495d8-cfcc-498a-b7e2-8ebee69227eb",
+      "status": "CONNECTED",
+      "country": "US",
+      "environment": "SANDBOX",
+      "merchant_id": "MLFWZQVCJ9NP9",
+      "connected_at": "2026-09-21T16:22:39.49591+00:00",
+      "connected_by": "7df376fc-65c1-47e0-9dd8-16ab6782ab60",
+      "display_name": "Trading Docks POS Acceptance",
+      "workspace_id": "16610216-bfa9-432b-b0c1-cdfc162038f2",
+      "account_status": "ACTIVE",
+      "authorized_scopes": [
+        "MERCHANT_PROFILE_READ",
+        "PAYMENTS_READ",
+        "PAYMENTS_WRITE"
+      ],
+      "last_validated_at": "2026-09-21T16:26:59.599972+00:00"
+    }
+  ],
+  "locations": [
+    {
+      "id": "LZ2H61E38DWB3",
+      "name": "Trading Docks POS Acceptance",
+      "status": "ACTIVE",
+      "address": "Washington, DC, US",
+      "connection_id": "b22495d8-cfcc-498a-b7e2-8ebee69227eb"
+    }
+  ],
+  "mappings": [
+    {
+      "site_id": "8bda45a8-c316-48a1-988c-1c49f319a945",
+      "location_id": "LZ2H61E38DWB3",
+      "workspace_id": "16610216-bfa9-432b-b0c1-cdfc162038f2",
+      "connection_id": "b22495d8-cfcc-498a-b7e2-8ebee69227eb"
+    }
+  ],
+  "unsignedWebhookStatus": 403
+}

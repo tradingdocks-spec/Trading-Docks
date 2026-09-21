@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-21T16:34:55.822Z",
+  "eventId": "6a0af92f-abdd-3234-a72e-de6462ad0ec6",
+  "source": "Authentic Square Developer Console payment.created payload and original HMAC; no signature generated locally",
+  "bytes": 1567,
+  "statuses": [
+    200,
+    200
+  ]
+}

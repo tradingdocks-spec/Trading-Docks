@@ -1,13 +1,53 @@
 # POS external acceptance checklist
 
-Status: **PENDING — external setup/hardware required**. This checklist does not authorize production access, deployment, credentials, charges, refunds or live tenant enablement. Engineering evidence is in [Phase 7B validation](POS_PHASE7B_VALIDATION.md).
+Status: **ENGINEERING + SQUARE SANDBOX READY / PHYSICAL HARDWARE ACCEPTANCE PENDING**. Production remains untouched. Pilot readiness: **NOT READY**. Engineering evidence is in [Phase 7B validation](POS_PHASE7B_VALIDATION.md).
+
+Current continuation (September 21): inventory schema/backfill blocker **CLOSED**. Owner-accepted OAuth, merchant/location mapping, connection health, revocation/reconnection, payment, authentic webhook and finalization passes are preserved. Additional results below are acceptance only. Historical intake sections further down describe earlier states, not current blockers.
+
+| Remaining requested gate | Current result |
+|---|---|
+| Authentic webhook replay/deduplication | PASS: original signed event replayed twice, HTTP 200; one event with unchanged processing timestamp and one original sale |
+| Real Square refund | PASS: 109 cents, provider refund SUCCEEDED, one local refund and one stock restoration |
+| Payment response loss and reload reconciliation | PASS for browser-to-staging response loss: discarded successful response, reloaded, retried identical key, one sale/tender/stock deduction |
+| Refund response loss and reload reconciliation | PASS for browser-to-staging response loss: discarded successful response, reloaded, retried identical key and reconciled provider status, one refund |
+| Token refresh/reauthorization where practical | Real revocation/reauthorization PASS. Automatic refresh NOT EXERCISED: fresh token expires October 21; refresh threshold approximately September 28. No expiry or credential mutation forced |
+| Cash regression | PASS: 109-cent cash sale after Square configuration; closed drawer variance zero |
+| Transaction/receipt/report reconciliation | PASS: three sales 327 cents less one refund 109 = 218; cash 109 + Square net 109 = 218; one tender per receipt |
+
+Evidence: [replay](pos-square-authentic-replay.json), [recovery](pos-square-recovery-acceptance.json), [canonical reconciliation](pos-square-final-reconciliation.json), [software closure](pos-square-external-closure.json).
+
+## Closure matrix — September 21, 2026
+
+The owner authorized deterministic provider emulation for the remaining software contracts. This classification combines the accepted real Sandbox results with the explicit emulated results below; it does not claim live Terminal API delivery or physical hardware testing.
+
+| Gate | Evidence classification | Result |
+|---|---|---|
+| OAuth, merchant, location mapping, health, revocation/reconnection | REAL SANDBOX PASS | Previously accepted; preserved |
+| Payment, signed webhook delivery/replay, refund, browser-response loss/reload recovery | REAL SANDBOX PASS | Accepted provider objects and canonical ledger evidence |
+| Cash, receipt/report reconciliation, no duplicate sale/refund, drawer variance | REAL SANDBOX PASS | Staging integration: 327 - 109 = 218 cents; zero variance |
+| Square-to-server payment response loss | EMULATED PASS | Provider stores completed object then throws; original-key retry and concurrent checks recover one provider payment, one sale and one stock deduction |
+| Square-to-server refund response loss | EMULATED PASS | Provider stores completed refund then throws; repeated checks recover one provider refund and one local refund |
+| Terminal device-code creation/polling/expiry and pairing events | EMULATED PASS | Owner/scopes/mapped-location checks, immutable code identity, duplicate events, expiry and new-code identity |
+| Terminal checkout/create/get/cancel and status normalization | EMULATED PASS | Unknown, pending, busy, offline, canceled and completed contracts; completion verifies authoritative Payment identity/amount/location |
+| Terminal idempotency and webhook ordering | EMULATED PASS | Lost-create response, same-key retry, webhook/poll race, duplicate and stale created events converge once |
+| Terminal device/location/register/tenant authorization | EMULATED PASS | Wrong-site, wrong-location, duplicate assignment, unassigned routing and unauthorized management denied |
+| Terminal reload/recovery and register-close protection | EMULATED PASS | Browser reload recovers one sale; unresolved checkout rejects close with PAYMENT_ACTIVE |
+| Refresh implementation/contracts | EMULATED PASS | Successful encrypted save, failed authentication, lease loser, one database lease, stale-save no-op and unchanged credential version |
+| REAL AUTOMATIC TOKEN REFRESH | PENDING — token not yet due | Observation gate, not an engineering defect; existing expiry October 21, threshold approximately September 28; no real expiry altered |
+| Barcode scanner | PHYSICAL HARDWARE PENDING | Pilot hardware required |
+| Label printer and physical label scan-back | PHYSICAL HARDWARE PENDING | Pilot printer/media/scanner required |
+| Receipt printer | PHYSICAL HARDWARE PENDING | Pilot printer/media required |
+| Physical Square Terminal | PHYSICAL HARDWARE PENDING | Supported environment and separate authorization required |
+| Physical Terminal operation in Sandbox | NOT AVAILABLE | Square excludes physical hardware from Sandbox |
+
+All requested software-controlled closure gates pass at the evidence levels above. **Pilot readiness: NOT READY** until the intended hardware set is physically tested. Production deployment, migrations, Square connection, real money, main merge and tenant enablement remain prohibited. Real automatic refresh remains an observation gate and does not prevent this engineering classification.
 
 | Gate | Dependency | Acceptance evidence required | Status |
 |---|---|---|---|
-| Sandbox application and merchant | Owner Square developer account | Sandbox application ID, test seller and location identified; secrets stored server-side | PENDING |
-| Real Sandbox OAuth | Application and isolated HTTPS test runtime | Owner consent, callback, state/replay rejection, refresh, revocation, correct merchant/location mapping | PENDING |
-| Real webhook delivery | Public HTTPS notification endpoint and Sandbox signature key | Valid delivery, invalid signature denial, duplicate/out-of-order replay and reconciliation; one sale/receipt/mutation | PENDING |
-| Sandbox Terminal API transaction | Sandbox app/token and Square documented simulated device IDs | Approved, declined, canceled and delayed test checkouts; one finalization | PENDING |
+| Sandbox application and merchant | Owner Square developer account | Real authorized seller MLFWZQVCJ9NP9 and location LZ2H61E38DWB3 verified | PASS |
+| Real Sandbox OAuth | Application and isolated HTTPS test runtime | Owner-accepted consent, callback, merchant/location mapping, health, revocation and reconnection | PASS |
+| Real webhook delivery | Public HTTPS notification endpoint and Sandbox signature key | Actual payment.created/payment.updated processed; original signed created event replayed twice after completion; no duplicate financial effect | PASS |
+| Terminal API software contracts | Deterministic provider emulator and disposable PostgreSQL/browser harness | Device-code/create/get/cancel, signed-event normalization/order, routing, reload, close protection and one finalization; no live Terminal HTTP claim | EMULATED PASS |
 | Physical Terminal in Sandbox | Square does not support physical hardware in Sandbox | Official Sandbox overview and Terminal quickstart rechecked; simulated device IDs are API-only evidence | NOT AVAILABLE |
 | Physical Terminal pairing | Hardware and separate production approval | Correct merchant/location/device, pairing expiration, assignment and revocation | PENDING |
 | Physical Terminal payment and interruption | Hardware, account setup and separate production approval | Device disconnect/network loss, browser restart, status recovery, cancellation and refund with exactly one financial effect | PENDING |
@@ -24,12 +64,12 @@ Status: **PENDING — external setup/hardware required**. This checklist does no
 3. In the application's **Sandbox → OAuth** settings, register the exact redirect URL `<STAGING_HTTPS_ORIGIN>/api/pos/payments/square/callback`. Set the identical server variable `SQUARE_OAUTH_REDIRECT_URL`. The origin must use HTTPS; no query, fragment or user info. [Authorization URL setup](https://developer.squareup.com/docs/oauth-api/create-urls-for-square-authorization).
 4. Configure only the isolated test runtime's secret store: `SQUARE_ENVIRONMENT=SANDBOX`, `SQUARE_APPLICATION_ID` (Sandbox ID beginning `sandbox-`), `SQUARE_APPLICATION_SECRET`, and `MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY` (at least 32 characters). Never use `NEXT_PUBLIC_` for secrets; never paste them into chat or commit them. Keep the staging Supabase project fixed at `ukrcbmujzdyclrkghbvo`.
 5. Connect through the existing owner Square settings. The app requests `MERCHANT_PROFILE_READ`, `PAYMENTS_READ`, `PAYMENTS_WRITE`; Terminal additionally requests `DEVICE_CREDENTIAL_MANAGEMENT`. Verify the consenting test merchant and explicitly map the intended Square location. Do not hand-build or bypass signed OAuth state.
-6. In **Sandbox → Webhooks**, add `<STAGING_HTTPS_ORIGIN>/api/payments/webhooks/square` as the notification URL. Set the exact URL in `SQUARE_WEBHOOK_NOTIFICATION_URL` and the subscription signature key in server-only `SQUARE_WEBHOOK_SIGNATURE_KEY`. Subscribe to the implemented events `payment.created`, `payment.updated`, `terminal.checkout.created`, `terminal.checkout.updated`, and `device.code.paired` where available. Device pairing cannot be exercised in Sandbox. Refund reconciliation currently uses explicit status checks; refund webhook subscription is not claimed as implemented. [Square webhooks](https://developer.squareup.com/docs/webhooks/overview).
+6. In **Sandbox → Webhooks**, add `<STAGING_HTTPS_ORIGIN>/api/payments/webhooks/square` as the notification URL. Set the exact URL in `SQUARE_WEBHOOK_NOTIFICATION_URL` and the subscription signature key in server-only `SQUARE_WEBHOOK_SIGNATURE_KEY`. Subscribe to the implemented events `payment.created`, `payment.updated`, `terminal.checkout.created`, `terminal.checkout.updated`, and `device.code.paired` where available. Physical device pairing is not claimed in Sandbox; device-code handling is covered by emulation. Refund reconciliation currently uses explicit status checks; refund webhook subscription is not claimed as implemented. [Square webhooks](https://developer.squareup.com/docs/webhooks/overview).
 7. Execute OAuth success/denial/replay/refresh/revocation, signed webhook delivery/replay, test payments/refunds and recovery. Save sanitized timestamps, event/payment IDs and exact reconciliation results. Do not save raw tokens, authorization headers or customer payment data.
 
 ## Terminal environment distinction
 
-Square states that physical hardware cannot be used in Sandbox, and the Sandbox does not support the Devices API. Sandbox Terminal checkout tests use Square's documented simulated device IDs. Therefore the current pairing UI's local emulator coverage does **not** certify real Sandbox pairing, and a physical Terminal cannot close that gate with a Sandbox device code. [Sandbox testing](https://developer.squareup.com/docs/devtools/sandbox/testing), [Terminal quickstart](https://developer.squareup.com/docs/terminal-api/quickstart).
+Square states that physical hardware cannot be used in Sandbox. Its current documentation supports Sandbox ListDevices/GetDevice with test IDs; the earlier blanket claim that the Devices API is unsupported is superseded. Sandbox Terminal checkout tests use Square's documented simulated device IDs. Therefore the current pairing UI's local emulator coverage does **not** certify real Sandbox pairing, and a physical Terminal cannot close that gate with a Sandbox device code. [Sandbox testing](https://developer.squareup.com/docs/devtools/sandbox/testing), [Terminal quickstart](https://developer.squareup.com/docs/terminal-api/quickstart).
 
 Physical pairing/payment acceptance remains blocked on hardware **and separate production approval**; do not substitute production credentials to work around Sandbox limitations. Before that phase, review the production provider configuration change and [migration/disable plan](POS_PRODUCTION_MIGRATION_PLAN.md).
 

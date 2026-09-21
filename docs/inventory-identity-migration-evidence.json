@@ -1,0 +1,81 @@
+{
+  "project": "ukrcbmujzdyclrkghbvo",
+  "repositoryMigration": "20260921154907_inventory_identity_trusted_backfill.sql",
+  "hostedMigrationVersion": "20260921155304",
+  "before": {
+    "fks": [
+      "FOREIGN KEY (bulk_purchase_id) REFERENCES bulk_purchases(id) ON DELETE SET NULL",
+      "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL"
+    ],
+    "rls": true,
+    "rows": 10037,
+    "policies": [
+      {
+        "cmd": "ALL",
+        "qual": "(auth.uid() = user_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "inventory_items",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users manage their inventory items",
+        "schemaname": "public",
+        "with_check": "(auth.uid() = user_id)"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((workspace_id IS NOT NULL) AND is_workspace_member(workspace_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "inventory_items",
+        "permissive": "PERMISSIVE",
+        "policyname": "Workspace members view inventory items",
+        "schemaname": "public",
+        "with_check": null
+      }
+    ],
+    "guard_hash": "ada4ed7cd790a481fa9baec736dc9f8a",
+    "invariant_hash": "d48a84aae056cd97c90ac663d521b476"
+  },
+  "after": {
+    "fks": [
+      "FOREIGN KEY (bulk_purchase_id) REFERENCES bulk_purchases(id) ON DELETE SET NULL",
+      "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+      "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL"
+    ],
+    "rls": true,
+    "rows": 10037,
+    "policies": [
+      {
+        "cmd": "ALL",
+        "qual": "(auth.uid() = user_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "inventory_items",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users manage their inventory items",
+        "schemaname": "public",
+        "with_check": "(auth.uid() = user_id)"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((workspace_id IS NOT NULL) AND is_workspace_member(workspace_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "inventory_items",
+        "permissive": "PERMISSIVE",
+        "policyname": "Workspace members view inventory items",
+        "schemaname": "public",
+        "with_check": null
+      }
+    ],
+    "guard_hash": "ada4ed7cd790a481fa9baec736dc9f8a",
+    "invariant_hash": "d48a84aae056cd97c90ac663d521b476"
+  },
+  "backfilled": 10009,
+  "unclassifiedPreserved": 28
+}
