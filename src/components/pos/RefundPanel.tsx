@@ -124,6 +124,7 @@ export function RefundPanel({
   return (
     <section className="pos-panel">
       <h3>{payment ? `${payment.provider} refund` : "Cash refund"}</h3>
+      {payment?.metadata.refundRequiresCardPresence && <p>Square requires the original card for this refund. Ask the customer to present it on {payment.metadata.terminalName ?? "the original Terminal"}, then check refund status.</p>}
       {refundResult?.status === "FAILED" && (
         <button
           disabled={providerBusy}

@@ -8,6 +8,10 @@ import { squareAccounts } from "./square/server";
 import { SquarePaymentProvider } from "./square/provider";
 const errors: Record<string, string> = {
   ...POS_ERRORS,
+  POS_TERMINAL_UNAVAILABLE: "The assigned Terminal is unavailable. Check Hardware or choose another payment method.",
+  POS_TERMINAL_BUSY: "This Terminal is already processing another transaction.",
+  POS_TERMINAL_SCOPE: "Square must be reconnected to enable Terminal access.",
+  SQUARE_TERMINAL_SCOPE: "Square must be reconnected to enable Terminal access.",
   POS_MOCK_DISABLED: "Simulated payments are disabled.",
   POS_SQUARE_UNAVAILABLE: "Square is unavailable for this store. Review the checkout and choose another payment method.",
   POS_PAYMENT_ACTIVE:
@@ -94,8 +98,9 @@ export async function paymentRoute(
       result = await service.refund({ ...body, paymentId: id });
     else if (action === "checkRefund") result = await service.checkRefund(id!);
     else if (action === "capabilities") {
-      const data = await store<{ mockEnabled: boolean; squareSites?: string[] }>("capabilities", {});
+      const data = await store<{ mockEnabled: boolean; squareSites?: string[]; terminals?: unknown[] }>("capabilities", {});
       result = {
+        terminals: square && process.env.NODE_ENV !== "production" ? data.terminals ?? [] : [],
         mockEnabled: process.env.NODE_ENV !== "production" && data.mockEnabled,
         squareSites: square && process.env.NODE_ENV !== "production" ? data.squareSites ?? [] : [],
       };

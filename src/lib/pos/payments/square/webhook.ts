@@ -1,6 +1,7 @@
 import { WebhooksHelper } from "square";
 import { SquareAccounts, type CredentialContext } from "./service.ts";
 import { object, paymentStatus, safeSquareMetadata } from "./http.ts";
+import { observeCode, terminalPayment } from "./terminal.ts";
 export async function squareWebhook(
   accounts: SquareAccounts,
   raw: Uint8Array,
@@ -38,6 +39,22 @@ export async function squareWebhook(
   if (recorded.processed) return;
   try {
     const local = object(recorded.payment);
+    if (["device.code.paired", "terminal.checkout.created", "terminal.checkout.updated"].includes(type)) {
+      const target = await accounts.store("terminal_event", {
+        merchantId: event.merchant_id, type, resourceId: data.id,
+        referenceId: object(payload.checkout).reference_id,
+      });
+      const d = object(target.device), p = object(target.payment);
+      const context = await accounts.store("credential", {
+        workspaceId: d.workspace_id ?? p.workspace_id,
+        connectionId: d.connection_id ?? p.provider_account_id,
+      });
+      if (type === "device.code.paired") {
+        const token = await accounts.token(context as unknown as CredentialContext);
+        const remote = await accounts.http.request(`/v2/devices/codes/${d.provider_device_code_id}`, token);
+        await observeCode(accounts, d, object(remote.device_code));
+      } else await terminalPayment(accounts, { ...context, payment: p }, false, String(data.id));
+    }
     if (type === "payment.created" || type === "payment.updated") {
       // Unknown local reference is retryable: the event may precede local response persistence.
       if (!local.id) throw Error("UNKNOWN_STATUS");

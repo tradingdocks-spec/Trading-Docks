@@ -520,6 +520,7 @@ export function Register({
           <div>
             <h2>Payment Complete</h2>
             <p>{completed.receipt.number}</p>
+            {completed.receipt.payment?.metadata?.terminalName && <p>Terminal: {completed.receipt.payment.metadata.terminalName} · {completed.receipt.payment.metadata.brand} {completed.receipt.payment.metadata.last4 ? `ending ${completed.receipt.payment.metadata.last4}` : ""}</p>}
             <strong>
               Paid {money(completed.receipt.totalMinor)} ·{" "}
               {completed.receipt.payment
@@ -884,6 +885,7 @@ export function Register({
           </label>
           {pricingError && <p role="alert">{pricingError}</p>}
           <PaymentPanel
+            registerId={registerId}
             siteId={site?.id}
             scope={`${workspaceId}.${actorId}`}
             disabled={

@@ -17,6 +17,7 @@ try {
                   provider,
                   status: "SUCCEEDED",
                   metadata: {
+                    ...(provider === "SQUARE" ? { terminalName: "Front Terminal" } : {}),
                     brand: provider === "MOCK" ? "Mock" : "VISA",
                     last4: "4242",
                     verification: provider === "MOCK" ? "Simulated" : "Square Sandbox",

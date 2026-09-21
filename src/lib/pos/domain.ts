@@ -15,7 +15,7 @@ export type ReceiptLine = {
   finish: string | null; language: string | null; locationId: string;
 };
 export type Receipt = {
-  payment?: { provider: string; status: string; reference?: string; metadata?: {brand?: string;last4?: string;verification?: string} };
+  payment?: { provider: string; status: string; reference?: string; metadata?: {terminalName?: string;brand?: string;last4?: string;verification?: string} };
   timezone?: string; employeeName?: string; settings?: { receiptWidth?: string; address?: string; footer?: string; returnPolicy?: string; showEmployee?: boolean; showSku?: boolean; showLocation?: boolean };
   version: number; number: string; site: string; register: string; actorId: string;
   createdAt: string; currency: string; lines: ReceiptLine[]; subtotalMinor: number;

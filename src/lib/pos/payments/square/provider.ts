@@ -1,3 +1,4 @@
+import { terminalPayment, terminalRefund } from "./terminal.ts";
 import type { PaymentProvider, PaymentStore } from "../provider.ts";
 import type { Payment, RefundAttempt } from "../domain.ts";
 import { SquareAccounts, type CredentialContext } from "./service.ts";
@@ -11,11 +12,11 @@ import {
 export class SquarePaymentProvider implements PaymentProvider {
   readonly id = "SQUARE" as const;
   readonly capabilities = {
-    cardPresent: false,
+    cardPresent: true,
     refund: true,
     partialRefund: true,
-    cancel: false,
-    terminal: false,
+    cancel: true,
+    terminal: true,
     onlineCardEntry: false,
     splitTender: false,
   };
@@ -60,6 +61,10 @@ export class SquarePaymentProvider implements PaymentProvider {
       id,
     });
     const payment = object(ctx.payment);
+    if (before.metadata.method === "TERMINAL") {
+      await terminalPayment(this.accounts, ctx);
+      return this.store<Payment>("observe", { id });
+    }
     try {
       const token = await this.accounts.token(
         ctx as unknown as CredentialContext,
@@ -121,6 +126,14 @@ export class SquarePaymentProvider implements PaymentProvider {
     }
     return this.store<Payment>("observe", { id });
   }
+  async cancelPayment(id: string): Promise<Payment> {
+    const before = await this.store<Payment>("get", { id });
+    if (before.metadata.method !== "TERMINAL") throw Error("CONFIGURATION_ERROR");
+    if (["SUCCEEDED", "CANCELED", "FAILED", "DECLINED", "REFUNDED", "PARTIALLY_REFUNDED"].includes(before.status)) return before;
+    const ctx = await this.accounts.store("payment_context", { workspaceId: this.workspaceId, actorId: this.actorId, id });
+    await terminalPayment(this.accounts, ctx, true);
+    return this.store<Payment>("observe", { id });
+  }
   async refundPayment(id: string) {
     return this.getRefund(id);
   }
@@ -135,6 +148,10 @@ export class SquarePaymentProvider implements PaymentProvider {
     });
     const payment = object(ctx.payment),
       local = object(ctx.refund);
+    if (object(payment.metadata).refundRequiresCardPresence === true) {
+      await terminalRefund(this.accounts, ctx);
+      return this.store<RefundAttempt>("reconcile", {id}, true);
+    }
     try {
       const token = await this.accounts.token(
         ctx as unknown as CredentialContext,

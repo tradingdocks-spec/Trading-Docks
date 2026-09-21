@@ -34,6 +34,7 @@ export function refundStatus(status: unknown) {
 export function safeSquareMetadata(payment: SquareObject) {
   const card = object(object(payment.card_details).card);
   return {
+    ...(object(payment.card_details).refund_requires_card_presence === true ? { refundRequiresCardPresence: true } : {}),
     environment: "SANDBOX",
     verification: "Square Sandbox",
     locationId:
@@ -67,7 +68,7 @@ export class SquareHttp {
     body?: SquareObject,
     authorizationPrefix = "Bearer",
   ): Promise<SquareObject> {
-    if (!/^\/(v2|oauth2)\/[a-zA-Z0-9/_-]+$/.test(path))
+    if (!/^\/(v2|oauth2)\/[a-zA-Z0-9/_%:-]+(?:\?[a-zA-Z0-9%_=&.+-]+)?$/.test(path))
       throw Error("CONFIGURATION_ERROR");
     for (let attempt = 0; attempt < 3; attempt++) {
       let response: Response;
@@ -122,6 +123,8 @@ export class SquareHttp {
         throw Error("UNAUTHORIZED_PROVIDER_ACCOUNT");
       if (response.status === 401 || response.status === 403)
         throw Error("UNAUTHORIZED_PROVIDER_ACCOUNT");
+      if (errors.some((e) => e.code === "DEVICE_BUSY")) throw Error("DEVICE_BUSY");
+      if (errors.some((e) => ["DEVICE_OFFLINE", "DEVICE_UNAVAILABLE"].includes(String(e.code)))) throw Error("DEVICE_UNAVAILABLE");
       if (errors.some((e) => e.category === "PAYMENT_METHOD_ERROR"))
         throw Error("DECLINED");
       if (response.status === 429 || response.status >= 500)

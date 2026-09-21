@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { paymentRequest } from "@/lib/pos/payments/client";
 type Connection = {
+  authorized_scopes?: string[];
   id: string;
   display_name: string;
   merchant_id: string;
@@ -83,6 +84,17 @@ export function SquareSettings() {
         <strong>SANDBOX — No real money is processed</strong>
       </div>
       {notice && <p role="status">{notice}</p>}
+      <button
+        disabled={busy}
+        onClick={() => void act({ action: "connect", terminal: true })}
+      >
+        Enable Terminal — Reconnect Square
+      </button>
+      {data?.connections.some(
+        (c) =>
+          c.status === "CONNECTED" &&
+          !c.authorized_scopes?.includes("DEVICE_CREDENTIAL_MANAGEMENT"),
+      ) && <p>Square must be reconnected to enable Terminal access.</p>}
       {error && <p role="alert">{error}</p>}
       {!data.configured && (
         <p>

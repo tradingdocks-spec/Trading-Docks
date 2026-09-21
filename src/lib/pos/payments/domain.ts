@@ -63,6 +63,11 @@ export type Payment = {
   }[];
 };
 export type SafeMetadata = {
+  terminalName?: string;
+  terminalCheckoutId?: string;
+  terminalCheckoutStatus?: string;
+  terminalError?: string;
+  refundRequiresCardPresence?: boolean;
   environment?: string;
   locationId?: string;
   brand?: string;
@@ -118,6 +123,8 @@ export type PaymentErrorCategory =
   | "NETWORK_ERROR"
   | "CONFIGURATION_ERROR"
   | "UNAUTHORIZED_PROVIDER_ACCOUNT"
+  | "DEVICE_BUSY"
+  | "SQUARE_TERMINAL_SCOPE"
   | "DEVICE_UNAVAILABLE"
   | "INVALID_AMOUNT"
   | "DUPLICATE_REQUEST"
@@ -132,6 +139,8 @@ export const paymentErrors: Record<PaymentErrorCategory, string> = {
   CONFIGURATION_ERROR: "This payment method is not configured.",
   UNAUTHORIZED_PROVIDER_ACCOUNT:
     "The payment account needs administrator attention.",
+  DEVICE_BUSY: "This Terminal is already processing another transaction.",
+  SQUARE_TERMINAL_SCOPE: "Square must be reconnected to enable Terminal access.",
   DEVICE_UNAVAILABLE:
     "This payment terminal is unavailable. Check the device or choose another payment method.",
   INVALID_AMOUNT: "Review the checkout amount.",

@@ -61,7 +61,7 @@ export class SquareAccounts {
     this.config = config;
     this.http = http;
   }
-  async start(workspaceId: string, actorId: string) {
+  async start(workspaceId: string, actorId: string, terminal = false) {
     const state = randomBytes(32).toString("base64url");
     await this.store("oauth_start", {
       workspaceId,
@@ -71,7 +71,7 @@ export class SquareAccounts {
     const url = new URL("/oauth2/authorize", SQUARE_BASE_URL);
     url.search = new URLSearchParams({
       client_id: this.config.applicationId,
-      scope: SQUARE_SCOPES.join(" "),
+      scope: [...SQUARE_SCOPES, ...(terminal ? ["DEVICE_CREDENTIAL_MANAGEMENT"] : [])].join(" "),
       state,
       redirect_uri: this.config.redirectUrl,
       session: "false",
@@ -115,7 +115,9 @@ export class SquareAccounts {
     const cached = locations(
       await this.http.request("/v2/locations", String(tokens.access_token)),
     );
+    const authorization = await this.http.request("/oauth2/token/status", String(tokens.access_token), {});
     await this.store("connect", {
+      scopes: Array.isArray(authorization.scopes) ? authorization.scopes : [],
       workspaceId,
       actorId,
       merchantId: merchant.id,
@@ -215,11 +217,11 @@ export class SquareAccounts {
         );
         await this.store("disconnect", body);
       } else {
-        await this.http.request("/oauth2/token/status", token, {});
+        const authorization = await this.http.request("/oauth2/token/status", token, {});
         const cached = locations(
           await this.http.request("/v2/locations", token),
         );
-        await this.store("health", { ...body, locations: cached });
+        await this.store("health", { ...body, locations: cached, scopes: Array.isArray(authorization.scopes) ? authorization.scopes : [] });
       }
     } catch (e) {
       if (e instanceof Error && e.message === "UNAUTHORIZED_PROVIDER_ACCOUNT") {

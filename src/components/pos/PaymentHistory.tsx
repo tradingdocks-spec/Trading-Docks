@@ -87,6 +87,7 @@ export function PaymentHistory({ saleId }: { saleId?: string }) {
             {p.provider} · {p.status} · {money(p.amountMinor)}
           </h3>
           <p>Sale: {p.saleState.replaceAll("_", " ")}</p>
+          {p.metadata.method === "TERMINAL" && <p>Terminal · {p.metadata.terminalName} · Checkout {p.metadata.terminalCheckoutStatus} · {p.metadata.terminalCheckoutId}</p>}
           {p.provider === "SQUARE" && <p>SANDBOX — No real money is processed · Square location: {p.metadata.locationId} · {p.metadata.brand} {p.metadata.last4 ? `ending ${p.metadata.last4}` : ""}</p>}
           <p>
             Started: {new Date(p.createdAt).toLocaleString()}
@@ -108,10 +109,10 @@ export function PaymentHistory({ saleId }: { saleId?: string }) {
           <button disabled={busy} onClick={() => void act(`/${p.id}/check`)}>
             Check Payment Status
           </button>
-          {p.provider === "MOCK" && !p.saleId && p.saleState !== "VOIDED" && (
+          {(p.provider === "MOCK" || p.metadata.method === "TERMINAL") && !p.saleId && p.saleState !== "VOIDED" && (
             <button
               disabled={busy || p.status === "SUCCEEDED"}
-              onClick={() => void act(`/${p.id}/cancel`)}
+              onClick={() => {if(p.metadata.method !== "TERMINAL" || window.confirm(`Cancel the payment request on ${p.metadata.terminalName ?? "the Terminal"}?`))void act(`/${p.id}/cancel`);}}
             >
               Cancel payment
             </button>

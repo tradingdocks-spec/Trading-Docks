@@ -8,9 +8,11 @@ import {
   type Payment,
 } from "@/lib/pos/payments/domain";
 import { money } from "@/lib/pos/domain";
+import type { TerminalDevice } from "./Terminals";
 export function PaymentPanel({
   scope,
   siteId,
+  registerId,
   disabled,
   intent,
   onLock,
@@ -19,6 +21,7 @@ export function PaymentPanel({
 }: {
   scope: string;
   siteId?: string;
+  registerId?: string;
   disabled: boolean;
   intent: () => Record<string, unknown>;
   onLock: (locked: boolean) => void;
@@ -29,6 +32,7 @@ export function PaymentPanel({
   const [ready, setReady] = useState(false);
   const [mock, setMock] = useState(false);
   const [squareSites, setSquareSites] = useState<string[]>([]);
+  const [terminals, setTerminals] = useState<TerminalDevice[]>([]);
   const [provider, setProvider] = useState("CASH");
   const [outcome, setOutcome] = useState("APPROVE");
   const [reference, setReference] = useState("");
@@ -50,7 +54,11 @@ export function PaymentPanel({
           if (typeof value.key !== "string" || !value.intent)
             throw Error("Saved payment needs review.");
           setSaved(value);
-          setProvider(String(value.provider));
+          setProvider(
+            value.method === "square_terminal"
+              ? "SQUARE_TERMINAL"
+              : String(value.provider),
+          );
           onMethod(String(value.provider));
           onLock(true);
         } else onLock(false);
@@ -62,9 +70,14 @@ export function PaymentPanel({
         onLock(true);
       }
     });
-    paymentRequest<{ mockEnabled: boolean; squareSites?: string[] }>("/capabilities")
+    paymentRequest<{
+      mockEnabled: boolean;
+      squareSites?: string[];
+      terminals?: TerminalDevice[];
+    }>("/capabilities")
       .then((v) => {
         if (active) setSquareSites(v.squareSites ?? []);
+        if (active) setTerminals(v.terminals ?? []);
         if (active)
           setMock(process.env.NODE_ENV !== "production" && v.mockEnabled);
       })
@@ -85,10 +98,10 @@ export function PaymentPanel({
       if (!request) {
         request = {
           key: crypto.randomUUID(),
-          provider,
+          provider: provider === "SQUARE_TERMINAL" ? "SQUARE" : provider,
           outcome,
           reference,
-          method,
+          method: provider === "SQUARE_TERMINAL" ? "square_terminal" : method,
           intent: intent(),
         };
         localStorage.setItem(key, JSON.stringify(request));
@@ -122,6 +135,43 @@ export function PaymentPanel({
       setBusy(false);
     }
   }
+  const terminal = terminals.find(
+    (d) => d.registerId === registerId && d.siteId === siteId && d.eligible,
+  );
+  // Poll at 3/6/12 seconds, pause in hidden tabs; every retry retains the persisted attempt key.
+  const poll = useRef(0);
+  const runner = useRef(run);
+  useEffect(() => {
+    runner.current = run;
+  });
+  useEffect(() => {
+    if (
+      !saved ||
+      saved.method !== "square_terminal" ||
+      (payment && (payableAgain(payment) || payment.status === "SUCCEEDED"))
+    )
+      return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const next = () => {
+      timer = setTimeout(
+        async () => {
+          if (stopped) return;
+          if (!document.hidden) await runner.current("check");
+          if (!stopped) {
+            poll.current++;
+            next();
+          }
+        },
+        Math.min(12000, 3000 * 2 ** Math.min(poll.current, 2)),
+      );
+    };
+    next();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [saved, payment]);
   return (
     <section className="pos-panel" aria-label="Payment controls">
       <label>
@@ -138,10 +188,29 @@ export function PaymentPanel({
           <option value="CASH">Cash</option>
           <option value="EXTERNAL">External — externally recorded</option>
           {mock && <option value="MOCK">Mock Card — development only</option>}
-          {process.env.NODE_ENV !== "production" && squareSites.includes(siteId ?? "") && <option value="SQUARE">Square Sandbox — developer test</option>}
+          {process.env.NODE_ENV !== "production" && terminal && (
+            <option value="SQUARE_TERMINAL">
+              Square Terminal — {terminal.name}
+            </option>
+          )}
+          {process.env.NODE_ENV !== "production" &&
+            squareSites.includes(siteId ?? "") && (
+              <option value="SQUARE">Square Sandbox — developer test</option>
+            )}
         </select>
       </label>
-      {provider === "SQUARE" && <p>SANDBOX — No real money is processed. This developer test uses Square’s Sandbox test source.</p>}
+      {!terminal && !saved && (
+        <p>
+          Set up an assigned Square Terminal in{" "}
+          <a href="/dashboard/pos/hardware">Hardware</a>.
+        </p>
+      )}
+      {provider === "SQUARE" && (
+        <p>
+          SANDBOX — No real money is processed. This developer test uses
+          Square’s Sandbox test source.
+        </p>
+      )}
       {provider === "MOCK" && (
         <label>
           Mock outcome
@@ -234,6 +303,9 @@ export function PaymentPanel({
           "POS_DISCOUNT_REASON",
           "POS_MOCK_DISABLED",
           "POS_SQUARE_UNAVAILABLE",
+          "POS_TERMINAL_UNAVAILABLE",
+          "POS_TERMINAL_BUSY",
+          "POS_TERMINAL_SCOPE",
         ].includes(errorCode) && (
           <button
             disabled={busy}
@@ -250,7 +322,7 @@ export function PaymentPanel({
           </button>
         )}
       {saved ? (
-        <div role="status">
+        <div className="pos-terminal-wait" role="status">
           <h3>
             {payment?.saleState === "RECOVERY_REQUIRED"
               ? "Payment succeeded — sale needs review"
@@ -258,23 +330,56 @@ export function PaymentPanel({
                 ? "Payment was declined."
                 : payment?.status === "CANCELED"
                   ? "Payment canceled"
-                  : "Payment status is being verified."}
+                  : payment?.metadata.method === "TERMINAL" &&
+                      ["AWAITING_CUSTOMER", "PROCESSING"].includes(
+                        payment.status,
+                      )
+                    ? "Waiting for customer"
+                    : "Payment status is being verified."}
           </h3>
           {payment && (
             <p>
-              {payment.provider} · {payment.status} ·{" "}
+              {payment.metadata.method === "TERMINAL"
+                ? "Amount: "
+                : `${payment.provider} · ${payment.status} · `}
               {money(payment.amountMinor)}
             </p>
+          )}
+          {payment?.metadata.method === "TERMINAL" && (
+            <>
+              <h3>{payment.metadata.terminalName}</h3>
+              <p>Ask the customer to tap, insert, or swipe their card.</p>
+              {payment.metadata.terminalError && (
+                <p>
+                  {payment.metadata.terminalError === "DEVICE_BUSY"
+                    ? `${payment.metadata.terminalName} is already processing another transaction.`
+                    : `${payment.metadata.terminalName} is unavailable. Check the device or choose another payment method.`}
+                </p>
+              )}
+            </>
           )}
           <p>Do not take a second payment until this attempt is resolved.</p>
           <button disabled={busy} onClick={() => void run("check")}>
             Check Payment Status
           </button>
-          {provider === "MOCK" && (
-            <button disabled={busy} onClick={() => void run("cancel")}>
-              Cancel payment
-            </button>
-          )}
+          {(provider === "MOCK" || payment?.metadata.method === "TERMINAL") &&
+            payment &&
+            !payableAgain(payment) && (
+              <button
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    provider === "MOCK" ||
+                    window.confirm(
+                      `Cancel the payment request on ${payment.metadata.terminalName ?? "the Terminal"}?`,
+                    )
+                  )
+                    void run("cancel");
+                }}
+              >
+                Cancel payment
+              </button>
+            )}
           {payment && payableAgain(payment) && (
             <button
               onClick={() => {
@@ -304,8 +409,11 @@ export function PaymentPanel({
               ? "Starting payment…"
               : provider === "MOCK"
                 ? "Pay with Mock Card"
-                : provider === "SQUARE" ? "Run Square Sandbox payment"
-                : "Record external payment"}
+                : provider === "SQUARE_TERMINAL"
+                  ? "Pay with Square Terminal"
+                  : provider === "SQUARE"
+                    ? "Run Square Sandbox payment"
+                    : "Record external payment"}
           </button>
         )
       )}

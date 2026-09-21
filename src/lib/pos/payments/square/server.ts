@@ -14,6 +14,11 @@ export function squareAccounts() {
     if (error) {
       const code = [
         "POS_FORBIDDEN",
+        "POS_TERMINAL_UNAVAILABLE",
+        "POS_TERMINAL_BUSY",
+        "SQUARE_TERMINAL_SCOPE",
+        "DEVICE_BUSY",
+        "UNKNOWN_STATUS",
         "OAUTH_STATE_INVALID",
         "SQUARE_REPLACEMENT_REQUIRED",
         "UNAUTHORIZED_PROVIDER_ACCOUNT",
@@ -84,7 +89,7 @@ export async function squareSettingsRoute(request: Request, callback = false) {
     if (body.action === "connect")
       return Response.json(
         {
-          url: await squareAccounts().start(ctx.workspaceId, ctx.access.userId),
+          url: await squareAccounts().start(ctx.workspaceId, ctx.access.userId, body.terminal === true),
         },
         { headers },
       );
