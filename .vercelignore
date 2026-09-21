@@ -12,6 +12,7 @@
 /mobile-sdk54-clean-backup
 /mobile-sdk57-backup
 /tests
+/playwright*.ts
 /docs
 /supabase
 /playwright-report
