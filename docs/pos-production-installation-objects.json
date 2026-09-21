@@ -1,0 +1,5205 @@
+{
+  "source": "Read-only production/staging catalogs, 2026-09-21; final authority aligned with accepted compatibility repair",
+  "tables": [
+    {
+      "schema": "pos_private",
+      "name": "request_limits",
+      "columns": [
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "bucket",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "requests",
+          "type": "integer",
+          "notnull": true,
+          "default": "1"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_access_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "stock_permits",
+      "columns": [
+        {
+          "name": "transaction_id",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "backend",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "owner_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "item_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "before_row",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "after_quantity",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_workspace_settings",
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "notnull": true,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_location_inventory_locations",
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_user_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "location_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_tenders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "sale_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "method",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "verification",
+          "type": "text",
+          "notnull": true,
+          "default": "'recorded'::text"
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "received_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "change_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "payment_attempt_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "provider_reference",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "metadata",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{}'::jsonb"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_checkout_cancellations",
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_sales",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "register_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "request",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "receipt_number",
+          "type": "text",
+          "notnull": true,
+          "default": "('TD-'::text || upper(replace((gen_random_uuid())::text, '-'::text, ''::text)))"
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "notnull": true,
+          "default": "'USD'::text"
+        },
+        {
+          "name": "subtotal_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "discount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "tax_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "total_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "receipt",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_sale_items",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "sale_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_user_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_item_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "unit_price_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "discount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "tax_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_sale_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "sale_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_user_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_item_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "position_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "batch_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "location_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "line_key",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_store_locations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_user_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "tax_bps",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "notnull": true,
+          "default": "'USD'::text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "timezone",
+          "type": "text",
+          "notnull": true,
+          "default": "'America/Phoenix'::text"
+        },
+        {
+          "name": "settings",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{\"footer\": \"Thank you for shopping with us.\", \"address\": \"\", \"showSku\": true, \"blindClose\": false, \"receiptWidth\": \"80\", \"returnPolicy\": \"\", \"showEmployee\": true, \"showLocation\": true, \"noteThresholdMinor\": 0, \"approvalThresholdMinor\": 2000}'::jsonb"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_inventory_delegations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "inventory_user_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "capabilities",
+          "type": "text[]",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "granted_by",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "granted_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "revoked_by",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "valid_until",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "notnull": true,
+          "default": "''::text"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_registers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "notnull": true,
+          "default": "true"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "notnull": true,
+          "default": "''::text"
+        },
+        {
+          "name": "cash_drawer",
+          "type": "boolean",
+          "notnull": true,
+          "default": "true"
+        },
+        {
+          "name": "hardware_preferences",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_register_sessions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "register_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "opened_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": "'OPEN'::text"
+        },
+        {
+          "name": "opening_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": "0"
+        },
+        {
+          "name": "closed_by",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "expected_minor",
+          "type": "bigint",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "counted_minor",
+          "type": "bigint",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "variance_minor",
+          "type": "bigint",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "close_notes",
+          "type": "text",
+          "notnull": true,
+          "default": "''::text"
+        },
+        {
+          "name": "closing_started_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_cash_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "register_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "reason_type",
+          "type": "text",
+          "notnull": true,
+          "default": "''::text"
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "notnull": true,
+          "default": "''::text"
+        },
+        {
+          "name": "reference_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_operation_receipts",
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_approval_requests",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "requested_by",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "summary",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_approval_decisions",
+      "columns": [
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "approved_by",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_refunds",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "sale_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "register_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "subtotal_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "tax_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "total_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_refund_items",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "refund_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "sale_item_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "return_inventory",
+          "type": "boolean",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "subtotal_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "tax_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "allocations",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'[]'::jsonb"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "approval_uses",
+      "columns": [
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "operation_key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_checkouts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "register_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "snapshot",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "notnull": true,
+          "default": "'USD'::text"
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "notnull": true,
+          "default": "'PAYABLE'::text"
+        },
+        {
+          "name": "sale_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "failure_code",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_refund_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": "'CREATED'::text"
+        },
+        {
+          "name": "provider_refund_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "refund_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "recovery_required",
+          "type": "boolean",
+          "notnull": true,
+          "default": "false"
+        },
+        {
+          "name": "failure_code",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "external_event_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "observed_status",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_audit",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "previous_status",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "next_status",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "payment_test_config",
+      "columns": [
+        {
+          "name": "singleton",
+          "type": "boolean",
+          "notnull": true,
+          "default": "true"
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "notnull": true,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "mock_payments",
+      "columns": [
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "polls",
+          "type": "integer",
+          "notnull": true,
+          "default": "0"
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "mock_refunds",
+      "columns": [
+        {
+          "name": "refund_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "payment_context",
+      "columns": [
+        {
+          "name": "transaction_id",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "backend",
+          "type": "integer",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "refund_attempt_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_connections",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "merchant_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "country",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "account_status",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "environment",
+          "type": "text",
+          "notnull": true,
+          "default": "'SANDBOX'::text"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "connected_by",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "connected_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "last_validated_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "authorized_scopes",
+          "type": "text[]",
+          "notnull": true,
+          "default": "'{}'::text[]"
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "checkout_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider_account_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "provider_payment_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": "'CREATED'::text"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "request",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "metadata",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "failure_code",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "reconciled_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_credentials",
+      "columns": [
+        {
+          "name": "connection_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "encrypted",
+          "type": "jsonb",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "notnull": true,
+          "default": "1"
+        },
+        {
+          "name": "refresh_lease",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "refresh_until",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_oauth",
+      "columns": [
+        {
+          "name": "state_hash",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "consumed_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "environment",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "return_path",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_locations",
+      "columns": [
+        {
+          "name": "connection_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_mappings",
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "connection_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "location_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_observations",
+      "columns": [
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "metadata",
+          "type": "jsonb",
+          "notnull": true,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_refund_observations",
+      "columns": [
+        {
+          "name": "refund_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_events",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "merchant_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "resource_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": "'PENDING'::text"
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "public",
+      "name": "pos_payment_devices",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "connection_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "notnull": true,
+          "default": "'SQUARE'::text"
+        },
+        {
+          "name": "environment",
+          "type": "text",
+          "notnull": true,
+          "default": "'SANDBOX'::text"
+        },
+        {
+          "name": "provider_location_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider_device_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "provider_device_code_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "pairing_status",
+          "type": "text",
+          "notnull": true,
+          "default": "'PAIRING'::text"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notnull": true,
+          "default": "'PAIRING'::text"
+        },
+        {
+          "name": "pair_by",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "paired_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "assigned_register_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        },
+        {
+          "name": "disabled_at",
+          "type": "timestamp with time zone",
+          "notnull": false,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_device_codes",
+      "columns": [
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_terminal_attempts",
+      "columns": [
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "provider_device_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "location_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "checkout_id",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "checkout_status",
+          "type": "text",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_hardware_audit",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "notnull": false,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "notnull": true,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "schema": "pos_private",
+      "name": "square_terminal_refunds",
+      "columns": [
+        {
+          "name": "refund_id",
+          "type": "uuid",
+          "notnull": true,
+          "default": null
+        },
+        {
+          "name": "checkout_id",
+          "type": "text",
+          "notnull": true,
+          "default": null
+        }
+      ]
+    }
+  ],
+  "functions": [
+    "pos_private.resolve_owner_barcode(uuid,uuid,text,uuid)",
+    "pos_payment_refund_command(uuid,text,jsonb)",
+    "pos_private.resolve_barcode(uuid,uuid,text)",
+    "pos_private.refund(uuid,jsonb)",
+    "pos_private.session_transition()",
+    "pos_command(uuid,text,jsonb)",
+    "pos_private.permission(uuid,text)",
+    "pos_private.authorize(uuid,boolean,boolean)",
+    "pos_payment_command(uuid,text,jsonb)",
+    "pos_square_service(text,jsonb)",
+    "pos_square_settings(uuid,text,jsonb)",
+    "pos_private.calculate(uuid,uuid,jsonb)",
+    "pos_private.record_sale_cash()",
+    "pos_terminal_devices(uuid,text,jsonb)",
+    "pos_private.square_admin(uuid,uuid)",
+    "pos_private.terminal_busy(uuid)",
+    "pos_private.terminal_scoped(text[])",
+    "pos_private.terminal_devices(uuid)",
+    "pos_private.cost_snapshot(jsonb)",
+    "pos_private.immutable()",
+    "pos_private.payment_transition()",
+    "pos_private.payment_authorize(uuid,uuid,boolean)",
+    "pos_private.payment_view(uuid)",
+    "pos_private.expected_cash(uuid)",
+    "pos_private.permitted_stock_update(jsonb,jsonb)",
+    "pos_private.payment_audit(uuid,text,text,text)",
+    "pos_private.lock_authority(uuid,uuid,uuid,text)",
+    "pos_private.read_operations(uuid,text,jsonb)",
+    "pos_private.square_settings(uuid)",
+    "pos_private.protect_event_origin()",
+    "pos_private.protect_refund_event()",
+    "pos_private.site_access(uuid,uuid)",
+    "pos_private.access_command(uuid,text,jsonb)",
+    "pos_private.approved(uuid,uuid,text,jsonb)",
+    "pos_private.operations(uuid,text,jsonb)",
+    "pos_private.delegation_history()",
+    "pos_private.can_transact(uuid,uuid,uuid,text)",
+    "pos_private.payment_close_guard()",
+    "pos_private.payment_validate_stock(uuid,uuid,jsonb)",
+    "pos_private.check_stock()",
+    "pos_private.payment_refund_command(uuid,text,jsonb)",
+    "pos_private.terminal_attempt_guard()",
+    "pos_private.terminal_attempt_context()",
+    "pos_private.terminal_service(text,jsonb)",
+    "pos_private.payment_command(uuid,text,jsonb)",
+    "pos_provider_request_budget(uuid,text)",
+    "pos_private.cash_command(uuid,text,jsonb)",
+    "pos_private.command(uuid,text,jsonb)",
+    "pos_private.payment_refund_quote(uuid,jsonb)"
+  ],
+  "constraints": [
+    {
+      "ddl": "UNIQUE (workspace_id, idempotency_key)",
+      "name": "pos_sales_workspace_id_idempotency_key_key",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (receipt_number)",
+      "name": "pos_sales_receipt_number_key",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_store_locations_pkey",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "pos_store_locations_workspace_id_id_key",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_tenders_pkey",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_inventory_delegations_pkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (inventory_user_id, location_id)",
+      "name": "pos_location_inventory_locations_pkey",
+      "schema": "public",
+      "table": "pos_location_inventory_locations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (actor_id, bucket)",
+      "name": "request_limits_pkey",
+      "schema": "pos_private",
+      "table": "request_limits",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (workspace_id)",
+      "name": "pos_workspace_settings_pkey",
+      "schema": "public",
+      "table": "pos_workspace_settings",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(name) >= 1 AND length(name) <= 100)",
+      "name": "pos_store_locations_name_check",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (tax_bps >= 0 AND tax_bps <= 2500)",
+      "name": "pos_store_locations_tax_bps_check",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (currency = 'USD'::text)",
+      "name": "pos_store_locations_currency_check",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(name) >= 1 AND length(name) <= 100)",
+      "name": "pos_registers_name_check",
+      "schema": "public",
+      "table": "pos_registers",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_registers_pkey",
+      "schema": "public",
+      "table": "pos_registers",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, site_id, id)",
+      "name": "pos_registers_workspace_id_site_id_id_key",
+      "schema": "public",
+      "table": "pos_registers",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_register_sessions_pkey",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, site_id, register_id, id)",
+      "name": "pos_register_sessions_workspace_id_site_id_register_id_id_key",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (workspace_id, actor_id, idempotency_key)",
+      "name": "pos_checkout_cancellations_pkey",
+      "schema": "public",
+      "table": "pos_checkout_cancellations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (currency = 'USD'::text)",
+      "name": "pos_sales_currency_check",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (subtotal_minor >= 0 AND subtotal_minor <= '100000000000'::bigint)",
+      "name": "pos_sales_subtotal_minor_check",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (discount_minor >= 0 AND discount_minor <= subtotal_minor)",
+      "name": "pos_sales_check",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (tax_minor >= 0)",
+      "name": "pos_sales_tax_minor_check",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (total_minor = (subtotal_minor - discount_minor + tax_minor))",
+      "name": "pos_sales_check1",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_sales_pkey",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "pos_sales_workspace_id_id_key",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (quantity >= 1 AND quantity <= 1000)",
+      "name": "pos_sale_items_quantity_check",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (unit_price_minor >= 0 AND unit_price_minor <= 100000000)",
+      "name": "pos_sale_items_unit_price_minor_check",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (discount_minor >= 0)",
+      "name": "pos_sale_items_discount_minor_check",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (tax_minor >= 0)",
+      "name": "pos_sale_items_tax_minor_check",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_sale_items_pkey",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (quantity > 0)",
+      "name": "pos_sale_allocations_quantity_check",
+      "schema": "public",
+      "table": "pos_sale_allocations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_sale_allocations_pkey",
+      "schema": "public",
+      "table": "pos_sale_allocations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (amount_minor >= 0)",
+      "name": "pos_tenders_amount_minor_check",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (received_minor >= amount_minor)",
+      "name": "pos_tenders_check",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (change_minor = (received_minor - amount_minor))",
+      "name": "pos_tenders_check1",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (granted_by = inventory_user_id AND employee_id <> inventory_user_id)",
+      "name": "pos_inventory_delegations_check",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (cardinality(capabilities) > 0 AND capabilities <@ ARRAY['sell'::text, 'return'::text])",
+      "name": "pos_inventory_delegations_capabilities_check",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK ((revoked_at IS NULL) = (revoked_by IS NULL))",
+      "name": "pos_inventory_delegations_check1",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(reason) <= 500)",
+      "name": "pos_inventory_delegations_reason_check",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_access_events_pkey",
+      "schema": "public",
+      "table": "pos_access_events",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (after_quantity >= 0)",
+      "name": "stock_permits_after_quantity_check",
+      "schema": "pos_private",
+      "table": "stock_permits",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (transaction_id, backend, owner_id, item_id)",
+      "name": "stock_permits_pkey",
+      "schema": "pos_private",
+      "table": "stock_permits",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['OPEN'::text, 'CLOSING'::text, 'CLOSED'::text]))",
+      "name": "pos_register_sessions_status_check",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (opening_minor >= 0 AND opening_minor <= '100000000000'::bigint)",
+      "name": "pos_register_sessions_opening_minor_check",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (counted_minor >= 0 AND counted_minor <= '100000000000'::bigint)",
+      "name": "pos_register_sessions_counted_minor_check",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK ((status = 'CLOSED'::text) = (closed_at IS NOT NULL))",
+      "name": "pos_session_state",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (request_id)",
+      "name": "pos_approval_decisions_pkey",
+      "schema": "public",
+      "table": "pos_approval_decisions",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (request_id)",
+      "name": "approval_uses_pkey",
+      "schema": "pos_private",
+      "table": "approval_uses",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (kind = ANY (ARRAY['OPENING_FLOAT'::text, 'CASH_SALE'::text, 'CASH_REFUND'::text, 'PAID_IN'::text, 'PAID_OUT'::text, 'CASH_DROP'::text, 'CASH_ADJUSTMENT'::text, 'REGISTER_CLOSE'::text]))",
+      "name": "pos_cash_events_kind_check",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (amount_minor >= '-100000000000'::bigint AND amount_minor <= '100000000000'::bigint)",
+      "name": "pos_cash_events_amount_minor_check",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK ((kind = ANY (ARRAY['OPENING_FLOAT'::text, 'CASH_SALE'::text, 'PAID_IN'::text])) AND amount_minor >= 0 OR (kind = ANY (ARRAY['CASH_REFUND'::text, 'PAID_OUT'::text, 'CASH_DROP'::text])) AND amount_minor <= 0 OR kind = 'CASH_ADJUSTMENT'::text OR kind = 'REGISTER_CLOSE'::text AND amount_minor = 0)",
+      "name": "pos_cash_events_check",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_cash_events_pkey",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (workspace_id, actor_id, key)",
+      "name": "pos_operation_receipts_pkey",
+      "schema": "public",
+      "table": "pos_operation_receipts",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (action = ANY (ARRAY['checkout'::text, 'refund'::text, 'close'::text, 'cash_event'::text]))",
+      "name": "pos_approval_requests_action_check",
+      "schema": "public",
+      "table": "pos_approval_requests",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(reason) >= 1 AND length(reason) <= 500)",
+      "name": "pos_approval_requests_reason_check",
+      "schema": "public",
+      "table": "pos_approval_requests",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_approval_requests_pkey",
+      "schema": "public",
+      "table": "pos_approval_requests",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (subtotal_minor >= 0)",
+      "name": "pos_refunds_subtotal_minor_check",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (tax_minor >= 0)",
+      "name": "pos_refunds_tax_minor_check",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (total_minor = (subtotal_minor + tax_minor))",
+      "name": "pos_refunds_check",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(reason) >= 1 AND length(reason) <= 500)",
+      "name": "pos_refunds_reason_check",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_refunds_pkey",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (quantity >= 1 AND quantity <= 1000)",
+      "name": "pos_refund_items_quantity_check",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (subtotal_minor >= 0)",
+      "name": "pos_refund_items_subtotal_minor_check",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (tax_minor >= 0)",
+      "name": "pos_refund_items_tax_minor_check",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_refund_items_pkey",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (singleton)",
+      "name": "payment_test_config_singleton_check",
+      "schema": "pos_private",
+      "table": "payment_test_config",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (singleton)",
+      "name": "payment_test_config_pkey",
+      "schema": "pos_private",
+      "table": "payment_test_config",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (amount_minor >= 1 AND amount_minor <= '100000000000'::bigint)",
+      "name": "pos_payment_checkouts_amount_minor_check",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (currency = 'USD'::text)",
+      "name": "pos_payment_checkouts_currency_check",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (state = ANY (ARRAY['PAYABLE'::text, 'PAYING'::text, 'FINALIZING'::text, 'COMPLETED'::text, 'RECOVERY_REQUIRED'::text, 'VOIDED'::text]))",
+      "name": "pos_payment_checkouts_state_check",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_checkouts_pkey",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "pos_payment_checkouts_workspace_id_id_key",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (sale_id)",
+      "name": "pos_payment_checkouts_sale_id_key",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (amount_minor > 0)",
+      "name": "pos_payment_attempts_amount_minor_check",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (currency = 'USD'::text)",
+      "name": "pos_payment_attempts_currency_check",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['CREATED'::text, 'PENDING'::text, 'AWAITING_CUSTOMER'::text, 'PROCESSING'::text, 'AUTHORIZED'::text, 'SUCCEEDED'::text, 'DECLINED'::text, 'FAILED'::text, 'CANCELED'::text, 'TIMED_OUT'::text, 'UNKNOWN'::text, 'REFUND_PENDING'::text, 'PARTIALLY_REFUNDED'::text, 'REFUNDED'::text]))",
+      "name": "pos_payment_attempts_status_check",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_attempts_pkey",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "pos_payment_attempts_workspace_id_id_key",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, actor_id, idempotency_key)",
+      "name": "pos_payment_attempts_workspace_id_actor_id_idempotency_key_key",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, provider, provider_payment_id)",
+      "name": "pos_payment_attempts_workspace_id_provider_provider_payment_key",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (amount_minor > 0)",
+      "name": "pos_payment_refund_attempts_amount_minor_check",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['CREATED'::text, 'PENDING'::text, 'UNKNOWN'::text, 'SUCCEEDED'::text, 'FAILED'::text]))",
+      "name": "pos_payment_refund_attempts_status_check",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_refund_attempts_pkey",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, actor_id, idempotency_key)",
+      "name": "pos_payment_refund_attempts_workspace_id_actor_id_idempoten_key",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (refund_id)",
+      "name": "pos_payment_refund_attempts_refund_id_key",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['RECEIVED'::text, 'PROCESSED'::text, 'RETRY'::text]))",
+      "name": "pos_payment_events_status_check",
+      "schema": "public",
+      "table": "pos_payment_events",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_events_pkey",
+      "schema": "public",
+      "table": "pos_payment_events",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, provider, external_event_id)",
+      "name": "pos_payment_events_workspace_id_provider_external_event_id_key",
+      "schema": "public",
+      "table": "pos_payment_events",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_audit_pkey",
+      "schema": "public",
+      "table": "pos_payment_audit",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (payment_id)",
+      "name": "mock_payments_pkey",
+      "schema": "pos_private",
+      "table": "mock_payments",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (external_id)",
+      "name": "mock_payments_external_id_key",
+      "schema": "pos_private",
+      "table": "mock_payments",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (refund_id)",
+      "name": "mock_refunds_pkey",
+      "schema": "pos_private",
+      "table": "mock_refunds",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (external_id)",
+      "name": "mock_refunds_external_id_key",
+      "schema": "pos_private",
+      "table": "mock_refunds",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (transaction_id, backend)",
+      "name": "payment_context_pkey",
+      "schema": "pos_private",
+      "table": "payment_context",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (verification = ANY (ARRAY['recorded'::text, 'simulated'::text, 'externally_recorded'::text]))",
+      "name": "pos_tenders_verification_check",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (environment = 'SANDBOX'::text)",
+      "name": "square_connections_environment_check",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['CONNECTED'::text, 'ATTENTION'::text, 'REVOKED'::text, 'DISCONNECTED'::text, 'REPLACED'::text]))",
+      "name": "square_connections_status_check",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "square_connections_pkey",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "square_connections_workspace_id_id_key",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (connection_id)",
+      "name": "square_credentials_pkey",
+      "schema": "pos_private",
+      "table": "square_credentials",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (environment = 'SANDBOX'::text)",
+      "name": "square_oauth_environment_check",
+      "schema": "pos_private",
+      "table": "square_oauth",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (return_path = '/dashboard/pos/payments'::text)",
+      "name": "square_oauth_return_path_check",
+      "schema": "pos_private",
+      "table": "square_oauth",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (state_hash)",
+      "name": "square_oauth_pkey",
+      "schema": "pos_private",
+      "table": "square_oauth",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (connection_id, id)",
+      "name": "square_locations_pkey",
+      "schema": "pos_private",
+      "table": "square_locations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (connection_id, site_id)",
+      "name": "square_mappings_pkey",
+      "schema": "pos_private",
+      "table": "square_mappings",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (payment_id)",
+      "name": "square_observations_pkey",
+      "schema": "pos_private",
+      "table": "square_observations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (refund_id)",
+      "name": "square_refund_observations_pkey",
+      "schema": "pos_private",
+      "table": "square_refund_observations",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['PENDING'::text, 'PROCESSED'::text, 'RETRY'::text]))",
+      "name": "square_events_status_check",
+      "schema": "pos_private",
+      "table": "square_events",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (event_id)",
+      "name": "square_events_pkey",
+      "schema": "pos_private",
+      "table": "square_events",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (provider = ANY (ARRAY['MOCK'::text, 'EXTERNAL'::text, 'SQUARE'::text]))",
+      "name": "pos_payment_attempts_provider_check",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (method = ANY (ARRAY['cash'::text, 'mock'::text, 'external'::text, 'square'::text]))",
+      "name": "pos_tenders_method_check",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (provider = 'SQUARE'::text)",
+      "name": "pos_payment_devices_provider_check",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (environment = 'SANDBOX'::text)",
+      "name": "pos_payment_devices_environment_check",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (length(display_name) >= 1 AND length(display_name) <= 128)",
+      "name": "pos_payment_devices_display_name_check",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (pairing_status = ANY (ARRAY['PAIRING'::text, 'PAIRED'::text, 'EXPIRED'::text, 'UNPAIRED'::text, 'ERROR'::text]))",
+      "name": "pos_payment_devices_pairing_status_check",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "CHECK (status = ANY (ARRAY['PAIRING'::text, 'PAIRED'::text, 'AVAILABLE'::text, 'OFFLINE'::text, 'BUSY'::text, 'DISABLED'::text, 'ERROR'::text, 'UNPAIRED'::text]))",
+      "name": "pos_payment_devices_status_check",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "c",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "pos_payment_devices_pkey",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (connection_id, provider_device_id)",
+      "name": "pos_payment_devices_connection_id_provider_device_id_key",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (connection_id, provider_device_code_id)",
+      "name": "pos_payment_devices_connection_id_provider_device_code_id_key",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (workspace_id, id)",
+      "name": "pos_payment_devices_workspace_id_id_key",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (device_id)",
+      "name": "square_device_codes_pkey",
+      "schema": "pos_private",
+      "table": "square_device_codes",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (payment_id)",
+      "name": "square_terminal_attempts_pkey",
+      "schema": "pos_private",
+      "table": "square_terminal_attempts",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (checkout_id)",
+      "name": "square_terminal_attempts_checkout_id_key",
+      "schema": "pos_private",
+      "table": "square_terminal_attempts",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (refund_id)",
+      "name": "square_terminal_refunds_pkey",
+      "schema": "pos_private",
+      "table": "square_terminal_refunds",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "UNIQUE (checkout_id)",
+      "name": "square_terminal_refunds_checkout_id_key",
+      "schema": "pos_private",
+      "table": "square_terminal_refunds",
+      "type": "u",
+      "valid": true
+    },
+    {
+      "ddl": "PRIMARY KEY (id)",
+      "name": "square_hardware_audit_pkey",
+      "schema": "pos_private",
+      "table": "square_hardware_audit",
+      "type": "p",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "pos_store_locations_workspace_id_fkey",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (inventory_user_id) REFERENCES auth.users(id)",
+      "name": "pos_store_locations_inventory_user_id_fkey",
+      "schema": "public",
+      "table": "pos_store_locations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "pos_location_inventory_locations_workspace_id_site_id_fkey",
+      "schema": "public",
+      "table": "pos_location_inventory_locations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (inventory_user_id, location_id) REFERENCES inventory_locations(user_id, id)",
+      "name": "pos_location_inventory_locati_inventory_user_id_location_i_fkey",
+      "schema": "public",
+      "table": "pos_location_inventory_locations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_sales_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "pos_workspace_settings_workspace_id_fkey",
+      "schema": "public",
+      "table": "pos_workspace_settings",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "pos_registers_workspace_id_site_id_fkey",
+      "schema": "public",
+      "table": "pos_registers",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_register_sessions_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, register_id) REFERENCES pos_registers(workspace_id, site_id, id)",
+      "name": "pos_register_sessions_workspace_id_site_id_register_id_fkey",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "pos_checkout_cancellations_workspace_id_fkey",
+      "schema": "public",
+      "table": "pos_checkout_cancellations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_checkout_cancellations_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_checkout_cancellations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, register_id, session_id) REFERENCES pos_register_sessions(workspace_id, site_id, register_id, id)",
+      "name": "pos_sales_workspace_id_site_id_register_id_session_id_fkey",
+      "schema": "public",
+      "table": "pos_sales",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, sale_id) REFERENCES pos_sales(workspace_id, id)",
+      "name": "pos_sale_items_workspace_id_sale_id_fkey",
+      "schema": "public",
+      "table": "pos_sale_items",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, sale_id) REFERENCES pos_sales(workspace_id, id)",
+      "name": "pos_sale_allocations_workspace_id_sale_id_fkey",
+      "schema": "public",
+      "table": "pos_sale_allocations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, sale_id) REFERENCES pos_sales(workspace_id, id)",
+      "name": "pos_tenders_workspace_id_sale_id_fkey",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (inventory_user_id) REFERENCES auth.users(id)",
+      "name": "pos_inventory_delegations_inventory_user_id_fkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (employee_id) REFERENCES auth.users(id)",
+      "name": "pos_inventory_delegations_employee_id_fkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (granted_by) REFERENCES auth.users(id)",
+      "name": "pos_inventory_delegations_granted_by_fkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (revoked_by) REFERENCES auth.users(id)",
+      "name": "pos_inventory_delegations_revoked_by_fkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "pos_inventory_delegations_workspace_id_site_id_fkey",
+      "schema": "public",
+      "table": "pos_inventory_delegations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "pos_access_events_workspace_id_fkey",
+      "schema": "public",
+      "table": "pos_access_events",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_access_events_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_access_events",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (closed_by) REFERENCES auth.users(id)",
+      "name": "pos_register_sessions_closed_by_fkey",
+      "schema": "public",
+      "table": "pos_register_sessions",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (requested_by) REFERENCES auth.users(id)",
+      "name": "pos_approval_requests_requested_by_fkey",
+      "schema": "public",
+      "table": "pos_approval_requests",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "pos_approval_requests_workspace_id_site_id_fkey",
+      "schema": "public",
+      "table": "pos_approval_requests",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (request_id) REFERENCES pos_approval_requests(id)",
+      "name": "pos_approval_decisions_request_id_fkey",
+      "schema": "public",
+      "table": "pos_approval_decisions",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (approved_by) REFERENCES auth.users(id)",
+      "name": "pos_approval_decisions_approved_by_fkey",
+      "schema": "public",
+      "table": "pos_approval_decisions",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (request_id) REFERENCES pos_approval_requests(id)",
+      "name": "approval_uses_request_id_fkey",
+      "schema": "pos_private",
+      "table": "approval_uses",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_cash_events_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, register_id, session_id) REFERENCES pos_register_sessions(workspace_id, site_id, register_id, id)",
+      "name": "pos_cash_events_workspace_id_site_id_register_id_session_i_fkey",
+      "schema": "public",
+      "table": "pos_cash_events",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "pos_operation_receipts_workspace_id_fkey",
+      "schema": "public",
+      "table": "pos_operation_receipts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_operation_receipts_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_operation_receipts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_refunds_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, sale_id) REFERENCES pos_sales(workspace_id, id)",
+      "name": "pos_refunds_workspace_id_sale_id_fkey",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, register_id, session_id) REFERENCES pos_register_sessions(workspace_id, site_id, register_id, id)",
+      "name": "pos_refunds_workspace_id_site_id_register_id_session_id_fkey",
+      "schema": "public",
+      "table": "pos_refunds",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (refund_id) REFERENCES pos_refunds(id)",
+      "name": "pos_refund_items_refund_id_fkey",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (sale_item_id) REFERENCES pos_sale_items(id)",
+      "name": "pos_refund_items_sale_item_id_fkey",
+      "schema": "public",
+      "table": "pos_refund_items",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_payment_attempts_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, checkout_id) REFERENCES pos_payment_checkouts(workspace_id, id)",
+      "name": "pos_payment_attempts_workspace_id_checkout_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_payment_checkouts_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, register_id, session_id) REFERENCES pos_register_sessions(workspace_id, site_id, register_id, id)",
+      "name": "pos_payment_checkouts_workspace_id_site_id_register_id_ses_fkey",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, sale_id) REFERENCES pos_sales(workspace_id, id)",
+      "name": "pos_payment_checkouts_workspace_id_sale_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_checkouts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_payment_refund_attempts_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (refund_id) REFERENCES pos_refunds(id)",
+      "name": "pos_payment_refund_attempts_refund_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, payment_id) REFERENCES pos_payment_attempts(workspace_id, id)",
+      "name": "pos_payment_refund_attempts_workspace_id_payment_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, payment_id) REFERENCES pos_payment_attempts(workspace_id, id)",
+      "name": "pos_payment_events_workspace_id_payment_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_events",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "pos_payment_audit_actor_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_audit",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, payment_id) REFERENCES pos_payment_attempts(workspace_id, id)",
+      "name": "pos_payment_audit_workspace_id_payment_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_audit",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (payment_id) REFERENCES pos_payment_attempts(id)",
+      "name": "mock_payments_payment_id_fkey",
+      "schema": "pos_private",
+      "table": "mock_payments",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (refund_id) REFERENCES pos_payment_refund_attempts(id)",
+      "name": "mock_refunds_refund_id_fkey",
+      "schema": "pos_private",
+      "table": "mock_refunds",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (payment_attempt_id) REFERENCES pos_payment_attempts(id)",
+      "name": "pos_tenders_payment_attempt_id_fkey",
+      "schema": "public",
+      "table": "pos_tenders",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "square_connections_workspace_id_fkey",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (connected_by) REFERENCES auth.users(id)",
+      "name": "square_connections_connected_by_fkey",
+      "schema": "pos_private",
+      "table": "square_connections",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (connection_id) REFERENCES pos_private.square_connections(id)",
+      "name": "square_credentials_connection_id_fkey",
+      "schema": "pos_private",
+      "table": "square_credentials",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id)",
+      "name": "square_oauth_workspace_id_fkey",
+      "schema": "pos_private",
+      "table": "square_oauth",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (actor_id) REFERENCES auth.users(id)",
+      "name": "square_oauth_actor_id_fkey",
+      "schema": "pos_private",
+      "table": "square_oauth",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (connection_id) REFERENCES pos_private.square_connections(id)",
+      "name": "square_locations_connection_id_fkey",
+      "schema": "pos_private",
+      "table": "square_locations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "square_mappings_workspace_id_site_id_fkey",
+      "schema": "pos_private",
+      "table": "square_mappings",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, connection_id) REFERENCES pos_private.square_connections(workspace_id, id)",
+      "name": "square_mappings_workspace_id_connection_id_fkey",
+      "schema": "pos_private",
+      "table": "square_mappings",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (connection_id, location_id) REFERENCES pos_private.square_locations(connection_id, id)",
+      "name": "square_mappings_connection_id_location_id_fkey",
+      "schema": "pos_private",
+      "table": "square_mappings",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (payment_id) REFERENCES pos_payment_attempts(id)",
+      "name": "square_observations_payment_id_fkey",
+      "schema": "pos_private",
+      "table": "square_observations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (refund_id) REFERENCES pos_payment_refund_attempts(id)",
+      "name": "square_refund_observations_refund_id_fkey",
+      "schema": "pos_private",
+      "table": "square_refund_observations",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (created_by) REFERENCES auth.users(id)",
+      "name": "pos_payment_devices_created_by_fkey",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id) REFERENCES pos_store_locations(workspace_id, id)",
+      "name": "pos_payment_devices_workspace_id_site_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, connection_id) REFERENCES pos_private.square_connections(workspace_id, id)",
+      "name": "pos_payment_devices_workspace_id_connection_id_fkey",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (workspace_id, site_id, assigned_register_id) REFERENCES pos_registers(workspace_id, site_id, id)",
+      "name": "pos_payment_devices_workspace_id_site_id_assigned_register_fkey",
+      "schema": "public",
+      "table": "pos_payment_devices",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (device_id) REFERENCES pos_payment_devices(id)",
+      "name": "square_device_codes_device_id_fkey",
+      "schema": "pos_private",
+      "table": "square_device_codes",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (payment_id) REFERENCES pos_payment_attempts(id)",
+      "name": "square_terminal_attempts_payment_id_fkey",
+      "schema": "pos_private",
+      "table": "square_terminal_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (device_id) REFERENCES pos_payment_devices(id)",
+      "name": "square_terminal_attempts_device_id_fkey",
+      "schema": "pos_private",
+      "table": "square_terminal_attempts",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (refund_id) REFERENCES pos_payment_refund_attempts(id)",
+      "name": "square_terminal_refunds_refund_id_fkey",
+      "schema": "pos_private",
+      "table": "square_terminal_refunds",
+      "type": "f",
+      "valid": true
+    },
+    {
+      "ddl": "FOREIGN KEY (device_id) REFERENCES pos_payment_devices(id)",
+      "name": "square_hardware_audit_device_id_fkey",
+      "schema": "pos_private",
+      "table": "square_hardware_audit",
+      "type": "f",
+      "valid": true
+    }
+  ],
+  "indexes": [
+    {
+      "ddl": "CREATE INDEX pos_inventory_search ON public.inventory_items USING gin (to_tsvector('simple'::regconfig, ((((((COALESCE(card_name, ''::text) || ' '::text) || COALESCE(product_name, ''::text)) || ' '::text) || COALESCE(set_code, ''::text)) || ' '::text) || COALESCE(collector_number, ''::text))))",
+      "name": "pos_inventory_search",
+      "schema": "public",
+      "table": "inventory_items"
+    },
+    {
+      "ddl": "CREATE INDEX pos_stock_positions ON public.chaos_sort_inventory_positions USING btree (user_id, item_id)",
+      "name": "pos_stock_positions",
+      "schema": "public",
+      "table": "chaos_sort_inventory_positions"
+    },
+    {
+      "ddl": "CREATE INDEX pos_stock_reservations ON public.selling_inventory_allocations USING btree (user_id, inventory_item_id, status)",
+      "name": "pos_stock_reservations",
+      "schema": "public",
+      "table": "selling_inventory_allocations"
+    },
+    {
+      "ddl": "CREATE INDEX pos_tenders_sale ON public.pos_tenders USING btree (sale_id)",
+      "name": "pos_tenders_sale",
+      "schema": "public",
+      "table": "pos_tenders"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_tender_attempt ON public.pos_tenders USING btree (payment_attempt_id) WHERE (payment_attempt_id IS NOT NULL)",
+      "name": "pos_tender_attempt",
+      "schema": "public",
+      "table": "pos_tenders"
+    },
+    {
+      "ddl": "CREATE INDEX pos_sales_history ON public.pos_sales USING btree (workspace_id, actor_id, created_at DESC, id)",
+      "name": "pos_sales_history",
+      "schema": "public",
+      "table": "pos_sales"
+    },
+    {
+      "ddl": "CREATE INDEX pos_report_sales ON public.pos_sales USING btree (workspace_id, site_id, created_at, register_id, actor_id)",
+      "name": "pos_report_sales",
+      "schema": "public",
+      "table": "pos_sales"
+    },
+    {
+      "ddl": "CREATE INDEX pos_receipt_prefix ON public.pos_sales USING btree (workspace_id, lower(receipt_number) text_pattern_ops)",
+      "name": "pos_receipt_prefix",
+      "schema": "public",
+      "table": "pos_sales"
+    },
+    {
+      "ddl": "CREATE INDEX pos_sale_items_sale ON public.pos_sale_items USING btree (sale_id)",
+      "name": "pos_sale_items_sale",
+      "schema": "public",
+      "table": "pos_sale_items"
+    },
+    {
+      "ddl": "CREATE INDEX pos_item_sku_prefix ON public.pos_sale_items USING btree (workspace_id, lower((snapshot ->> 'sku'::text)) text_pattern_ops)",
+      "name": "pos_item_sku_prefix",
+      "schema": "public",
+      "table": "pos_sale_items"
+    },
+    {
+      "ddl": "CREATE INDEX pos_item_name_search ON public.pos_sale_items USING gin (to_tsvector('simple'::regconfig, COALESCE((snapshot ->> 'name'::text), ''::text)))",
+      "name": "pos_item_name_search",
+      "schema": "public",
+      "table": "pos_sale_items"
+    },
+    {
+      "ddl": "CREATE INDEX pos_sale_allocations_sale_item ON public.pos_sale_allocations USING btree (sale_id, inventory_item_id)",
+      "name": "pos_sale_allocations_sale_item",
+      "schema": "public",
+      "table": "pos_sale_allocations"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_delegation_active ON public.pos_inventory_delegations USING btree (workspace_id, site_id, inventory_user_id, employee_id) WHERE (revoked_at IS NULL)",
+      "name": "pos_delegation_active",
+      "schema": "public",
+      "table": "pos_inventory_delegations"
+    },
+    {
+      "ddl": "CREATE INDEX pos_delegation_employee ON public.pos_inventory_delegations USING btree (employee_id, workspace_id, site_id) WHERE (revoked_at IS NULL)",
+      "name": "pos_delegation_employee",
+      "schema": "public",
+      "table": "pos_inventory_delegations"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_one_open_session ON public.pos_register_sessions USING btree (register_id) WHERE (closed_at IS NULL)",
+      "name": "pos_one_open_session",
+      "schema": "public",
+      "table": "pos_register_sessions"
+    },
+    {
+      "ddl": "CREATE INDEX pos_session_history ON public.pos_register_sessions USING btree (workspace_id, site_id, opened_at DESC)",
+      "name": "pos_session_history",
+      "schema": "public",
+      "table": "pos_register_sessions"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_cash_reference ON public.pos_cash_events USING btree (kind, reference_id) WHERE (reference_id IS NOT NULL)",
+      "name": "pos_cash_reference",
+      "schema": "public",
+      "table": "pos_cash_events"
+    },
+    {
+      "ddl": "CREATE INDEX pos_cash_session ON public.pos_cash_events USING btree (session_id, created_at, id)",
+      "name": "pos_cash_session",
+      "schema": "public",
+      "table": "pos_cash_events"
+    },
+    {
+      "ddl": "CREATE INDEX pos_refund_sale ON public.pos_refunds USING btree (sale_id, created_at)",
+      "name": "pos_refund_sale",
+      "schema": "public",
+      "table": "pos_refunds"
+    },
+    {
+      "ddl": "CREATE INDEX pos_report_refunds ON public.pos_refunds USING btree (workspace_id, site_id, created_at)",
+      "name": "pos_report_refunds",
+      "schema": "public",
+      "table": "pos_refunds"
+    },
+    {
+      "ddl": "CREATE INDEX pos_refund_item_sale ON public.pos_refund_items USING btree (sale_item_id)",
+      "name": "pos_refund_item_sale",
+      "schema": "public",
+      "table": "pos_refund_items"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_session ON public.pos_payment_checkouts USING btree (session_id, state)",
+      "name": "pos_payment_session",
+      "schema": "public",
+      "table": "pos_payment_checkouts"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_refunds_payment ON public.pos_payment_refund_attempts USING btree (payment_id, status)",
+      "name": "pos_payment_refunds_payment",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_pending_refund_session ON public.pos_payment_refund_attempts USING btree (((intent ->> 'sessionId'::text))) WHERE ((status = ANY (ARRAY['CREATED'::text, 'PENDING'::text, 'UNKNOWN'::text])) OR recovery_required)",
+      "name": "pos_payment_pending_refund_session",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_events_payment ON public.pos_payment_events USING btree (payment_id)",
+      "name": "pos_payment_events_payment",
+      "schema": "public",
+      "table": "pos_payment_events"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_audit_payment ON public.pos_payment_audit USING btree (payment_id, created_at)",
+      "name": "pos_payment_audit_payment",
+      "schema": "public",
+      "table": "pos_payment_audit"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX square_one_connection ON pos_private.square_connections USING btree (workspace_id) WHERE (status = ANY (ARRAY['CONNECTED'::text, 'ATTENTION'::text]))",
+      "name": "square_one_connection",
+      "schema": "pos_private",
+      "table": "square_connections"
+    },
+    {
+      "ddl": "CREATE INDEX square_merchant ON pos_private.square_connections USING btree (merchant_id)",
+      "name": "square_merchant",
+      "schema": "pos_private",
+      "table": "square_connections"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_payment_one_active ON public.pos_payment_attempts USING btree (checkout_id) WHERE (status <> ALL (ARRAY['DECLINED'::text, 'FAILED'::text, 'CANCELED'::text]))",
+      "name": "pos_payment_one_active",
+      "schema": "public",
+      "table": "pos_payment_attempts"
+    },
+    {
+      "ddl": "CREATE INDEX pos_payment_history ON public.pos_payment_attempts USING btree (workspace_id, created_at DESC, id)",
+      "name": "pos_payment_history",
+      "schema": "public",
+      "table": "pos_payment_attempts"
+    },
+    {
+      "ddl": "CREATE UNIQUE INDEX pos_terminal_register ON public.pos_payment_devices USING btree (assigned_register_id) WHERE ((disabled_at IS NULL) AND (assigned_register_id IS NOT NULL))",
+      "name": "pos_terminal_register",
+      "schema": "public",
+      "table": "pos_payment_devices"
+    },
+    {
+      "ddl": "CREATE INDEX pos_terminal_workspace ON public.pos_payment_devices USING btree (workspace_id, site_id)",
+      "name": "pos_terminal_workspace",
+      "schema": "public",
+      "table": "pos_payment_devices"
+    },
+    {
+      "ddl": "CREATE INDEX square_terminal_device ON pos_private.square_terminal_attempts USING btree (device_id)",
+      "name": "square_terminal_device",
+      "schema": "pos_private",
+      "table": "square_terminal_attempts"
+    }
+  ],
+  "policies": [],
+  "triggers": [
+    {
+      "ddl": "CREATE CONSTRAINT TRIGGER pos_stock_item AFTER INSERT OR DELETE OR UPDATE ON public.inventory_items DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION pos_private.check_stock()",
+      "enabled": "O",
+      "name": "pos_stock_item",
+      "schema": "public",
+      "table": "inventory_items"
+    },
+    {
+      "ddl": "CREATE CONSTRAINT TRIGGER pos_stock_position AFTER INSERT OR DELETE OR UPDATE ON public.chaos_sort_inventory_positions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION pos_private.check_stock()",
+      "enabled": "O",
+      "name": "pos_stock_position",
+      "schema": "public",
+      "table": "chaos_sort_inventory_positions"
+    },
+    {
+      "ddl": "CREATE CONSTRAINT TRIGGER pos_stock_allocation AFTER INSERT OR DELETE OR UPDATE ON public.selling_inventory_allocations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION pos_private.check_stock()",
+      "enabled": "O",
+      "name": "pos_stock_allocation",
+      "schema": "public",
+      "table": "selling_inventory_allocations"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_sales_immutable BEFORE DELETE OR UPDATE ON public.pos_sales FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_sales_immutable",
+      "schema": "public",
+      "table": "pos_sales"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_lines_immutable BEFORE DELETE OR UPDATE ON public.pos_sale_items FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_lines_immutable",
+      "schema": "public",
+      "table": "pos_sale_items"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_allocations_immutable BEFORE DELETE OR UPDATE ON public.pos_sale_allocations FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_allocations_immutable",
+      "schema": "public",
+      "table": "pos_sale_allocations"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_tenders_immutable BEFORE DELETE OR UPDATE ON public.pos_tenders FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_tenders_immutable",
+      "schema": "public",
+      "table": "pos_tenders"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_cancellations_immutable BEFORE DELETE OR UPDATE ON public.pos_checkout_cancellations FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_cancellations_immutable",
+      "schema": "public",
+      "table": "pos_checkout_cancellations"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_events_immutable BEFORE DELETE OR UPDATE ON public.inventory_events FOR EACH ROW WHEN ((old.related_entity_type = 'pos_sale'::text)) EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_events_immutable",
+      "schema": "public",
+      "table": "inventory_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_event_origin BEFORE INSERT ON public.inventory_events FOR EACH ROW EXECUTE FUNCTION pos_private.protect_event_origin()",
+      "enabled": "O",
+      "name": "pos_event_origin",
+      "schema": "public",
+      "table": "inventory_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_access_events_immutable BEFORE DELETE OR UPDATE ON public.pos_access_events FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_access_events_immutable",
+      "schema": "public",
+      "table": "pos_access_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_session_transition BEFORE UPDATE ON public.pos_register_sessions FOR EACH ROW EXECUTE FUNCTION pos_private.session_transition()",
+      "enabled": "O",
+      "name": "pos_session_transition",
+      "schema": "public",
+      "table": "pos_register_sessions"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_cash_events_immutable BEFORE DELETE OR UPDATE ON public.pos_cash_events FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_cash_events_immutable",
+      "schema": "public",
+      "table": "pos_cash_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_operation_receipts_immutable BEFORE DELETE OR UPDATE ON public.pos_operation_receipts FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_operation_receipts_immutable",
+      "schema": "public",
+      "table": "pos_operation_receipts"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_approval_requests_immutable BEFORE DELETE OR UPDATE ON public.pos_approval_requests FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_approval_requests_immutable",
+      "schema": "public",
+      "table": "pos_approval_requests"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_approval_decisions_immutable BEFORE DELETE OR UPDATE ON public.pos_approval_decisions FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_approval_decisions_immutable",
+      "schema": "public",
+      "table": "pos_approval_decisions"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_refunds_immutable BEFORE DELETE OR UPDATE ON public.pos_refunds FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_refunds_immutable",
+      "schema": "public",
+      "table": "pos_refunds"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_refund_items_immutable BEFORE DELETE OR UPDATE ON public.pos_refund_items FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_refund_items_immutable",
+      "schema": "public",
+      "table": "pos_refund_items"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_delegation_history BEFORE DELETE OR UPDATE ON public.pos_inventory_delegations FOR EACH ROW EXECUTE FUNCTION pos_private.delegation_history()",
+      "enabled": "O",
+      "name": "pos_delegation_history",
+      "schema": "public",
+      "table": "pos_inventory_delegations"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_sale_cash AFTER INSERT ON public.pos_tenders FOR EACH ROW EXECUTE FUNCTION pos_private.record_sale_cash()",
+      "enabled": "O",
+      "name": "pos_sale_cash",
+      "schema": "public",
+      "table": "pos_tenders"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_refund_events_immutable BEFORE DELETE OR UPDATE ON public.inventory_events FOR EACH ROW WHEN ((old.related_entity_type = 'pos_refund'::text)) EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_refund_events_immutable",
+      "schema": "public",
+      "table": "inventory_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_refund_event_origin BEFORE INSERT ON public.inventory_events FOR EACH ROW EXECUTE FUNCTION pos_private.protect_refund_event()",
+      "enabled": "O",
+      "name": "pos_refund_event_origin",
+      "schema": "public",
+      "table": "inventory_events"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_payment_audit_immutable BEFORE DELETE OR UPDATE ON public.pos_payment_audit FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "pos_payment_audit_immutable",
+      "schema": "public",
+      "table": "pos_payment_audit"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_payment_checkout_guard BEFORE DELETE OR UPDATE ON public.pos_payment_checkouts FOR EACH ROW EXECUTE FUNCTION pos_private.payment_transition()",
+      "enabled": "O",
+      "name": "pos_payment_checkout_guard",
+      "schema": "public",
+      "table": "pos_payment_checkouts"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_payment_attempt_guard BEFORE DELETE OR UPDATE ON public.pos_payment_attempts FOR EACH ROW EXECUTE FUNCTION pos_private.payment_transition()",
+      "enabled": "O",
+      "name": "pos_payment_attempt_guard",
+      "schema": "public",
+      "table": "pos_payment_attempts"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_payment_refund_guard BEFORE DELETE OR UPDATE ON public.pos_payment_refund_attempts FOR EACH ROW EXECUTE FUNCTION pos_private.payment_transition()",
+      "enabled": "O",
+      "name": "pos_payment_refund_guard",
+      "schema": "public",
+      "table": "pos_payment_refund_attempts"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_payment_session_guard BEFORE UPDATE ON public.pos_register_sessions FOR EACH ROW EXECUTE FUNCTION pos_private.payment_close_guard()",
+      "enabled": "O",
+      "name": "pos_payment_session_guard",
+      "schema": "public",
+      "table": "pos_register_sessions"
+    },
+    {
+      "ddl": "CREATE TRIGGER square_hardware_audit_immutable BEFORE DELETE OR UPDATE ON pos_private.square_hardware_audit FOR EACH ROW EXECUTE FUNCTION pos_private.immutable()",
+      "enabled": "O",
+      "name": "square_hardware_audit_immutable",
+      "schema": "pos_private",
+      "table": "square_hardware_audit"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_terminal_attempt_guard BEFORE INSERT ON public.pos_payment_attempts FOR EACH ROW EXECUTE FUNCTION pos_private.terminal_attempt_guard()",
+      "enabled": "O",
+      "name": "pos_terminal_attempt_guard",
+      "schema": "public",
+      "table": "pos_payment_attempts"
+    },
+    {
+      "ddl": "CREATE TRIGGER pos_terminal_attempt_context AFTER INSERT ON public.pos_payment_attempts FOR EACH ROW EXECUTE FUNCTION pos_private.terminal_attempt_context()",
+      "enabled": "O",
+      "name": "pos_terminal_attempt_context",
+      "schema": "public",
+      "table": "pos_payment_attempts"
+    }
+  ],
+  "schemas": [],
+  "enums": [],
+  "existingPreserved": {
+    "tables": [
+      "\"public\".\"label_templates\"",
+      "\"public\".\"chaos_sort_batches\"",
+      "\"public\".\"inventory_items\"",
+      "\"public\".\"chaos_sort_inventory_positions\"",
+      "\"public\".\"inventory_barcode_aliases\"",
+      "\"pos_private\".\"label_tombstones\"",
+      "\"public\".\"inventory_label_identities\""
+    ],
+    "functions": [
+      "label_actor_allowed(uuid)",
+      "label_unambiguous_workspace_for_user(uuid)",
+      "label_pgcrypto_schema()",
+      "label_crypto_random_bytes(integer)",
+      "commit_chaos_sort_batch(jsonb)",
+      "move_inventory_lot_quantity(text,integer,text,text,inventory_event_source)",
+      "pos_private.inventory_entitled(uuid)",
+      "set_default_label_template(uuid,uuid)",
+      "pos_private.authorize_labels(uuid,boolean)",
+      "pos_private.guard_label_identity()",
+      "pos_private.label_identity(uuid,text,text)",
+      "pos_private.retire_position_label()",
+      "label_targets(uuid,text[],uuid,text,boolean)",
+      "assign_label_barcode(uuid,uuid,text,text,boolean)",
+      "label_locations(uuid,text[],boolean)",
+      "label_access(uuid,boolean)",
+      "inventory_private.workspace_required(uuid)",
+      "inventory_private.resolve_workspace(uuid,uuid,text,text,boolean)",
+      "inventory_private.scope_inventory_write()",
+      "inventory_private.scope_chaos_batch()",
+      "create_inventory_item_with_event(jsonb,inventory_event_source,text,text,text)"
+    ]
+  },
+  "modifiedExistingFunctions": [
+    "public.enforce_collector_inventory_mutation()"
+  ],
+  "excludedUnrelatedStagingTables": [
+    "\"public\".\"public_share_security_events\"",
+    "\"public\".\"tcg_categories\"",
+    "\"public\".\"tcg_groups\"",
+    "\"public\".\"tcg_products\"",
+    "\"public\".\"tcg_current_prices\"",
+    "\"public\".\"tcg_price_history\"",
+    "\"public\".\"bulk_purchases\"",
+    "\"public\".\"bulk_purchase_sales\"",
+    "\"public\".\"inbound_email_addresses\"",
+    "\"public\".\"inbound_emails\"",
+    "\"public\".\"marketplace_payouts\""
+  ],
+  "grants": {
+    "tables": [
+      {
+        "object": "pos_private.request_limits",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_access_events",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.stock_permits",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_workspace_settings",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_location_inventory_locations",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_tenders",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_checkout_cancellations",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_sales",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_sale_items",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_sale_allocations",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_store_locations",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_inventory_delegations",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_registers",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_register_sessions",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_cash_events",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_operation_receipts",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_approval_requests",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_approval_decisions",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_refunds",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_refund_items",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.approval_uses",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_checkouts",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_refund_attempts",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_events",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_audit",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.payment_test_config",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.mock_payments",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.mock_refunds",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.payment_context",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_connections",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_attempts",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_credentials",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_oauth",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_locations",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_mappings",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_observations",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_refund_observations",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_events",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "public.pos_payment_devices",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_device_codes",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_terminal_attempts",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_hardware_audit",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "object": "pos_private.square_terminal_refunds",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      }
+    ],
+    "functions": [
+      {
+        "object": "pos_private.resolve_owner_barcode(uuid,uuid,text,uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_payment_refund_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_private.resolve_barcode(uuid,uuid,text)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.refund(uuid,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.session_transition()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_private.permission(uuid,text)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.authorize(uuid,boolean,boolean)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_payment_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_square_service(text,jsonb)",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_square_settings(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_private.calculate(uuid,uuid,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.record_sale_cash()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_terminal_devices(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_private.square_admin(uuid,uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_busy(uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_scoped(text[])",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_devices(uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.cost_snapshot(jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.immutable()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_transition()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_authorize(uuid,uuid,boolean)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_view(uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.expected_cash(uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.permitted_stock_update(jsonb,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_audit(uuid,text,text,text)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.lock_authority(uuid,uuid,uuid,text)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.read_operations(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.square_settings(uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.protect_event_origin()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.protect_refund_event()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.site_access(uuid,uuid)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.access_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.approved(uuid,uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.operations(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.delegation_history()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.can_transact(uuid,uuid,uuid,text)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_close_guard()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_validate_stock(uuid,uuid,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.check_stock()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_attempt_guard()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_attempt_context()",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.terminal_service(text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_provider_request_budget(uuid,text)",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "object": "pos_private.cash_command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.command(uuid,text,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "object": "pos_private.payment_refund_quote(uuid,jsonb)",
+        "acl": "{postgres=X/postgres}"
+      }
+    ]
+  },
+  "sequences": [
+    {
+      "object": "pos_private.square_hardware_audit_id_seq",
+      "purpose": "GENERATED ALWAYS AS IDENTITY audit primary key; server-only"
+    }
+  ],
+  "columnsAddedToExistingTables": [],
+  "customTypesAdded": [],
+  "implicitCompositeTypes": [
+    "pos_private.request_limits",
+    "public.pos_access_events",
+    "pos_private.stock_permits",
+    "public.pos_workspace_settings",
+    "public.pos_location_inventory_locations",
+    "public.pos_tenders",
+    "public.pos_checkout_cancellations",
+    "public.pos_sales",
+    "public.pos_sale_items",
+    "public.pos_sale_allocations",
+    "public.pos_store_locations",
+    "public.pos_inventory_delegations",
+    "public.pos_registers",
+    "public.pos_register_sessions",
+    "public.pos_cash_events",
+    "public.pos_operation_receipts",
+    "public.pos_approval_requests",
+    "public.pos_approval_decisions",
+    "public.pos_refunds",
+    "public.pos_refund_items",
+    "pos_private.approval_uses",
+    "public.pos_payment_checkouts",
+    "public.pos_payment_refund_attempts",
+    "public.pos_payment_events",
+    "public.pos_payment_audit",
+    "pos_private.payment_test_config",
+    "pos_private.mock_payments",
+    "pos_private.mock_refunds",
+    "pos_private.payment_context",
+    "pos_private.square_connections",
+    "public.pos_payment_attempts",
+    "pos_private.square_credentials",
+    "pos_private.square_oauth",
+    "pos_private.square_locations",
+    "pos_private.square_mappings",
+    "pos_private.square_observations",
+    "pos_private.square_refund_observations",
+    "pos_private.square_events",
+    "public.pos_payment_devices",
+    "pos_private.square_device_codes",
+    "pos_private.square_terminal_attempts",
+    "pos_private.square_hardware_audit",
+    "pos_private.square_terminal_refunds"
+  ],
+  "requiredBy": [
+    {
+      "table": "pos_private.request_limits",
+      "functions": [
+        "pos_provider_request_budget(uuid,text)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_access_events",
+      "functions": [
+        "pos_private.access_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.stock_permits",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.permitted_stock_update(jsonb,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_workspace_settings",
+      "functions": [
+        "pos_private.authorize(uuid,boolean,boolean)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_location_inventory_locations",
+      "functions": [
+        "pos_private.resolve_owner_barcode(uuid,uuid,text,uuid)",
+        "pos_private.resolve_barcode(uuid,uuid,text)",
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.calculate(uuid,uuid,jsonb)",
+        "pos_private.site_access(uuid,uuid)",
+        "pos_private.access_command(uuid,text,jsonb)",
+        "pos_private.can_transact(uuid,uuid,uuid,text)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_tenders",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_checkout_cancellations",
+      "functions": [
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_sales",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.record_sale_cash()",
+        "pos_private.payment_view(uuid)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.protect_event_origin()",
+        "pos_private.cash_command(uuid,text,jsonb)",
+        "pos_private.payment_refund_quote(uuid,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_sale_items",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.protect_event_origin()",
+        "pos_private.protect_refund_event()",
+        "pos_private.cash_command(uuid,text,jsonb)",
+        "pos_private.payment_refund_quote(uuid,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_sale_allocations",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)",
+        "pos_private.payment_refund_quote(uuid,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_store_locations",
+      "functions": [
+        "pos_square_settings(uuid,text,jsonb)",
+        "pos_private.calculate(uuid,uuid,jsonb)",
+        "pos_terminal_devices(uuid,text,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.square_settings(uuid)",
+        "pos_private.access_command(uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)",
+        "pos_private.can_transact(uuid,uuid,uuid,text)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_inventory_delegations",
+      "functions": [
+        "pos_private.authorize(uuid,boolean,boolean)",
+        "pos_private.access_command(uuid,text,jsonb)",
+        "pos_private.can_transact(uuid,uuid,uuid,text)"
+      ]
+    },
+    {
+      "table": "public.pos_registers",
+      "functions": [
+        "pos_terminal_devices(uuid,text,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_register_sessions",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)",
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)",
+        "pos_private.payment_refund_quote(uuid,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_cash_events",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.record_sale_cash()",
+        "pos_private.expected_cash(uuid)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_operation_receipts",
+      "functions": [
+        "pos_private.command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_approval_requests",
+      "functions": [
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.approved(uuid,uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_approval_decisions",
+      "functions": [
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.approved(uuid,uuid,text,jsonb)",
+        "pos_private.operations(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_refunds",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.protect_refund_event()"
+      ]
+    },
+    {
+      "table": "public.pos_refund_items",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.read_operations(uuid,text,jsonb)",
+        "pos_private.protect_refund_event()",
+        "pos_private.payment_refund_quote(uuid,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.approval_uses",
+      "functions": [
+        "pos_private.approved(uuid,uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_checkouts",
+      "functions": [
+        "pos_private.payment_authorize(uuid,uuid,boolean)",
+        "pos_private.payment_view(uuid)",
+        "pos_private.payment_close_guard()",
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.terminal_attempt_guard()",
+        "pos_private.payment_command(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_refund_attempts",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_square_service(text,jsonb)",
+        "pos_private.payment_view(uuid)",
+        "pos_private.payment_close_guard()",
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_events",
+      "functions": [
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_audit",
+      "functions": [
+        "pos_private.payment_audit(uuid,text,text,text)"
+      ]
+    },
+    {
+      "table": "pos_private.payment_test_config",
+      "functions": [
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.mock_payments",
+      "functions": [
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.mock_refunds",
+      "functions": [
+        "pos_private.payment_refund_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.payment_context",
+      "functions": [
+        "pos_private.refund(uuid,jsonb)",
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_connections",
+      "functions": [
+        "pos_square_service(text,jsonb)",
+        "pos_square_settings(uuid,text,jsonb)",
+        "pos_private.terminal_devices(uuid)",
+        "pos_private.square_settings(uuid)",
+        "pos_private.terminal_attempt_guard()",
+        "pos_private.terminal_service(text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_attempts",
+      "functions": [
+        "pos_square_service(text,jsonb)",
+        "pos_private.terminal_busy(uuid)",
+        "pos_private.payment_view(uuid)",
+        "pos_private.payment_audit(uuid,text,text,text)",
+        "pos_private.payment_refund_command(uuid,text,jsonb)",
+        "pos_private.terminal_service(text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)",
+        "pos_private.cash_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_credentials",
+      "functions": [
+        "pos_square_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_oauth",
+      "functions": [
+        "pos_square_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_locations",
+      "functions": [
+        "pos_square_service(text,jsonb)",
+        "pos_square_settings(uuid,text,jsonb)",
+        "pos_private.terminal_devices(uuid)",
+        "pos_private.square_settings(uuid)",
+        "pos_private.terminal_service(text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_mappings",
+      "functions": [
+        "pos_square_settings(uuid,text,jsonb)",
+        "pos_private.terminal_devices(uuid)",
+        "pos_private.square_settings(uuid)",
+        "pos_private.terminal_service(text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_observations",
+      "functions": [
+        "pos_square_service(text,jsonb)",
+        "pos_private.payment_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_refund_observations",
+      "functions": [
+        "pos_square_service(text,jsonb)",
+        "pos_private.payment_refund_command(uuid,text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_events",
+      "functions": [
+        "pos_square_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "public.pos_payment_devices",
+      "functions": [
+        "pos_terminal_devices(uuid,text,jsonb)",
+        "pos_private.terminal_devices(uuid)",
+        "pos_private.terminal_attempt_guard()",
+        "pos_private.terminal_attempt_context()",
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_device_codes",
+      "functions": [
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_terminal_attempts",
+      "functions": [
+        "pos_private.terminal_busy(uuid)",
+        "pos_private.terminal_attempt_context()",
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_hardware_audit",
+      "functions": [
+        "pos_terminal_devices(uuid,text,jsonb)",
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    },
+    {
+      "table": "pos_private.square_terminal_refunds",
+      "functions": [
+        "pos_private.terminal_service(text,jsonb)"
+      ]
+    }
+  ],
+  "triggerBackedConstraints": [
+    {
+      "schema": "public",
+      "table": "inventory_items",
+      "name": "pos_stock_item"
+    },
+    {
+      "schema": "public",
+      "table": "chaos_sort_inventory_positions",
+      "name": "pos_stock_position"
+    },
+    {
+      "schema": "public",
+      "table": "selling_inventory_allocations",
+      "name": "pos_stock_allocation"
+    }
+  ]
+}

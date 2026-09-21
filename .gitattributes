@@ -1,0 +1,2 @@
+# Preserve reviewed SQL bytes and embedded baseline-function comparisons on Windows.
+supabase/migrations/20260921220051_pos_forward_installation.sql text eol=lf
