@@ -2,6 +2,20 @@
 
 **RECOVERY NOT READY.** A full logical database archive exists and passes file/archive inspection, but the isolated restore rehearsal did not succeed. No production repair migrations, merge, deployment, POS enablement or Square configuration occurred. The approved four-file schema-first plan remains unchanged and must not start on the strength of this archive alone.
 
+## Supabase-compatible target follow-up
+
+The subsequent authorized Supabase-compatible validation attempt remains **BLOCKED / NOT READY**:
+
+- The existing Trading Docks organization quoted $0/month for a new project. Creation of `trading-docks-recovery-test` was attempted in `us-west-1` (the creation connector did not offer production's `us-west-2`). Supabase rejected creation because the organization owner has reached the two-active-free-project limit. **No project was created.** Production and staging were not paused, deleted or upgraded.
+- Local Supabase remains unavailable because Docker Desktop fails during ingest socket initialization. The stale local socket could not be renamed. Automatic approval review rejected its removal as “blocked by policy”; no alternate removal mechanism was attempted.
+- Neither a hosted nor local Supabase-compatible database was provisioned. Therefore extension comparison, restore, restored row/ownership/Auth relationships, RLS, function, trigger, enum, migration-history and usability checks remain **NOT RUN**, not PASS. No stock PostgreSQL result is being substituted for this gate.
+- No runtime backend was changed, no external-service secrets were provisioned, and no target capable of sending production emails/webhooks or using marketplace/Square credentials was created.
+- The original custom archive and role dump were rechecked: both SHA-256 checksums, file sizes and modification timestamps still match the evidence below. Access restriction remains in place. Neither backup was deleted, overwritten or committed.
+
+An additional three-part Supabase CLI backup has **not** been created: its supported execution requires the unavailable local Docker runtime. The raw archive remains evidence, not a verified long-term platform restore recipe. Once a compatible runtime is available, retain the originals and capture separate CLI role-only, schema and data-only exports; explicitly include migration-history schema/data and review Auth/Storage customizations, Vault material and excluded platform internals per current Supabase guidance. Record a fresh snapshot/baseline and rehearse the resulting restore before declaring readiness.
+
+Owner action needed: make a disposable hosted project slot available without disrupting production/staging, or repair Docker startup outside this task's blocked removal action. Paid-plan changes were not authorized or performed. Target creation alone will not satisfy the gate: successful platform-compatible restore and verification are still required. Do not begin production migration afterward without returning to owner approval.
+
 ## Recovery options checked
 
 Production project: Trading Docks (`bohddnajlnmknngzjsjk`), PostgreSQL 17.6, us-west-2.
