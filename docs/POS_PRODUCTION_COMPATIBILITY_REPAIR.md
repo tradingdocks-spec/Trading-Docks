@@ -1,8 +1,8 @@
 # Production compatibility repair — September 21, 2026
 
-Historical compatibility review: the existing-row workspace hold below is superseded by the [workspace-assignment review](POS_PRODUCTION_WORKSPACE_ASSIGNMENT_REVIEW.md). Its current verdict is SAFE TO ASSIGN + CONTINUE for the reviewed cohort only. Production execution still needs owner approval; the recurring Chaos writer omission and broader POS installation ordering remain separate follow-ups.
+**Current decision: SAFE TO APPLY the four-file repair, pending explicit owner execution approval.** The [current migration readiness report](POS_PRODUCTION_MIGRATION_READINESS.md) supersedes the historical stop conditions below. The new authoritative writer correction precedes the accepted 1,489-row assignment. Production remains untouched; broader POS installation still needs a separate continuation plan.
 
-**NOT SAFE TO APPLY. Draft repair complete for the three original defects; owner action required for newly exposed inventory/workspace scope.**
+The sections below preserve the original two-file diagnosis and its historical NOT SAFE result. That result led to the separately accepted assignment review and the now-rehearsed future-writer correction; it is not the current decision.
 
 Branch: `codex/production-compatibility-repair`, based on current `origin/main` (`14a0488`). No historical migration was edited. No production SQL mutation, deployment, migration, POS enablement or Square configuration was performed. All repair execution was on loopback disposable PostgreSQL. Production inspection used explicit read-only transactions.
 
@@ -99,4 +99,12 @@ Use [read-only verification queries](POS_PRODUCTION_COMPATIBILITY_VERIFICATION.s
 
 Keep POS and production Square disabled. On failure inside a future approved migration transaction, roll it back. After commit, retain schema and all financial/inventory history and prefer a reviewed forward correction; do not drop tables, delete/reinsert inventory, reset RLS, null identities or edit past migration history. Application rollback requires its own review because it may restore the known Label Studio failure.
 
-**Final verdict: NOT SAFE TO APPLY.** The three original defects have a tested draft repair, but the actual production inventory/workspace gap prevents the requested owner workflow. Stop at the owner decision gate; no merge, deployment or production migration is authorized by this report.
+## Completed writer/assignment follow-up
+
+Current order: `20260921195747_label_production_compatibility.sql`, `20260921195836_chaos_and_pos_authority_compatibility.sql`, `20260921203415_inventory_authoritative_workspace_writer.sql`, then `20260921201424_inventory_workspace_assignment.sql`. The first three rewrite zero existing inventory values; the last changes only 1,489 workspace fields. This dependency order intentionally differs from filename timestamps; no historical file was edited.
+
+The new private BEFORE triggers validate workspace at original INSERT time across Chaos, manual RPC, generic inventory persistence, imports and collection splits. Chaos batches carry validated operation context; candidate matching cannot merge inventory across workspaces. Creation events use actual inventory/batch scope. POS returns preserve existing owner/workspace, with no extra employee mutation grant. Explicit shared-store partner inventory stays supported without transferring its ownership. Personal non-workspace collector inventory remains nullable; a blanket NOT NULL was rejected.
+
+The four-file production-shaped rehearsal now passes: 1,515 rows and 1,788 units preserved; all 1,489 assignments deterministic; zero unresolved/ambiguous; zero active workspace-backed rows missing scope. The collector guard and inventory RLS remain intact. Actual Label Studio component/renderer passes with 500 owner targets, and new manual/Chaos inventory receives labels. Browser tests use the documented local SQL adapter. Both POS ledgers pass 134 checks including 500-line carts, search/barcode and delegated sale/refund boundaries. Root tests: 960 passed. These new results supersede the historical empty-owner-target result above, not the explicit lack of hosted production acceptance.
+
+**Final verdict: SAFE TO APPLY the reviewed four-file repair, pending owner approval.** Use the exact order, single-transaction maintenance boundary, verification queries and stop/rollback conditions in the [readiness report](POS_PRODUCTION_MIGRATION_READINESS.md). No merge, deployment, production SQL, POS enablement or Square configuration was performed.

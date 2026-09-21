@@ -94,6 +94,11 @@ export async function verifyLabelRepair({db,pg,snap,fixture,report,check}){
  console.log('CHAOS',JSON.stringify({before:report.baselineChaosCommit,after:report.candidateChaosCommit}));
  const {verifyMinimalLabelBrowser}=await import('./label-production-repair-browser.mjs');
  if(process.argv.includes('--workspace-assignment')){
+   if(process.argv.includes('--future-writer')){
+     await db.query('begin');
+     await db.query(sql('20260921203415_inventory_authoritative_workspace_writer.sql'));
+     await db.query('commit');
+   }
    const {verifyWorkspaceAssignment}=await import('./production-workspace-assignment.mjs');
    await verifyWorkspaceAssignment({db,report,check,platformOwner,platformWorkspace,other});
  }
@@ -101,4 +106,9 @@ export async function verifyLabelRepair({db,pg,snap,fixture,report,check}){
  report.status='REVIEW_COMPLETE';
  report.decision=report.browserPlatformOwner.targets===0?'NOT SAFE TO APPLY':'REHEARSAL PASS';
  if(process.argv.includes('--workspace-assignment'))report.decision='SAFE TO ASSIGN + CONTINUE';
+ if(process.argv.includes('--future-writer')){
+   const {verifyFutureWriters}=await import('./inventory-workspace-writer.mjs');
+   await verifyFutureWriters({db,report,check,platformOwner,platformWorkspace,other});
+   report.decision='SAFE TO APPLY';
+ }
 }

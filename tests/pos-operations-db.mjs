@@ -574,6 +574,9 @@ export async function verifyOperations({
       ).rows[0];
       assert.equal(event.user_id, owner);
       assert.equal(event.metadata.actor_id, other);
+      const restored=(await admin.query("select user_id,workspace_id from inventory_items where user_id=$1 and id='ops-stock'",[owner])).rows[0];
+      assert.equal(restored.user_id,owner);
+      assert.equal(restored.workspace_id,workspace);
     },
   );
   await check(

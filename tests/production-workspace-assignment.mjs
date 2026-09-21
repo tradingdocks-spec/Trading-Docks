@@ -64,6 +64,7 @@ export async function verifyWorkspaceAssignment({db,report,check,platformOwner,p
  assert.equal(created.length,1);
  report.assignment.chaosCommitAfterAssignment=true;
  report.assignment.currentChaosWriterStillOmitsWorkspace=created[0].workspace_id===null;
+ if(process.argv.includes('--future-writer'))assert.equal(created[0].workspace_id,platformWorkspace);
  await db.query("select set_config('request.jwt.claim.sub',$1,true)",[other]);
  assert.equal((await db.query('select count(*)::int n from inventory_items where workspace_id=$1',[platformWorkspace])).rows[0].n,0);
  await db.query('rollback');

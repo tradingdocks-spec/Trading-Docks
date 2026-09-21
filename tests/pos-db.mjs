@@ -143,6 +143,20 @@ try {
     const staffedSession=await command(a,'open',{registerId:setup.registerId});
     await verifyStaffingBoundary({ admin, staff:stranger, ownerClient:a, owner, other, workspace, setup, request:()=>request(staffedSession.id), command, check, extended:true });
     await command(a,'close',{registerId:setup.registerId});
+    if(process.argv.includes('--future-writer')){
+      // Minimal POS fixture lacks this already-present production column.
+      await admin.query('alter table chaos_sort_batches add column if not exists workspace_id uuid references workspaces(id)');
+      await admin.query(sql('supabase/migrations/20260921203415_inventory_authoritative_workspace_writer.sql'));
+      await check('future-writer stock is searchable by POS and canonical barcode; delegated creation denied',async()=>{
+        const row=(await a.query("insert into inventory_items(id,user_id,location_id,card_name,quantity,asking_price) values('writer-pos',$1,'case','Writer POS',2,1) returning user_id,workspace_id",[owner])).rows[0];
+        assert.equal(row.user_id,owner);assert.equal(row.workspace_id,workspace);
+        const label=(await a.query("select label_targets($1,array['item:writer-pos'],null,'',true) result",[workspace])).rows[0].result[0];
+        assert.equal((await command(a,'search',{siteId:setup.siteId,query:label.sku,exact:true}))[0].id,'writer-pos');
+        assert.equal((await command(a,'search',{siteId:setup.siteId,query:'Writer POS'}))[0].id,'writer-pos');
+        await assert.rejects(stranger.query("insert into inventory_items(id,user_id,workspace_id,quantity) values('staff-forgery',$1,$2,1)",[owner,workspace]),/TD_COLLECTOR_UNAUTHORIZED/);
+        await assert.rejects(stranger.query('select inventory_private.resolve_workspace($1,$2,null,null,true)',[owner,workspace]),/permission denied/);
+      });
+    }
     const {verifyOperations}=await import('./pos-operations-db.mjs');
     await verifyOperations({admin,a,b,staff:stranger,command,workspace,owner,other,setup,check,createClient:client});
     const {verifyPayments}=await import('./pos-payments-db.mjs');

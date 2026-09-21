@@ -1,6 +1,6 @@
 # Production workspace assignment review — September 21, 2026
 
-**SAFE TO ASSIGN + CONTINUE — for the reviewed legacy cohort, subject to owner approval before production execution.**
+**SAFE TO APPLY the combined repair — subject to owner approval before production execution.** The accepted existing-row classification remains unchanged. The authoritative future-writer correction has now been rehearsed before assignment; see the [current ordered execution plan](POS_PRODUCTION_MIGRATION_READINESS.md).
 
 Production was inspected only through read-only transactions. No production rows, migrations, settings, POS flags or Square credentials were changed. Only sanitized counts and examples are committed; row-level IDs, provenance and relationship evidence remain in ignored local fixtures.
 
@@ -38,7 +38,7 @@ The production Chaos commit function inserts inventory without `workspace_id`; i
 
 All 29 zero-quantity records can receive the same deterministic association without reactivation. Eleven Chaos rows and the single unknown-source row retain `removedAt`; another 17 historical Chaos rows have no removal marker. Quantities, markers, timestamps, positions and events remain untouched. No row is deleted, archived, superseded or reinserted by this migration.
 
-**Recurring-write follow-up:** after assignment, a rolled-back Chaos commit succeeds but still creates unscoped inventory under the preserved production writer. This migration fixes existing rows only. A separate writer-compatibility review is needed before claiming durable Label Studio production readiness. Do not broaden workspace filters or repeatedly rerun this snapshot-limited backfill to mask that issue.
+**Recurring-write follow-up completed in rehearsal:** the original production writer omitted scope; `20260921203415_inventory_authoritative_workspace_writer.sql` now resolves and validates it during insertion. The assignment migration itself remains unchanged and still fixes only the reviewed cohort. Do not broaden filters or repeatedly rerun the snapshot-limited assignment as cleanup.
 
 ## Proposed forward migration
 
@@ -48,7 +48,8 @@ For the Label Studio rehearsal, the exact sequence was:
 
 1. `20260921195747_label_production_compatibility.sql`
 2. `20260921195836_chaos_and_pos_authority_compatibility.sql`
-3. `20260921201424_inventory_workspace_assignment.sql`
+3. `20260921203415_inventory_authoritative_workspace_writer.sql`
+4. `20260921201424_inventory_workspace_assignment.sql`
 
 No historical migration was replayed. The assignment itself requires no label/POS schema installation; the first two files provide the separately reviewed application compatibility prerequisites. This is not the broader 12-file POS installation plan, whose overlap with standalone label objects still requires a reviewed continuation plan.
 
@@ -91,7 +92,9 @@ The root suite passed 960 tests; syntax/diff checks and the scoped secret audit 
 
 ## Owner execution gate
 
-**SAFE TO ASSIGN + CONTINUE** means this reviewed assignment is deterministic and preserves the tested boundaries. It does **not** authorize production execution, enablement or deployment, and does not resolve the recurring Chaos writer omission or future POS installation ordering.
+**SAFE TO APPLY** now covers the four-file compatibility/writer/assignment repair. It does **not** authorize production execution, enablement or deployment, or resolve the separate broader POS installation ordering. Historical assignment-only evidence remains below its original filename; current aggregate evidence is [writer rehearsal](production-workspace-writer-rehearsal.json).
+
+The repeat production-shaped run installs the writer before assignment, verifies the same 1,489 workspace-only changes and preserved guard/RLS, then exercises new Chaos/manual/import/lot creation. New eligible inventory appears in Label Studio; active workspace-backed NULL scope is zero. Missing/ambiguous scope and cross-tenant injection fail closed. Personal inventory remains supported. Both POS ledger suites with the writer installed before operations/payment tests pass 134 checks including 500 lines, new-stock search/barcode and delegated return ownership. Repeat with `--future-writer` added to the commands above (and `--large-cart` for POS). Production remains unchanged.
 
 Immediately before any separately approved execution, rerun the embedded classification read-only and compare all category/rule/count totals. Stop on new memberships, conflicts, marketplace relationships, counts or ownership drift. Use a transaction with bounded lock and statement timeouts during a quiet maintenance window; do not wait indefinitely for locks. The uncontended local assignment took approximately half a second; production lock contention is not modeled.
 
