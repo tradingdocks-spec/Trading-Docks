@@ -9,6 +9,7 @@ const FOOTER_GROUPS = [
       ["Platform", "#platform"],
       ["Market", "#market"],
       ["Pricing", "#pricing"],
+      ["Hardware", "/hardware"],
     ],
   },
   {
@@ -49,7 +50,7 @@ export function Footer() {
                 {group.links.map(([label, href]) => (
                   <Link
                     key={href}
-                    href={href}
+                    href={href.startsWith('#') ? `/${href}` : href}
                     className="text-sm text-td-muted transition hover:text-td-accent-text"
                   >
                     {label}

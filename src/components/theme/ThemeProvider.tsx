@@ -47,6 +47,7 @@ export function ThemeCorner() {
   if (
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
+    pathname === '/hardware' || pathname.startsWith('/hardware/') ||
     ["/privacy", "/terms", "/security"].includes(pathname)
   )
     return null;
