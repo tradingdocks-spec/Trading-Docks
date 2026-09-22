@@ -1,6 +1,12 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#3 verified; stopped after sale #3.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#3 verified; sale #4 drafted, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Sale #4 multi-item draft
+
+Owner requested one Prodigy's Prototype NEO #231 NM/nonfoil ($0.50) and one Serra Angel W16 #3 NM/nonfoil ($0.25). Fresh production checks verified both original item/position quantities are **7**, owner/workspace/UC Bulk Boxes match, positions active and no marketplace allocations/listing/order/mapping/showcase reservation references exist. Language and physical slot remain unrecorded. Current expected drawer $201.90; session OPEN; tax 850 basis points; Square connections zero.
+
+The browser explicitly selected both exact positions ending `468db788725e4ca6` and `59f0584f58c846cd`, quantity 1 each, with no discount/override. Subtotal **$0.75**, tax **$0.06**, total **$0.81**. Independent per-line tax is round(50 × 8.5%) = 4 cents plus round(25 × 8.5%) = 2 cents. Actual cash tender is pending; checkout not submitted. Required post-sale checks: each position 7 → 6, one sale/receipt/tender, two lines and one mutation/event per position, no duplicates, expected drawer $202.71. These remain expectations until completion.
 
 ## Sale #3 completed checkpoint
 
