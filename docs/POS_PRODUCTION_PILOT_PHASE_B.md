@@ -1,6 +1,6 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sale #1 verified; sale #2 drafted and awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1 and #2 verified; stopped before sale #3.** No final PASS/FAIL verdict is claimed before execution completes.
 
 ## Approved scope
 
@@ -49,6 +49,19 @@ Allocation `931239b1-2550-40dd-b4a4-0dcf080ca677` references the exact Prodigy's
 Expected drawer is **$200.54**, independently reconciled as $200.00 + $1.00 received − $0.46 change. Browser confirms Payment Complete, $0.54 paid and $0.46 change. No sale #2 has been prepared or submitted. Session remains open for this bounded pilot; no closing count has been assumed. Production log review and final reporting/smoke checks remain pending.
 
 ## Execution evidence pending
+
+### Sale #2 completed checkpoint
+
+Owner supplied $1.00 actual cash. Before submission the browser showed subtotal $0.25, tax $0.02, total $0.27, cash $1.00 and change $0.73, exactly as approved. Completed **2026-09-22 00:07:19.160797 UTC**.
+
+- Sale: `5c6e9dbf-924c-4f32-9ce8-d7bf0949240e`; receipt: `TD-5C6E9DBF924C4F329CE8D7BF0949240E`.
+- Idempotency key: `c6d567a0-9e53-4316-9fe0-9e785494ef48`.
+- Exactly one corresponding cash tender `63f787d8-3952-4a5c-8848-2e9896171398`: amount 27, received 100, change 73 cents.
+- Exact Serra Angel item/position quantity **8 → 7** once; one allocation `a467ec80-d595-46f4-a233-ca399d0c8c0d` and one event `099c28df-d140-439c-be54-88696161076e` (before 8, change −1, after 7).
+- Owner, workspace, site/storage, register, session and original batch attribution match the approved position. No discount/override; language remains unrecorded.
+- Exactly **two Phase B sales** now exist. No duplicate sale/receipt/tender/allocation/event for sale #2. Global units **1,786**, inventory events **1,554**.
+- Expected cash **$200.81** = $200.00 + $0.54 + $0.27. Browser confirms Payment Complete, $0.27 paid, $0.73 change.
+- Stopped without preparing/submitting sale #3, as requested. Register remains OPEN. Phase B final log/report/smoke/close gates remain outstanding.
 
 Sale #2 preparation: owner selected Serra Angel W16 #3, NM/nonfoil, quantity 1 at $0.25. Fresh database checks confirmed exact position `chaos-4a2bfbcd52ea4bcf910742ffaebf7da9-59f0584f58c846cd`, item/position stock 8, correct owner/workspace/UC Bulk Boxes, active position and zero marketplace allocation/reservation/reference rows. Language and physical slot remain null. The browser explicitly selected this position and quotes subtotal $0.25, tax $0.02, total $0.27, without discount/override. Independent tax check: 25 × 850 / 10,000 = 2.125 cents, rounded to 2 cents. Cash received is blank; checkout has not been submitted. Production Square connection count remains zero.
 
