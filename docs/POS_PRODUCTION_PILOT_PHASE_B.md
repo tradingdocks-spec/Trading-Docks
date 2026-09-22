@@ -1,6 +1,12 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1 and #2 verified; stopped before sale #3.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1 and #2 verified; sale #3 prepared, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Sale #3 draft checkpoint
+
+Owner requested 2 × Prodigy's Prototype NEO #231, NM/nonfoil, at $0.50 each. Fresh production read verified item and exact position `chaos-62e742fa4f174ec995e9c15ce2e7b563-468db788725e4ca6` both have quantity 9, correct owner/workspace/UC Bulk Boxes, active status and no marketplace allocation/listing/order/mapping/showcase reservation references. Language/slot remain unrecorded. Session remains OPEN with expected cash $200.81; site tax remains 850 basis points; Square connections zero.
+
+Browser draft explicitly selects this position and quantity 2, no discount/override: subtotal **$1.00**, tax **$0.09**, total **$1.09**. Independent tax: 100 × 850 / 10,000 = 8.5 cents, rounded to 9. Cash is not entered and checkout is not submitted. Actual tender requested from owner. After authorized completion, required checkpoint is one additional sale/receipt/tender, one quantity −2 event, exact stock 9 → 7 and drawer $201.90; these are expectations, not completed results.
 
 ## Approved scope
 
