@@ -47,3 +47,18 @@ Verify the selected account's real Auth identity, existing workspace membership,
 9. Revoke temporary Phase C delegation and remove temporary pilot permissions, disable the pilot, verify all production workspaces disabled and Square disabled. Return to owner approval.
 
 Employee identity, opening/closing cash, transactions, attribution, denied-action/revocation results, audit trail, reconciliation, logs and smoke results remain pending. Do not infer a physical cash count from Phase B.
+
+## Documentation promotion validation — 2026-09-22 UTC
+
+Phase C remains PAUSED at identity verification; the owner-confirmed $200.00 opening count is recorded, but no session or employee grant exists. This promotion contains only the Phase A, Phase B and Phase C reports. Compatibility repair and forward installation code/tests are already on main; no historical migrations or runtime changes are included.
+
+- Root TypeScript PASS; ESLint zero errors (535 existing warnings); root tests **960/960 PASS**, including Inventory, Orders, Chaos Sort, labels, hardware/affiliate and POS regressions.
+- Mobile TypeScript PASS; mobile lint zero errors (3 existing warnings); tests **580/580 PASS**; Expo Android, iOS and web exports PASS.
+- POS disposable DB ledger variants **132 + 132 checks PASS**; compatibility DB variant **132 PASS**; browser/mixed-shift run **128 database checks plus 24 browser checkpoints PASS**, including 100 synthetic transactions. All writes stayed local.
+- Production-shaped compatibility/workspace-writer rehearsal **31 checks PASS**; isolated Supabase forward installation rehearsal **10 checks PASS**, including security, cash pilot rollback, unchanged original data and disabled rollout. Its first invocation stopped safely because the local container was stopped; rerun passed after starting that verified network-disconnected target. Container restored to stopped afterward.
+- Hardware/disclosure/responsive browser integration PASS; label PDF **10 checks PASS**; receipt browser/PDF **18 checks PASS**. These are software checks, not physical hardware certification.
+- Production Next.js build PASS; production dependency audit **0 vulnerabilities**; `git diff --check` PASS.
+- Outgoing commit/file audit limited to the three reviewed Markdown reports. No staging login files, private JSON, fixtures, exports, recovery backups or credentials are included. Known-secret and credential-pattern audit passed across outgoing history and current web/mobile artifacts (187 files/commit diffs at initial scan). A raw native-bytecode pattern was resolved as the SDK's standalone `sb_secret_` prefix adjacent to unrelated string-table text; Hermes-decoded Android/iOS strings had no credential match. No secret values were printed.
+- Fresh read-only production check: **0 enabled workspaces, 0 open sessions, 0 active pilot delegations, 0 Square connections, 0 Square credentials**. No production business state was changed during promotion validation.
+
+Generated historical test reports and build metadata were excluded from the PR. Existing warning-only lint output is unrelated to this documentation-only change; no failing validation gate remains.
