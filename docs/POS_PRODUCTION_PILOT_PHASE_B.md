@@ -1,6 +1,18 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#3 verified; sale #4 drafted, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#4 verified; stopped after sale #4.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Sale #4 completed multi-item checkpoint
+
+Owner supplied actual cash $1.00. Before submitting once, the browser matched subtotal $0.75, tax $0.06, total $0.81, received $1.00 and change $0.19. Completed **2026-09-22 00:23:56.223826 UTC**.
+
+- Sale `7ac55a5b-3658-449c-b730-307236fc04cf`; receipt `TD-7AC55A5B3658449CB730307236FC04CF`; idempotency key `eb8f2c09-a831-4917-9f33-5601dda487de`.
+- Exactly one cash tender `41b5b1e3-dc52-4796-8b8d-febf2351fdc7`: applied 81, received 100, change 19 cents.
+- Exactly two sale lines: Prodigy's Prototype quantity 1, price 50 cents, tax 4; Serra Angel quantity 1, price 25 cents, tax 2. Correct original positions, batches, owner, workspace, storage, register, operator and Phase B session attribution.
+- Both exact item/position quantities **7 → 6**. One allocation and one inventory mutation/event per position. Serra event `bc73c316-4651-4e33-a381-48d915c048c0`; Prototype event `0c45855c-bf53-458c-b3ba-9d4b64184823`; each before 7, change −1, after 6.
+- One sale/receipt/tender for this command, two lines and two distinct events; no duplicates. Phase B now has exactly four sales. Global units 1,782; inventory events 1,557.
+- Expected drawer **$202.71** = $200 + $0.54 + $0.27 + $1.09 + $0.81. Browser confirms Payment Complete, $0.81 paid and $0.19 change.
+- Square connections and credentials remain zero. Stopped without preparing another transaction. Register remains OPEN; remaining Phase B discount/refund/final reconciliation/log/smoke/close gates remain pending.
 
 ## Sale #4 multi-item draft
 
