@@ -1,6 +1,14 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#4 verified; stopped after sale #4.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#4 verified; discount sale #5 drafted, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Remaining authorized steps and sale #5 draft
+
+Owner approved 1 × Prodigy's Prototype at existing $0.50 asking price, 10% discount ($0.05), taxable amount $0.45, tax $0.04 and total $0.49. Fresh checks: exact item/position ending `468db788725e4ca6` both quantity 6, correct owner/workspace/UC Bulk Boxes, NM/normal and zero marketplace references/reservations. Drawer remains $202.71; session OPEN; Square connections zero.
+
+Browser draft selects the exact position, quantity 1, line discount 10%, reason "Owner-approved Phase B 10% discount", and no unit-price override. Displayed line amount $0.45, discount $0.05, tax $0.04, total $0.49. Independent calculation: 50 − 5 = 45 cents; round(45 × 8.5%) = 4 cents. Actual tender is pending; checkout not submitted.
+
+After successful sale verification, owner authorized a partial refund of only the Serra Angel line from sale #4 (`7ac55a5b-3658-449c-b730-307236fc04cf`), restoring its exact original position. Expected refund is $0.25 + original $0.02 tax = $0.27; verify system calculation before recording. Original Prototype line must remain sold. Expected drawer after both operations is $202.71 + $0.49 − $0.27 = $202.93; this is a projection, not a physical count. Request actual closing count only after authoritative reconciliation. Then complete reporting, logs, non-POS smoke checks and disable all workspaces before final owner gate. Never assume tender/count or modify cash history to force zero variance.
 
 ## Sale #4 completed multi-item checkpoint
 
