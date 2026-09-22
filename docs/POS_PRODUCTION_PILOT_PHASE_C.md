@@ -8,6 +8,8 @@ Owner nominated `employee@example.com` and confirmed **$200.00** actual opening 
 
 Production still has **zero enabled workspaces, zero open sessions, zero Square connections and zero Square credentials**. Continue only after the owner supplies the trusted employee's real registered account email and that identity is verified. Keep the supplied opening count recorded; reconfirm if the drawer changes before opening.
 
+Owner subsequently nominated `the-real-registered-email@example.com` and reconfirmed the $200.00 opening count. A fresh case-insensitive production Auth lookup also returned zero matching accounts, memberships or linked employee permissions for that exact address. The identity prerequisite remains unmet despite the reported account creation. No access or delegation was granted; all production workspaces remain disabled, all registers closed and Square connections/credentials absent.
+
 ## Approved scope
 
 - Exactly one real, authenticated trusted employee, using their own login; identity remains pending. No fixtures, shared credentials or owner-session impersonation.
