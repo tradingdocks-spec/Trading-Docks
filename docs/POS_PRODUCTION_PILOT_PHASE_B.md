@@ -1,6 +1,6 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — first sale quoted, awaiting actual cash tender.** No Phase B sale has been submitted. No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sale #1 completed and checkpoint verified; stopped before sale #2.** No final PASS/FAIL verdict is claimed before execution completes.
 
 ## Approved scope
 
@@ -36,7 +36,17 @@ Language and physical slot are unrecorded; do not fabricate either. Initially on
 - Database verified correct owner, Front Register and pilot workspace attribution. Other workspaces remain disabled; Square connection/credential counts zero.
 - Sale #1 draft: one Prodigy's Prototype from exact position ending `468db788725e4ca6`, no discount/override. UI subtotal $0.50, tax $0.04, total $0.54.
 - Independent tax check: 50 cents × 850 / 10,000 = 4.25 cents, rounded to 4 cents; total 54 cents.
-- Actual tender has been requested and is pending. No checkout submitted, no change amount assumed.
+- Owner provided actual tender **$1.00**, expected change **$0.46**, and instructed stopping after sale #1 verification. The browser matched all five approved amounts before checkout.
+
+## Sale #1 verified checkpoint
+
+Completed **2026-09-22 00:02:54.842939 UTC**. Sale `e23e436c-f3ec-462b-ac0c-72a4876a366a`; receipt `TD-E23E436CF3EC462BAC0C72A4876A366A`; idempotency key `2741986b-bb9d-4700-bb45-d05a8a6c2349`.
+
+Exactly one Phase B sale, receipt and cash tender were found. Tender `b93f7a9e-714e-4700-89f8-26fbe1df9b19` records 54 cents applied, 100 received, 46 change. Subtotal 50 cents, tax 4 cents, discount zero. Correct owner/operator, workspace, Front Register, site and Phase B session attribution were verified in sale/receipt/allocation records.
+
+Allocation `931239b1-2550-40dd-b4a4-0dcf080ca677` references the exact Prodigy's Prototype position and batch. Both item and position decreased **10 → 9** once. Inventory event `cb8e62da-968f-4c68-a95a-7c73ac9941df` records before 10, change −1, after 9, and links to the sale with correct workspace/register/owner metadata. No duplicate sale, tender, allocation or event was found. Total inventory units **1,787**; events **1,553**.
+
+Expected drawer is **$200.54**, independently reconciled as $200.00 + $1.00 received − $0.46 change. Browser confirms Payment Complete, $0.54 paid and $0.46 change. No sale #2 has been prepared or submitted. Session remains open for this bounded pilot; no closing count has been assumed. Production log review and final reporting/smoke checks remain pending.
 
 ## Execution evidence pending
 
