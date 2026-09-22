@@ -1,6 +1,44 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#5 and partial refund verified; awaiting actual physical closing count.** No final PASS/FAIL verdict is claimed before execution completes.
+**PHASE B PASS — LIMITED CASH OPERATIONS HEALTHY**
+
+**Session CLOSED · all production workspaces disabled · production Square disabled.** Physical hardware acceptance remains pending. No further rollout is authorized.
+
+## Final close and reconciliation
+
+Owner reported an actual physical cash count of **$202.93**. The normal register close workflow displayed expected **$202.93**, counted **$202.93**, and variance **$0.00** before confirmation. Session `a6cea5c0-6db4-455b-831a-272a58a89d4d` closed at **2026-09-22 00:40:54.125025 UTC**, by the original owner operator. Database status is CLOSED, expected/count both 20,293 cents, variance zero. Exactly one REGISTER_CLOSE event records zero adjustment; no cash history was changed to force reconciliation.
+
+| Phase B metric | Verified result |
+| --- | --- |
+| Sales / receipts / cash tenders | 5 / 5 / 5 |
+| Sale lines / units sold | 6 / 7 |
+| Gross sales before discount, excluding tax | $3.00 |
+| Discounts | $0.05 |
+| Taxable sales after discount | $2.95 |
+| Sales tax / receipt total | $0.25 / $3.20 |
+| Cash received / change | $6.00 / $2.80 |
+| Partial refunds | 1; $0.25 subtotal + $0.02 tax = $0.27 |
+| Net sales excluding tax / net tax | $2.70 / $0.23 |
+| Net drawer increase | $2.93 |
+| Opening / expected / counted cash | $200.00 / $202.93 / $202.93 |
+| Closing variance | $0.00 |
+
+Five distinct sale idempotency keys and five distinct receipt numbers; all five tenders use method `cash`. Six sale inventory events total −7 units and one refund restoration event totals +1. No duplicate sales, tenders, refunds, or inventory events. Cash ledger has one opening float, five cash sales, one cash refund and one close; no paid-in/out adjustments. All sales have the expected workspace, site, Front Register and owner attribution.
+
+Final original positions: Prodigy's Prototype **5**; Serra Angel **7**. Inventory row count remains **1,515**; total units **1,788 → 1,782**; inventory events **1,552 → 1,559**, exactly the expected six sale events plus one return event.
+
+The live calendar-day report also includes the earlier Phase A sale/refund: **6 sales, 2 refunds, gross $4.00, discounts $0.05, refunds $1.36, net sales $2.70, net tax $0.23, net cash $2.93**. Its 17:00 hour shows Phase B's five sales/$3.20; the 16:00 hour shows Phase A's $1.09 sale. All three sessions are closed with zero variance. The day-level totals therefore reconcile with the session-specific Phase B ledger rather than being mistaken for Phase B-only totals.
+
+## Final disablement and smoke checks
+
+- Disabled only the pilot workspace after confirming its session closed with the exact expected/count/variance values. Production database verification: **0 enabled workspaces, 0 open sessions, 0 Square connections, 0 Square credentials**.
+- Browser verifies the disabled POS gate: “POS is not available yet.” No new register or transaction was opened.
+- Production Square runtime guard remains unchanged and rejects `VERCEL_ENV=production`. No Square configuration or card processing occurred.
+- Signed-in read-only browser smoke checks passed: Dashboard, Inventory/shared Collection tools, Collection portfolio, Chaos Sort, Label Studio, and Orders Center. Inventory loaded records; Label Studio loaded inventory choices; Orders Center loaded 253 orders. No customer data was modified by smoke checks.
+- Vercel production runtime review from **2026-09-21 23:58 UTC** through final verification returned no matching error/fatal logs or HTTP 5xx. The POS path status aggregation showed 25 HTTP 200 entries. These observations cover available logs in that window, not a claim that unlogged errors are impossible.
+- No application code, schema, deployment, staff permissions or hardware certifications changed during closure. Only this acceptance report is committed.
+
+Stopped at the next owner approval gate. The dated checkpoints below preserve the intermediate states; their pending steps are superseded by this final result.
 
 ## Partial refund checkpoint completed
 
