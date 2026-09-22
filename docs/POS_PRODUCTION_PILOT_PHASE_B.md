@@ -1,6 +1,20 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#5 verified; stopped before partial refund.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#5 and partial refund verified; awaiting actual physical closing count.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Partial refund checkpoint completed
+
+Before submission, the normal production refund UI calculated exactly **$0.27** for only 1 × Serra Angel from sale #4: original subtotal $0.25 plus original tax $0.02, with Return to Inventory selected. Prodigy's Prototype refund quantity remained zero. Completed **2026-09-22 00:35:32.777373 UTC**.
+
+- Refund `bcb06e72-b795-46c3-baee-78b5dc07b196`; one refund item `be11f8dd-2e2c-4c22-bc34-a0c9192a6096`, referencing only original Serra sale line `909c5324-646a-455b-9121-b6e88fbaee36`.
+- Original sale `7ac55a5b-3658-449c-b730-307236fc04cf` remains unchanged, including both original lines and its $0.81 receipt. Before/after sale-row fingerprint matches. Browser history shows the separate $0.27 refund; Serra has zero refundable quantity remaining and Prototype still has one.
+- Serra exact original item/position `chaos-4a2bfbcd52ea4bcf910742ffaebf7da9-59f0584f58c846cd` increased **6 → 7**. Restoration references original allocation `bf2b37f5-aefa-4276-b17f-a025f8414535`, batch and UC Bulk Boxes location.
+- Exactly one restoration event `975a14a0-1306-4c5a-a119-23366bcb5211`: before 6, change +1, after 7. One refund and one corresponding event; no duplicates.
+- Prodigy's Prototype remains quantity **5**; its sale #4 line remains sold. Global inventory units are 1,782 and inventory events 1,559.
+- Authoritative expected cash is **$202.93**, independently $203.20 − $0.27. Session `a6cea5c0-6db4-455b-831a-272a58a89d4d` remains OPEN. Production Square remains disabled, with zero credentials.
+- Stopped after verification. Physical closing count has not been supplied or assumed. Register close, final reports, workflow/log checks and final pilot disablement remain pending.
+
+The checkpoints below retain their historical state at the time recorded.
 
 ## Sale #5 discount checkpoint completed
 
