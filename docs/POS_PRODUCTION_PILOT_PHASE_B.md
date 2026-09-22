@@ -1,6 +1,20 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1 and #2 verified; sale #3 prepared, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#3 verified; stopped after sale #3.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Sale #3 completed checkpoint
+
+Owner supplied actual tender $2.00. Browser verified subtotal $1.00, tax $0.09, total $1.09, cash $2.00 and change $0.91 before one checkout submission. Completed **2026-09-22 00:17:05.603732 UTC**.
+
+- Sale: `8e9d0fcf-601e-4f06-a644-f4c0b896628a`; receipt: `TD-8E9D0FCF601E4F06A644F4C0B896628A`.
+- Idempotency key: `51b6e2d7-f744-455f-bd9b-09b025334cc8`.
+- Exactly one cash tender `6d89e11b-7dc5-430a-924c-edbe53c31d12`: applied 109, received 200, change 91 cents.
+- Exact Prodigy's Prototype item and position both **9 → 7**. Allocation `beca1b6f-fee0-4162-9e06-2fd87d8149af` records quantity 2 against the original position/batch/location.
+- Exactly one inventory event `379d211d-29c1-4557-b4f3-8be0a4525025`: before 9, change −2, after 7, linked to this sale.
+- Correct owner, workspace, site, Front Register and Phase B session attribution; no discount or override. One sale and receipt for this command, one tender/allocation/event; no duplicates. Phase B now has exactly 3 sales.
+- Expected cash **$201.90** = $200.00 + $0.54 + $0.27 + $1.09. Global units 1,784; events 1,555.
+- Browser confirms Payment Complete with $1.09 paid and $0.91 change. Square connection and credential counts remain zero.
+- Stopped after verification; no subsequent sale prepared. Register remains OPEN. Final refund, discount, multi-item, reconciliation, log, smoke and close gates remain outstanding.
 
 ## Sale #3 draft checkpoint
 
