@@ -1,6 +1,18 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sales #1–#4 verified; discount sale #5 drafted, awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sales #1–#5 verified; stopped before partial refund.** No final PASS/FAIL verdict is claimed before execution completes.
+
+## Sale #5 discount checkpoint completed
+
+Owner supplied actual tender $1.00 and requested stopping before refund. Before one checkout submission the browser showed original subtotal $0.50, 10% discount $0.05, taxable line $0.45, tax $0.04, total $0.49, cash $1.00 and change $0.51. Completed **2026-09-22 00:32:46.237703 UTC**.
+
+- Sale `173e0578-55fb-40c7-82c9-9bf25da3b177`; receipt `TD-173E057855FB40C782C99BF25DA3B177`; idempotency key `69f06cfb-5873-448a-9a78-d56b8c7ae069`.
+- One cash tender `227892f0-4e82-4ac7-b7a2-de213cfbbd9b`: applied 49, received 100, change 51 cents.
+- Sale line and receipt preserve unit/original price 50 cents, discountBps 1000, discount 5 cents, tax 4 cents and total 49 cents. No price override; inventory asking price remains $0.50. Owner-approved reason persisted.
+- Exact Prodigy's Prototype item/position **6 → 5**; one event `50989ec1-bdba-453c-b755-68d65a02238e` records before 6, change −1, after 5. Correct owner/workspace/site/register/session attribution.
+- Exactly one sale/receipt/tender/line/event for this command, no duplicates. Phase B now has 5 sales and 0 refunds; global units 1,781 and events 1,558.
+- Authoritative expected drawer **$203.20**, independently $202.71 + $0.49. Browser confirms Payment Complete, $0.49 paid and $0.51 change. Square credentials remain absent.
+- Stopped before partial refund as explicitly requested. Register remains OPEN; no close/count assumed.
 
 ## Remaining authorized steps and sale #5 draft
 
