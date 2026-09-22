@@ -1,6 +1,12 @@
 # Production POS Pilot Phase C — trusted employee delegation
 
-**Preparation only — awaiting the owner's named employee and actual opening cash count.** No Phase C PASS/FAIL verdict is claimed. No production permissions, flags, inventory or cash records have been changed for Phase C.
+**Preparation blocked — nominated employee has no existing production Auth account.** No Phase C PASS/FAIL verdict is claimed. No production permissions, flags, inventory or cash records have been changed for Phase C.
+
+## Employee identity checkpoint
+
+Owner nominated `employee@example.com` and confirmed **$200.00** actual opening cash for Phase C. A case-insensitive, read-only production Auth lookup returned **zero matching accounts**, and consequently zero matching pilot workspace memberships or linked employee permission records. The required existing real authenticated identity could not be verified. No account, invitation, membership, permission or delegation was created; no register was opened.
+
+Production still has **zero enabled workspaces, zero open sessions, zero Square connections and zero Square credentials**. Continue only after the owner supplies the trusted employee's real registered account email and that identity is verified. Keep the supplied opening count recorded; reconfirm if the drawer changes before opening.
 
 ## Approved scope
 
