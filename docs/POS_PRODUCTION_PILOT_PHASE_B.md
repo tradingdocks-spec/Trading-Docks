@@ -1,6 +1,6 @@
 # Production POS Pilot Phase B — limited live cash operations
 
-**Session OPEN — sale #1 completed and checkpoint verified; stopped before sale #2.** No final PASS/FAIL verdict is claimed before execution completes.
+**Session OPEN — sale #1 verified; sale #2 drafted and awaiting actual tender.** No final PASS/FAIL verdict is claimed before execution completes.
 
 ## Approved scope
 
@@ -49,6 +49,8 @@ Allocation `931239b1-2550-40dd-b4a4-0dcf080ca677` references the exact Prodigy's
 Expected drawer is **$200.54**, independently reconciled as $200.00 + $1.00 received − $0.46 change. Browser confirms Payment Complete, $0.54 paid and $0.46 change. No sale #2 has been prepared or submitted. Session remains open for this bounded pilot; no closing count has been assumed. Production log review and final reporting/smoke checks remain pending.
 
 ## Execution evidence pending
+
+Sale #2 preparation: owner selected Serra Angel W16 #3, NM/nonfoil, quantity 1 at $0.25. Fresh database checks confirmed exact position `chaos-4a2bfbcd52ea4bcf910742ffaebf7da9-59f0584f58c846cd`, item/position stock 8, correct owner/workspace/UC Bulk Boxes, active position and zero marketplace allocation/reservation/reference rows. Language and physical slot remain null. The browser explicitly selected this position and quotes subtotal $0.25, tax $0.02, total $0.27, without discount/override. Independent tax check: 25 × 850 / 10,000 = 2.125 cents, rounded to 2 cents. Cash received is blank; checkout has not been submitted. Production Square connection count remains zero.
 
 Transaction summaries, discount, refund, closing count/variance, exact-position reconciliation, independent reporting reconciliation, authorization observations, production log review and non-POS smoke checks will be recorded during the live session. No schema/code, staff permission or Square configuration changes have occurred.
 
