@@ -8,7 +8,8 @@ import { liveScanStatus } from "@/lib/chaos-sort/live-intake";
 import { TDButton } from "@/components/design-system/td-primitives";
 import { ScannerBridgeControls } from "./ScannerBridgeControls";
 
-export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured, isActive = true }: {
+export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured, isActive = true, scannerBridgeEnabled }: {
+  scannerBridgeEnabled?: boolean;
   isActive?: boolean;
   count: number; items: ChaosSortItem[]; locked: boolean; batchId: string;
   blockedReason?: string;
@@ -28,7 +29,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   const [scenario, setScenario] = useState<ScannerConfiguration["scenario"]>("success");
   const [fixtureCount, setFixtureCount] = useState(0);
   const [testImage, setTestImage] = useState<string | null>(null);
-  const bridgeEnabled = process.env.NEXT_PUBLIC_SCANNER_BRIDGE_V1 === "1";
+  const bridgeEnabled = scannerBridgeEnabled ?? (process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_SCANNER_BRIDGE_V1 === "1");
   const [source, setSource] = useState(bridgeEnabled ? "bridge" : "emulator");
   const testImageRef = useRef<string | null>(null);
   const jobs = useRef(new Set<Promise<void>>());

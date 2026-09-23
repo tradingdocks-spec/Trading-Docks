@@ -72,6 +72,11 @@ test("remembered scanner, missing device, jam, cancellation and disconnect retai
 });
 test("absent and incompatible bridge preserve Upload and CSV", async ({ page }) => {
   const state = await mock(page); state.offline = true; await open(page); await expect(page.getByText("Connect a physical scanner", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pair this workstation", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pair this workstation", exact: true })).toBeDisabled();
+  await expect(page.getByRole("combobox", { name: "Installed scanner" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Scanner Settings", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Test Scan", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Upload Images", exact: true }).click(); await expect(page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]')).toHaveCount(1);
   state.offline = false; state.version = 0; await page.getByRole("button", { name: "Live Scan", exact: true }).click(); await expect(page.getByText("Scanner Bridge update required.", { exact: true })).toBeVisible();
 });

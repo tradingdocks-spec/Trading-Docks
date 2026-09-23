@@ -131,7 +131,7 @@ function chaosSortBatchFromSequence(sequence: number): ChaosSortBatch {
   };
 }
 
-export function ChaosSortWorkspace() {
+export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnabled?: boolean } = {}) {
   const [sequence, setSequence] = useState(1);
   const [batch, setBatch] = useState<ChaosSortBatch>(() => chaosSortBatchFromSequence(1));
   const [items, setItemsState] = useState<ChaosSortItem[]>([]);
@@ -1022,7 +1022,7 @@ export function ChaosSortWorkspace() {
 
             <div hidden={intakeMode !== "live"}>
               <label className="flex items-center gap-2 text-sm mb-3"><input type="checkbox" checked={autoConfirm} onChange={event => { setAutoConfirm(event.target.checked); autoConfirmRef.current = event.target.checked; }} />Auto-confirm high confidence scans (unambiguous printing only)</label>
-              <LiveScanStation isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => setIntakeMode("upload")} onConfigured={() => { setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
+              <LiveScanStation scannerBridgeEnabled={scannerBridgeEnabled} isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => setIntakeMode("upload")} onConfigured={() => { setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
             </div>
             <div
               hidden={intakeMode === "live"}
