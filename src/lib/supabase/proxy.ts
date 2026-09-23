@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
+import { scannerBridgeOwnerAccess } from "@/lib/chaos-sort/scanner-bridge-access";
+import { contentSecurityPolicy } from "@/lib/content-security-policy";
 import {
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
@@ -186,6 +188,15 @@ export async function updateSession(request: NextRequest) {
 
   if (isApiRoute) {
     response.headers.set("Cache-Control", "no-store");
+  }
+
+  if (isDashboardRoute) {
+    // Scope localhost transport to the same server-verified owner as the UI.
+    // Include dashboard entry documents so client navigation to Chaos Sort works.
+    const bridgeAllowed = await scannerBridgeOwnerAccess(supabase, user);
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy(bridgeAllowed));
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("Vary", "Cookie");
   }
 
   return response;

@@ -60,7 +60,7 @@ Within a mounted browser provider, a lost initiation/poll response retains the o
 
 ## Browser feature gate
 
-`NEXT_PUBLIC_SCANNER_BRIDGE_V1=1` is an explicit build-time opt-in. Default is off. Only enabled builds add the exact loopback endpoint to CSP connect-src and mount the bridge controls. No deployed environment setting was changed. Development builds can select the existing emulator separately; production builds cannot expose it as a scanner.
+`NEXT_PUBLIC_SCANNER_BRIDGE_V1=1` is a non-production local harness opt-in only. Production uses the server-verified single owner/workspace acceptance gate described in `SCANNER_BRIDGE_OWNER_ACCEPTANCE.md`. Default is off; only approved owner dashboard responses permit the exact loopback endpoint in CSP and only the authorized Chaos Sort page enables controls. Development builds can select the existing emulator separately; production builds cannot expose it as a scanner.
 
 The controls detect the bridge when entering Live Scan, pair, enumerate, remember/reconnect an available device, report a missing previous device, configure capability-aware profiles, Test Scan and Disconnect. Refresh is explicit; there is no continuous local-network discovery sweep. The disabled installer button clearly labels the internal release gate. Upload Instead remains available.
 

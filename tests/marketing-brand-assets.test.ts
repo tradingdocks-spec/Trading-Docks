@@ -88,7 +88,7 @@ test("legacy archive endpoint is admin-only and never deletes storage", () => {
 });
 
 test("Asset Vault keeps Supabase available for signed image previews without widening CSP", () => {
-  const config = read("next.config.ts");
+  const config = read("src/lib/content-security-policy.ts");
   assert.match(config, /connect-src[^\n]*https:\/\/\*\.supabase\.co/);
   assert.match(config, /img-src[^\n]*https:\/\/\*\.supabase\.co/);
   assert.match(config, /img-src[^\n]*https:\/\/maps\.googleapis\.com/);

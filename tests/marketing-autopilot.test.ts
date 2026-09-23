@@ -266,7 +266,7 @@ test("Autopilot is a primary admin navigation surface", () => {
 });
 
 test("Vercel preserves the Chromium runtime and existing CSP directives", () => {
-  const config = readFileSync("next.config.ts", "utf8");
+  const config = readFileSync("next.config.ts", "utf8") + readFileSync("src/lib/content-security-policy.ts", "utf8");
   assert.match(config, /serverExternalPackages:\s*\["@sparticuz\/chromium",\s*"puppeteer-core"\]/);
   assert.match(config, /outputFileTracingIncludes:[\s\S]*@sparticuz\/chromium\/bin\/\*\*\/\*/);
   assert.match(config, /script-src 'self' 'unsafe-inline' https:\/\/maps\.googleapis\.com https:\/\/maps\.gstatic\.com/);
