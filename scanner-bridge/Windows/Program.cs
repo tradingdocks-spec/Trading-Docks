@@ -26,14 +26,15 @@ internal sealed class BridgeTray : ApplicationContext
 {
     private readonly Form dispatcher = new() { ShowInTaskbar = false };
     private readonly NotifyIcon tray;
-    private readonly WiaScannerBackend backend;
+    private readonly WindowsScannerBackend backend;
     private readonly Trust trust;
     private readonly Captures captures;
     private readonly Microsoft.AspNetCore.Builder.WebApplication server;
     public BridgeTray()
     {
         _ = dispatcher.Handle;
-        var state = new LocalState(); backend = new(state.Salt);
+        var state = new LocalState();
+        backend = new(new WiaScannerBackend(state.Salt), new ScanSnapBackend(new ScanSnapPlatform(dispatcher), Path.Combine(LocalState.DirectoryPath, "captures"), state.Salt));
         trust = new(state, prompt =>
         {
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
 using Microsoft.Win32;
+using TradingDocks.ScannerBridge.Installer;
 
 internal static class Program
 {
@@ -33,7 +34,7 @@ internal static class Program
                 MessageBox.Show("Scanner Bridge removed."); return;
             }
             if (args.Length != 0) throw new InvalidOperationException("Unsupported installer option.");
-            using var window = new Form { Text = "Trading Docks Scanner Bridge 1.0.0 — Internal", Width = 520, Height = 300, StartPosition = FormStartPosition.CenterScreen };
+            using var window = new Form { Text = InstallerIdentity.WindowTitle, Width = 520, Height = 300, StartPosition = FormStartPosition.CenterScreen };
             var label = new Label { Dock = DockStyle.Top, Height = 130, Padding = new Padding(15), Text = "Internal unsigned development build. Windows 11 only.\nPhysical scanner certification is PENDING.\n\nInstalls for your Windows user (no administrator required). Local HTTPS certificate trust requires a separate explicit confirmation. No production credentials are bundled." };
             var startupOption = new CheckBox { Dock = DockStyle.Top, Text = "Start Scanner Bridge with Windows", Checked = true, Height = 35 };
             var install = new Button { Dock = DockStyle.Bottom, Text = "Install internal build", Height = 45 };
@@ -53,7 +54,7 @@ internal static class Program
                     }
                     if (!string.Equals(Environment.ProcessPath, Path.Combine(InstallPath, "Setup.exe"), StringComparison.OrdinalIgnoreCase)) File.Copy(Environment.ProcessPath!, Path.Combine(InstallPath, "Setup.exe"), true);
                     using var registry = Registry.CurrentUser.CreateSubKey(UninstallKey);
-                    registry.SetValue("DisplayName", "Trading Docks Scanner Bridge (internal)"); registry.SetValue("DisplayVersion", "1.0.0"); registry.SetValue("Publisher", "Trading Docks"); registry.SetValue("InstallLocation", InstallPath); registry.SetValue("UninstallString", $"\"{Path.Combine(InstallPath, "Setup.exe")}\" --uninstall"); registry.SetValue("NoModify", 1); registry.SetValue("NoRepair", 1);
+                    registry.SetValue("DisplayName", "Trading Docks Scanner Bridge (internal)"); registry.SetValue("DisplayVersion", InstallerIdentity.DisplayVersion); registry.SetValue("Publisher", "Trading Docks"); registry.SetValue("InstallLocation", InstallPath); registry.SetValue("UninstallString", $"\"{Path.Combine(InstallPath, "Setup.exe")}\" --uninstall"); registry.SetValue("NoModify", 1); registry.SetValue("NoRepair", 1);
                     if (RunBridge("--install-trust") != 0) { MessageBox.Show("Local HTTPS trust was not installed. The bridge will remain stopped. You can rerun this installer when ready."); window.Close(); return; }
                     using var run = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
                     if (startupOption.Checked) run.SetValue("TradingDocksScannerBridge", $"\"{BridgePath}\""); else run.DeleteValue("TradingDocksScannerBridge", false);

@@ -4,7 +4,9 @@ Status: **Implemented for internal engineering rehearsal. Public distribution an
 
 ## Architecture
 
-`Chaos Sort → ScannerProvider → TradingDocksLocalScannerProvider → HTTPS loopback → WiaScannerBackend → installed Windows driver`.
+`Chaos Sort → ScannerProvider → TradingDocksLocalScannerProvider → HTTPS loopback → WindowsScannerBackend → WiaScannerBackend / ScanSnapBackend`.
+
+Version 1.1.0 adds an internal ScanSnap iX500 image-output backend alongside unchanged WIA acquisition. See [ScanSnap backend](SCANSNAP_BACKEND.md) for vendor research, profile setup, capture destinations, validation and limitations. It requires a physical scan and a per-capture save in ScanSnap Home; direct SDK acquisition and physical acceptance remain pending. No production gate changes are included.
 
 The existing development emulator remains separate and development-only. Captures enter the existing recognition/review queue and authoritative Chaos commit API; the bridge has no Supabase, marketplace, payment or cloud credentials. Test Scan creates only a browser preview, not a batch item. Live intake retains its 100 physical-card limit, inline exceptions, pause/resume, duplicate capture-ID guard and Start Next 100 behavior. Upload and CSV are unaffected.
 
@@ -54,7 +56,7 @@ Unpair is available in the browser and tray. Tray unpair revokes all workstation
 
 No filesystem browsing, arbitrary paths, process execution, arbitrary upload, proxy, command or cloud credential endpoint exists. Queries are rejected. Request bodies are limited to 16 KiB, connections to 24, headers to five seconds. Per-origin buckets limit pairing to 12 requests/minute, capture initiation to 240/minute (including CORS preflights), other requests to 1200/minute. Authentication/replay caches and pairing counts are bounded.
 
-Capture initiation is idempotent for the same owner/request/settings. New requests older than two minutes are rejected; ten-minute tombstones prevent completed captures being restarted. One ready unacknowledged image applies backpressure. Images live in memory only and expire after two minutes; metadata tombstones contain no images. No scanner-image archive/logging exists. Requests time out/cancel after 90 seconds, subject to the WIA driver limitation above.
+Capture initiation is idempotent for the same owner/request/settings. New requests older than two minutes are rejected; ten-minute tombstones prevent completed captures being restarted. One ready unacknowledged image applies backpressure. WIA images live in memory only; ScanSnap additionally uses one exact temporary JPEG in a unique bridge-owned capture directory. Acknowledgement/cancel/expiry clears memory and attempts exact-file deletion. Ready images expire after two minutes; metadata tombstones contain no images. ScanSnap's bounded cleanup retries old capture files after three minutes while the bridge runs. No scanner-image archive/logging exists. Requests time out/cancel after 90 seconds, subject to the WIA driver limitation above. See the ScanSnap document for locked-file/crash retention and vendor archive limitations.
 
 Within a mounted browser provider, a lost initiation/poll response retains the original request ID for reconnect. Once image bytes arrive, an acknowledgement failure does not discard them; acknowledgement is retried before another capture. Existing intake deduplicates capture IDs. Browser reload does not persist undelivered image buffers; an interrupted transfer may need explicit rescan after expiry. Already delivered draft persistence follows the existing Chaos workflow. This is not an offline durable scanning spool.
 
