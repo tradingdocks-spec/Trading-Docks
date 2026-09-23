@@ -1,6 +1,8 @@
 # ScanSnap iX500 backend — internal acceptance build
 
 Status: **Implemented file-output coordination; physical capture acceptance PENDING.**
+
+Physical acceptance began on 2026-09-23 using the `fcfc686` internal artifact. The installed runtime reports 1.1.0 with valid loopback HTTPS; owner pairing and physical captures remain pending. The subsequent packaging correction derives the installer window title and Windows app DisplayVersion from its assembly version, consistently 1.1.0. This does not retroactively update the already-installed app metadata or constitute a physical scan PASS. See [physical acceptance log](HARDWARE_ACCEPTANCE_SCANSNAP_IX500.md) for the current checkpoint; no TESTED certification is implied.
 Branch: `codex/scansnap-backend`. Bridge version 1.1.0, protocol 1. No production deployment, gate change, certification change, POS change or Square change is included.
 
 ## Investigation and selected integration
@@ -77,6 +79,8 @@ The Windows test executable uses synthetic JPEGs and read-only optional detectio
 
 ## Validation result — 2026-09-23
 
+Promotion rerun after installer-label correction: 999 root tests, TypeScript, ESLint (existing warnings), production build, 63 native assertions, Windows image checks, compiled installer/runtime version agreement, and all five bridge browser scenarios passed. Branch-wide secret audit and whitespace check passed. The owner-only gate and hardware certification records are unchanged; POS/Square remain disabled. No Expo/mobile source changed; native Expo exports were not rerun for this Windows-only packaging correction. GitHub CI must pass before the approved merge. Installers stay local/ignored and are not attached to the PR.
+
 - Root checks: **999 tests PASS**, TypeScript PASS, ESLint PASS with existing warnings, dependency audit zero findings.
 - Native core: **63 security/contract assertions PASS**, including unchanged authentication/replay boundaries and new backend tests.
 - Windows native: synthetic JPEG validation/normalization, malformed/false-extension rejection and hard-link denial PASS. Composite read-only device enumeration detects the real connected iX500 without taking a scan.
@@ -88,6 +92,6 @@ Internal unsigned Windows x64 EXE (not installed by this task):
 
 `scanner-bridge/artifacts/installer/TradingDocks.ScannerBridge.Setup-1.1.0-internal.exe`
 
-SHA-256: `738684335D8D27DE6C260B6E968F11131DF6BC8D21C5C93A5D31F34A878BCE96`.
+Corrected-label SHA-256: `16CF2A74F2B0B4B5F23F80E18426A37236F090BECECD5484F2C3B67905FAAA9B` (180,042,008 bytes, unsigned). This rebuild has not been reinstalled. The earlier acceptance candidate is preserved as `TradingDocks.ScannerBridge.Setup-1.1.0-original-label.exe`, SHA-256 `738684335D8D27DE6C260B6E968F11131DF6BC8D21C5C93A5D31F34A878BCE96`.
 
 The original 1.0.0 installer is preserved locally as `TradingDocks.ScannerBridge.Setup-1.0.0-original.exe`, SHA-256 `B460922CB2C7C61274769B1A8A53A5DB50F3064B4D1DB8E6AB4084099FF4FDCD`. Generated installers/payloads remain ignored build outputs, not Git content. No installer is distributed publicly; no installed bridge process, trust certificate, profile, production gate, POS or Square configuration was changed. Stop here for owner-led local/staging physical acceptance.

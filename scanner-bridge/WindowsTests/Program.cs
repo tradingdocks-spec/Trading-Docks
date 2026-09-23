@@ -2,12 +2,16 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using TradingDocks.ScannerBridge;
 using TradingDocks.ScannerBridge.Windows;
+using TradingDocks.ScannerBridge.Installer;
 
 // No physical capture, no local server or certificate changes. Synthetic JPEGs only.
 using var dispatcher = new Control();
 // This console diagnostic does not run a WinForms message loop.
 SynchronizationContext.SetSynchronizationContext(null);
 var platform = new ScanSnapPlatform(dispatcher);
+if (InstallerIdentity.DisplayVersion != Protocol.VersionString || InstallerIdentity.DisplayVersion != typeof(ScanSnapPlatform).Assembly.GetName().Version!.ToString(3)) throw new Exception("Installer / runtime release version mismatch");
+if (InstallerIdentity.WindowTitle != $"Trading Docks Scanner Bridge {Protocol.VersionString} — Internal") throw new Exception("Installer label version mismatch");
+Console.WriteLine("PASS: installer UI / Windows app version / bridge assembly / runtime version agree");
 if (args.SequenceEqual(["--detect"]))
 {
     using var backend = new WindowsScannerBackend(new WiaScannerBackend(new byte[32]), new ScanSnapBackend(platform, Path.Combine(Path.GetTempPath(), "td-scansnap-detection-" + Guid.NewGuid().ToString("N")), new byte[32]));
