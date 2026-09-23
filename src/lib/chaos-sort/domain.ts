@@ -39,6 +39,8 @@ export type ChaosSortItem = {
   id: string;
   batchId: string;
   sourceFileName: string;
+  intakeSource?: "live" | "upload" | "csv";
+  captureId?: string;
   sourceFileHash: string;
   sourceImageUrl: string | null;
   processingState: ChaosSortProcessingState;
@@ -66,6 +68,7 @@ export type ChaosSortItem = {
   duplicateOfItemId: string | null;
   sortRuleId: string | null;
   createdAt: string;
+  recognitionCandidates?: Array<{ id: string; name: string; setCode: string; collectorNumber: string; language?: string }>;
   updatedAt: string;
 };
 
