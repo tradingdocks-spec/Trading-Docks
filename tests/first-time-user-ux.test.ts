@@ -41,8 +41,8 @@ test("Chaos Sort exposes the protected intake path and filing destination", () =
   const commitRoute = readFileSync(path.join(repoRoot, "src/app/api/chaos-sort/route.ts"), "utf8");
 
   assert.match(workspace, /Scan.*Review.*Choose location.*Import into inventory/s);
-  assert.match(workspace, /no cards are written to inventory until you import the batch/);
-  assert.match(workspace, /Needs review, could-not-identify, and failed items stay visible/);
+  assert.match(workspace, /Inventory changes only when you commit the reviewed batch/);
+  assert.match(workspace, /Resolve.*Items/);
   assert.match(workspace, /dashboard\/inventory\/batches/);
   assert.match(navigation, /href: "\/dashboard\/inventory\/chaos-sort"/);
   assert.match(commitRoute, /requireApiCapability\("collection\.write"\)/);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireApiCapability } from "@/lib/platform/server-access";
+import { validateLiveCommit } from "@/lib/chaos-sort/live-intake";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ type CommitPayload = {
     destinationLabel: string;
     acquisitionCost: number | null;
     status: string;
+    intakeMode?: string;
     sourceCount: number;
     duplicateCount: number;
     estimatedMarketValue: number;
@@ -59,6 +61,11 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null) as CommitPayload | null;
   if (!payload?.batch || !Array.isArray(payload.items) || !payload.items.length) {
     return NextResponse.json({ error: "Chaos Sort requires at least one reviewed item before commit." }, { status: 400 });
+  }
+
+  if (payload.batch.intakeMode === "live") {
+    const validation = validateLiveCommit(payload.items);
+    if (validation) return NextResponse.json({ error: validation }, { status: 400 });
   }
 
   const { data, error } = await (capability.supabase as unknown as {
