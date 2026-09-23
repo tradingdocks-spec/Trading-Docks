@@ -89,6 +89,7 @@ try
     await Denied(Request("POST", "/v1/capture", JsonSerializer.Serialize(captureRequest with { RequestId = Guid.NewGuid().ToString() })), 409, "unacknowledged capture backpressure");
     await Ok(Request("POST", $"/v1/capture/{id}/ack", "{}")); await Ok(Request("POST", $"/v1/capture/{id}/ack", "{}"));
     var ack = await Ok(Request("GET", "/v1/capture/" + id)); Check(ack.GetProperty("image").ValueKind == JsonValueKind.Null, "ack releases image memory");
+    Check(backend.Released == 1, "duplicate acknowledgement releases capture resource exactly once");
     Reject(() => captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString(), RequestedAt = 0 }), "CAPTURE_REQUEST_EXPIRED");
     backend.Oversize = true;
     var oversized = JsonSerializer.SerializeToElement(captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString() })).GetProperty("captureId").GetString()!;
@@ -106,13 +107,14 @@ try
     await Denied(Request("OPTIONS", "/v1/pair/start", signed: false), 429, "pair rate bound");
 }
 finally { await app.StopAsync(); Environment.SetEnvironmentVariable("Kestrel__Endpoints__Injected__Url", null); Environment.SetEnvironmentVariable("ASPNETCORE_URLS", null); }
+await ScanSnapTests.Run(Check);
 Console.WriteLine($"{count} security/contract assertions passed; no OS trust store changed.");
 
 sealed class Store : ITrustStore { private TrustRecord[] records = []; public TrustRecord[] Load() => records; public void Save(TrustRecord[] value) => records = value; }
 sealed class Clock : TimeProvider { private DateTimeOffset now = DateTimeOffset.UtcNow; public override DateTimeOffset GetUtcNow() => now; public void Advance(TimeSpan value) => now += value; }
 sealed class Backend : IWindowsScannerBackend
 {
-    public int Calls; public bool Oversize; public bool Wait;
+    public int Calls; public int Released; public bool Oversize; public bool Wait;
     public Task<ScannerDevice[]> Devices(CancellationToken c) => Task.FromResult<ScannerDevice[]>([new("scanner", "Fixture WIA", "Fixture", "Mock", "USB", "WIA", new([300, 600], ["color"], ["flatbed"]))]);
-    public async Task<CapturedImage> Capture(string id, ScanSettings settings, CancellationToken c) { Calls++; if (Wait) await Task.Delay(Timeout.Infinite, c); return new(new byte[Oversize ? Protocol.MaxImageBytes + 1 : 8], "image/png", 600, 800); }
+    public async Task<CapturedImage> Capture(string id, ScanSettings settings, CancellationToken c) { Calls++; if (Wait) await Task.Delay(Timeout.Infinite, c); return new(new byte[Oversize ? Protocol.MaxImageBytes + 1 : 8], "image/png", 600, 800, () => Released++); }
 }

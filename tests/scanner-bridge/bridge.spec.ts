@@ -4,7 +4,7 @@ const validImage = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8
 async function mock(page: Page) {
   page.on("console", m => { if (m.type() === "error") console.log("BROWSER:", m.text()); });
   page.on("requestfailed", r => console.log("REQUEST:", r.url(), r.failure()?.errorText));
-  const state = { captures: 0, ack: 0, version: 1, offline: false, missing: false, fail: "", cancelled: 0, hold: false };
+  const state = { captures: 0, ack: 0, version: 1, offline: false, missing: false, fail: "", cancelled: 0, hold: false, external: false };
   let key: ReturnType<typeof createPublicKey>, challenge: string;
   const ids = new Map<string, string>(), nonces = new Set<string>(), acknowledged = new Set<string>();
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
@@ -22,7 +22,7 @@ async function mock(page: Page) {
     const nonce = headers["x-td-nonce"]; expect(nonces.has(nonce)).toBe(false); nonces.add(nonce);
     const canonical = `${request.method()}\n${path}\n${headers["x-td-timestamp"]}\n${nonce}\n${createHash("sha256").update(body).digest("hex")}`;
     expect(verify("sha256", Buffer.from(canonical), { key, dsaEncoding: "ieee-p1363" }, Buffer.from(headers["x-td-proof"], "base64"))).toBe(true);
-    if (path === "/v1/devices") return reply({ devices: state.missing ? [] : [{ id: "opaque-fixture", displayName: "Mock WIA scanner", manufacturer: "Fixture", model: "Protocol simulator", connection: "USB (simulated)", backend: "WIA mock", capabilities: { dpi: [300, 600], sources: ["flatbed", "feeder"], colorModes: ["color"], duplex: false, autoCrop: false } }] });
+    if (path === "/v1/devices") return reply({ devices: state.missing ? [] : [{ id: "opaque-fixture", displayName: state.external ? "ScanSnap iX500 (mock)" : "Mock WIA scanner", manufacturer: "Fixture", model: "Protocol simulator", connection: "USB (simulated)", backend: state.external ? "SCANSNAP" : "WIA mock", capabilities: { dpi: state.external ? [300] : [300, 600], sources: state.external ? ["feeder"] : ["flatbed", "feeder"], colorModes: ["color"], duplex: false, autoCrop: false, externalSettings: state.external, captureInstruction: state.external ? "Waiting for ScanSnap: place card in feeder and press Scan on the iX500. Save to the exact capture destination shown in the local bridge window." : undefined } }] });
     if (path === "/v1/capture") { if (!ids.has(data.requestId)) { ids.set(data.requestId, crypto.randomUUID()); state.captures++; } return reply({ captureId: ids.get(data.requestId) }); }
     if (path.endsWith("/ack")) { if (!acknowledged.has(path)) { state.ack++; acknowledged.add(path); } return reply({ ok: true }); }
     if (path.endsWith("/cancel")) { state.cancelled++; return reply({ ok: true }); }
@@ -88,4 +88,31 @@ test("mobile device selection and settings fit the workstation", async ({ page }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("combobox", { name: "Installed scanner" }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: ".playwright-results/scanner-bridge-mobile.png" });
+});
+
+test("external-settings backend waits for physical output, previews, cancels and resumes without vendor branches", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  const state = await mock(page); state.external = true; state.hold = true;
+  await open(page); await pair(page);
+  await expect(page.getByRole("note")).toContainText("press Scan on the iX500");
+  await expect(page.getByRole("combobox", { name: "Scanner profile" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Scanner Settings", exact: true }).click();
+  await expect(page.getByText("Configure the required profile", { exact: false })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Scanner DPI" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Test Scan", exact: true }).click();
+  await expect.poll(() => state.captures).toBe(1);
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+  state.hold = false;
+  await expect(page.getByRole("button", { name: "Looks Good", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Looks Good", exact: true }).click();
+  state.hold = true;
+  await page.getByRole("button", { name: "Start Live Scanning", exact: true }).click();
+  await expect.poll(() => state.captures).toBe(2);
+  await page.getByRole("button", { name: "Cancel Current Scan", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+  state.hold = false;
+  await page.getByRole("button", { name: "Scan One", exact: true }).click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  expect(state.ack).toBe(2); expect(errors).toEqual([]);
 });

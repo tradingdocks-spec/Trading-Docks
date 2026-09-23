@@ -1,6 +1,6 @@
 /** Image acquisition only. Providers never recognize cards or write inventory. */
 export type ScannerStatus = "disconnected" | "ready" | "capturing" | "jammed" | "error";
-export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean };
+export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean; externalSettings?: boolean; captureInstruction?: string };
 export type ScanSettings = { dpi: number; colorMode: string; source: string; duplex: boolean; autoCrop: boolean };
 export type ScannerDevice = { id: string; name: string; simulated: boolean; manufacturer?: string; model?: string; connection?: string; backend?: string; scanCapabilities?: ScanCapabilities };
 export type ScannerCapture = { captureId: string; file: File };
