@@ -954,7 +954,7 @@ export function ChaosSortWorkspace() {
                 <TDBadge tone="info">Batch {batch.batchCode}</TDBadge>
                 <TDText as="h2" variant="heading">{intakeMode === "live" ? "Scan station" : intakeMode === "csv" ? "CSV intake" : "Image intake"}</TDText>
                   <TDText tone="secondary" className="max-w-2xl">
-                  Capture cards, resolve exceptions, then commit. Inventory changes only when you commit the reviewed batch.
+                  Scan → Review → Choose location → Import into inventory. Inventory changes only when you commit the reviewed batch.
                 </TDText>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1312,7 +1312,7 @@ export function ChaosSortWorkspace() {
                 <div className="space-y-4">
                   <div className="space-y-2"><label className="block text-sm" htmlFor="printing-search">Search / correct printing</label><div className="flex gap-2"><input id="printing-search" className="min-w-0 flex-1 rounded border p-2" value={printingQuery} onChange={event => setPrintingQuery(event.target.value)} /><TDButton size="sm" disabled={printingBusy || printingQuery.trim().length < 2} onClick={() => void searchPrinting()}>Find printings</TDButton></div>{(printingCandidates.length ? printingCandidates : selectedItem.recognitionCandidates ?? []).map(candidate => <button key={candidate.id} className="block w-full rounded border p-2 text-left text-sm" onClick={() => { updateItem(selectedItem.id, { cardName: candidate.name, scryfallId: candidate.id, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, language: candidate.language ?? selectedItem.language, humanState: "pending", recognitionState: "review" }); setPrintingCandidates([]); }}>{candidate.name} · {candidate.setCode} #{candidate.collectorNumber}</button>)}</div>
                   <div className="overflow-hidden rounded-[22px] border border-td-ink/[0.06] bg-black">
-                    <img src={selectedItem.sourceImageUrl ?? ""} alt={selectedItem.cardName} className="h-64 w-full object-contain" />
+                    {selectedItem.sourceImageUrl ? <img src={selectedItem.sourceImageUrl} alt={selectedItem.cardName} className="h-64 w-full object-contain" /> : <p className="py-8 text-center text-sm text-td-muted">No source image available.</p>}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <TDInput label="Card name" value={selectedItem.cardName} onChange={(event) => updateItem(selectedItem.id, { cardName: event.target.value })} />
