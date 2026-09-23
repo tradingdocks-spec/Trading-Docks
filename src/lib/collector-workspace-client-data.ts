@@ -22,7 +22,8 @@ import {
   type RawWishlistItem,
 } from "@/lib/collector-workspace";
 import type { CollectorMutation } from "@/lib/collector-mutations";
-import { loadInventoryProvenance, matchesInventorySearch, type InventoryProvenance } from "@/lib/inventory-provenance";
+import { ownedInventoryQuery } from "@/lib/owned-inventory-query";
+import { searchOwnedInventory } from "@/lib/owned-inventory-search";
 
 export type WebCollectorCollectionPage = {
   cards: CollectionCard[];
@@ -32,82 +33,13 @@ export type WebCollectorCollectionPage = {
   stale: false;
 };
 
-export type WebGlobalInventorySearch = {
-  items: RawInventoryItem[];
-  locations: RawInventoryLocation[];
-  provenance: WebInventoryProvenance[];
-};
+export type { WebGlobalInventorySearch, WebInventoryProvenance } from "@/lib/owned-inventory-search";
 
-export type WebInventoryProvenance = {
-  inventoryItemId: string;
-  positionId: string;
-  batchId: string | null;
-  batchCode: string | null;
-  batchTitle: string | null;
-  position: number | null;
-  quantity: number;
-  locationId: string | null;
-};
-
-/** Search the live inventory ledger with the same filters used by Collection. */
-export async function searchWebInventory(query: string, limit = 100): Promise<WebGlobalInventorySearch> {
+export async function searchWebInventory(query: string, limit = 100) {
   const supabase = createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error("Sign in again to search your inventory.");
-
-  const filter = { query } satisfies CollectionFilter;
-  const relatedFilters = await loadRelatedFilterIds(user.id, filter);
-
-  let itemQuery = supabase
-    .from("inventory_items")
-    .select("id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
-    .eq("user_id", user.id)
-    .order("card_name", { ascending: true })
-    .order("id", { ascending: true });
-  itemQuery = applyInventoryFilters(itemQuery, { ...filter, query: undefined }, relatedFilters);
-  const [{ data: items, error: itemsError }, { data: locations, error: locationsError }] = await Promise.all([
-    itemQuery.limit(Math.min(Math.max(limit * 50, 500), 5000)),
-    supabase.from("inventory_locations").select("id, name, location_type, data").eq("user_id", user.id).limit(500),
-  ]);
-  if (itemsError) throw new Error(`Inventory search is unavailable: ${itemsError.message}`);
-  if (locationsError) throw new Error(`Storage locations are unavailable: ${locationsError.message}`);
-  const rawItems = (items ?? []) as RawInventoryItem[];
-  const itemIds = rawItems.map((item) => item.id).filter(Boolean);
-  if (!itemIds.length) return { items: rawItems, locations: (locations ?? []) as RawInventoryLocation[], provenance: [] };
-  // `chaos_sort_inventory_positions` and `chaos_sort_batches` are loaded by the shared provenance reader,
-  // which applies the equivalent user-scoped `.in("item_id", itemIds)`
-  // and batch `.in("id", batchIds)` lookups, with a bounded `limit(500)` UI result.
-  const rawProvenance = await loadInventoryProvenance(supabase, user.id, itemIds);
-  const locationById = new Map(((locations ?? []) as RawInventoryLocation[]).map((location) => [location.id, location]));
-  const matchingPositionIds = new Set(rawProvenance.filter((position) => provenanceMatchesQuery(position, locationById, query)).map((position) => position.inventoryItemId));
-  const matchingItemIds = new Set(rawItems.filter((item) => inventoryItemMatchesQuery(item, query)).map((item) => item.id));
-  const selectedItems = rawItems.filter((item) => matchingItemIds.has(item.id) || matchingPositionIds.has(item.id)).slice(0, Math.min(Math.max(limit, 1), 100));
-  const selectedIds = new Set(selectedItems.map((item) => item.id));
-  return {
-    items: selectedItems,
-    locations: (locations ?? []) as RawInventoryLocation[],
-    provenance: rawProvenance.filter((position) => selectedIds.has(position.inventoryItemId) && (matchingItemIds.has(position.inventoryItemId) || provenanceMatchesQuery(position, locationById, query))).map((position) => ({
-      inventoryItemId: position.inventoryItemId,
-      positionId: position.positionId,
-      batchId: position.batchId,
-      batchCode: position.batchCode ?? "",
-      batchTitle: position.batchTitle,
-      position: position.position,
-      quantity: position.quantity,
-      locationId: position.locationId,
-    })),
-  };
-}
-
-function inventoryItemMatchesQuery(item: RawInventoryItem, query: string) {
-  const payload = item.data ?? {};
-  return matchesInventorySearch([item.card_name, payload.name, item.sku, item.set_code, payload.set, payload.setName, item.collector_number, payload.collectorNumber, item.language, payload.language, payload.condition, payload.finish], query);
-}
-
-function provenanceMatchesQuery(position: InventoryProvenance, locationById: Map<string, RawInventoryLocation>, query: string) {
-  const location = position.locationId ? locationById.get(position.locationId) : undefined;
-  const locationData = location?.data ?? {};
-  return matchesInventorySearch([position.condition, position.finish, position.language, position.batchCode, position.batchTitle, location?.name, location?.location_type, locationData.name, locationData.zone], query);
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Sign in again to search your inventory.");
+  return searchOwnedInventory(supabase, user.id, query, limit);
 }
 
 export async function loadWebCollectorCollectionPage({
@@ -128,10 +60,7 @@ export async function loadWebCollectorCollectionPage({
   const relatedFilters = await loadRelatedFilterIds(user.id, filter);
   if (relatedFilters.blocked) return emptyWebPage(request);
 
-  let itemQuery = supabase
-    .from("inventory_items")
-    .select("id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
-    .eq("user_id", user.id);
+  let itemQuery = ownedInventoryQuery(supabase, user.id);
   itemQuery = applyInventoryFilters(itemQuery, filter, relatedFilters);
   itemQuery = applyInventorySort(itemQuery, sort);
   itemQuery = applyInventoryCursor(itemQuery, sort, cursor);

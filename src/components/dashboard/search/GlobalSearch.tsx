@@ -47,6 +47,7 @@ type SearchableInventoryItem = {
   category?: string;
   condition?: string;
   set?: string;
+  setCode?: string;
   collectorNumber?: string;
   finish?: string;
   imageUrl?: string;
@@ -76,6 +77,7 @@ type CardPlacement = {
   locationType: string;
   condition?: string;
   set?: string;
+  setCode?: string;
   collectorNumber?: string;
   finish?: string;
   imageUrl?: string;
@@ -105,12 +107,13 @@ function normalize(value: string) {
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  let timer: number | undefined;
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => {
-      window.setTimeout(() => reject(new Error("Search data took too long to load.")), timeoutMs);
+      timer = window.setTimeout(() => reject(new Error("Search data took too long to load.")), timeoutMs);
     }),
-  ]);
+  ]).finally(() => window.clearTimeout(timer));
 }
 
 function editDistance(left: string, right: string) {
@@ -243,13 +246,13 @@ export function GlobalSearch() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || query.trim().length < 2) { setLoading(false); setLoadError(""); return; }
     let active = true;
     setLoading(true);
     setLoadError("");
     setInventoryAvailable(false);
 
-    void Promise.allSettled([
+    const debounce = window.setTimeout(() => { void Promise.allSettled([
       withTimeout(searchWebInventory(query), SEARCH_LOAD_TIMEOUT_MS),
       withTimeout(loadDeckVault(), SEARCH_LOAD_TIMEOUT_MS),
     ]).then(([inventoryResult, deckResult]) => {
@@ -295,6 +298,7 @@ export function GlobalSearch() {
         category: item.product_type === "sealed" ? "Sealed" : "Single",
         condition: typeof item.data?.condition === "string" ? item.data.condition : undefined,
         set: typeof item.data?.setName === "string" ? item.data.setName : item.set_code ?? undefined,
+        setCode: item.set_code ?? undefined,
         collectorNumber: typeof item.data?.collectorNumber === "string" ? item.data.collectorNumber : item.collector_number ?? undefined,
         finish: typeof item.data?.finish === "string" ? item.data.finish : undefined,
         value: item.inventory_value ?? undefined,
@@ -346,6 +350,7 @@ export function GlobalSearch() {
               locationType: placement.type,
               condition: card?.condition && card.condition !== "unknown" ? card.condition : item.condition,
               set: card?.printing.setName ?? card?.printing.setCode ?? item.set,
+              setCode: card?.printing.setCode ?? item.setCode,
               collectorNumber: card?.printing.collectorNumber ?? item.collectorNumber,
               finish: card?.printing.finish !== "unknown" ? card?.printing.finish : item.finish,
               imageUrl: card?.printing.imageUrl ?? undefined,
@@ -391,9 +396,10 @@ export function GlobalSearch() {
 
       setPlacements([...inventoryPlacements, ...deckPlacements]);
       setLoading(false);
-    });
+    }); }, 250);
 
     return () => {
+      window.clearTimeout(debounce);
       active = false;
     };
   }, [open, query]);
@@ -407,6 +413,7 @@ export function GlobalSearch() {
         [
           placement.cardName,
           placement.set,
+          placement.setCode,
           placement.collectorNumber,
           placement.locationName,
           placement.condition,
@@ -567,16 +574,16 @@ export function GlobalSearch() {
             </div>
 
             <div className="max-h-[68vh] min-h-[360px] overflow-y-auto p-3 sm:p-5">
+              {loadError && !loading && (
+                <div role="status" className="mb-3 rounded-xl border border-td-warning/20 p-3 text-sm text-td-secondary">
+                  <p className="font-semibold">Inventory search unavailable</p>
+                  <p>{loadError}</p>
+                </div>
+              )}
               {loading ? (
                 <div className="flex min-h-[330px] flex-col items-center justify-center text-center">
                   <Loader2 className="h-7 w-7 animate-spin text-td-accent-text" />
                   <p className="mt-3 text-sm font-semibold text-td-secondary">Checking every card location…</p>
-                </div>
-              ) : loadError ? (
-                <div className="flex min-h-[330px] flex-col items-center justify-center px-6 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-td-warning/[0.14] bg-td-warning/[0.05]"><SearchX className="h-6 w-6 text-td-warning" /></div>
-                  <p className="mt-4 text-base font-semibold text-td-primary">Search data is unavailable</p>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-td-secondary">{loadError}</p>
                 </div>
               ) : query.trim().length < 2 ? (
                 <SearchEmpty />
