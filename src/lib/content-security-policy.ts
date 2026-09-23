@@ -11,4 +11,3 @@ export function contentSecurityPolicy(scannerBridgeEnabled = false) { return [
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.scryfall.com https://api2.moxfield.com https://maps.googleapis.com https://maps.gstatic.com" + (scannerBridgeEnabled ? " https://127.0.0.1:47391" : ""),
   "upgrade-insecure-requests",
 ].join("; "); }
-
