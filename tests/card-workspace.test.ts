@@ -77,7 +77,7 @@ test("Card Workspace route is reused by highest-value card encounter surfaces", 
 
 test("Global Search preserves canonical image, storage, batch provenance, and action links", () => {
   const globalSearch = read("src/components/dashboard/search/GlobalSearch.tsx");
-  const clientData = read("src/lib/collector-workspace-client-data.ts");
+  const clientData = read("src/lib/inventory-provenance.ts");
 
   assert.match(globalSearch, /buildCollectionCards\(/);
   assert.match(globalSearch, /card\?\.printing\.imageUrl/);
@@ -91,8 +91,8 @@ test("Global Search preserves canonical image, storage, batch provenance, and ac
   assert.match(clientData, /chaos_sort_inventory_positions/);
   assert.match(clientData, /chaos_sort_batches/);
   assert.match(clientData, /\.in\("item_id", itemIds\)/);
-  assert.match(clientData, /\.in\("id", batchIds\)/);
-  assert.match(clientData, /limit\(500\)/);
+  assert.match(clientData, /\.in\("id", batchIds\.slice/);
+  assert.match(clientData, /limit\(50\)/);
   assert.ok(globalSearch.includes("/dashboard/inventory?location="));
   assert.ok(globalSearch.includes("/dashboard/inventory/batches/"));
   assert.doesNotMatch(globalSearch, /loadInventorySnapshot/);
