@@ -20,3 +20,6 @@ mobile/benchmark-output/
 .vercel
 # Local Supabase CLI runtime state; migrations remain tracked above this path.
 /supabase/.temp/
+/scanner-bridge/**/bin/
+/scanner-bridge/**/obj/
+/scanner-bridge/artifacts/
