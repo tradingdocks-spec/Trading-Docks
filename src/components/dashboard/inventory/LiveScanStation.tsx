@@ -6,8 +6,10 @@ import type { ScannerProvider, ScannerConfiguration } from "@/lib/chaos-sort/sca
 import type { ChaosSortItem } from "@/lib/chaos-sort/domain";
 import { liveScanStatus } from "@/lib/chaos-sort/live-intake";
 import { TDButton } from "@/components/design-system/td-primitives";
+import { ScannerBridgeControls } from "./ScannerBridgeControls";
 
-export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured }: {
+export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured, isActive = true }: {
+  isActive?: boolean;
   count: number; items: ChaosSortItem[]; locked: boolean; batchId: string;
   blockedReason?: string;
   onCapture: (file: File, captureId: string, replaceId?: string) => Promise<void>;
@@ -26,6 +28,8 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   const [scenario, setScenario] = useState<ScannerConfiguration["scenario"]>("success");
   const [fixtureCount, setFixtureCount] = useState(0);
   const [testImage, setTestImage] = useState<string | null>(null);
+  const bridgeEnabled = process.env.NEXT_PUBLIC_SCANNER_BRIDGE_V1 === "1";
+  const [source, setSource] = useState(bridgeEnabled ? "bridge" : "emulator");
   const testImageRef = useRef<string | null>(null);
   const jobs = useRef(new Set<Promise<void>>());
   const callbacks = useRef({ onCapture, onBusy, onConfigured });
@@ -90,14 +94,16 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     <div className="flex flex-wrap justify-between gap-3">
       <div><h2 className="font-bold uppercase tracking-wider text-sm">Live Scanner</h2><p className="text-sm text-td-secondary">Scanner: {connected ? deviceName : "Not connected"}</p></div>
       <div className="flex flex-wrap gap-2">
-        <TDButton size="sm" variant="secondary" onClick={connect} disabled={busy || process.env.NODE_ENV === "production"}>{connected ? "Reconnect" : "Connect Scanner"}</TDButton>
-        <TDButton size="sm" variant="secondary" icon={<Settings2 size={15} />} onClick={() => setSettings(value => !value)} disabled={busy}>Scanner Settings</TDButton>
+        {source === "emulator" && <><TDButton size="sm" variant="secondary" onClick={connect} disabled={busy || process.env.NODE_ENV === "production"}>{connected ? "Reconnect" : "Connect Scanner"}</TDButton>
+        <TDButton size="sm" variant="secondary" icon={<Settings2 size={15} />} onClick={() => setSettings(value => !value)} disabled={busy}>Scanner Settings</TDButton></>}
         <TDButton size="sm" variant="secondary" onClick={() => void capture(false, undefined, true)} disabled={!connected || busy || locked}>Test Scan</TDButton>
         {connected && <TDButton size="sm" variant="ghost" disabled={busy} onClick={async () => { await provider.current?.disconnect(); setConnected(false); setMessage("Scanner disconnected. Batch stays intact."); }}>Disconnect</TDButton>}
       </div>
     </div>
-    {process.env.NODE_ENV === "production" && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Use Upload Instead</button></p>}
-    {settings && <div className="rounded-xl border p-3 space-y-3 text-sm">
+    {bridgeEnabled && process.env.NODE_ENV !== "production" && <label>Capture provider<select aria-label="Capture provider" value={source} disabled={busy} onChange={async e => { await provider.current?.disconnect(); provider.current = null; setConnected(false); setSource(e.target.value); }}><option value="bridge">Windows Scanner Bridge</option><option value="emulator">Development emulator</option></select></label>}
+    {bridgeEnabled && source === "bridge" && <ScannerBridgeControls active={isActive} disabled={busy || locked} onReady={scanner => { provider.current = scanner; setConnected(true); setDeviceName(scanner.getDeviceInfo().name); onConfigured(); }} onUnavailable={() => { setConnected(false); }} />}
+    {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Use Upload Instead</button></p>}
+    {source === "emulator" && settings && <div className="rounded-xl border p-3 space-y-3 text-sm">
       <p>A reviewed physical provider is required for hardware. Development simulation uses image fixtures, not a connected scanner.</p>
       {process.env.NODE_ENV !== "production" && <>
         <label className="block">Scanner image fixtures<input aria-label="Scanner image fixtures" className="block mt-2" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={!connected || busy} onChange={event => {
@@ -118,11 +124,13 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         <p role="status">{capturing ? "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Paused / ready for next capture")}</p>
         {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% confidence · {liveScanStatus(latest)}</p></div>}
         <div className="flex flex-wrap gap-2">
-          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (Boolean(blockedReason) || !connected || count >= 100 || !fixtureCount))}>{busy ? "Pause Scanner" : "Resume Scanner"}</TDButton>
-          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || Boolean(blockedReason) || busy || !connected || count >= 100 || !fixtureCount}>Scan One</TDButton>
+          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (Boolean(blockedReason) || !connected || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? "Start Live Scanning" : "Resume Scanner"}</TDButton>
+          {busy && source === "bridge" && <TDButton size="sm" variant="secondary" onClick={pause}>Cancel Current Scan</TDButton>}
+          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || Boolean(blockedReason) || busy || !connected || count >= 100 || source === "emulator" && !fixtureCount}>Scan One</TDButton>
           {latest && <><TDButton size="sm" variant="secondary" disabled={locked} onClick={() => onReview(latest.id)}>Correct / Review latest</TDButton><TDButton size="sm" variant="secondary" disabled={locked || Boolean(blockedReason) || busy || !connected || latest.processingState === "processing"} onClick={() => void capture(false, latest.id)}>Rescan</TDButton><TDButton size="sm" variant="ghost" disabled={locked || busy} onClick={() => onRemove(latest.id)}>Remove latest</TDButton></>}
         </div>
         {message && <p role="status" className="text-sm">{message}</p>}
+        {testImage && <div className="flex gap-2"><TDButton size="sm" onClick={() => { URL.revokeObjectURL(testImage); testImageRef.current = null; setTestImage(null); setMessage("Test accepted. Ready to start live scanning; no card added."); }}>Looks Good</TDButton><TDButton size="sm" disabled={busy} onClick={() => void capture(false, undefined, true)}>Scan Again</TDButton></div>}
         {!connected && <button className="text-sm underline" onClick={onUpload}>Use Upload Instead</button>}
       </div>
     </div>

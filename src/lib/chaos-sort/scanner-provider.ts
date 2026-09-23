@@ -1,8 +1,10 @@
 /** Image acquisition only. Providers never recognize cards or write inventory. */
 export type ScannerStatus = "disconnected" | "ready" | "capturing" | "jammed" | "error";
-export type ScannerDevice = { id: string; name: string; simulated: boolean };
+export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean };
+export type ScanSettings = { dpi: number; colorMode: string; source: string; duplex: boolean; autoCrop: boolean };
+export type ScannerDevice = { id: string; name: string; simulated: boolean; manufacturer?: string; model?: string; connection?: string; backend?: string; scanCapabilities?: ScanCapabilities };
 export type ScannerCapture = { captureId: string; file: File };
-export type ScannerConfiguration = { delayMs?: number; scenario?: "success" | "failure" | "jam" | "duplicate" | "disconnect" | "slow"; fixtures?: File[] };
+export type ScannerConfiguration = { delayMs?: number; scenario?: "success" | "failure" | "jam" | "duplicate" | "disconnect" | "slow"; fixtures?: File[]; settings?: ScanSettings };
 export interface ScannerProvider {
   readonly capabilities: { detect: boolean; capture: boolean; cancelCapture: boolean; configure: boolean };
   detect(): Promise<ScannerDevice[]>;
