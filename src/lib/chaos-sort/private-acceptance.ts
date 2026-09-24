@@ -5,7 +5,9 @@ export function privateScannerAcceptance() {
 
 export function privateAcceptanceRequestAllowed(path: string, method: string) {
   if (["GET", "HEAD", "OPTIONS"].includes(method)) return true;
-  return method === "POST" && ["/api/chaos-sort/scans", "/api/purchasing/card-photo-scan"].includes(path);
+  // The existing sign-in page submits a Next.js Server Action, not a client
+  // Supabase request. Permit login without opening other page mutations.
+  return method === "POST" && ["/sign-in", "/api/chaos-sort/scans", "/api/purchasing/card-photo-scan"].includes(path);
 }
 
 export function privateAcceptanceScanAllowed(action: string, batchId: unknown) {

@@ -10,6 +10,14 @@ test("private preview blocks inventory/payment mutations and server actions", ()
   assert.equal(privateAcceptanceRequestAllowed("/api/purchasing/card-photo-scan", "POST"), true);
 });
 
+test("existing sign-in form can submit while other page mutations stay blocked", () => {
+  assert.equal(privateAcceptanceRequestAllowed("/sign-in", "POST"), true);
+  for (const path of ["/sign-up", "/forgot-password", "/dashboard", "/dashboard/inventory/chaos-sort"]) {
+    assert.equal(privateAcceptanceRequestAllowed(path, "POST"), false);
+  }
+  for (const method of ["DELETE", "PUT", "PATCH"]) assert.equal(privateAcceptanceRequestAllowed("/sign-in", method), false);
+});
+
 test("only existing approved batch intake/review is permitted; commit and creation denied", () => {
   const previous = process.env.SCANNER_PRIVATE_ACCEPTANCE_BATCH_ID;
   process.env.SCANNER_PRIVATE_ACCEPTANCE_BATCH_ID = "approved-batch";
