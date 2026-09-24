@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, ScanLine, Settings2 } from "lucide-react";
-import type { ScannerProvider, ScannerConfiguration } from "@/lib/chaos-sort/scanner-provider";
+import type { ScannerProvider, ScannerConfiguration, ScannerSession } from "@/lib/chaos-sort/scanner-provider";
 import type { ChaosSortItem } from "@/lib/chaos-sort/domain";
 import { liveScanStatus } from "@/lib/chaos-sort/live-intake";
 import { TDButton } from "@/components/design-system/td-primitives";
 import { ScannerBridgeControls } from "./ScannerBridgeControls";
 
-export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured, isActive = true, scannerBridgeEnabled }: {
+export function LiveScanStation({ count, items, locked, blockedReason, batchId, onCapture, onBusy, onReview, onRemove, onUpload, onConfigured, isActive = true, scannerBridgeEnabled, onStartSession, resumeNextBatch = false, intakeFull = false }: {
+  intakeFull?: boolean;
+  onStartSession?: (scanner: ScannerProvider) => Promise<ScannerSession>;
+  resumeNextBatch?: boolean;
   scannerBridgeEnabled?: boolean;
   isActive?: boolean;
   count: number; items: ChaosSortItem[]; locked: boolean; batchId: string;
@@ -40,6 +43,12 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     return () => { mounted.current = false; running.current = false; void provider.current?.disconnect(); if (testImageRef.current) URL.revokeObjectURL(testImageRef.current); };
   }, []);
   useEffect(() => { setMessage(""); setTestImage(null); if (testImageRef.current) { URL.revokeObjectURL(testImageRef.current); testImageRef.current = null; } }, [batchId]);
+  const previousBatch = useRef(batchId);
+  useEffect(() => {
+    if (previousBatch.current !== batchId) { previousBatch.current = batchId; if (resumeNextBatch && connected && !blockedReason) void capture(true); }
+    // A new immutable batch is the only transition that may resume automatically.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchId]);
   const active = items.filter(item => item.humanState !== "removed");
   const latest = active.at(-1);
 
@@ -56,13 +65,30 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     } catch (error) { setMessage(error instanceof Error ? error.message : "Connection failed."); }
   }
   function pause() { running.current = false; provider.current?.cancelCapture(); setMessage("Paused. Recognition already in progress may finish."); }
+  async function recover() {
+    const scanner = provider.current;
+    if (!scanner?.recoverPendingCapture || !onStartSession || busy || locked) return;
+    setBusy(true); callbacks.current.onBusy(true);
+    try {
+      await scanner.startSession?.(await onStartSession(scanner));
+      const pending = await scanner.recoverPendingCapture();
+      if (pending) { await callbacks.current.onCapture(pending.file, pending.captureId); await scanner.acknowledge?.(pending.captureId); }
+      setMessage(pending ? "Pending capture recovered in its original batch." : "No pending capture. Existing cloud receipts are acknowledged.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Recovery failed; local source retained."); }
+    finally { await scanner.pauseSession?.().catch(() => {}); setBusy(false); callbacks.current.onBusy(false); }
+  }
   async function capture(continuous: boolean, replaceId?: string, testOnly = false) {
     const scanner = provider.current;
-    if (!scanner || running.current || busy || locked || (!testOnly && blockedReason) || (!replaceId && !testOnly && count >= 100)) return;
+    if (!scanner || running.current || busy || locked || (!testOnly && blockedReason) || (!replaceId && !testOnly && (count >= 100 || intakeFull))) return;
     running.current = true; setBusy(true); callbacks.current.onBusy(true); setMessage("");
     if (!testOnly) { if (testImageRef.current) URL.revokeObjectURL(testImageRef.current); testImageRef.current = null; setTestImage(null); }
     let accepted = count;
     try {
+      if (onStartSession) {
+        if (!scanner.startSession) throw new Error("Scanner Bridge V2 is required for scan albums.");
+        const session = await onStartSession(scanner);
+        await scanner.startSession(testOnly ? { ...session, id: crypto.randomUUID() } : session);
+      }
       do {
         if (jobs.current.size >= 8) await Promise.race(jobs.current);
         if (!running.current || (!replaceId && !testOnly && accepted >= 100)) break;
@@ -73,14 +99,16 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         if (testOnly) {
           if (testImageRef.current) URL.revokeObjectURL(testImageRef.current);
           testImageRef.current = URL.createObjectURL(result.file); setTestImage(testImageRef.current);
+          if (onStartSession) await scanner.acknowledge?.(result.captureId);
           setMessage("Test capture successful. No card added to this batch."); break;
         }
         if (!replaceId) accepted += 1;
-        const job = callbacks.current.onCapture(result.file, result.captureId, replaceId).catch(error => {
+        const job = callbacks.current.onCapture(result.file, result.captureId, replaceId).then(async () => { if (onStartSession) await scanner.acknowledge?.(result.captureId); }).catch(error => {
           running.current = false;
           if (mounted.current) setMessage(error instanceof Error ? error.message : "Image intake failed. Pause and review.");
         });
         jobs.current.add(job); void job.finally(() => jobs.current.delete(job));
+        if (onStartSession) await job; // Cloud receipt before releasing the local source or taking another image.
       } while (continuous && running.current);
       if (accepted >= 100 && !testOnly) setMessage("Batch full — 100 cards. Intake paused automatically.");
     } catch (error) {
@@ -88,6 +116,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     } finally {
       setCapturing(false); running.current = false;
       await Promise.allSettled([...jobs.current]);
+      if (onStartSession) await scanner.pauseSession?.().catch(() => { /* Pending file stays bound to this session. */ });
       if (mounted.current) { setBusy(false); callbacks.current.onBusy(false); }
     }
   }
@@ -97,7 +126,8 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
       <div className="flex flex-wrap gap-2">
         {source === "emulator" && <><TDButton size="sm" variant="secondary" onClick={connect} disabled={busy || process.env.NODE_ENV === "production"}>{connected ? "Reconnect" : "Connect Scanner"}</TDButton>
         <TDButton size="sm" variant="secondary" icon={<Settings2 size={15} />} onClick={() => setSettings(value => !value)} disabled={busy}>Scanner Settings</TDButton></>}
-        <TDButton size="sm" variant="secondary" onClick={() => void capture(false, undefined, true)} disabled={!connected || busy || locked}>Test Scan</TDButton>
+        <TDButton size="sm" variant="secondary" onClick={() => void capture(false, undefined, true)} disabled={!connected || busy || locked || Boolean(blockedReason)}>Test Scan</TDButton>
+        {onStartSession && <TDButton size="sm" variant="secondary" onClick={() => void recover()} disabled={!connected || busy || locked}>Recover pending capture</TDButton>}
         {connected && <TDButton size="sm" variant="ghost" disabled={busy} onClick={async () => { await provider.current?.disconnect(); setConnected(false); setMessage("Scanner disconnected. Batch stays intact."); }}>Disconnect</TDButton>}
       </div>
     </div>
@@ -125,10 +155,10 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         <p role="status">{capturing ? "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Paused / ready for next capture")}</p>
         {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% confidence · {liveScanStatus(latest)}</p></div>}
         <div className="flex flex-wrap gap-2">
-          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (Boolean(blockedReason) || !connected || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? "Start Live Scanning" : "Resume Scanner"}</TDButton>
+          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (Boolean(blockedReason) || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? "Start Live Scanning" : "Resume Scanner"}</TDButton>
           {busy && source === "bridge" && <TDButton size="sm" variant="secondary" onClick={pause}>Cancel Current Scan</TDButton>}
-          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || Boolean(blockedReason) || busy || !connected || count >= 100 || source === "emulator" && !fixtureCount}>Scan One</TDButton>
-          {latest && <><TDButton size="sm" variant="secondary" disabled={locked} onClick={() => onReview(latest.id)}>Correct / Review latest</TDButton><TDButton size="sm" variant="secondary" disabled={locked || Boolean(blockedReason) || busy || !connected || latest.processingState === "processing"} onClick={() => void capture(false, latest.id)}>Rescan</TDButton><TDButton size="sm" variant="ghost" disabled={locked || busy} onClick={() => onRemove(latest.id)}>Remove latest</TDButton></>}
+          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || Boolean(blockedReason) || busy || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount}>Scan One</TDButton>
+          {latest && <><TDButton size="sm" variant="secondary" disabled={locked} onClick={() => onReview(latest.id)}>Correct / Review latest</TDButton>{!onStartSession && <TDButton size="sm" variant="secondary" disabled={locked || Boolean(blockedReason) || busy || !connected || latest.processingState === "processing"} onClick={() => void capture(false, latest.id)}>Rescan</TDButton>}<TDButton size="sm" variant="ghost" disabled={locked || busy} onClick={() => onRemove(latest.id)}>Remove latest</TDButton></>}
         </div>
         {message && <p role="status" className="text-sm">{message}</p>}
         {testImage && <div className="flex gap-2"><TDButton size="sm" onClick={() => { URL.revokeObjectURL(testImage); testImageRef.current = null; setTestImage(null); setMessage("Test accepted. Ready to start live scanning; no card added."); }}>Looks Good</TDButton><TDButton size="sm" disabled={busy} onClick={() => void capture(false, undefined, true)}>Scan Again</TDButton></div>}

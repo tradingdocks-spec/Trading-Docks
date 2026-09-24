@@ -10,6 +10,8 @@ export type ChaosSortLabelData = {
   current_quantity: number;
   initial_quantity: number;
   created_at: string;
+  completed_at?: string | null;
+  physical_card_count?: number | null;
 };
 
 export function escapeLabelText(value: string) {
@@ -59,13 +61,15 @@ export function renderChaosSortLabelSvg(data: ChaosSortLabelData, media: ChaosSo
   text(data.destination_label || "Location unassigned", 23, 3, true);
   y += 8;
   const quantity = (value: number) => Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
-  text(`${quantity(data.current_quantity)} / ${quantity(data.initial_quantity)} cards`, 23, 1, true);
+  text(`Physical cards: ${quantity(data.physical_card_count ?? data.initial_quantity)}`, 23, 2, true);
+  text(`${quantity(data.current_quantity)} / ${quantity(data.initial_quantity)} cards remaining`, 16, 2);
   y += 12;
   text(`Session: ${data.session_code || data.session_id || "Unassigned"}`, 17, 3);
   y += 8;
   text(`Batch ID: ${data.id}`, 15, 3);
   const date = new Date(data.created_at);
   if (Number.isFinite(date.getTime())) { y += 10; text(`Created ${date.toISOString().slice(0, 10)} UTC`, 16, 1); }
+  if (data.completed_at) { const committed = new Date(data.completed_at); if (Number.isFinite(committed.getTime())) { y += 8; text(`Committed ${committed.toISOString().replace('T', ' ').replace('.000Z', ' UTC')}`, 15, 3); } }
   const align = media.position === "bottom" ? "YMax" : media.position === "center" ? "YMid" : "YMin";
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewWidth} ${Math.ceil(Math.max(y + 20, wide ? 275 : 0))}" preserveAspectRatio="xMid${align} meet" role="img" aria-label="Chaos Sort batch label ${escapeLabelText(data.batch_code)}" font-family="Arial, sans-serif" fill="#000">${fragments.join("")}</svg>`;
 }

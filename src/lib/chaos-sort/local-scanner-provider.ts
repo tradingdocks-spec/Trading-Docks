@@ -1,8 +1,9 @@
-import type { ScannerProvider, ScannerDevice, ScannerStatus, ScannerConfiguration, ScanSettings, ScanCapabilities } from "./scanner-provider.ts";
+import type { ScannerProvider, ScannerDevice, ScannerStatus, ScannerConfiguration, ScanSettings, ScanCapabilities, ScannerSession } from "./scanner-provider.ts";
 
 export const BRIDGE_URL = "https://127.0.0.1:47391";
 export const BRIDGE_PROTOCOL = 1;
-type Credential = { privateKey: CryptoKey; publicKey: string; credentialId?: string; expires?: string; workstationId?: string; selectedDevice?: string };
+type PendingRequest = { requestId: string; deviceId: string; settings: ScanSettings; requestedAt: number; sessionId?: string };
+type Credential = { privateKey: CryptoKey; publicKey: string; credentialId?: string; expires?: string; workstationId?: string; selectedDevice?: string; liveSession?: ScannerSession; pendingRequest?: PendingRequest; cloudAcknowledged?: string };
 type BridgeDevice = { id: string; displayName: string; manufacturer: string; model: string; connection: string; backend: string; capabilities: ScanCapabilities };
 export type BridgeStorage = { get(): Promise<Credential | undefined>; set(value: Credential): Promise<void>; clear(): Promise<void> };
 const encoder = new TextEncoder();
@@ -50,7 +51,8 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
   private cancelled = false;
   private pairing?: { id: string; challenge: string };
   private pendingAck?: string;
-  private pendingRequest?: { requestId: string; deviceId: string; settings: ScanSettings; requestedAt: number };
+  private pendingRequest?: PendingRequest;
+  private session?: ScannerSession;
   private readonly storage: BridgeStorage;
   private readonly request: typeof fetch;
   constructor(storage: BridgeStorage = workstationStorage(), request: typeof fetch = (...args) => fetch(...args)) { this.storage = storage; this.request = request; }
@@ -74,7 +76,7 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
     return result as T;
   }
   async health() {
-    const result = await this.call<{ running: boolean; protocolVersion: number; bridgeVersion: string }>("/v1/health", undefined, true);
+    const result = await this.call<{ running: boolean; protocolVersion: number; bridgeVersion: string; automaticInbox?: boolean }>("/v1/health", undefined, true);
     if (result.protocolVersion !== BRIDGE_PROTOCOL) throw new ScannerBridgeError("UPDATE_REQUIRED");
     return result;
   }
@@ -97,6 +99,34 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
     return result.devices.map(d => ({ id: d.id, name: d.displayName, simulated: false, manufacturer: d.manufacturer, model: d.model, connection: d.connection, backend: d.backend, scanCapabilities: d.capabilities }));
   }
   async rememberedDevice() { this.credential ??= await this.storage.get(); return this.credential?.selectedDevice; }
+  async getWorkstationId() { this.credential ??= await this.storage.get(); if (!this.credential?.workstationId) throw new ScannerBridgeError("UNPAIRED_OR_EXPIRED"); return this.credential.workstationId; }
+  async startSession(session: ScannerSession) {
+    this.credential ??= await this.storage.get();
+    if (!this.credential) throw new ScannerBridgeError("UNPAIRED_OR_EXPIRED");
+    // Persisted only after the application durably accepted this capture. A lost
+    // local ACK response must never replay a card or strand the next batch.
+    if (this.credential.cloudAcknowledged) {
+      await this.call(`/v1/capture/${this.credential.cloudAcknowledged}/ack`, {});
+      this.credential.cloudAcknowledged = undefined; this.credential.pendingRequest = undefined;
+      await this.storage.set(this.credential);
+    }
+    if (this.credential.pendingRequest && this.credential.liveSession?.id !== session.id) throw new Error("Recover the pending capture in its original batch first.");
+    if (this.device?.backend === "SCANSNAP") {
+      if (!(await this.health()).automaticInbox) throw new ScannerBridgeError("UPDATE_REQUIRED");
+      await this.call("/v2/session", session);
+    }
+    this.session = session; this.pendingRequest = this.credential.pendingRequest;
+    this.credential.liveSession = session; await this.storage.set(this.credential);
+  }
+  async pauseSession() { if (this.session && this.device?.backend === "SCANSNAP") await this.call(`/v2/session/${this.session.id}/pause`, {}); }
+  async acknowledge(captureId: string) {
+    if (!this.session) return;
+    if (this.credential) { this.credential.cloudAcknowledged = captureId; await this.storage.set(this.credential); }
+    await this.call(`/v1/capture/${captureId}/ack`, {});
+    this.pendingAck = undefined; this.pendingRequest = undefined;
+    if (this.credential) { this.credential.pendingRequest = undefined; this.credential.cloudAcknowledged = undefined; await this.storage.set(this.credential); }
+  }
+  async recoverPendingCapture() { return this.pendingRequest ? this.capture() : null; }
   async selectDevice(device: ScannerDevice) { this.device = device; this.settings = defaultScanSettings(device.scanCapabilities!); this.credential ??= await this.storage.get(); if (this.credential) { this.credential.selectedDevice = device.id; await this.storage.set(this.credential); } }
   async connect() { await this.health(); await this.call("/v1/status"); if (!this.device) throw new ScannerBridgeError("DEVICE_OFFLINE"); this.status = "ready"; }
   async disconnect() { this.cancelCapture(); this.status = "disconnected"; }
@@ -116,12 +146,13 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
     const abort = () => this.cancelCapture(); signal?.addEventListener("abort", abort, { once: true });
     try {
       if (this.cancelled) throw new Error("Capture cancelled; batch retained.");
-      if (this.pendingAck) {
+      if (this.pendingAck && !this.session) {
         try { await this.call(`/v1/capture/${this.pendingAck}/ack`, {}); }
         catch (error) { if (!(error instanceof ScannerBridgeError) || !["CAPTURE_NOT_FOUND", "CAPTURE_NOT_READY"].includes(error.code)) throw error; }
         this.pendingAck = undefined;
       }
-      this.pendingRequest ??= { requestId: crypto.randomUUID(), deviceId: this.device.id, settings: this.settings, requestedAt: Date.now() };
+      this.pendingRequest ??= { requestId: crypto.randomUUID(), deviceId: this.device.id, settings: this.settings, requestedAt: Date.now(), ...(this.session && this.device.backend === "SCANSNAP" ? { sessionId: this.session.id } : {}) };
+      if (this.session && this.credential) { this.credential.pendingRequest = this.pendingRequest; await this.storage.set(this.credential); }
       const started = await this.call<{ captureId: string }>("/v1/capture", this.pendingRequest);
       this.activeCapture = started.captureId;
       const deadline = Date.now() + 95_000;
@@ -136,11 +167,10 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
           const file = new File([bytes], `${started.captureId}.${result.mimeType === "image/png" ? "png" : "jpg"}`, { type: result.mimeType });
           this.pendingAck = started.captureId;
           // Once received, deliver exactly once even if the acknowledgement response is lost.
-          try { await this.call(`/v1/capture/${started.captureId}/ack`, {}); this.pendingAck = undefined; } catch { /* Retry acknowledgement before any next capture. */ }
-          this.pendingRequest = undefined;
+          if (!this.session) { try { await this.call(`/v1/capture/${started.captureId}/ack`, {}); this.pendingAck = undefined; } catch { /* Retry acknowledgement before any next capture. */ } this.pendingRequest = undefined; }
           return { captureId: started.captureId, file };
         }
-        if (result.status !== "capturing") { this.pendingRequest = undefined; throw new ScannerBridgeError(result.error ?? "CAPTURE_FAILED"); }
+        if (result.status !== "capturing") { this.pendingRequest = undefined; if (this.credential) { this.credential.pendingRequest = undefined; await this.storage.set(this.credential); } throw new ScannerBridgeError(result.error ?? "CAPTURE_FAILED"); }
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       this.cancelCapture(); throw new ScannerBridgeError("CAPTURE_FAILED");

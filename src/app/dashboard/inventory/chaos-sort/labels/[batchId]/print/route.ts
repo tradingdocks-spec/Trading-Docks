@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ batc
   }
   // Exactly one owned batch. The print route never fetches positions, other batches or a label array.
   const { data: batch, error } = await supabase.from("chaos_sort_batches")
-    .select("id,batch_code,session_id,destination_label,current_quantity,initial_quantity,created_at")
+    .select("id,batch_code,session_id,destination_label,current_quantity,initial_quantity,physical_card_count,created_at,completed_at")
     .eq("id", batchId).eq("user_id", user.id).maybeSingle();
   if (error) return new Response("The batch label could not be loaded. Please retry.", { status: 503, headers });
   if (!batch) return new Response("Batch not found.", { status: 404, headers });

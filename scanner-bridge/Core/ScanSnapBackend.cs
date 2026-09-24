@@ -17,10 +17,12 @@ public sealed class ScanSnapBackend : IWindowsScannerBackend, IDisposable
     private readonly IScanSnapPlatform platform;
     private readonly string outputRoot;
     private readonly byte[] salt;
+    private readonly Func<bool> setupComplete;
     private readonly Timer retention;
-    public ScanSnapBackend(IScanSnapPlatform platform, string outputRoot, byte[] salt)
+    public ScanSnapBackend(IScanSnapPlatform platform, string outputRoot, byte[] salt, Func<bool>? setupComplete = null)
     {
         this.platform = platform; this.outputRoot = outputRoot; this.salt = salt;
+        this.setupComplete = setupComplete ?? (() => false);
         retention = new Timer(_ => CleanupExpired(), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
     }
     private void CleanupExpired()
@@ -49,7 +51,7 @@ public sealed class ScanSnapBackend : IWindowsScannerBackend, IDisposable
         cancellation.ThrowIfCancellationRequested();
         return Task.FromResult(platform.SoftwareInstalled ? platform.ConnectedDevices().Select(id => new ScannerDevice(DeviceId(id), "ScanSnap iX500", "Fujitsu / Ricoh", "iX500", "USB", "SCANSNAP",
             new([300], ["color"], ["feeder"], CancelCapture: true, ExternalSettings: true,
-                CaptureInstruction: "Waiting for ScanSnap: place card in feeder and press Scan on the iX500. Save one JPEG to the exact capture destination shown in the local bridge window. Configure Trading Docks Cards in ScanSnap Home: 300 DPI, color, single-sided, JPEG. Settings are managed in ScanSnap Home."))).ToArray() : []);
+                CaptureInstruction: "Trading Docks Cards — Waiting for next card. Place the next card in the scanner and press Scan on the iX500. Configure the permanent Inbox once using Finish ScanSnap setup in the bridge tray: automatic JPEG direct save, color, 300 DPI, single-sided. Settings are managed in ScanSnap Home.", SetupRequired: !setupComplete()))).ToArray() : []);
     }
     public Task<CapturedImage> Capture(string id, ScanSettings settings, CancellationToken cancellation) => Capture(id, settings, new(Guid.NewGuid().ToString(), Guid.NewGuid().ToString()), cancellation);
     public async Task<CapturedImage> Capture(string id, ScanSettings settings, CaptureContext context, CancellationToken cancellation)

@@ -2,6 +2,10 @@
 
 Status: **PENDING — owner pairing and physical scans required.** No physical PASS or public TESTED certification has been awarded.
 
+## Automatic Inbox V2 acceptance checkpoint
+
+The new local 1.2.0 source candidate replaces normal per-card manual save/copy with a permanent Inbox. Automated results and setup requirements are documented in [Chaos Scan Albums V2](CHAOS_SCAN_ALBUMS_V2.md). The earlier 1.1.0 installation evidence below is historical and does not prove a 1.2.0 installation or automatic physical capture. First real automatic iX500 capture, preview, local ACK cleanup, and owner verification remain **PENDING**. No inventory may be committed during that first checkpoint. No public installer distribution, production configuration, POS or Square change is authorized here.
+
 ## Candidate and workstation
 
 - Candidate source: `fcfc686`, branch `codex/scansnap-backend`.

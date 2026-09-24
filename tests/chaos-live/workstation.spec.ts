@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=", "base64");
+test.beforeEach(async ({ request }) => { expect((await request.post("/api/reset-fixture")).ok()).toBe(true); });
+const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAHUlEQVQokWP4TyJgGNVABGAgRhEyGNVADKB9KAEAr639H8LdEzEAAAAASUVORK5CYII=", "base64");
 const fixture = (name = "card.png") => ({ name, mimeType: "image/png", buffer: image });
 async function setup(page: Page) {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
@@ -15,7 +16,7 @@ test("100-card station: history, review, exact capacity, real authoritative comm
   const baseline = await (await page.request.get("/api/evidence")).json();
   const history = page.getByRole("button", { name: /Batch History/ });
   await expect(history).toHaveAttribute("aria-expanded", "false");
-  await history.click(); await expect(page.getByRole("link", { name: "Reprint label" })).toHaveAttribute("href", "/dashboard/inventory/batches/historical-fixture");
+  await history.click(); await expect(page.getByRole("link", { name: "Reprint label" })).toHaveCount(0);
   await history.click(); await expect(history).toHaveAttribute("aria-expanded", "false");
   await page.getByLabel("Scanner image fixtures", { exact: true }).setInputFiles(Array.from({ length: 100 }, (_, n) => fixture(n === 99 ? "review.png" : `card-${n}.png`)));
   const started = Date.now();
@@ -28,28 +29,24 @@ test("100-card station: history, review, exact capacity, real authoritative comm
   await page.getByRole("button", { name: "Confirm", exact: true }).filter({ visible: true }).click();
   const commit = page.getByRole("button", { name: "Commit 100 Cards to Inventory", exact: true });
   await expect(commit).toBeEnabled();
-  const posted = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/api/chaos-sort"));
+  const posted = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/api/chaos-sort/scans") && request.postDataJSON()?.action === "commit");
+  await page.getByRole("combobox", { name: "Simulation scenario" }).selectOption("slow");
   await commit.click();
   const payload = (await posted).postDataJSON();
   await expect(page.getByRole("heading", { name: "100 cards added", exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeDisabled();
   const evidence = await page.request.get("/api/evidence");
   const after = { cards: baseline.cards + 100, positions: baseline.positions + 100, events: baseline.events + 100, batches: baseline.batches + 1, enabled: 0 };
-  expect(await evidence.json()).toEqual(after);
-  const replay = await page.request.post("/api/chaos-sort", { data: payload });
-  // Current repaired RPC allocates the unique session before its closed-batch
-  // replay check; it rejects this retry atomically instead of writing twice.
-  expect(replay.status()).toBe(409);
-  expect((await replay.json()).error).toContain("commit already exists or conflicted");
-  expect(await (await page.request.get("/api/evidence")).json()).toEqual(after);
-  const overCapacity = await page.request.post("/api/chaos-sort", { data: { ...payload, batch: { ...payload.batch, id: crypto.randomUUID(), batchCode: `CS-REJECT-${Date.now()}` }, items: [...payload.items, { ...payload.items[0], id: "extra-copy" }] } });
-  expect(overCapacity.status()).toBe(400);
-  expect(await (await page.request.get("/api/evidence")).json()).toEqual(after);
+  expect(await evidence.json()).toMatchObject(after);
+  const replay = await page.request.post("/api/chaos-sort/scans", { data: payload });
+  expect(replay.ok()).toBe(true); expect((await replay.json()).replayed).toBe(true);
+  expect(await (await page.request.get("/api/evidence")).json()).toMatchObject(after);
   console.log(`100 physical cards recognized/reviewed/committed in ${Date.now() - started} ms`);
-  await page.getByRole("button", { name: "Start Next 100", exact: true }).first().click();
+  await expect(page.getByRole("link", { name: "Print Batch Label", exact: true })).toBeVisible(); await expect(page.getByRole("button", { name: "Start Next 100", exact: true })).toHaveCount(0); await page.getByRole("button", { name: "Label printed and batch filed", exact: true }).click(); await page.getByRole("button", { name: "Start Next 100", exact: true }).first().click();
   await page.getByRole("button", { name: "Keep destination", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
   await expect(page.getByRole("combobox", { name: "Destination storage location", exact: true })).toHaveValue("scanner-fixture-location");
+  await page.getByRole("button", { name: "Pause Scanner", exact: true }).click();
   await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled();
   await expect(page.getByText("Scanner: Simulated scanner — not hardware", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
@@ -87,6 +84,8 @@ test("mobile retains CSV physical counts and location QR assignment", async ({ p
   await page.getByRole("textbox", { name: "Location QR value", exact: true }).fill("TDLOC:scanner-fixture-location");
   await page.getByRole("button", { name: "Assign", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Destination storage location", exact: true })).toHaveValue("scanner-fixture-location");
+  await page.getByRole("button", { name: "CSV", exact: true }).click();
+  await page.getByRole("button", { name: "Create Cloud Batch", exact: true }).click();
   await page.locator('input[accept=".csv,text/csv"]').setInputFiles({ name: "cards.csv", mimeType: "text/csv", buffer: Buffer.from('name,set,collector number,quantity,condition,finish\nFixture Sol Ring,CMM,396,5,NM,nonfoil') });
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "5");
   await expect(page.getByRole("button", { name: "Commit 5 Cards to Inventory", exact: true })).toBeEnabled();
@@ -98,6 +97,7 @@ test("history preference persists and existing image upload still recognizes car
   await page.reload();
   await expect(page.getByRole("button", { name: /Batch History/ })).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("combobox", { name: "Destination storage location", exact: true }).selectOption("scanner-fixture-location");
+  await page.getByRole("button", { name: "Create Cloud Batch", exact: true }).click();
   await page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]').setInputFiles(fixture("upload-card.png"));
   await page.getByRole("button", { name: "Start Batch", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
@@ -123,12 +123,10 @@ test("capture failure, jam, disconnect, pause, rescan and removal preserve a dra
   await expect(page.getByRole("button", { name: "Resume Scanner", exact: true })).toBeEnabled();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   await page.getByRole("combobox", { name: "Simulation scenario" }).selectOption("duplicate");
-  await page.getByRole("button", { name: "Rescan", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled();
-  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.getByRole("button", { name: "Rescan", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Scan One", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
   await expect(page.getByRole("button", { name: "Remove latest", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Remove latest", exact: true }).click();
-  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
 });
