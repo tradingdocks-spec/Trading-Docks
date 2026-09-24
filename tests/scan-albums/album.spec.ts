@@ -26,7 +26,7 @@ test("private scan album: 100 uploads, review, immutable commit, print gate, nex
   await open(page); await pair(page);
   await page.getByRole("button", { name: "Arm Continuous Capture", exact: true }).click();
   await expect.poll(() => lost, { timeout: 60_000 }).toBe(true);
-  await expect(page.getByRole("button", { name: "Arm Continuous Capture", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Resume unfinished scan", exact: true })).toBeEnabled();
   expect(state.captures).toBe(10); expect(state.ack).toBe(9);
   await page.reload();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "10");

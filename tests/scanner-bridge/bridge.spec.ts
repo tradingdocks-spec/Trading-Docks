@@ -78,3 +78,40 @@ test("external-settings backend waits for physical output, previews, cancels and
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   await expect.poll(() => state.ack).toBe(2); expect(errors).toEqual([]);
 });
+
+
+test("interrupted recovery waits for a decision across heartbeats; explicit retry and discard remain usable", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  const state = await mock(page); state.external = true; state.durable = true; state.hold = true;
+  await open(page); await pair(page);
+  const before = await (await page.request.get("/api/evidence")).json();
+  await page.getByRole("button", { name: "Arm One Capture", exact: true }).click();
+  await expect.poll(() => state.captures).toBe(1);
+  await expect(page.getByText(/Waiting for ScanSnap .*place one card in the feeder and press the physical Scan button/)).toBeVisible();
+  state.interrupted = true;
+  const resume = page.getByRole("button", { name: "Resume unfinished scan", exact: true });
+  await expect(resume).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Arm One Capture", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Test Scan", exact: true })).toBeDisabled();
+  // A fresh browser mount tries durable recovery once, then leaves it actionable.
+  await page.reload();
+  await expect(resume).toBeEnabled();
+  await expect.poll(() => state.captureRequests).toBe(2);
+  for (let i = 0; i < 3; i++) await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page.waitForTimeout(21_000); // Two real connection heartbeat intervals.
+  expect(state.captureRequests).toBe(2);
+  await expect(resume).toBeEnabled();
+  await resume.click();
+  await expect.poll(() => state.captureRequests).toBe(3);
+  await expect(resume).toBeEnabled();
+  await page.screenshot({ path: ".playwright-results/scanner-recovery-actionable.png" });
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Discard local attempt", exact: true }).click();
+  await expect(resume).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Arm One Capture", exact: true })).toBeEnabled();
+  expect(state.captures).toBe(1); expect(state.ack).toBe(0);
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+  const after = await (await page.request.get("/api/evidence")).json();
+  expect(after.cards).toBe(before.cards); expect(after.positions).toBe(before.positions); expect(after.events).toBe(before.events);
+  expect(errors).toEqual([]);
+});
