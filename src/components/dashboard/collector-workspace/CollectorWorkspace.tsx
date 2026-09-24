@@ -142,6 +142,7 @@ export function CollectorWorkspace({
 }) {
   const searchParams = useSearchParams();
   const [cards, setCards] = useState<CollectionCard[]>([]);
+  const displayedWorkspace = useRef<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -211,7 +212,9 @@ export function CollectorWorkspace({
     void loadWebCollectorCollectionPage({ filter, sort, cursor })
       .then((result) => {
         if (!shouldAcceptCollectionResponse(activeRequestKey.current, result.pageInfo.requestKey)) return;
-        setCards((current) => mergeCollectionPages(current, result.cards, reset));
+        const scopeChanged = displayedWorkspace.current !== result.workspaceId;
+        displayedWorkspace.current = result.workspaceId;
+        setCards((current) => mergeCollectionPages(current, result.cards, reset || scopeChanged));
         setNextCursor(result.pageInfo.nextCursor);
         setHasMore(result.pageInfo.hasMore);
         setError(null);

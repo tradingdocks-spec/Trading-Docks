@@ -2,9 +2,11 @@
 // Hosted REST behavior is tested separately in global-search-hosted.mjs.
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { searchOwnedInventory } from '../src/lib/owned-inventory-search.ts';
 const container='supabase_db_trading-docks-recovery-test';
-const db='pre_removal_recovery_20260922';
+const db=JSON.parse(readFileSync('.local-fixtures/cloud-tenant-repair-test-results.json','utf8')).database;
+assert.match(db,/^tenant_audit_\d+$/);
 const info=JSON.parse(execFileSync('docker',['inspect',container],{encoding:'utf8'}))[0];
 assert.match(info.Config.Image,/supabase\/postgres:17/);
 assert.deepEqual(info.NetworkSettings.Networks,{});
@@ -12,7 +14,12 @@ const owner='3ea45327-7984-4108-ada8-511748e73fd8';
 const quote=v=>"'"+String(v).replaceAll("'","''")+"'";
 const column=c=>{assert.match(c,/^[a-zA-Z_]+(?:->>[a-zA-Z_]+)?$/);const [a,b]=c.split('->>');return '"'+a+'"'+(b?'->>'+quote(b):'');};
 const run=sql=>execFileSync('docker',['exec','-i',container,'psql','-U','postgres','-d',db,'-X','-qAt','-v','ON_ERROR_STOP=1'],{input:sql,encoding:'utf8'}).trim();
-function client(actor) { return {from(table) {
+function client(actor) { return {
+  async rpc(name) {
+    assert.equal(name,'current_inventory_workspace');
+    const data=run(`begin read only; set local request.jwt.claim.sub=${quote(actor)}; set local role authenticated; select public.current_inventory_workspace(); rollback;`);
+    return {data,error:null};
+  },from(table) {
   assert.ok(['inventory_items','inventory_locations','chaos_sort_inventory_positions','chaos_sort_batches'].includes(table));
   let fields='*',where=[],order=[],offset=0,limit=1000;
   const q={

@@ -4,7 +4,6 @@ import {
   buildCollectionPageInfo,
   buildInventorySearchFilterExpression,
   COLLECTION_PAGE_SIZE,
-  collectorCacheKeyForUser,
   decodeCollectionCursor,
   normalizeCollectionPageSize,
   type CollectionCard,
@@ -18,7 +17,7 @@ import {
   type RawTradeBinderStatus,
   type RawWishlistItem,
 } from '@/services/collector-workspace';
-import { appStorage } from '@/services/storage/app-storage';
+import { currentInventoryWorkspace } from '@/services/inventory-workspace';
 
 export type CollectorCollectionPage = {
   cards: CollectionCard[];
@@ -41,21 +40,21 @@ export async function loadCollectorCollectionPage({
     return emptyPage(request, true, 'Supabase collection storage is not configured.');
   }
 
-  let userId: string | null = null;
   try {
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error('Sign in again to load your collection.');
-    userId = user.id;
 
     const relatedFilters = await loadRelatedFilterIds(user.id, filter);
+    const workspaceId = await currentInventoryWorkspace(supabase);
 
     let itemQuery = supabase
       .from('inventory_items')
       .select('id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('workspace_id', workspaceId);
 
     itemQuery = applyInventoryFilters(itemQuery as unknown as InventoryQuery, filter, relatedFilters) as unknown as typeof itemQuery;
     itemQuery = applyInventorySort(itemQuery as unknown as InventoryQuery, sort) as unknown as typeof itemQuery;
@@ -104,7 +103,6 @@ export async function loadCollectorCollectionPage({
       tradeStatuses: (tradeStatuses ?? []) as RawTradeBinderStatus[],
       wishlist: (wishlist ?? []) as RawWishlistItem[],
     });
-    await appStorage.setItem(collectorCacheKeyForUser(user.id), JSON.stringify(cards));
     return {
       cards,
       locations: buildStorageLocations((locations ?? []) as RawInventoryLocation[]),
@@ -114,9 +112,8 @@ export async function loadCollectorCollectionPage({
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Collection data is unavailable.';
-    return userId
-      ? loadCachedCollectionPage(userId, request, message)
-      : emptyPage(request, true, message);
+    // Fail closed: a user-only device snapshot cannot establish current tenancy.
+    return emptyPage(request, true, message);
   }
 }
 
@@ -125,14 +122,12 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
     return emptyPage({}, true, 'Supabase collection storage is not configured.');
   }
 
-  let userId: string | null = null;
   try {
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error('Sign in again to load this card.');
-    userId = user.id;
 
     const { data: item, error: itemError } = await supabase
       .from('inventory_items')
@@ -184,37 +179,8 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Card details are unavailable.';
-    return userId
-      ? loadCachedCard(userId, cardId, message)
-      : emptyPage({}, true, message);
+    return emptyPage({}, true, message);
   }
-}
-
-async function loadCachedCollectionPage(userId: string, request: CollectionPageRequest, unavailableReason: string): Promise<CollectorCollectionPage> {
-  const cached = await appStorage.getItem(collectorCacheKeyForUser(userId));
-  if (!cached) return emptyPage(request, true, unavailableReason);
-  try {
-    const parsed: unknown = JSON.parse(cached);
-    const cards = Array.isArray(parsed) ? (parsed as CollectionCard[]) : [];
-    return {
-      cards,
-      locations: [],
-      totalQuantity: cards.reduce((sum, card) => sum + card.quantityOwned, 0),
-      stale: true,
-      pageInfo: buildCollectionPageInfo({ cards, request }),
-      unavailableReason,
-    };
-  } catch {
-    return emptyPage(request, true, unavailableReason);
-  }
-}
-
-async function loadCachedCard(userId: string, cardId: string, unavailableReason: string): Promise<CollectorCollectionPage> {
-  const cached = await loadCachedCollectionPage(userId, {}, unavailableReason);
-  return {
-    ...cached,
-    cards: cached.cards.filter((card) => card.id === cardId),
-  };
 }
 
 async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {

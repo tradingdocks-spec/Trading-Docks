@@ -1,5 +1,6 @@
 import type { RawInventoryItem, RawInventoryLocation } from "../../mobile/services/collector-workspace.ts";
 import { ownedInventoryQuery, readOwnedInventoryPage } from "./owned-inventory-query.ts";
+import { currentInventoryWorkspace } from "./inventory-workspace.ts";
 import { loadInventoryProvenance, matchesInventorySearch, type InventoryProvenance } from "./inventory-provenance.ts";
 
 export type WebGlobalInventorySearch = {
@@ -20,8 +21,9 @@ export type WebInventoryProvenance = {
 };
 
 /** Uses the caller's authenticated RLS client. No service-role or alternate index. */
-export async function searchOwnedInventory(supabase: { from(table: string): any }, userId: string, query: string, limit = 100): Promise<WebGlobalInventorySearch> {
+export async function searchOwnedInventory(supabase: { from(table: string): any; rpc(name: string): PromiseLike<{ data: unknown; error: { message: string } | null }> }, userId: string, query: string, limit = 100): Promise<WebGlobalInventorySearch> {
   if (!userId) throw new Error("Authenticated inventory owner required.");
+  const workspaceId = await currentInventoryWorkspace(supabase);
   const { data: locations, error: locationsError } = await supabase.from("inventory_locations")
     .select("id, name, location_type, data").eq("user_id", userId).limit(500);
   if (locationsError) throw new Error(`Storage locations are unavailable: ${locationsError.message}`);
@@ -34,7 +36,7 @@ export async function searchOwnedInventory(supabase: { from(table: string): any 
   // Page the same active owner ledger as Collection. Never put the entire library
   // in one PostgREST URL, or silently stop at the hosted server's row cap.
   for (let offset = 0; ; offset += 250) {
-    const rawItems = await readOwnedInventoryPage(supabase, userId, offset, query, matchingLocations) as RawInventoryItem[];
+    const rawItems = await readOwnedInventoryPage(supabase, userId, workspaceId, offset, query, matchingLocations) as RawInventoryItem[];
     const provenance = await loadInventoryProvenance(supabase, userId, rawItems.map((item) => item.id));
     for (const item of rawItems) {
       const positions = provenance.filter((position) => position.inventoryItemId === item.id);
@@ -63,7 +65,7 @@ export async function searchOwnedInventory(supabase: { from(table: string): any 
           if (positions.error) throw new Error(`Inventory position search is unavailable: ${positions.error.message}`);
           const ids = [...new Set<string>((positions.data ?? []).map((p: { item_id: string }) => p.item_id))];
           for (let itemOffset = 0; itemOffset < ids.length && selectedItems.length < resultLimit; itemOffset += 25) {
-            const items = await ownedInventoryQuery(supabase, userId).in("id", ids.slice(itemOffset, itemOffset + 25)).order("id").limit(25);
+            const items = await ownedInventoryQuery(supabase, userId, workspaceId).in("id", ids.slice(itemOffset, itemOffset + 25)).order("id").limit(25);
             if (items.error) throw new Error(`Inventory batch items are unavailable: ${items.error.message}`);
             const unseen = (items.data ?? []).filter((item: RawInventoryItem) => !selectedItems.some(selected => selected.id === item.id)).slice(0, resultLimit - selectedItems.length);
             const provenance = await loadInventoryProvenance(supabase, userId, unseen.map((item: RawInventoryItem) => item.id));

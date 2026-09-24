@@ -23,9 +23,11 @@ import {
 } from "@/lib/collector-workspace";
 import type { CollectorMutation } from "@/lib/collector-mutations";
 import { ownedInventoryQuery } from "@/lib/owned-inventory-query";
+import { currentInventoryWorkspace } from "@/lib/inventory-workspace";
 import { searchOwnedInventory } from "@/lib/owned-inventory-search";
 
 export type WebCollectorCollectionPage = {
+  workspaceId?: string;
   cards: CollectionCard[];
   locations: ReturnType<typeof buildWebStorageLocations>;
   totalQuantity: number;
@@ -60,7 +62,8 @@ export async function loadWebCollectorCollectionPage({
   const relatedFilters = await loadRelatedFilterIds(user.id, filter);
   if (relatedFilters.blocked) return emptyWebPage(request);
 
-  let itemQuery = ownedInventoryQuery(supabase, user.id);
+  const workspaceId = await currentInventoryWorkspace(supabase);
+  let itemQuery = ownedInventoryQuery(supabase, user.id, workspaceId);
   itemQuery = applyInventoryFilters(itemQuery, filter, relatedFilters);
   itemQuery = applyInventorySort(itemQuery, sort);
   itemQuery = applyInventoryCursor(itemQuery, sort, cursor);
@@ -111,6 +114,7 @@ export async function loadWebCollectorCollectionPage({
   });
 
   return {
+    workspaceId,
     cards,
     locations: buildWebStorageLocations((locations ?? []) as RawInventoryLocation[]),
     totalQuantity: cards.reduce((sum: number, card) => sum + card.quantityOwned, 0),
