@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { TradingDocksLocalScannerProvider, defaultScanSettings, type BridgeStorage } from "../src/lib/chaos-sort/local-scanner-provider.ts";
 
 const caps = { dpi: [300, 600], colorModes: ["color"], sources: ["flatbed"], duplex: false, autoCrop: false, cancelCapture: false };
-function fixture() {
+function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unreachable") {
   let credential: Awaited<ReturnType<BridgeStorage["get"]>>;
   const storage: BridgeStorage = { get: async () => credential, set: async value => { credential = value; }, clear: async () => { credential = undefined; } };
   const requests: { path: string; body: Record<string, unknown>; headers: Headers }[] = [];
@@ -28,12 +28,16 @@ function fixture() {
     if (path === "/v1/capture") { if (!captureIds.has(body.requestId)) { captures++; captureIds.set(body.requestId, crypto.randomUUID()); } if (startFailure) { startFailure = false; throw new TypeError("response lost"); } return respond({ captureId: captureIds.get(body.requestId) }); }
     if (path.endsWith("/ack")) { if (ackFailure) { ackFailure = false; throw new TypeError("ack response lost"); } return respond({ ok: true }); }
     if (path.endsWith("/cancel")) { cancelled = true; return respond({ ok: true }); }
-    if (path.startsWith("/v1/capture/")) return respond({ status: "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800 });
+    if (path.startsWith("/v1/capture/")) {
+      if (cancelledStatus && !cancelled) provider.cancelCapture();
+      if (cancelledStatus === "unreachable") throw new TypeError("response lost");
+      return respond({ status: cancelledStatus ?? "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800 });
+    }
     return respond({ ok: true });
   };
   const provider = new TradingDocksLocalScannerProvider(storage, request);
   const connect = async () => { await provider.startPairing(); await provider.finishPairing("123456"); const [device] = await provider.detect(); await provider.selectDevice(device); await provider.connect(); };
-  return { provider, storage, requests, connect, count: () => captures, credential: () => credential, cancelled: () => cancelled, loseAck: () => { ackFailure = true; }, loseStart: () => { startFailure = true; }, oldVersion: () => { version = 0; } };
+  return { provider, storage, requests, connect, reload: () => new TradingDocksLocalScannerProvider(storage, request), count: () => captures, credential: () => credential, cancelled: () => cancelled, loseAck: () => { ackFailure = true; }, loseStart: () => { startFailure = true; }, oldVersion: () => { version = 0; } };
 }
 test("bridge pairs with nonextractable proof key, remembers local device, captures and acknowledges", async () => {
   const f = fixture(); await f.connect(); assert.equal(f.credential()?.privateKey.extractable, false);
@@ -58,3 +62,33 @@ test("profiles negotiate available capabilities and unsupported duplex stays blo
   assert.throws(() => f.provider.configure({ settings: { ...defaultScanSettings(caps), duplex: true } }), /does not support/);
 });
 test("cancelled input starts no hardware capture", async () => { const f = fixture(); await f.connect(); const abort = new AbortController(); abort.abort(); await assert.rejects(f.provider.capture(abort.signal), /cancelled/); assert.equal(f.count(), 0); });
+
+const recoverySession = { id: "album", userId: "user", workspaceId: "workspace", batchId: "batch", destinationId: "destination", workstationId: "local-test", deviceId: "opaque", limit: 100 as const };
+for (const status of ["cancelled", "ready", "interrupted", "unreachable"] as const) {
+  test(`cancel recovery persists only when agent status ${status} is not terminal cancellation`, async () => {
+    const f = fixture(status); await f.connect(); await f.provider.startSession(recoverySession);
+    await assert.rejects(f.provider.capture());
+    assert.equal(await f.provider.hasPendingCapture(), status !== "cancelled");
+    const next = await reloadConnected(f);
+    assert.equal(await next.hasPendingCapture(), status !== "cancelled");
+  });
+}
+async function reloadConnected(f: ReturnType<typeof fixture>) {
+  const provider = f.reload(); const [device] = await provider.detect(); await provider.selectDevice(device); await provider.connect(); return provider;
+}
+test("browser reload recovers persisted request without new capture and denies another workspace", async () => {
+  const f = fixture(); await f.connect(); await f.provider.startSession(recoverySession); f.loseStart(); await assert.rejects(f.provider.capture());
+  const next = await reloadConnected(f); assert.equal(await next.hasPendingCapture(), true);
+  await assert.rejects(next.startSession({ ...recoverySession, workspaceId: "other" }), /another batch or workspace/);
+  await next.startSession(recoverySession); const image = await next.recoverPendingCapture(); assert.ok(image); assert.equal(image.preview, false); assert.equal(f.count(), 1);
+  await next.acknowledge(image.captureId); assert.equal(await next.hasPendingCapture(), false);
+});
+test("recovered test scan stays preview-only with original session identity", async () => {
+  const f = fixture(); await f.connect(); await f.provider.startSession({ ...recoverySession, id: "preview-session", preview: true }); f.loseStart(); await assert.rejects(f.provider.capture());
+  const next = await reloadConnected(f); await next.startSession(recoverySession);
+  const image = await next.recoverPendingCapture(); assert.equal(image?.preview, true); assert.equal(f.credential()?.liveSession?.id, "preview-session"); assert.equal(f.count(), 1);
+});
+test("cloud accepted capture with lost ack retries only acknowledgement after browser reload", async () => {
+  const f = fixture(); await f.connect(); await f.provider.startSession(recoverySession); const image = await f.provider.capture(); f.loseAck(); await assert.rejects(f.provider.acknowledge(image.captureId));
+  const next = await reloadConnected(f); await next.startSession(recoverySession); assert.equal(await next.recoverPendingCapture(), null); assert.equal(f.count(), 1); assert.equal(await next.hasPendingCapture(), false);
+});

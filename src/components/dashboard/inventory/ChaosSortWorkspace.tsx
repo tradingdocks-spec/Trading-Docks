@@ -1008,12 +1008,14 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     if (switchingModeRef.current || intakeMode !== "live") throw new Error("Select Live Scan before starting the scanner.");
     if (!scanner.getWorkstationId) throw new Error("Update the private Scanner Bridge to V2.");
     if (!albumRef.current && itemsRef.current.length) throw new Error("Finish the current Upload/CSV batch before starting a scan album.");
+    const { data: { user } } = await createClient().auth.getUser();
+    if (!user) throw new Error("Sign in again before starting the scanner. Your batch is preserved.");
     const cloud = await createCloudBatch();
     const device = scanner.getDeviceInfo();
     const album = await scanCommand<ScanAlbum>("start", { batchId: cloud.id, destinationId: destinationLocationId, workstationId: await scanner.getWorkstationId(), deviceId: device.id, backend: device.backend });
     albumRef.current = album; setAlbumReady(true);
     setBatch(current => ({ ...current, id: album.id, batchCode: album.batch_code }));
-    return { id: album.id, batchId: album.id, workspaceId: album.workspace_id, destinationId: album.destination_id, workstationId: album.workstation_id, deviceId: album.device_id, limit: 100 };
+    return { id: album.id, userId: user.id, batchId: album.id, workspaceId: album.workspace_id, destinationId: album.destination_id, workstationId: album.workstation_id, deviceId: album.device_id, limit: 100 };
   }
   async function confirmBatchLabel() {
     try { if (albumRef.current) await scanCommand("label", { batchId: batch.id }); setLabelConfirmed(true); }
