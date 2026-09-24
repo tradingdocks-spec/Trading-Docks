@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 import { scannerBridgeOwnerAccess } from "@/lib/chaos-sort/scanner-bridge-access";
+import { privateScannerAcceptance, privateAcceptanceRequestAllowed } from "@/lib/chaos-sort/private-acceptance";
 import { contentSecurityPolicy } from "@/lib/content-security-policy";
 import {
   persistentAuthCookieOptions,
@@ -42,6 +43,10 @@ function redirectWithSessionCookies(
 }
 
 export async function updateSession(request: NextRequest) {
+  const acceptance = privateScannerAcceptance();
+  if (acceptance && !privateAcceptanceRequestAllowed(request.nextUrl.pathname, request.method)) {
+    return NextResponse.json({ error: "Private scanner acceptance: this mutation is disabled." }, { status: 403 });
+  }
   const requestHost =
     request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
     request.headers.get("host")?.split(":")[0]?.trim();
@@ -84,7 +89,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname === "/sign-in" ||
     request.nextUrl.pathname === "/sign-up";
 
-  if (!routeNeedsSessionLookup(request.nextUrl.pathname)) {
+  if (!acceptance && !routeNeedsSessionLookup(request.nextUrl.pathname)) {
     if (request.nextUrl.pathname.startsWith("/share/")) {
       response.headers.set("Cache-Control", "private, no-store, max-age=0");
       response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
@@ -155,6 +160,13 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (acceptance && user && !(await scannerBridgeOwnerAccess(supabase, user))) {
+    return NextResponse.json({ error: "Private owner acceptance only." }, { status: 403 });
+  }
+  if (acceptance && !user && isApiRoute) {
+    return NextResponse.json({ error: "Sign in is required." }, { status: 401 });
+  }
 
   if (!user && isProtectedApiRoute) {
     return NextResponse.json(

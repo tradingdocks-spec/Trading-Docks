@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { requireApiCapability } from "@/lib/platform/server-access";
 import { issueCapturePermit } from "@/lib/chaos-sort/capture-permit";
+import { scannerBridgeOwnerAccess } from "@/lib/chaos-sort/scanner-bridge-access";
+import { privateScannerAcceptance, privateAcceptanceScanAllowed } from "@/lib/chaos-sort/private-acceptance";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +11,9 @@ const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options"
 async function access() {
   const result = await requireApiCapability("collection.write");
   if (!result.ok) return result;
+  if (privateScannerAcceptance() && !(await scannerBridgeOwnerAccess(result.supabase, result.user))) {
+    return { ok: false as const, response: Response.json({ error: "Private owner acceptance only." }, { status: 403 }) };
+  }
   return result;
 }
 export async function GET(request: Request) {
@@ -40,6 +45,7 @@ export async function POST(request: Request) {
       if (!["jpeg", "png", "webp"].includes(metadata.format ?? "")) throw new Error("Invalid image encoding.");
       const normalized = await image.rotate().resize({ width: 2500, height: 2500, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 88 }).toBuffer();
       const payload = { batchId: String(form.get("batchId")), captureId: String(form.get("captureId")), sha256: createHash("sha256").update(normalized).digest("hex") };
+      if (privateScannerAcceptance() && !privateAcceptanceScanAllowed("upload", payload.batchId)) throw new Error("Only the approved acceptance batch can receive a capture.");
       const reserved = await auth.supabase.rpc("chaos_scan_command", { action: "reserve", payload });
       if (reserved.error) throw new Error(reserved.error.message);
       if (reserved.data.status === "RESERVED") {
@@ -55,6 +61,7 @@ export async function POST(request: Request) {
       return Response.json({ captureId: payload.captureId, sourceImageUrl: `/api/chaos-sort/scans?captureId=${payload.captureId}` }, { headers });
     }
     const body = await request.json();
+    if (privateScannerAcceptance() && !privateAcceptanceScanAllowed(body.action, body.payload?.batchId)) throw new Error("Private acceptance cannot create, commit, or modify another batch.");
     if (body.action === "authorize-capture") {
       if (!auth.user) return Response.json({ error: "Sign in before scanning." }, { status: 401, headers });
       const snapshot = await auth.supabase.rpc("chaos_scan_command", { action: "snapshot", payload: { batchId: body.payload?.batchId } });

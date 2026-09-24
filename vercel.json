@@ -1,7 +1,8 @@
 {
   "git": {
     "deploymentEnabled": {
-      "codex/pos-foundation": false
+      "codex/pos-foundation": false,
+      "codex/scanner-agent-phase1": false
     }
   },
   "crons": [

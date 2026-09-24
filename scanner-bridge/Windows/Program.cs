@@ -9,6 +9,8 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         if (args.SequenceEqual(["--install-trust"]))
         {
+            // Safe upgrades retain the workstation's current valid trust anchor.
+            if (LocalState.HasValidTrustedCertificate()) return;
             if (MessageBox.Show("Internal development build — physical scanner certification pending.\n\nTrust this workstation's unique loopback HTTPS certificate for 90 days? It is installed for this Windows user only. Never accept certificates from an unverified installer.", "Trading Docks Scanner Bridge", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes) LocalState.InstallCertificate();
             else Environment.ExitCode = 2;
             return;
