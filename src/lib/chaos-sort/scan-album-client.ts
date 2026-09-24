@@ -1,5 +1,5 @@
 import type { ChaosSortItem } from "./domain";
-export type ScanAlbum = { id: string; workspace_id: string; batch_code: string; destination_id: string; destination_label: string; workstation_id: string; device_id: string; state: string; intake_mode: "live" | "upload" | "csv"; settings: { title?: string; acquisitionCost?: number | null; rules?: import("./domain").ChaosSortRule[] }; settings_revision: number; label_confirmed_at: string | null };
+export type ScanAlbum = { id: string; user_id?: string; workspace_id: string; batch_code: string; destination_id: string; destination_label: string; workstation_id: string; device_id: string; state: string; intake_mode: "live" | "upload" | "csv"; settings: { title?: string; acquisitionCost?: number | null; rules?: import("./domain").ChaosSortRule[] }; settings_revision: number; label_confirmed_at: string | null };
 // Optimistic concurrency tokens are cached, not authoritative review content.
 const revisions = new Map<string, number>();
 export function rememberScanRevisions(captures: Array<{ capture_id: string; revision: number }>) {

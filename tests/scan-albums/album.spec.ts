@@ -1,5 +1,6 @@
 import { test, expect, chromium } from "@playwright/test";
 import { mock, open, pair } from "../helpers/mock-scanner-bridge";
+test.beforeEach(async ({ request }) => { expect((await request.post("/api/reset-fixture")).ok()).toBe(true); });
 test("private scan album: 100 uploads, review, immutable commit, print gate, next batch retains connection", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
   page.on("response", async response => { if (response.url().includes("/api/chaos-sort/scans") && response.status() >= 400) console.log("ALBUM ERROR", await response.text()); });
@@ -23,19 +24,18 @@ test("private scan album: 100 uploads, review, immutable commit, print gate, nex
     await route.fulfill({ response, json: body });
   });
   await open(page); await pair(page);
-  await page.getByRole("button", { name: "Start Live Scanning", exact: true }).click();
+  await page.getByRole("button", { name: "Arm Continuous Capture", exact: true }).click();
   await expect.poll(() => lost, { timeout: 60_000 }).toBe(true);
-  await expect(page.getByRole("button", { name: "Start Live Scanning", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Arm Continuous Capture", exact: true })).toBeEnabled();
   expect(state.captures).toBe(10); expect(state.ack).toBe(9);
   await page.reload();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "10");
-  await expect(page.getByRole("button", { name: "Recover pending capture", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Recover pending capture", exact: true }).click();
+  // Reconnect automatically reconciles the original request; no manual recovery action.
   await expect.poll(() => state.ack).toBe(10);
   expect(state.captures).toBe(10);
-  await page.getByRole("button", { name: "Start Live Scanning", exact: true }).click();
+  await page.getByRole("button", { name: "Arm Continuous Capture", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100", { timeout: 240_000 });
-  await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Arm One Capture", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Resolve 1 Items", exact: true })).toBeEnabled();
   expect(state.captures).toBe(100); expect(state.ack).toBe(100);
   const evidence = await (await page.request.get("/api/evidence")).json();

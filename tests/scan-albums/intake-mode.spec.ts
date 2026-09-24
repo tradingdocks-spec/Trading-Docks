@@ -26,7 +26,7 @@ test("synchronized existing draft switches cloud mode, preserves pairing, destin
   await expect(selector(page, "Add images")).toBeEnabled();
   await select(page, "Live Scan");
   await expect(page.getByRole("combobox", { name: "Installed scanner" })).toHaveValue("opaque-fixture");
-  await expect(selector(page, "Start Live Scanning")).toBeEnabled();
+  await expect(selector(page, "Arm Continuous Capture")).toBeEnabled();
   await page.reload();
   await expect(selector(page, "Live Scan")).toHaveAttribute("aria-pressed", "true");
   // A genuinely separate browser profile reads the same server mode, not localStorage.
@@ -81,7 +81,7 @@ test("staged uploads, active recognition and scanner commands block mode switche
   release();
   await expect(selector(page, "Live Scan")).toBeEnabled({ timeout: 60_000 });
   await select(page, "Live Scan"); await pair(page);
-  await selector(page, "Start Live Scanning").click();
+  await selector(page, "Start Continuous Scan").click();
   await expect(selector(page, "Pause Scanner")).toBeVisible();
   for (const name of ["Live Scan", "Upload Images", "CSV"]) await expect(selector(page, name)).toBeDisabled();
   await selector(page, "Pause Scanner").click();

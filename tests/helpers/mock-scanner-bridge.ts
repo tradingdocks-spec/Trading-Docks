@@ -4,6 +4,7 @@ const validImage = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPo
 export async function mock(page: Page) {
   page.on("console", m => { if (m.type() === "error") console.log("BROWSER:", m.text()); });
   page.on("requestfailed", r => console.log("REQUEST:", r.url(), r.failure()?.errorText));
+  const cancelledIds = new Set<string>();
   const state = { captures: 0, ack: 0, version: 1, offline: false, missing: false, fail: "", cancelled: 0, hold: false, external: false };
   let key: ReturnType<typeof createPublicKey>, challenge: string;
   const ids = new Map<string, string>(), nonces = new Set<string>(), acknowledged = new Set<string>();
@@ -25,8 +26,8 @@ export async function mock(page: Page) {
     if (path === "/v1/devices") return reply({ devices: state.missing ? [] : [{ id: "opaque-fixture", displayName: state.external ? "ScanSnap iX500 (mock)" : "Mock WIA scanner", manufacturer: "Fixture", model: "Protocol simulator", connection: "USB (simulated)", backend: state.external ? "SCANSNAP" : "WIA mock", capabilities: { dpi: state.external ? [300] : [300, 600], sources: state.external ? ["feeder"] : ["flatbed", "feeder"], colorModes: ["color"], duplex: false, autoCrop: false, externalSettings: state.external, captureInstruction: state.external ? "Waiting for ScanSnap: place card in feeder and press Scan on the iX500. Save to the exact capture destination shown in the local bridge window." : undefined } }] });
     if (path === "/v1/capture") { if (!ids.has(data.requestId)) { ids.set(data.requestId, crypto.randomUUID()); state.captures++; } return reply({ captureId: ids.get(data.requestId) }); }
     if (path.endsWith("/ack")) { if (!acknowledged.has(path)) { state.ack++; acknowledged.add(path); } return reply({ ok: true }); }
-    if (path.endsWith("/cancel")) { state.cancelled++; return reply({ ok: true }); }
-    if (path.startsWith("/v1/capture/")) return reply(state.fail ? { status: "failed", error: state.fail } : state.hold ? { status: "capturing" } : { status: "ready", image: validImage, mimeType: "image/png", width: 1, height: 1 });
+    if (path.endsWith("/cancel")) { if (state.hold) cancelledIds.add(path.split("/")[3]); state.cancelled++; return reply({ ok: true }); }
+    if (path.startsWith("/v1/capture/")) return reply(cancelledIds.has(path.split("/")[3]) ? { status: "cancelled", error: "CAPTURE_CANCELLED" } : state.fail ? { status: "failed", error: state.fail } : state.hold ? { status: "capturing" } : { status: "ready", image: validImage, mimeType: "image/png", width: 1, height: 1 });
     return reply({ ok: true });
   });
   return state;

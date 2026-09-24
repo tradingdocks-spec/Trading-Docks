@@ -4,6 +4,7 @@ import { join } from 'node:path';
 export function albumFixture({put,copy,sql,container,database,owner,root}) {
   sql(`update public.user_preferences set active_workspace_id=(select workspace_id from public.workspace_members where user_id='${owner}' limit 1) where user_id='${owner}';`);
   copy('src/app/api/chaos-sort/scans/route.ts');
+  copy('src/lib/chaos-sort/capture-permit.ts');
   put('src/lib/chaos-sort/scanner-bridge-access.ts','export async function scannerBridgeOwnerAccess(){return true}');
   put('src/app/page.tsx',`import {ChaosSortWorkspace} from '@/components/dashboard/inventory/ChaosSortWorkspace';export default function Page(){return <ChaosSortWorkspace scannerBridgeEnabled={${process.env.NEXT_PUBLIC_SCANNER_BRIDGE_V1 === "1"}} scanAlbumsEnabled/>}`);
   put('src/lib/platform/server-access.ts',String.raw`
