@@ -50,6 +50,7 @@ test("private scan album: 100 uploads, review, immutable commit, print gate, nex
   await page.getByRole("button", { name: "Resolve 1 Items", exact: true }).click(); await page.getByRole("button", { name: "Confirm", exact: true }).filter({ visible: true }).click();
   await page.getByRole("button", { name: "Commit 100 Cards to Inventory", exact: true }).click();
   await expect(page.getByRole("heading", { name: "100 cards added", exact: true })).toBeVisible({ timeout: 60_000 });
+  for (const name of ["Live Scan", "Upload Images", "CSV"]) await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Print Batch Label", exact: true })).toHaveAttribute("href", `/dashboard/inventory/chaos-sort/labels/${id}/print`);
   await expect(page.getByRole("button", { name: "Start Next 100", exact: true })).toHaveCount(0);
   const closed = await page.request.post("/api/chaos-sort/scans", { data: { action: "review", payload: { batchId: id, captureId: album.captures[0].capture_id, item: album.captures[0].item } } }); expect(closed.status()).toBe(409);

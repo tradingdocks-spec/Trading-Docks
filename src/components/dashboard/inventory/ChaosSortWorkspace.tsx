@@ -174,6 +174,8 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const [committedBatchId, setCommittedBatchId] = useState<string | null>(null);
   const [labelConfirmed, setLabelConfirmed] = useState(false);
   const [intakeMode, setIntakeMode] = useState<"live" | "upload" | "csv">("upload");
+  const [switchingMode, setSwitchingMode] = useState(false);
+  const switchingModeRef = useRef(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scannerBusy, setScannerBusy] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
@@ -359,7 +361,27 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const physicalCount = items.length + stagedFiles.length;
   const unresolved = unresolvedLiveItems(items);
   const batchProgress = getChaosSortBatchProgress(physicalCount, targetBatchSize);
-  const locked = batch.status === "committed" || saving;
+  const locked = batch.status === "committed" || saving || switchingMode;
+  const modeSwitchBlocked = locked || cloudLoading || cloudSavePending || scannerBusy || staging || stagedFiles.length > 0 || loadingItems > 0 || queueCounts.processing > 0;
+
+  async function changeIntakeMode(mode: ScanAlbum["intake_mode"]) {
+    if (modeSwitchBlocked || switchingModeRef.current || closedRef.current || committingRef.current || intakePendingRef.current || activeRecognitionJobsRef.current.size) return;
+    const album = albumRef.current;
+    if (!album) { setIntakeMode(mode); return; } // Creation preference only; no cloud draft yet.
+    if (album.state !== "ACTIVE" || album.intake_mode === mode) return;
+    switchingModeRef.current = true;
+    setSwitchingMode(true); setError("");
+    try {
+      const result = await scanCommand<{ intake_mode: ScanAlbum["intake_mode"] }>("mode", {
+        batchId: album.id, intakeMode: mode, expectedMode: album.intake_mode,
+      });
+      // Retain the album object, destination, settings revision and mounted scanner.
+      album.intake_mode = result.intake_mode;
+      setIntakeMode(result.intake_mode);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Intake mode could not be saved. Retry or reload the cloud draft.");
+    } finally { switchingModeRef.current = false; setSwitchingMode(false); }
+  }
 
   const planById = useMemo(() => new Map(plan.items.map((entry) => [entry.itemId, entry])), [plan.items]);
   const selectedItem = items.find((item) => item.id === selectedItemId) ?? items[0] ?? null;
@@ -443,8 +465,8 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   }, [cloudLoading, destinationLocationId, intakeMode, loadHistory]);
 
   const stageFiles = useCallback(async (incomingFiles: FileList | File[]) => {
-    if (!albumRef.current || cloudLoading) { setError("Create or resume a cloud batch before selecting cards."); return; }
-    if (closedRef.current || committingRef.current || scannerBusy || staging || loadingItems || intakePendingRef.current) return;
+    if (!albumRef.current || cloudLoading || albumRef.current.intake_mode !== "upload") { setError("Select Upload Images on a cloud batch before selecting images."); return; }
+    if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || staging || loadingItems || intakePendingRef.current) return;
     const incoming = Array.from(incomingFiles);
     const valid = incoming.filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
     const invalidCount = incoming.length - valid.length;
@@ -644,7 +666,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
   const importCsv = useCallback(async (file: File) => {
     if (!albumRef.current || albumRef.current.intake_mode !== "csv" || cloudLoading) { setError("Create or resume a cloud CSV batch first."); return; }
-    if (closedRef.current || committingRef.current || scannerBusy || intakePendingRef.current) return;
+    if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || intakePendingRef.current) return;
     intakePendingRef.current += 1;
     setStaging(true);
     setError("");
@@ -749,7 +771,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   }, [batch.id, destinationLocationId, locations, scannerBusy, stagedFiles.length, setItems, cloudLoading]);
 
   const startBatch = useCallback(() => {
-    if (closedRef.current || committingRef.current || loadingItems || staging || scannerBusy) return;
+    if (closedRef.current || committingRef.current || switchingModeRef.current || loadingItems || staging || scannerBusy) return;
     const pending = stagedFiles;
     setStagedFiles([]);
     void processFiles(pending).catch(caught => { setError(caught instanceof Error ? caught.message : "Image intake failed."); setStagedFiles(pending); });
@@ -772,7 +794,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   }, [stagedFiles, removeStagedFile]);
 
   const retryRecognition = useCallback(async (retryItems: ChaosSortItem[]) => {
-    if (closedRef.current || committingRef.current || scannerBusy || loadingItems || staging) return;
+    if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || loadingItems || staging) return;
     const candidates = retryItems.filter((item) => item.processingState === "failed" && item.sourceImageUrl);
     const staged = await Promise.all(candidates.map(async (item) => {
       const blob = await fetch(item.sourceImageUrl as string).then((response) => response.blob());
@@ -873,7 +895,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
   const commitBatch = useCallback(async () => {
     if (!albumRef.current || cloudLoading) { setError("Cloud batch required before commit."); return; }
-    if (closedRef.current || committingRef.current || scannerBusy || loadingItems || staging || stagedFiles.length || intakePendingRef.current) return;
+    if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || loadingItems || staging || stagedFiles.length || intakePendingRef.current) return;
     if (!destinationLocationId || !physicalCardCount(itemsRef.current) || unresolvedLiveItems(itemsRef.current).length) {
       setError("Resolve every card before committing the batch.");
       return;
@@ -965,7 +987,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   }, [removeItem, selectedItemIds]);
 
   async function ingestCapture(file: File, captureId: string, replaceId?: string) {
-    if (closedRef.current || committingRef.current) throw new Error("This batch is read only.");
+    if (closedRef.current || committingRef.current || switchingModeRef.current) throw new Error("This batch is read only.");
     if (albumRef.current) {
       const received = itemsRef.current.find(item => item.captureId === captureId);
       if (received) { await saveScanReview(batch.id, [received]); return; }
@@ -983,6 +1005,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     finally { intakePendingRef.current -= 1; }
   }
   async function startAlbum(scanner: ScannerProvider): Promise<ScannerSession> {
+    if (switchingModeRef.current || intakeMode !== "live") throw new Error("Select Live Scan before starting the scanner.");
     if (!scanner.getWorkstationId) throw new Error("Update the private Scanner Bridge to V2.");
     if (!albumRef.current && itemsRef.current.length) throw new Error("Finish the current Upload/CSV batch before starting a scan album.");
     const cloud = await createCloudBatch();
@@ -1001,7 +1024,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   function assignDestination(id: string) {
-    if (closedRef.current || committingRef.current || scannerBusy || staging || albumRef.current) return;
+    if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || staging || albumRef.current) return;
     const previous = destinationLocationId;
     setDestinationLocationId(id);
     setItems(current => current.map(item => !item.destinationLocationId || item.destinationLocationId === previous
@@ -1074,7 +1097,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
             </div>
           ) : <p className="mt-4 rounded-xl border border-dashed border-td-ink/10 px-3 py-5 text-center text-sm text-td-muted">No committed batches yet.</p>}</div>
         </section>
-        <p role="status" className="text-sm text-td-text-muted">{cloudSavePending ? "Saving cloud changes — keep this page open." : albumReady ? "Cloud draft synchronized." : ""}</p>
+        <p role="status" className="text-sm text-td-text-muted">{switchingMode ? "Saving intake mode..." : cloudSavePending ? "Saving cloud changes — keep this page open." : albumReady ? "Cloud draft synchronized." : ""}</p>
         {loadingInventory && !items.length ? (
           <TDLoadingState title="Loading inventory context" message="Fetching storage locations and owned inventory for canonical matching." />
         ) : null}
@@ -1084,7 +1107,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
             <div>
               <p className="text-[11px] font-black uppercase tracking-[.14em] text-td-accent-text">Active batch</p>
               <h2 className="mt-1 text-xl font-semibold text-td-primary">Batch {batch.batchCode}</h2>
-              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Intake mode">{([['live', 'Live Scan'], ['upload', 'Upload Images'], ['csv', 'CSV']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={intakeMode === mode} disabled={albumReady || scannerBusy || staging || loadingItems > 0} onClick={() => setIntakeMode(mode)} className={cn("rounded-lg border px-4 py-2 text-sm", intakeMode === mode && "bg-td-accent/15 border-td-accent")}>{label}</button>)}</div>
+              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Intake mode">{([['live', 'Live Scan'], ['upload', 'Upload Images'], ['csv', 'CSV']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={intakeMode === mode} disabled={modeSwitchBlocked} onClick={() => void changeIntakeMode(mode)} className={cn("rounded-lg border px-4 py-2 text-sm", intakeMode === mode && "bg-td-accent/15 border-td-accent")}>{label}</button>)}</div>
             </div>
             <div className="text-right">
               <p className="text-lg font-semibold tabular-nums text-td-primary">{physicalCount} / 100 cards</p>
@@ -1121,7 +1144,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                 >
                   Add images
                 </TDButton>
-                <TDButton variant="secondary" size="sm" disabled={!albumReady || intakeMode !== "csv" || scannerBusy || staging || loadingItems > 0} icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => { setIntakeMode("csv"); csvInputRef.current?.click(); }}>
+                <TDButton variant="secondary" size="sm" disabled={!albumReady || intakeMode !== "csv" || scannerBusy || staging || loadingItems > 0} icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => { csvInputRef.current?.click(); }}>
                   Add CSV
                 </TDButton>
                 <TDButton
@@ -1175,14 +1198,14 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
             <div hidden={intakeMode !== "live"}>
               <label className="flex items-center gap-2 text-sm mb-3"><input type="checkbox" checked={autoConfirm} onChange={event => { setAutoConfirm(event.target.checked); autoConfirmRef.current = event.target.checked; }} />Auto-confirm high confidence scans (unambiguous printing only)</label>
-              <LiveScanStation intakeFull={intakeFull} onStartSession={scanAlbumsEnabled ? startAlbum : undefined} resumeNextBatch={scanAlbumsEnabled && labelConfirmed === false} scannerBridgeEnabled={scannerBridgeEnabled} isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={cloudLoading ? "Loading cloud draft." : staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => { if (!albumRef.current) setIntakeMode("upload"); else setError("Finish the current cloud batch before switching intake modes."); }} onConfigured={() => { if (!albumRef.current) setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
+              <LiveScanStation intakeFull={intakeFull} onStartSession={scanAlbumsEnabled ? startAlbum : undefined} resumeNextBatch={scanAlbumsEnabled && labelConfirmed === false} scannerBridgeEnabled={scannerBridgeEnabled} isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={cloudLoading ? "Loading cloud draft." : staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => void changeIntakeMode("upload")} onConfigured={() => { if (!albumRef.current) setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
             </div>
             <div
               hidden={intakeMode === "live"}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
-                if (closedRef.current || committingRef.current || scannerBusy || staging || loadingItems) return;
+                if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || staging || loadingItems) return;
                 const files = Array.from(event.dataTransfer.files);
                 const csv = files.find((file) => file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv");
                 const images = files.filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
