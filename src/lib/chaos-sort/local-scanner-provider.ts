@@ -199,7 +199,7 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
       while (Date.now() < deadline) {
         if (this.cancelled) { await this.call(`/v1/capture/${started.captureId}/cancel`, {}); throw new Error("Capture cancelled; batch retained."); }
         const result = await this.call<{ status: string; error?: string; image?: string; mimeType: string; width: number; height: number }>(this.captureAuthorization ? `/v2/capture/${started.captureId}/read` : `/v1/capture/${started.captureId}`, this.captureAuthorization ? { authorization: this.capturePermit } : undefined);
-        if (this.cancelled) { await this.call(`/v1/capture/${started.captureId}/cancel`, {}); this.pendingRequest = undefined; throw new Error("Capture cancelled; batch retained."); }
+        if (this.cancelled) { await this.call(`/v1/capture/${started.captureId}/cancel`, {}); throw new Error("Capture cancelled; batch retained."); }
         if (result.status === "ready") {
           if (!result.image || result.image.length > 12_000_000 || !["image/jpeg", "image/png"].includes(result.mimeType) || result.width > 3000 || result.height > 3000) throw new ScannerBridgeError("IMAGE_LIMIT_EXCEEDED");
           const bytes = Uint8Array.from(atob(result.image), ch => ch.charCodeAt(0));
@@ -216,7 +216,17 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
       }
       this.cancelCapture(); throw new ScannerBridgeError("CAPTURE_FAILED");
     } catch (error) {
-      if (this.cancelled || error instanceof ScannerBridgeError && error.code === "CAPTURE_REQUEST_EXPIRED") this.pendingRequest = undefined;
+      if (this.cancelled && this.activeCapture) {
+        // Cancellation can race a durable image. Only forget a confirmed terminal
+        // cancellation; ready/interrupted/unknown requests must remain recoverable.
+        try {
+          const result = await this.call<{ status: string }>(this.captureAuthorization ? `/v2/capture/${this.activeCapture}/read` : `/v1/capture/${this.activeCapture}`, this.captureAuthorization ? { authorization: this.capturePermit } : undefined);
+          if (result.status === "cancelled") {
+            this.pendingRequest = undefined;
+            if (this.credential) { this.credential.pendingRequest = undefined; await this.storage.set(this.credential); }
+          }
+        } catch { /* Retain the request when cancellation cannot be confirmed. */ }
+      }
       throw error;
     } finally { this.activeCapture = undefined; if (this.status === "capturing") this.status = "ready"; signal?.removeEventListener("abort", abort); }
   }
