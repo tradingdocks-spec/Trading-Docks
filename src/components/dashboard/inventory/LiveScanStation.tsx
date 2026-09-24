@@ -31,6 +31,10 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   const [message, setMessage] = useState("");
   const [recoveryRequired, setRecoveryRequired] = useState(false);
   const recoveryRunning = useRef(false);
+  // Connection heartbeats must not retry a failed recovery. Only an explicit
+  // user action may retry it; successful recovery/discard releases this latch.
+  const recoveryNeedsDecision = useRef(false);
+  const inspectingRecovery = useRef(false);
   const [physicalButton, setPhysicalButton] = useState(false);
   const [scenario, setScenario] = useState<ScannerConfiguration["scenario"]>("success");
   const [fixtureCount, setFixtureCount] = useState(0);
@@ -70,8 +74,9 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   function pause() { running.current = false; provider.current?.cancelCapture(); setMessage("Paused. Recognition already in progress may finish."); }
   async function recover() {
     const scanner = provider.current;
-    if (!scanner?.recoverPendingCapture || !onStartSession || busy || locked || blockedReason || recoveryRunning.current) return;
+    if (!scanner?.recoverPendingCapture || !onStartSession || busy || running.current || locked || blockedReason || recoveryRunning.current) return;
     recoveryRunning.current = true;
+    recoveryNeedsDecision.current = true;
     setBusy(true); callbacks.current.onBusy(true);
     try {
       await scanner.startSession?.(await onStartSession(scanner));
@@ -84,24 +89,26 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         await scanner.acknowledge?.(pending.captureId);
       }
       setRecoveryRequired(false);
+      recoveryNeedsDecision.current = false;
       setMessage(pending?.preview ? "Test preview recovered. No card added to the batch." : pending ? "Card received. Unfinished scan restored to its original batch." : "Recovery complete. Cloud receipt confirmed.");
     } catch (error) { setRecoveryRequired(true); setMessage(error instanceof Error ? error.message : "We found an unfinished scan. Resume to retry; the image is retained."); }
-    finally { recoveryRunning.current = false; await scanner.pauseSession?.().catch(() => { setMessage(previous => `${previous} Scanner pause could not be confirmed; stop pressing Scan until the agent reconnects.`); }); setBusy(false); callbacks.current.onBusy(false); }
+    finally { await scanner.pauseSession?.().catch(() => { setMessage(previous => `${previous} Scanner pause could not be confirmed; stop pressing Scan until the agent reconnects.`); }); recoveryRunning.current = false; setBusy(false); callbacks.current.onBusy(false); }
   }
   async function discardRecovery() {
     const scanner = provider.current;
-    if (!scanner?.discardPendingCapture || !onStartSession || busy || locked || blockedReason) return;
+    if (!scanner?.discardPendingCapture || !onStartSession || busy || running.current || recoveryRunning.current || locked || blockedReason) return;
     if (!window.confirm(`Discard the unfinished local scan for this batch (${batchId})? Existing cloud captures and inventory will remain unchanged.`)) return;
+    recoveryRunning.current = true;
     setBusy(true); callbacks.current.onBusy(true);
     try {
       await scanner.startSession?.(await onStartSession(scanner));
-      await scanner.discardPendingCapture(); setRecoveryRequired(false); setMessage("Local scan discarded. Existing cloud records remain unchanged.");
+      await scanner.discardPendingCapture(); recoveryNeedsDecision.current = false; setRecoveryRequired(false); setMessage("Local scan discarded. Existing cloud records remain unchanged.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Discard failed. Scan retained."); }
-    finally { setBusy(false); callbacks.current.onBusy(false); }
+    finally { recoveryRunning.current = false; setBusy(false); callbacks.current.onBusy(false); }
   }
   async function capture(continuous: boolean, replaceId?: string, testOnly = false) {
     const scanner = provider.current;
-    if (!scanner || running.current || busy || locked || (!testOnly && blockedReason) || (!replaceId && !testOnly && (count >= 100 || intakeFull))) return;
+    if (!scanner || running.current || recoveryRunning.current || recoveryNeedsDecision.current || recoveryRequired || busy || locked || (!testOnly && blockedReason) || (!replaceId && !testOnly && (count >= 100 || intakeFull))) return;
     running.current = true; setBusy(true); callbacks.current.onBusy(true); setMessage("");
     if (!testOnly) { if (testImageRef.current) URL.revokeObjectURL(testImageRef.current); testImageRef.current = null; setTestImage(null); }
     let accepted = count;
@@ -136,9 +143,18 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     } catch (error) {
       if (mounted.current) { setMessage(error instanceof Error ? error.message : "Capture failed."); setConnected(scanner.getStatus() !== "disconnected"); }
     } finally {
-      setCapturing(false); running.current = false;
+      setCapturing(false);
       await Promise.allSettled([...jobs.current]);
       if (onStartSession) await scanner.pauseSession?.().catch(() => { if (mounted.current) setMessage(previous => `${previous} Scanner pause could not be confirmed; stop pressing Scan until the agent reconnects.`); });
+      try {
+        const pending = await scanner.hasPendingCapture?.();
+        recoveryNeedsDecision.current = Boolean(pending);
+        if (mounted.current) setRecoveryRequired(Boolean(pending));
+      } catch {
+        recoveryNeedsDecision.current = true;
+        if (mounted.current) { setRecoveryRequired(true); setMessage("Could not check unfinished scans. Resume recovery before scanning again."); }
+      }
+      running.current = false;
       if (mounted.current) { setBusy(false); callbacks.current.onBusy(false); }
     }
   }
@@ -148,14 +164,19 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
       <div className="flex flex-wrap gap-2">
         {source === "emulator" && <><TDButton size="sm" variant="secondary" onClick={connect} disabled={busy || process.env.NODE_ENV === "production"}>{connected ? "Reconnect" : "Connect Scanner"}</TDButton>
         <TDButton size="sm" variant="secondary" icon={<Settings2 size={15} />} onClick={() => setSettings(value => !value)} disabled={busy}>Scanner Settings</TDButton></>}
-        <TDButton size="sm" variant="secondary" onClick={() => void capture(false, undefined, true)} disabled={!connected || busy || locked || Boolean(blockedReason)}>Test Scan</TDButton>
+        <TDButton size="sm" variant="secondary" onClick={() => void capture(false, undefined, true)} disabled={!connected || busy || recoveryRequired || locked || Boolean(blockedReason)}>Test Scan</TDButton>
         {recoveryRequired && <><p>We found an unfinished scan for batch {batchId}.</p><TDButton size="sm" variant="secondary" onClick={() => void recover()} disabled={!connected || busy || locked}>Resume unfinished scan</TDButton><TDButton size="sm" variant="ghost" onClick={() => void discardRecovery()} disabled={!connected || busy || locked}>Discard local attempt</TDButton></>}
         {connected && source === "emulator" && <TDButton size="sm" variant="ghost" disabled={busy} onClick={async () => { await provider.current?.disconnect(); setConnected(false); setMessage("Scanner disconnected. Batch stays intact."); }}>Disconnect</TDButton>}
       </div>
     </div>
     {bridgeEnabled && process.env.NODE_ENV !== "production" && <label>Capture provider<select aria-label="Capture provider" value={source} disabled={busy} onChange={async e => { await provider.current?.disconnect(); provider.current = null; setConnected(false); setSource(e.target.value); }}><option value="bridge">Windows Scanner Bridge</option><option value="emulator">Development emulator</option></select></label>}
     {bridgeEnabled && source === "bridge" && <ScannerBridgeControls active={isActive} disabled={busy || locked} onReady={scanner => { provider.current = scanner; setConnected(true); setDeviceName(scanner.getDeviceInfo().name); setPhysicalButton(scanner.getDeviceInfo().backend === "SCANSNAP"); onConfigured();
-      void scanner.hasPendingCapture().then(pending => { if (pending && mounted.current) void recover(); }).catch(error => { setRecoveryRequired(true); setMessage(error instanceof Error ? error.message : "Could not inspect unfinished scans."); }); }} onUnavailable={() => { setConnected(false); }} />}
+      if (busy || running.current || recoveryRunning.current || inspectingRecovery.current || recoveryNeedsDecision.current) return;
+      inspectingRecovery.current = true;
+      void scanner.hasPendingCapture().then(async pending => {
+        if (!mounted.current || provider.current !== scanner || running.current || recoveryRunning.current || recoveryNeedsDecision.current) return;
+        if (pending) { setRecoveryRequired(true); await recover(); }
+      }).catch(error => { recoveryNeedsDecision.current = true; setRecoveryRequired(true); setMessage(error instanceof Error ? error.message : "Could not inspect unfinished scans."); }).finally(() => { inspectingRecovery.current = false; }); }} onUnavailable={() => { setConnected(false); }} />}
     {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Use Upload Instead</button></p>}
     {source === "emulator" && settings && <div className="rounded-xl border p-3 space-y-3 text-sm">
       <p>A reviewed physical provider is required for hardware. Development simulation uses image fixtures, not a connected scanner.</p>
@@ -175,12 +196,12 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
       </div>
       <div className="space-y-3">
         <p className="text-3xl font-bold tabular-nums">{count} / 100 <span className="text-sm font-normal">physical cards</span></p>
-        <p role="status">{capturing ? "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Ready")}</p>
+        <p role="status">{capturing ? physicalButton ? "Waiting for ScanSnap — place one card in the feeder and press the physical Scan button." : "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : recoveryRequired ? "Unfinished scan — resume or discard before scanning again." : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Ready")}</p>
         {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% confidence · {liveScanStatus(latest)}</p></div>}
         <div className="flex flex-wrap gap-2">
-          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (Boolean(blockedReason) || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? physicalButton ? "Arm Continuous Capture" : "Start Continuous Scan" : "Resume Scanner"}</TDButton>
+          <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (recoveryRequired || Boolean(blockedReason) || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? physicalButton ? "Arm Continuous Capture" : "Start Continuous Scan" : "Resume Scanner"}</TDButton>
           {busy && source === "bridge" && <TDButton size="sm" variant="secondary" onClick={pause}>Cancel Current Scan</TDButton>}
-          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || Boolean(blockedReason) || busy || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount}>{physicalButton ? "Arm One Capture" : "Scan One"}</TDButton>
+          <TDButton size="sm" variant="secondary" onClick={() => void capture(false)} disabled={locked || recoveryRequired || Boolean(blockedReason) || busy || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount}>{physicalButton ? "Arm One Capture" : "Scan One"}</TDButton>
           {latest && <><TDButton size="sm" variant="secondary" disabled={locked} onClick={() => onReview(latest.id)}>Correct / Review latest</TDButton>{!onStartSession && <TDButton size="sm" variant="secondary" disabled={locked || Boolean(blockedReason) || busy || !connected || latest.processingState === "processing"} onClick={() => void capture(false, latest.id)}>Rescan</TDButton>}<TDButton size="sm" variant="ghost" disabled={locked || busy} onClick={() => onRemove(latest.id)}>Remove latest</TDButton></>}
         </div>
         {message && <p role="status" className="text-sm">{message}</p>}
