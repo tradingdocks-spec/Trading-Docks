@@ -1,9 +1,10 @@
 /** Image acquisition only. Providers never recognize cards or write inventory. */
 export type ScannerStatus = "disconnected" | "ready" | "capturing" | "jammed" | "error";
-export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean; externalSettings?: boolean; captureInstruction?: string };
+export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean; externalSettings?: boolean; captureInstruction?: string; setupRequired?: boolean };
 export type ScanSettings = { dpi: number; colorMode: string; source: string; duplex: boolean; autoCrop: boolean };
 export type ScannerDevice = { id: string; name: string; simulated: boolean; manufacturer?: string; model?: string; connection?: string; backend?: string; scanCapabilities?: ScanCapabilities };
 export type ScannerCapture = { captureId: string; file: File };
+export type ScannerSession = { id: string; workspaceId: string; batchId: string; destinationId: string; workstationId: string; deviceId: string; limit: 100 };
 export type ScannerConfiguration = { delayMs?: number; scenario?: "success" | "failure" | "jam" | "duplicate" | "disconnect" | "slow"; fixtures?: File[]; settings?: ScanSettings };
 export interface ScannerProvider {
   readonly capabilities: { detect: boolean; capture: boolean; cancelCapture: boolean; configure: boolean };
@@ -15,6 +16,11 @@ export interface ScannerProvider {
   capture(signal?: AbortSignal): Promise<ScannerCapture>;
   cancelCapture(): void;
   configure(configuration: ScannerConfiguration): void;
+  getWorkstationId?(): Promise<string>;
+  startSession?(session: ScannerSession): Promise<void>;
+  pauseSession?(): Promise<void>;
+  acknowledge?(captureId: string): Promise<void>;
+  recoverPendingCapture?(): Promise<{ captureId: string; file: File } | null>;
 }
 
 /** Development only. No device discovery, local network access or vendor SDK. */
@@ -24,7 +30,11 @@ export class EmulatorScannerProvider implements ScannerProvider {
   private configuration: ScannerConfiguration = { delayMs: 80, scenario: "success" };
   private sequence = 0;
   private cancel: AbortController | null = null;
-  getDeviceInfo(): ScannerDevice { return { id: "development-emulator", name: "Simulated scanner — not hardware", simulated: true }; }
+  getDeviceInfo(): ScannerDevice { return { id: "development-emulator", name: "Simulated scanner — not hardware", simulated: true, backend: "EMULATOR" }; }
+  async getWorkstationId() { return "development-emulator"; }
+  async startSession() { /* Cloud allocates slots; emulator only acquires fixtures. */ }
+  async pauseSession() { this.cancelCapture(); }
+  async acknowledge() { /* No durable device inbox in this development provider. */ }
   async detect() { return [this.getDeviceInfo()]; }
   async connect() { this.status = "ready"; }
   async disconnect() { this.cancelCapture(); this.status = "disconnected"; }
@@ -56,7 +66,7 @@ export class EmulatorScannerProvider implements ScannerProvider {
       if (this.configuration.scenario === "failure") throw new Error("Scan failed. Retry or scan again; batch retained.");
       const index = this.configuration.scenario === "duplicate" ? 0 : this.sequence % fixtures.length;
       this.sequence += 1;
-      return { captureId: `emulator-${this.sequence}`, file: fixtures[index] };
+      return { captureId: crypto.randomUUID(), file: fixtures[index] };
     } finally {
       signal?.removeEventListener("abort", abort);
       this.cancel = null;

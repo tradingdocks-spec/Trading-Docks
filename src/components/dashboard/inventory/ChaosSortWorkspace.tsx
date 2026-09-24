@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,6 +25,8 @@ import { TDButton, TDCard, TDBadge, TDInput, TDLoadingState, TDText } from "@/co
 import { PageHeader } from "@/components/dashboard/common/PageHeader";
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
 import { LiveScanStation } from "./LiveScanStation";
+import { scanCommand, storeScan, saveScanReview, recoveredScanItem, rememberScanRevisions, type ScanAlbum } from "@/lib/chaos-sort/scan-album-client";
+import type { ScannerProvider, ScannerSession } from "@/lib/chaos-sort/scanner-provider";
 import { RecognitionPool, physicalCardCount, unresolvedLiveItems, liveScanStatus, assertIntakeRoom } from "@/lib/chaos-sort/live-intake";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -32,7 +35,6 @@ import {
   buildChaosSortPlan,
   buildDefaultChaosSortRules,
   classifyChaosSortRecognition,
-  createChaosSortBatchCode,
   getChaosSortBatchProgress,
   makeChaosSortFileHash,
   summarizeChaosSortBatch,
@@ -79,9 +81,11 @@ type BatchHistoryRow = {
   initial_quantity: number;
   destination_label: string | null;
   created_at: string;
+  completed_at?: string | null;
+  created_by?: string;
+  reconciled?: boolean;
 };
 
-const BATCH_SEQUENCE_KEY = "td-chaos-sort-batch-sequence";
 
 function money(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "n/a";
@@ -107,11 +111,11 @@ function selectionNumber(value: number | null | undefined) {
   return value === null || value === undefined || Number.isNaN(value) ? "" : String(value);
 }
 
-function chaosSortBatchFromSequence(sequence: number): ChaosSortBatch {
+function emptyBatch(): ChaosSortBatch {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
-    batchCode: createChaosSortBatchCode(sequence),
+    id: "",
+    batchCode: "Choose destination to create a cloud batch",
     title: "Scanner intake batch",
     status: "draft",
     sourceCount: 0,
@@ -131,9 +135,19 @@ function chaosSortBatchFromSequence(sequence: number): ChaosSortBatch {
   };
 }
 
-export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnabled?: boolean } = {}) {
-  const [sequence, setSequence] = useState(1);
-  const [batch, setBatch] = useState<ChaosSortBatch>(() => chaosSortBatchFromSequence(1));
+export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnabled?: boolean; scanAlbumsEnabled?: boolean } = {}) {
+  const scanAlbumsEnabled = true;
+  const [cloudLoading, setCloudLoading] = useState(true);
+  const [historyMore, setHistoryMore] = useState(false);
+  const creationKey = useRef<string | null>(null);
+  const albumRef = useRef<ScanAlbum | null>(null);
+  const [albumReady, setAlbumReady] = useState(false);
+  const [albumView, setAlbumView] = useState<Array<{ capture_id: string; source_kind: string; status: string; item: ChaosSortItem | null }> | null>(null);
+  const [intakeFull, setIntakeFull] = useState(false);
+  const fullRef = useRef(false);
+  const reservedCapturesRef = useRef(new Set<string>());
+  const savedReviewsRef = useRef(new Map<string, string>());
+  const [batch, setBatch] = useState<ChaosSortBatch>(emptyBatch);
   const [items, setItemsState] = useState<ChaosSortItem[]>([]);
   const [stagedFiles, setStagedFiles] = useState<StagedScan[]>([]);
   const [staging, setStaging] = useState(false);
@@ -158,6 +172,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const [targetBatchSize] = useState(100);
   const [locationQrValue, setLocationQrValue] = useState("");
   const [committedBatchId, setCommittedBatchId] = useState<string | null>(null);
+  const [labelConfirmed, setLabelConfirmed] = useState(false);
   const [intakeMode, setIntakeMode] = useState<"live" | "upload" | "csv">("upload");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scannerBusy, setScannerBusy] = useState(false);
@@ -199,12 +214,83 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     inventoryRef.current = inventoryRows;
   }, [inventoryRows]);
 
-  useEffect(() => {
-    const stored = Number(window.localStorage.getItem(BATCH_SEQUENCE_KEY) ?? "1");
-    const next = Number.isFinite(stored) && stored > 0 ? stored : 1;
-    setSequence(next);
-    setBatch(chaosSortBatchFromSequence(next));
+  const [cloudSavePending, setCloudSavePending] = useState(false);
+  const settingsQueue = useRef<Promise<void>>(Promise.resolve());
+  const savedSettings = useRef("");
+  const saveSettings = useCallback(() => {
+    const album = albumRef.current;
+    if (!album || closedRef.current) return Promise.resolve();
+    const settings = { title, acquisitionCost: acquisitionCost.trim() ? Number(acquisitionCost) : null, rules };
+    const serialized = JSON.stringify(settings);
+    const task = settingsQueue.current.catch(() => {}).then(async () => {
+      if (savedSettings.current === serialized) return;
+      const result = await scanCommand<{ revision: number }>("settings", { batchId: album.id, settings, revision: album.settings_revision });
+      album.settings_revision = result.revision;
+      savedSettings.current = serialized;
+    });
+    settingsQueue.current = task;
+    return task;
+  }, [title, acquisitionCost, rules]);
+
+  const recoverCloud = useCallback(async () => {
+    setCloudLoading(true);
+    try {
+      const response = await fetch("/api/chaos-sort/scans", { cache: "no-store" });
+      if (!response.ok) throw new Error("Cloud draft could not be loaded. Retry before scanning.");
+      const { album, captures } = await response.json() as { album: ScanAlbum | null; captures: Array<{ capture_id: string; revision: number; source_kind: "image" | "csv"; status: string; item: ChaosSortItem | null }> };
+      if (album) {
+        albumRef.current = album; setAlbumReady(true);
+        rememberScanRevisions(captures);
+        const settings = { title: album.settings.title ?? "Scanner intake batch", acquisitionCost: album.settings.acquisitionCost ?? null, rules: album.settings.rules ?? buildDefaultChaosSortRules() };
+        setTitle(settings.title); setAcquisitionCost(settings.acquisitionCost === null ? "" : String(settings.acquisitionCost)); setRules(settings.rules);
+        savedSettings.current = JSON.stringify(settings);
+        fullRef.current = captures.length >= 100; setIntakeFull(fullRef.current);
+        reservedCapturesRef.current = new Set(captures.filter(c => c.status === "RESERVED").map(c => c.capture_id));
+        const closed = album.state === "CLOSED"; closedRef.current = closed;
+        setBatch(current => ({ ...current, id: album.id, batchCode: album.batch_code, status: closed ? "committed" : "draft" }));
+        setDestinationLocationId(album.destination_id); setIntakeMode(album.intake_mode);
+        const restored = captures.map(c => ({ ...(c.item ?? recoveredScanItem(album.id, c.capture_id, c.source_kind)), sourceImageUrl: c.source_kind === "csv" ? null : `/api/chaos-sort/scans?captureId=${c.capture_id}` }));
+        setItems(restored);
+        savedReviewsRef.current = new Map(restored.map(item => [item.id, JSON.stringify(item)]));
+        if (closed) { setCommittedBatchId(album.id); setCommitResult({ cards: captures.filter(c => c.status !== "REMOVED").length, newPositions: 0, increased: 0 }); setLabelConfirmed(Boolean(album.label_confirmed_at)); }
+      }
+      setError("");
+      setCloudLoading(false);
+    } catch (error) { setError(error instanceof Error ? error.message : "Cloud unavailable"); }
+  }, [setItems]);
+  useEffect(() => { void recoverCloud(); }, [recoverCloud]);
+  const loadHistory = useCallback(async (cursor?: BatchHistoryRow) => {
+    try {
+      const query = cursor ? `&before=${encodeURIComponent(cursor.created_at)}&id=${cursor.id}` : "";
+      const response = await fetch(`/api/chaos-sort/scans?history=1${query}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Batch history unavailable.");
+      const rows = await response.json() as BatchHistoryRow[];
+      setBatchHistory(current => cursor ? [...current, ...rows] : rows); setHistoryMore(rows.length === 25);
+    } catch (error) { setError(error instanceof Error ? error.message : "History unavailable"); }
   }, []);
+
+  useEffect(() => {
+    if (!albumRef.current || closedRef.current || committingRef.current || cloudLoading) return;
+    const changed = items.filter(item => item.processingState !== "processing" && item.captureId && !reservedCapturesRef.current.has(item.captureId) && savedReviewsRef.current.get(item.id) !== JSON.stringify(item));
+    const settings = JSON.stringify({ title, acquisitionCost: acquisitionCost.trim() ? Number(acquisitionCost) : null, rules });
+    if (!changed.length && settings === savedSettings.current) return;
+    setCloudSavePending(true);
+    let active = true;
+    const timer = setTimeout(() => {
+      void saveSettings().then(() => saveScanReview(batch.id, changed)).then(() => {
+        changed.forEach(item => savedReviewsRef.current.set(item.id, JSON.stringify(item)));
+        if (active) setCloudSavePending(false);
+      }).catch(error => setError(`Cloud changes not saved: ${error.message}. Reload to resolve a conflict; do not leave with unsaved changes.`));
+    }, 400);
+    return () => { active = false; clearTimeout(timer); };
+  }, [items, batch.id, albumReady, cloudLoading, title, acquisitionCost, rules, saveSettings]);
+
+  useEffect(() => {
+    if (!cloudSavePending) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [cloudSavePending]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -236,17 +322,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     })();
   }, []);
 
-  useEffect(() => {
-    const supabase = createClient();
-    void (async () => {
-      const { data } = await supabase
-        .from("chaos_sort_batches")
-        .select("id,batch_code,status,status_v2,current_quantity,initial_quantity,destination_label,created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setBatchHistory((data ?? []) as BatchHistoryRow[]);
-    })();
-  }, []);
+  useEffect(() => { void loadHistory(); }, [loadHistory]);
 
   const plan = useMemo(() => buildChaosSortPlan(items, rules), [items, rules]);
   const queueCounts = useMemo(() => ({
@@ -280,7 +356,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     };
     return summarizeChaosSortBatch(liveBatch);
   }, [acquisitionCost, batch, destinationLocationId, items, locations, rules, title]);
-  const physicalCount = physicalCardCount(items);
+  const physicalCount = items.length + stagedFiles.length;
   const unresolved = unresolvedLiveItems(items);
   const batchProgress = getChaosSortBatchProgress(physicalCount, targetBatchSize);
   const locked = batch.status === "committed" || saving;
@@ -333,7 +409,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     if (closedRef.current || committingRef.current) return;
     if (patch.quantity !== undefined) {
       const previous = itemsRef.current.find(item => item.id === itemId);
-      if (previous?.intakeSource === "live") patch = { ...patch, quantity: 1 };
+      if (previous?.captureId) patch = { ...patch, quantity: 1 };
       else if (previous && physicalCardCount(itemsRef.current) - previous.quantity + patch.quantity > 100) { setError("Batch capacity is 100 physical cards."); return; }
     }
     setItems((current) => current.map((item) => {
@@ -354,7 +430,20 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     }));
   }, [setItems]);
 
+  const createCloudBatch = useCallback(async () => {
+    if (cloudLoading) throw new Error("Wait for cloud recovery before creating a batch.");
+    if (albumRef.current) return albumRef.current;
+    if (!destinationLocationId) throw new Error("Choose a destination first.");
+    creationKey.current ??= crypto.randomUUID();
+    const album = await scanCommand<ScanAlbum>("create", { requestId: creationKey.current, destinationId: destinationLocationId, intakeMode });
+    albumRef.current = album; setAlbumReady(true);
+    setBatch(current => ({ ...current, id: album.id, batchCode: album.batch_code }));
+    void loadHistory();
+    return album;
+  }, [cloudLoading, destinationLocationId, intakeMode, loadHistory]);
+
   const stageFiles = useCallback(async (incomingFiles: FileList | File[]) => {
+    if (!albumRef.current || cloudLoading) { setError("Create or resume a cloud batch before selecting cards."); return; }
     if (closedRef.current || committingRef.current || scannerBusy || staging || loadingItems || intakePendingRef.current) return;
     const incoming = Array.from(incomingFiles);
     const valid = incoming.filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
@@ -369,16 +458,22 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     const accepted = valid.slice(0, room);
     intakePendingRef.current += 1;
     try {
-      const staged = await Promise.all(accepted.map(async (file) => ({ id: crypto.randomUUID(), file, hash: await makeChaosSortFileHash(file), previewUrl: URL.createObjectURL(file) })));
-      setStagedFiles((current) => [...current, ...staged]);
+      for (const file of accepted) {
+        const id = crypto.randomUUID();
+        const previewUrl = await storeScan(albumRef.current.id, id, file);
+        const staged = { id, file, hash: await makeChaosSortFileHash(file), previewUrl };
+        setStagedFiles(current => [...current, staged]);
+      }
       if (valid.length > room) setError(`Only 100 physical cards fit in this batch. ${valid.length - room} additional files skipped.`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Images could not be staged."); }
     finally { intakePendingRef.current -= 1; setStaging(false); }
-  }, [stagedFiles.length, scannerBusy, staging, loadingItems]);
+  }, [stagedFiles.length, scannerBusy, staging, loadingItems, cloudLoading]);
 
   const processFiles = useCallback(async (files: StagedScan[]) => {
     if (!files.length || closedRef.current || committingRef.current) return;
     assertIntakeRoom(physicalCardCount(itemsRef.current) - files.filter(file => file.replaceId).length, files.length);
+    if (fullRef.current && files.some(file => !file.replaceId && !reservedCapturesRef.current.has(file.id))) throw new Error(`Batch full — print and file Batch ${batch.batchCode}, then start the next 100.`);
+    if (physicalCardCount(itemsRef.current) + files.filter(file => !file.replaceId).length >= 100) { fullRef.current = true; setIntakeFull(true); }
     const jobKey = files.map((file) => file.id).sort().join("|");
     if (activeRecognitionJobsRef.current.has(jobKey)) return;
     activeRecognitionJobsRef.current.add(jobKey);
@@ -389,7 +484,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     const seenHashes = new Map<string, string>();
     const baseItems = queue.map((entry) => {
       const { file, hash, previewUrl } = entry.input;
-      const id = entry.input.replaceId ?? crypto.randomUUID();
+      const id = entry.input.replaceId ?? entry.input.id;
       const previous = itemsRef.current.find(item => item.id === entry.input.replaceId);
       const duplicate = itemsRef.current.find((item) => item.id !== entry.input.replaceId && item.sourceFileHash === hash);
       const duplicateOfItemId = duplicate?.id ?? seenHashes.get(hash) ?? null;
@@ -399,7 +494,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         batchId: batch.id,
         sourceFileName: file.name,
         intakeSource: entry.input.live ? "live" : "upload",
-        captureId: entry.input.live ? entry.input.id : undefined,
+        captureId: entry.input.id,
         sourceFileHash: hash,
         sourceImageUrl: previewUrl,
         processingState: "processing",
@@ -544,9 +639,11 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
       setProgressText(`Analyzed ${completed} of ${files.length} scans.`);
     });
     activeRecognitionJobsRef.current.delete(jobKey);
-  }, [batch.id, destinationLocationId, locations, updateItem, setItems]);
+    await saveScanReview(batch.id, itemsRef.current.filter(item => files.some(file => file.id === item.captureId)));
+  }, [batch.id, batch.batchCode, destinationLocationId, locations, updateItem, setItems]);
 
   const importCsv = useCallback(async (file: File) => {
+    if (!albumRef.current || albumRef.current.intake_mode !== "csv" || cloudLoading) { setError("Create or resume a cloud CSV batch first."); return; }
     if (closedRef.current || committingRef.current || scannerBusy || intakePendingRef.current) return;
     intakePendingRef.current += 1;
     setStaging(true);
@@ -628,7 +725,18 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           return item;
         }
       }));
-      setItems((current) => [...current, ...identified]);
+      for (const row of identified) {
+        for (let copy = 0; copy < row.quantity; copy += 1) {
+          const id = crypto.randomUUID();
+          const item = { ...row, id, captureId: id, quantity: 1, intakeSource: "csv" as const, sourceImageUrl: null };
+          const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(item)));
+          const sha256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+          const capture = await scanCommand<{ capture_id: string; revision: number }>("csv", { batchId: batch.id, captureId: id, sha256, item });
+          rememberScanRevisions([capture]);
+          await saveScanReview(batch.id, [item]);
+          setItems(current => [...current, item]);
+        }
+      }
       setSelectedItemId(identified[0].id);
       const imageCount = identified.filter((item) => item.sourceImageUrl).length;
       setNotice(`Loaded ${identified.length} CSV row${identified.length === 1 ? "" : "s"}${imageCount ? ` with ${imageCount} Scryfall image${imageCount === 1 ? "" : "s"}` : ""} into review.`);
@@ -638,7 +746,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
       intakePendingRef.current -= 1;
       setStaging(false);
     }
-  }, [batch.id, destinationLocationId, locations, scannerBusy, stagedFiles.length, setItems]);
+  }, [batch.id, destinationLocationId, locations, scannerBusy, stagedFiles.length, setItems, cloudLoading]);
 
   const startBatch = useCallback(() => {
     if (closedRef.current || committingRef.current || loadingItems || staging || scannerBusy) return;
@@ -647,18 +755,21 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     void processFiles(pending).catch(caught => { setError(caught instanceof Error ? caught.message : "Image intake failed."); setStagedFiles(pending); });
   }, [processFiles, stagedFiles, loadingItems, staging, scannerBusy]);
 
-  const removeStagedFile = useCallback((id: string) => {
+  const removeStagedFile = useCallback(async (id: string) => {
+    try {
+      await saveScanReview(batch.id, [{ ...recoveredScanItem(batch.id, id), humanState: "removed", processingState: "ready" }]);
+    } catch (error) { setError(error instanceof Error ? error.message : "Cloud removal failed"); return; }
     setStagedFiles((current) => {
       const removed = current.find((entry) => entry.id === id);
       if (removed) URL.revokeObjectURL(removed.previewUrl);
       return current.filter((entry) => entry.id !== id);
     });
-  }, []);
+    setItems(current => [...current, { ...recoveredScanItem(batch.id, id), humanState: "removed", processingState: "ready" }]);
+  }, [batch.id, setItems]);
 
-  const clearStagedFiles = useCallback(() => {
-    stagedFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
-    setStagedFiles([]);
-  }, [stagedFiles]);
+  const clearStagedFiles = useCallback(async () => {
+    for (const entry of stagedFiles) await removeStagedFile(entry.id);
+  }, [stagedFiles, removeStagedFile]);
 
   const retryRecognition = useCallback(async (retryItems: ChaosSortItem[]) => {
     if (closedRef.current || committingRef.current || scannerBusy || loadingItems || staging) return;
@@ -724,15 +835,25 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     });
   }, [updateItem, visibleItems]);
 
-  const resetBatch = useCallback((inherit = carryDestination === true) => {
+  const resetBatch = useCallback(async (inherit = carryDestination === true) => {
     if (loadingItems || scannerBusy || staging || committingRef.current || intakePendingRef.current) return;
-    const nextSequence = sequence + 1;
-    window.localStorage.setItem(BATCH_SEQUENCE_KEY, String(nextSequence));
-    setSequence(nextSequence);
-    setBatch(chaosSortBatchFromSequence(nextSequence));
+    if (closedRef.current && !labelConfirmed || !closedRef.current && (fullRef.current || albumRef.current)) return;
+    let next: ScanAlbum | null = null;
+    if (inherit && destinationLocationId) {
+      try {
+        next = await scanCommand<ScanAlbum>("create", { requestId: crypto.randomUUID(), destinationId: destinationLocationId, intakeMode });
+      } catch (error) { setError(error instanceof Error ? error.message : "Next batch unavailable"); return; }
+    }
+    setBatch({ ...emptyBatch(), ...(next ? { id: next.id, batchCode: next.batch_code } : {}) });
+    creationKey.current = null;
+    savedSettings.current = ""; savedReviewsRef.current.clear(); setCloudSavePending(false);
     closedRef.current = false;
+    fullRef.current = false; setIntakeFull(false);
     captureReceiptsRef.current.clear();
     setCommittedBatchId(null);
+    albumRef.current = next; setAlbumReady(Boolean(next));
+
+    setLabelConfirmed(false);
     setCommitResult(null);
     stagedFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
     itemsRef.current.forEach((item) => { if (item.sourceImageUrl) URL.revokeObjectURL(item.sourceImageUrl); });
@@ -746,11 +867,12 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     setSelectedItemIds([]);
     setSortMode("review");
     setSortIndex(0);
-    setNotice(`Started ${createChaosSortBatchCode(nextSequence)}.`);
+    setNotice("Ready to create the next cloud batch.");
     setError("");
-  }, [sequence, stagedFiles, loadingItems, scannerBusy, staging, carryDestination, setItems]);
+  }, [stagedFiles, loadingItems, scannerBusy, staging, carryDestination, setItems, labelConfirmed, destinationLocationId, intakeMode]);
 
   const commitBatch = useCallback(async () => {
+    if (!albumRef.current || cloudLoading) { setError("Cloud batch required before commit."); return; }
     if (closedRef.current || committingRef.current || scannerBusy || loadingItems || staging || stagedFiles.length || intakePendingRef.current) return;
     if (!destinationLocationId || !physicalCardCount(itemsRef.current) || unresolvedLiveItems(itemsRef.current).length) {
       setError("Resolve every card before committing the batch.");
@@ -790,10 +912,13 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           }),
         rules,
       };
-      const response = await fetch("/api/chaos-sort", {
+      await saveSettings();
+      await saveScanReview(batch.id, [...payload.items, ...items.filter(item => item.humanState === "removed")]);
+      setCloudSavePending(false);
+      const response = await fetch("/api/chaos-sort/scans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ action: "commit", payload: { batchId: batch.id } }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -801,17 +926,20 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
       }
       setCommittedBatchId(String(result.batchId ?? payload.batch.id));
       closedRef.current = true;
+      // The mandatory print/file gate belongs to physical live-scanned batches;
+      // preserve the existing Upload/CSV continuation workflow.
+      if (!albumRef.current && !items.some(item => item.intakeSource === "live")) setLabelConfirmed(true);
       setCommitResult({ cards: Number(result.committedCount ?? physicalCardCount(items)), newPositions: Number(result.newPositions ?? 0), increased: Number(result.increasedIdentities ?? 0) });
       setNotice(`Committed ${String(result.committedCount ?? payload.items.length)} cards into inventory.`);
       setBatch((current) => ({ ...current, status: "committed", updatedAt: new Date().toISOString() }));
-      setBatchHistory(current => [{ id: String(result.batchId ?? batch.id), batch_code: batch.batchCode, status: "committed", status_v2: "CLOSED", current_quantity: Number(result.committedCount ?? physicalCardCount(items)), initial_quantity: Number(result.committedCount ?? physicalCardCount(items)), destination_label: destinationLocationLabel(destinationLocationId, locations), created_at: new Date().toISOString() }, ...current.filter(entry => entry.id !== batch.id)]);
+      await loadHistory();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Chaos Sort commit failed.");
     } finally {
       committingRef.current = false;
       setSaving(false);
     }
-  }, [acquisitionCost, batch, destinationLocationId, items, locations, planById, rules, title, intakeMode, scannerBusy, loadingItems, staging, stagedFiles.length]);
+  }, [acquisitionCost, batch, destinationLocationId, items, locations, planById, rules, title, intakeMode, scannerBusy, loadingItems, staging, stagedFiles.length, cloudLoading, loadHistory, saveSettings]);
 
   const updateRule = useCallback((ruleId: string, patch: Partial<ChaosSortRule>) => {
     setRules((current) => current.map((rule) => {
@@ -838,28 +966,50 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
   async function ingestCapture(file: File, captureId: string, replaceId?: string) {
     if (closedRef.current || committingRef.current) throw new Error("This batch is read only.");
+    if (albumRef.current) {
+      const received = itemsRef.current.find(item => item.captureId === captureId);
+      if (received) { await saveScanReview(batch.id, [received]); return; }
+    }
     if (captureReceiptsRef.current.has(captureId)) throw new Error("This capture was already received. No duplicate card added.");
     captureReceiptsRef.current.add(captureId);
     intakePendingRef.current += 1;
     try {
       const hash = await makeChaosSortFileHash(file);
-      await processFiles([{ id: captureId, file, hash, previewUrl: URL.createObjectURL(file), live: true, replaceId }]);
-    } finally { intakePendingRef.current -= 1; }
+      const previewUrl = albumRef.current ? await storeScan(batch.id, captureId, file) : URL.createObjectURL(file);
+      await processFiles([{ id: captureId, file, hash, previewUrl, live: true, replaceId }]);
+      reservedCapturesRef.current.delete(captureId);
+      if (albumRef.current) await saveScanReview(batch.id, itemsRef.current.filter(item => item.captureId === captureId));
+    } catch (error) { captureReceiptsRef.current.delete(captureId); throw error; }
+    finally { intakePendingRef.current -= 1; }
+  }
+  async function startAlbum(scanner: ScannerProvider): Promise<ScannerSession> {
+    if (!scanner.getWorkstationId) throw new Error("Update the private Scanner Bridge to V2.");
+    if (!albumRef.current && itemsRef.current.length) throw new Error("Finish the current Upload/CSV batch before starting a scan album.");
+    const cloud = await createCloudBatch();
+    const device = scanner.getDeviceInfo();
+    const album = await scanCommand<ScanAlbum>("start", { batchId: cloud.id, destinationId: destinationLocationId, workstationId: await scanner.getWorkstationId(), deviceId: device.id, backend: device.backend });
+    albumRef.current = album; setAlbumReady(true);
+    setBatch(current => ({ ...current, id: album.id, batchCode: album.batch_code }));
+    return { id: album.id, batchId: album.id, workspaceId: album.workspace_id, destinationId: album.destination_id, workstationId: album.workstation_id, deviceId: album.device_id, limit: 100 };
+  }
+  async function confirmBatchLabel() {
+    try { if (albumRef.current) await scanCommand("label", { batchId: batch.id }); setLabelConfirmed(true); }
+    catch (error) { setError(error instanceof Error ? error.message : "Label confirmation failed."); }
   }
   function reviewItem(id: string) {
     setSelectedItemId(id); setReviewOpen(true); setPrintingCandidates([]); setPrintingQuery("");
     reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   function assignDestination(id: string) {
-    if (closedRef.current || committingRef.current || scannerBusy || staging) return;
+    if (closedRef.current || committingRef.current || scannerBusy || staging || albumRef.current) return;
     const previous = destinationLocationId;
     setDestinationLocationId(id);
     setItems(current => current.map(item => !item.destinationLocationId || item.destinationLocationId === previous
       ? { ...item, destinationLocationId: id || null, destinationLabel: destinationLocationLabel(id, locations) } : item));
   }
   function requestNextBatch() {
-    if (carryDestination !== null && closedRef.current) resetBatch();
-    else setNextBatchPrompt(true);
+    if (closedRef.current && !labelConfirmed || !closedRef.current && (fullRef.current || albumRef.current)) return;
+    setNextBatchPrompt(true);
   }
   async function searchPrinting() {
     if (!selectedItem || printingBusy || printingQuery.trim().length < 2) return;
@@ -882,7 +1032,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           <div className="flex flex-wrap items-center gap-2">
             <TDBadge tone="info">{batch.batchCode}</TDBadge>
             <TDBadge tone={batch.status === "committed" ? "success" : "neutral"}>{batch.status}</TDBadge>
-            <TDButton variant="secondary" size="sm" disabled={scannerBusy || loadingItems > 0 || staging || saving} onClick={requestNextBatch} icon={<RefreshCw className="h-4 w-4" />}>{committedBatchId || physicalCount >= 100 ? "Start Next 100" : "New Batch"}</TDButton>
+            {(!committedBatchId && !intakeFull && !albumReady || labelConfirmed) && <TDButton variant="secondary" size="sm" disabled={scannerBusy || loadingItems > 0 || staging || saving} onClick={requestNextBatch} icon={<RefreshCw className="h-4 w-4" />}>{committedBatchId ? "Start Next 100" : "New Batch"}</TDButton>}
           </div>
         </div>
 
@@ -892,12 +1042,14 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           description="Capture continuously. Review exceptions. Commit the physical batch."
           icon={Layers3}
         />
-        {nextBatchPrompt && <section role="dialog" aria-label="Start next batch" className="rounded-xl border p-4 space-y-3">
+        {cloudLoading && <TDButton variant="secondary" onClick={() => void recoverCloud()}>Retry cloud recovery</TDButton>}
+        {!albumReady && !cloudLoading && <TDButton disabled={!destinationLocationId || saving} onClick={async () => { setSaving(true); try { await createCloudBatch(); } catch (error) { setError(error instanceof Error ? error.message : "Cloud batch creation failed"); } finally { setSaving(false); } }}>Create Cloud Batch</TDButton>}
+        {albumView && <section role="dialog" aria-label="Private batch scans" className="rounded-xl border p-4"><h2>Private batch scans — read only</h2><TDButton onClick={() => setAlbumView(null)}>Close scans</TDButton><div className="grid grid-cols-3 gap-3">{albumView.map(capture => <figure key={capture.capture_id}>{capture.status !== "EXPIRED" && capture.source_kind !== "csv" && <Image unoptimized width={320} height={448} className="h-auto max-w-full object-contain" src={`/api/chaos-sort/scans?captureId=${capture.capture_id}`} alt="Batch source scan" />}<figcaption>{capture.item?.cardName || "Unresolved"} · {capture.status}</figcaption></figure>)}</div></section>}{nextBatchPrompt && <section role="dialog" aria-label="Start next batch" className="rounded-xl border p-4 space-y-3">
           <h2 className="font-bold">Start Next 100</h2><p>{!committedBatchId && (items.length || stagedFiles.length) ? "This discards the current uncommitted draft. No inventory will be written." : "Keep the scanner connection and start an empty batch."}</p>
           <p>Carry the destination forward for subsequent batches?</p>
           <div className="flex gap-2"><TDButton onClick={() => { setCarryDestination(true); resetBatch(true); setNextBatchPrompt(false); }}>Keep destination</TDButton><TDButton variant="secondary" onClick={() => { setCarryDestination(false); resetBatch(false); setNextBatchPrompt(false); }}>Choose each time</TDButton><TDButton variant="ghost" onClick={() => setNextBatchPrompt(false)}>Cancel</TDButton></div>
         </section>}
-        {commitResult && <section aria-label="Committed batch summary" className="rounded-xl border border-td-success/30 p-4"><h2 className="font-bold">{commitResult.cards} cards added</h2><p>{commitResult.increased} updates to existing inventory identities · {commitResult.newPositions} new positions created</p><p>{batch.batchCode} · {destinationLocationLabel(destinationLocationId, locations)}</p><TDButton onClick={requestNextBatch}>Start Next 100</TDButton></section>}
+        {commitResult && <section aria-label="Committed batch summary" className="rounded-xl border border-td-success/30 p-4 space-y-3"><h2 className="font-bold">{commitResult.cards} cards added</h2><p>{commitResult.increased} updates to existing inventory identities · {commitResult.newPositions} new positions created</p><p>{batch.batchCode} · {destinationLocationLabel(destinationLocationId, locations)}</p><a className="inline-flex rounded-lg bg-td-accent px-4 py-3 font-bold text-td-on-accent" target="_blank" rel="noopener noreferrer" href={`/dashboard/inventory/chaos-sort/labels/${committedBatchId}/print`}>Print Batch Label</a><p>Print the label for this exact batch, attach it to the physical cards, and file the batch away.</p>{!labelConfirmed ? <TDButton variant="secondary" onClick={() => void confirmBatchLabel()}>Label printed and batch filed</TDButton> : <TDButton onClick={requestNextBatch}>Start Next 100</TDButton>}</section>}
 
         {notice ? (
           <TDCard variant="outlined" className="border-td-success/20 bg-td-success/[0.04] text-td-success">
@@ -911,17 +1063,18 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         ) : null}
         <section className="rounded-2xl border border-td-ink/10 bg-td-surface p-4 sm:p-5" aria-label="Chaos Sort batch history">
           <button type="button" aria-expanded={historyOpen} aria-controls="chaos-batch-history" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => { setHistoryOpen(!historyOpen); try { localStorage.setItem("td.chaos.history-open", String(!historyOpen)); } catch { /* Optional preference. */ } }}>
-            <span className="font-semibold">Batch History</span><span className="ml-auto text-xs text-td-muted">{batchHistory.length} saved {batchHistory.length === 1 ? "batch" : "batches"}</span><ChevronDown className={cn("h-4 w-4 transition-transform", historyOpen && "rotate-180")} />
+            <span className="font-semibold">Batch History</span><span className="ml-auto text-xs text-td-muted">{batchHistory.length} loaded {batchHistory.length === 1 ? "batch" : "batches"}</span><ChevronDown className={cn("h-4 w-4 transition-transform", historyOpen && "rotate-180")} />
           </button>
           <div id="chaos-batch-history" hidden={!historyOpen}>{batchHistory.length ? (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[680px] text-left text-sm">
-                <thead className="text-[11px] font-bold uppercase tracking-[.12em] text-td-muted"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created</th><th className="px-3 py-2" /></tr></thead>
-                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-td-ink/5"><td className="px-3 py-3 font-semibold text-td-primary">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-td-secondary">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-td-secondary">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-td-secondary">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text hover:bg-td-accent/10">Reprint label</Link></td></tr>)}</tbody>
+                <thead className="text-[11px] font-bold uppercase tracking-[.12em] text-td-muted"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created / committed / creator</th><th className="px-3 py-2" /></tr></thead>
+                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-td-ink/5"><td className="px-3 py-3 font-semibold text-td-primary">{entry.batch_code}{scanAlbumsEnabled && <button className="block text-xs underline" onClick={async () => { const response = await fetch(`/api/chaos-sort/scans?batchId=${entry.id}`); const result = await response.json(); if (response.ok) setAlbumView(result.captures); else setError(result.error); }}>View Scans</button>}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-td-secondary">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-td-secondary">{entry.current_quantity} remaining / {entry.initial_quantity} originally committed{entry.reconciled === false && <span className="block text-amber-500">Historical position discrepancy — review required</span>}</td><td className="px-3 py-3 text-td-secondary">{new Date(entry.created_at).toLocaleDateString()}<span className="block">{entry.completed_at ? new Date(entry.completed_at).toLocaleString() : "Not committed"}</span><span className="block text-xs">{entry.created_by}</span></td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text hover:bg-td-accent/10">Reprint label</Link></td></tr>)}</tbody>
               </table>
             </div>
           ) : <p className="mt-4 rounded-xl border border-dashed border-td-ink/10 px-3 py-5 text-center text-sm text-td-muted">No committed batches yet.</p>}</div>
         </section>
+        <p role="status" className="text-sm text-td-text-muted">{cloudSavePending ? "Saving cloud changes — keep this page open." : albumReady ? "Cloud draft synchronized." : ""}</p>
         {loadingInventory && !items.length ? (
           <TDLoadingState title="Loading inventory context" message="Fetching storage locations and owned inventory for canonical matching." />
         ) : null}
@@ -931,12 +1084,12 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
             <div>
               <p className="text-[11px] font-black uppercase tracking-[.14em] text-td-accent-text">Active batch</p>
               <h2 className="mt-1 text-xl font-semibold text-td-primary">Batch {batch.batchCode}</h2>
-              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Intake mode">{([['live', 'Live Scan'], ['upload', 'Upload Images'], ['csv', 'CSV']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={intakeMode === mode} disabled={scannerBusy || staging || loadingItems > 0} onClick={() => setIntakeMode(mode)} className={cn("rounded-lg border px-4 py-2 text-sm", intakeMode === mode && "bg-td-accent/15 border-td-accent")}>{label}</button>)}</div>
+              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Intake mode">{([['live', 'Live Scan'], ['upload', 'Upload Images'], ['csv', 'CSV']] as const).map(([mode, label]) => <button key={mode} type="button" aria-pressed={intakeMode === mode} disabled={albumReady || scannerBusy || staging || loadingItems > 0} onClick={() => setIntakeMode(mode)} className={cn("rounded-lg border px-4 py-2 text-sm", intakeMode === mode && "bg-td-accent/15 border-td-accent")}>{label}</button>)}</div>
             </div>
             <div className="text-right">
               <p className="text-lg font-semibold tabular-nums text-td-primary">{physicalCount} / 100 cards</p>
               <p className="mt-1 text-xs text-td-secondary">
-                {physicalCount >= 100 ? "Batch full — intake paused. Review before committing." : "Physical cards, not line items. Maximum 100 per batch."}
+                {physicalCount >= 100 ? `Batch full — print and file Batch ${batch.batchCode}, then start the next 100.` : "Physical cards, not line items. Maximum 100 per batch."}
               </p>
             </div>
           </div>
@@ -963,12 +1116,12 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                   variant="secondary"
                   size="sm"
                   icon={<CloudUpload className="h-4 w-4" />}
-                  disabled={scannerBusy || staging || loadingItems > 0}
-                  onClick={() => { setIntakeMode("upload"); fileInputRef.current?.click(); }}
+                  disabled={!albumReady || intakeMode !== "upload" || scannerBusy || staging || loadingItems > 0}
+                  onClick={() => { fileInputRef.current?.click(); }}
                 >
                   Add images
                 </TDButton>
-                <TDButton variant="secondary" size="sm" disabled={scannerBusy || staging || loadingItems > 0} icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => { setIntakeMode("csv"); csvInputRef.current?.click(); }}>
+                <TDButton variant="secondary" size="sm" disabled={!albumReady || intakeMode !== "csv" || scannerBusy || staging || loadingItems > 0} icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => { setIntakeMode("csv"); csvInputRef.current?.click(); }}>
                   Add CSV
                 </TDButton>
                 <TDButton
@@ -1022,7 +1175,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
             <div hidden={intakeMode !== "live"}>
               <label className="flex items-center gap-2 text-sm mb-3"><input type="checkbox" checked={autoConfirm} onChange={event => { setAutoConfirm(event.target.checked); autoConfirmRef.current = event.target.checked; }} />Auto-confirm high confidence scans (unambiguous printing only)</label>
-              <LiveScanStation scannerBridgeEnabled={scannerBridgeEnabled} isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => setIntakeMode("upload")} onConfigured={() => { setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
+              <LiveScanStation intakeFull={intakeFull} onStartSession={scanAlbumsEnabled ? startAlbum : undefined} resumeNextBatch={scanAlbumsEnabled && labelConfirmed === false} scannerBridgeEnabled={scannerBridgeEnabled} isActive={intakeMode === "live"} count={physicalCount} items={items} locked={locked} blockedReason={cloudLoading ? "Loading cloud draft." : staging || stagedFiles.length > 0 ? "Finish staged intake before scanning." : !destinationLocationId ? "Choose the batch destination before scanning." : undefined} batchId={batch.id} onCapture={ingestCapture} onBusy={setScannerBusy} onReview={reviewItem} onRemove={removeItem} onUpload={() => { if (!albumRef.current) setIntakeMode("upload"); else setError("Finish the current cloud batch before switching intake modes."); }} onConfigured={() => { if (!albumRef.current) setIntakeMode("live"); try { localStorage.setItem("td.chaos.scanner-configured", "true"); } catch { /* Optional preference. */ } }} />
             </div>
             <div
               hidden={intakeMode === "live"}
@@ -1266,12 +1419,12 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
               </div>
               <div className="space-y-3">
                 <TDInput
-                  label="Batch title"
+                  id="chaos-batch-title" label="Batch title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                 />
                 <TDInput
-                  label="Acquisition cost"
+                  id="chaos-acquisition-cost" label="Acquisition cost"
                   value={acquisitionCost}
                   onChange={(event) => setAcquisitionCost(event.target.value)}
                   placeholder="Optional"
@@ -1282,7 +1435,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                   <span>Batch destination</span>
                   <span className="font-bold text-td-accent-text">{destinationLocationLabel(destinationLocationId, locations)}</span>
                   </div>
-                <p className="mt-2 text-xs text-td-secondary">Accepted cards inherit this location. Override a single card below when it belongs somewhere else.</p>
+                <p className="mt-2 text-xs text-td-secondary">Accepted cards use this cloud batch destination. Create a separate batch for another destination.</p>
                 <div className="mt-3 space-y-2 text-sm text-td-secondary">
                   {plan.piles.map((pile) => (
                     <div key={pile.pile} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] px-3 py-2">
@@ -1321,19 +1474,19 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                     <TDInput label="Finish" value={selectionValue(selectedItem.finish)} onChange={(event) => updateItem(selectedItem.id, { finish: event.target.value })} />
                     <TDInput label="Condition" value={selectionValue(selectedItem.condition)} onChange={(event) => updateItem(selectedItem.id, { condition: event.target.value })} />
                     <TDInput label="Language" value={selectionValue(selectedItem.language)} onChange={(event) => updateItem(selectedItem.id, { language: event.target.value })} />
-                    <TDInput label="Quantity" disabled={scannerBusy || loadingItems > 0 || staging || selectedItem.intakeSource === "live"} value={String(selectedItem.quantity)} onChange={(event) => updateItem(selectedItem.id, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} />
+                    <TDInput label="Quantity" disabled={Boolean(selectedItem.captureId) || scannerBusy || loadingItems > 0 || staging} value={String(selectedItem.quantity)} onChange={(event) => updateItem(selectedItem.id, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} />
                     <TDInput label="Market price" value={selectionNumber(selectedItem.marketPrice)} onChange={(event) => updateItem(selectedItem.id, { marketPrice: event.target.value ? Number(event.target.value) : null })} />
                     <div className="space-y-2 sm:col-span-2">
-                      <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Physical destination override</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Batch destination</label>
                       <select
-                        value={selectedItem.destinationLocationId ?? ""}
+                        disabled={albumReady} value={selectedItem.destinationLocationId ?? ""}
                         onChange={(event) => updateItem(selectedItem.id, { destinationLocationId: event.target.value || null, destinationLabel: destinationLocationLabel(event.target.value, locations) })}
                         className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)]"
                       >
                         <option value="">Unassigned / pending location</option>
                         {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
                       </select>
-                      <p className="text-xs text-td-muted">Leave unassigned when the physical destination is not known. No location is invented.</p>
+                      <p className="text-xs text-td-muted">This location is saved with the cloud batch.</p>
                     </div>
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Human state</label>

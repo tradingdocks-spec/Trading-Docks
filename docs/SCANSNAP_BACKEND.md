@@ -27,7 +27,11 @@ Native identity is HMAC-derived with the existing per-workstation salt. Only an 
 
 The provider/browser has no vendor dispatch. Optional generic capability metadata describes externally managed settings and capture instructions. The controls show the scanner as detected/untested, retain Test Scan and Scanner Settings, and explain the required external profile instead of offering driver controls the bridge cannot apply.
 
-## Owner profile setup — not performed automatically
+## V2 local candidate supersedes the manual-save workflow
+
+The 1.2.0 local candidate uses a permanent bridge-owned Inbox and automatic JPEG direct save. See [Chaos Scan Albums V2](CHAOS_SCAN_ALBUMS_V2.md) for one-time profile setup, private albums, recovery, retention and the mandatory 100 → commit → print/file → next workflow. No production deployment or physical certification is claimed. The manual-save instructions below describe **1.1.0 historical/diagnostic behavior only** and are not the V2 retail workflow.
+
+## Historical 1.1.0 owner profile setup — not performed automatically
 
 Create a new profile named **Trading Docks Cards** in ScanSnap Home. Do not overwrite an existing profile.
 

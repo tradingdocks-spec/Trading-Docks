@@ -13,7 +13,7 @@ namespace TradingDocks.ScannerBridge;
 public sealed record BridgeOptions(X509Certificate2 Certificate, string[] Origins, int Port = Protocol.Port);
 public static class BridgeHost
 {
-    public static WebApplication Create(BridgeOptions options, Trust trust, Captures captures, IWindowsScannerBackend backend, string workstationId)
+    public static WebApplication Create(BridgeOptions options, Trust trust, Captures captures, IWindowsScannerBackend backend, string workstationId, ScannerInbox? inbox = null)
     {
         if (!options.Certificate.HasPrivateKey) throw new InvalidOperationException("TLS certificate required.");
         var allowed = options.Origins.ToHashSet(StringComparer.Ordinal);
@@ -74,12 +74,22 @@ public static class BridgeHost
             catch (BridgeException error) { context.Response.StatusCode = error.Status; await context.Response.WriteAsJsonAsync(new { error = error.Message }); }
             catch (Exception) { context.Response.StatusCode = 400; await context.Response.WriteAsJsonAsync(new { error = "INVALID_REQUEST" }); }
         });
-        app.MapGet("/v1/health", () => new { running = true, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString });
+        app.MapGet("/v1/health", () => new { running = true, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString, automaticInbox = inbox is not null });
         app.MapPost("/v1/pair/start", async (HttpContext c) => new { id = await trust.Begin(c.Request.Headers.Origin.ToString(), Body<PairStart>(c)) });
         app.MapPost("/v1/pair/finish", (HttpContext c) => { var r = trust.Finish(c.Request.Headers.Origin.ToString(), Body<PairFinish>(c)); return new { credentialId = r.Id, expires = r.Expires, workstationId }; });
         app.MapGet("/v1/status", () => new { workstationId, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString, paired = true });
         app.MapGet("/v1/devices", async (HttpContext c) => new { devices = await backend.Devices(c.RequestAborted) });
-        app.MapPost("/v1/unpair", (HttpContext c) => { trust.Revoke(Owner(c)); captures.RevokeAll(); return new { ok = true }; });
+        if (inbox is not null)
+        {
+            app.MapPost("/v2/session", async (HttpContext c) => {
+                var session = Body<LiveInboxSession>(c);
+                if (session.WorkstationId != workstationId || !(await backend.Devices(c.RequestAborted)).Any(d => d.Id == session.DeviceId && d.Backend == "SCANSNAP")) throw new BridgeException("DEVICE_OFFLINE");
+                inbox.Start(Owner(c), session); return inbox.Status(Owner(c), session.Id);
+            });
+            app.MapGet("/v2/session/{id}", (HttpContext c, string id) => inbox.Status(Owner(c), id));
+            app.MapPost("/v2/session/{id}/pause", (HttpContext c, string id) => { inbox.Pause(Owner(c), id); return new { ok = true }; });
+        }
+        app.MapPost("/v1/unpair", (HttpContext c) => { trust.Revoke(Owner(c)); captures.RevokeAll(); inbox?.Revoke(); return new { ok = true }; });
         app.MapPost("/v1/capture", (HttpContext c) => captures.Begin(Owner(c), Body<CaptureRequest>(c)));
         app.MapGet("/v1/capture/{id}", (HttpContext c, string id) => captures.Read(Owner(c), id));
         app.MapPost("/v1/capture/{id}/ack", (HttpContext c, string id) => { captures.Ack(Owner(c), id); return new { ok = true }; });

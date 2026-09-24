@@ -9,6 +9,11 @@ import { renderChaosSortLabelSvg, type ChaosSortLabelData } from "../src/lib/cha
 
 const batch: ChaosSortLabelData = { id: "batch-one", batch_code: "CS-BATCH-000001", session_id: "session-one", session_code: "CS-SESSION-000001", destination_label: "BIN C04", current_quantity: 72, initial_quantity: 100, created_at: "2026-09-09T12:00:00Z" };
 
+test("committed physical batch label retains original count, exact identity, location, UTC commit and QR", () => {
+  const svg = renderChaosSortLabelSvg({ ...batch, batch_code: "CS-000023", completed_at: "2026-09-23T21:40:00Z" }, resolveLabelMedia(new URLSearchParams("media=custom&width=100&height=70")), "https://example.invalid/batches/batch-one");
+  for (const value of ["CS-000023", "BIN C04", "Physical cards: 100", "72 / 100 cards remaining", "batch-one", "2026-09-23", "21:40:00", "QR code for CS-000023"]) assert.ok(svg.includes(value), value);
+});
+
 test("media defaults match the existing DK-1201 format and never produce unsafe page CSS", () => {
   assert.deepEqual(resolveLabelMedia(new URLSearchParams()), { key: "dk1201", width: 29, height: 90, position: "top" });
   assert.equal(resolveLabelMedia(new URLSearchParams("media=dk1208")).width, 38);

@@ -108,6 +108,7 @@ try
 }
 finally { await app.StopAsync(); Environment.SetEnvironmentVariable("Kestrel__Endpoints__Injected__Url", null); Environment.SetEnvironmentVariable("ASPNETCORE_URLS", null); }
 await ScanSnapTests.Run(Check);
+await InboxTests.Run(Check);
 Console.WriteLine($"{count} security/contract assertions passed; no OS trust store changed.");
 
 sealed class Store : ITrustStore { private TrustRecord[] records = []; public TrustRecord[] Load() => records; public void Save(TrustRecord[] value) => records = value; }
