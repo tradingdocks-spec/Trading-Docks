@@ -9,6 +9,18 @@ using var dispatcher = new Control();
 // This console diagnostic does not run a WinForms message loop.
 SynchronizationContext.SetSynchronizationContext(null);
 var platform = new ScanSnapPlatform(dispatcher);
+var priorContext = SynchronizationContext.Current;
+SynchronizationContext.SetSynchronizationContext(new RejectPostedContinuations());
+var shutdownCompleted = false;
+try
+{
+    AgentLifecycle.RunHostOperation(async () => { await Task.Delay(25); shutdownCompleted = true; });
+}
+finally { SynchronizationContext.SetSynchronizationContext(priorContext); }
+if (!shutdownCompleted) throw new Exception("Host shutdown did not complete off the UI context");
+var restartInfo = AgentLifecycle.RestartInfo("C:\\private-agent\\TradingDocks.ScannerBridge.exe", "C:\\private-agent");
+if (restartInfo.FileName != "C:\\private-agent\\TradingDocks.ScannerBridge.exe" || restartInfo.WorkingDirectory != "C:\\private-agent" || restartInfo.UseShellExecute) throw new Exception("Restart executable/directory changed");
+Console.WriteLine("PASS: async host shutdown avoids blocked UI context; relaunch uses exact executable and directory");
 if (InstallerIdentity.DisplayVersion != Protocol.VersionString || InstallerIdentity.DisplayVersion != typeof(ScanSnapPlatform).Assembly.GetName().Version!.ToString(3)) throw new Exception("Installer / runtime release version mismatch");
 if (InstallerIdentity.WindowTitle != $"Trading Docks Scanner Bridge {Protocol.VersionString} — Internal") throw new Exception("Installer label version mismatch");
 Console.WriteLine("PASS: installer UI / Windows app version / bridge assembly / runtime version agree");
@@ -42,4 +54,9 @@ finally { File.Delete(file); Directory.Delete(root); }
 static class Native
 {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "CreateHardLinkW")] public static extern bool CreateHardLink(string path, string existing, IntPtr security);
+}
+
+sealed class RejectPostedContinuations : SynchronizationContext
+{
+    public override void Post(SendOrPostCallback callback, object? state) => throw new InvalidOperationException("Host continuation captured blocked WinForms UI");
 }

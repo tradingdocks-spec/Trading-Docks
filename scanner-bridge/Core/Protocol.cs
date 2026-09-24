@@ -24,7 +24,7 @@ public static class Protocol
 {
     public const int Version = 1;
     public const int Port = 47391;
-    public const string VersionString = "1.2.0";
+    public const string VersionString = "1.3.1";
     public const int MaxImageBytes = 8 * 1024 * 1024;
     public static void Validate(ScanSettings settings, ScanCapabilities caps)
     {
