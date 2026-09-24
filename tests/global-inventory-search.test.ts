@@ -5,9 +5,20 @@ import { searchOwnedInventory } from "../src/lib/owned-inventory-search.ts";
 import { loadInventoryProvenance } from "../src/lib/inventory-provenance.ts";
 
 type Row = Record<string, any>;
-function fixtureClient(tables: Record<string, Row[]>, actor = "owner", failure = "") {
+
+test('one owner switching active workspace isolates names and exact SKU search', async () => {
+  const data = fixtures();
+  data.inventory_items.push({ user_id: 'owner', workspace_id: 'workspace-b', location_id: 'box', quantity: 4, data: {}, id: 'b-only', card_name: 'Scavenger B', sku: 'SKU-B-SECRET' });
+  const a = fixtureClient(data, 'owner', '', 'workspace-a');
+  const b = fixtureClient(data, 'owner', '', 'workspace-b');
+  assert.equal((await searchOwnedInventory(a, 'owner', 'SKU-B-SECRET')).items.length, 0);
+  assert.deepEqual((await searchOwnedInventory(b, 'owner', 'SKU-B-SECRET')).items.map(row => row.id), ['b-only']);
+  assert.ok((await searchOwnedInventory(a, 'owner', 'scavengers')).items.every(row => row.workspace_id === 'workspace-a'));
+  assert.deepEqual((await searchOwnedInventory(b, 'owner', 'scavengers')).items.map(row => row.id), ['b-only']);
+});
+function fixtureClient(tables: Record<string, Row[]>, actor = "owner", failure = "", workspace = "workspace-a") {
   const calls: Array<{ table: string; ids?: string[] }> = [];
-  return { calls, from(table: string) {
+  return { calls, rpc: async () => ({ data: workspace, error: null }), from(table: string) {
     let rows = (tables[table] ?? []).filter(row => row.user_id === actor);
     const call: { table: string; ids?: string[] } = { table }; calls.push(call);
     let low = 0, high = 999;

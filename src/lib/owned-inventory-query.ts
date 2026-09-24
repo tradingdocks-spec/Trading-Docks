@@ -6,15 +6,16 @@ import { buildInventorySearchFilterExpression, buildInventorySearchTerms } from 
  */
 export const OWNED_INVENTORY_COLUMNS = "id, user_id, workspace_id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data";
 
-export function ownedInventoryQuery(client: { from(table: string): any }, userId: string) {
+export function ownedInventoryQuery(client: { from(table: string): any }, userId: string, workspaceId: string) {
   if (!userId) throw new Error("Authenticated inventory owner required.");
+  if (!workspaceId) throw new Error("Authorized active workspace required.");
   return client.from("inventory_items").select(OWNED_INVENTORY_COLUMNS)
-    .eq("user_id", userId).gt("quantity", 0);
+    .eq("user_id", userId).eq("workspace_id", workspaceId).gt("quantity", 0);
 }
 
 /** A page stays below PostgREST's row cap. Callers must continue until exhausted. */
-export async function readOwnedInventoryPage(client: { from(table: string): any }, userId: string, offset: number, search = "", locationIds: string[] = []) {
-  let query = ownedInventoryQuery(client, userId);
+export async function readOwnedInventoryPage(client: { from(table: string): any }, userId: string, workspaceId: string, offset: number, search = "", locationIds: string[] = []) {
+  let query = ownedInventoryQuery(client, userId, workspaceId);
   for (const term of buildInventorySearchTerms(search)) {
     // Treat PostgREST grammar as syntax, never user input. Plural/possessive
     // queries also match the singular name; SKU and collector tokens stay intact.

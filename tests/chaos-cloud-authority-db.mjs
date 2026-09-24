@@ -11,6 +11,9 @@ sql(`create database ${database} template collector_removal_rehearsal`,'template
 const before=sql(`select md5(string_agg((to_jsonb(b)-'physical_card_count')::text,',' order by id)) from chaos_sort_batches b`);
 for(const file of ['20260923204804_chaos_scan_albums_v2.sql','20260924000100_chaos_cloud_authority.sql'])sql('begin;'+readFileSync('supabase/migrations/'+file,'utf8')+'commit;');
 assert.equal(sql(`select md5(string_agg((to_jsonb(b)-'physical_card_count')::text,',' order by id)) from chaos_sort_batches b`),before);
+if(process.argv.includes('--tenant-repair')) {
+ for(const file of ['20260924005111_chaos_legacy_workspace_normalization.sql','20260924013600_cloud_active_workspace_authority.sql']) sql(readFileSync('supabase/migrations/'+file,'utf8'));
+}
 console.log('migrations');
 const owner='11111111-1111-4111-8111-111111111188',other='11111111-1111-4111-8111-111111111189';
 sql(`insert into auth.users(id,email) values('${owner}','cloud-owner@example.invalid'),('${other}','cloud-other@example.invalid');update user_preferences set active_workspace_id=(select workspace_id from workspace_members where user_id=user_preferences.user_id limit 1) where user_id in ('${owner}','${other}');`);
