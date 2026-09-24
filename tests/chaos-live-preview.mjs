@@ -22,6 +22,7 @@ insert into public.inventory_locations(id,user_id,name) values('scanner-fixture-
 commit;`);
 const root=process.cwd(),dir=mkdtempSync(join(tmpdir(),'td-chaos-live-'));
 for(const name of ['20260923204804_chaos_scan_albums_v2.sql','20260924000100_chaos_cloud_authority.sql']) sql(readFileSync('supabase/migrations/'+name,'utf8'));
+for(const name of ['20260924005111_chaos_legacy_workspace_normalization.sql','20260924013600_cloud_active_workspace_authority.sql','20260924043103_chaos_intake_mode_switch.sql']) sql(readFileSync('supabase/migrations/'+name,'utf8'));
 const put=(path,content)=>{mkdirSync(dirname(join(dir,path)),{recursive:true});writeFileSync(join(dir,path),content);};
 const copy=path=>put(path,readFileSync(path,'utf8'));
 symlinkSync(join(root,'node_modules'),join(dir,'node_modules'),'junction');

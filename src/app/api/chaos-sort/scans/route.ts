@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       return Response.json({ captureId: payload.captureId, sourceImageUrl: `/api/chaos-sort/scans?captureId=${payload.captureId}` }, { headers });
     }
     const body = await request.json();
-    if (!["create", "settings", "start", "csv", "review", "commit", "label"].includes(body.action)) throw new Error("Invalid scan action.");
+    if (!["create", "mode", "settings", "start", "csv", "review", "commit", "label"].includes(body.action)) throw new Error("Invalid scan action.");
     const result = await auth.supabase.rpc("chaos_scan_command", body);
     if (result.error) throw new Error(result.error.message);
     return Response.json(result.data, { headers });
