@@ -4,6 +4,8 @@ Audit date: 2026-09-24. Source baseline: `main` at `6f8af6c49a66ee15ffe2eabd03b9
 
 **Decision: preserve the inventory/ledger foundation; repair authority and evidence gaps before building Deal Desk or recommendations. Phase 1 implementation has not started.**
 
+Follow-up correction from the Phase 1 investigation: the collection-intake completion RPC described below has a contradictory invoker/grant/RLS contract and is absent from the inspected retained recovery database. Its transactional shape is reusable design evidence, not proof of working completion. See `ACQUISITION_INVENTORY_PHASE_1_REPORT.md` for the architectural stop and proposed acquisition authority.
+
 This is a repository audit, not a new production penetration test or certification. It examines routes, services, domain functions, migrations, tests and recent release evidence. No production queries or mutations were performed for this audit. Previously verified production counts (1,515 inventory rows, 1,775 units, 1,566 events), disabled POS/Square, and CS-000023 are historical observations from the preceding release, not a fresh attestation. No settings, inventory, batches, credentials, installed agents or deployments were changed.
 
 ## Evidence and classification
