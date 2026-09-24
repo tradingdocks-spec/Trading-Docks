@@ -13,7 +13,7 @@ namespace TradingDocks.ScannerBridge;
 public sealed record BridgeOptions(X509Certificate2 Certificate, string[] Origins, int Port = Protocol.Port);
 public static class BridgeHost
 {
-    public static WebApplication Create(BridgeOptions options, Trust trust, Captures captures, IWindowsScannerBackend backend, string workstationId, ScannerInbox? inbox = null)
+    public static WebApplication Create(BridgeOptions options, Trust trust, Captures captures, IWindowsScannerBackend backend, string workstationId, ScannerInbox? inbox = null, CaptureAuthorization? authorization = null)
     {
         if (!options.Certificate.HasPrivateKey) throw new InvalidOperationException("TLS certificate required.");
         var allowed = options.Origins.ToHashSet(StringComparer.Ordinal);
@@ -32,7 +32,7 @@ public static class BridgeHost
         var app = builder.Build();
         var rates = new Dictionary<string, Queue<DateTimeOffset>>();
         var rateGate = new object();
-        var expiry = new Timer(_ => captures.Expire(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        var expiry = new Timer(_ => captures.Maintain(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         app.Lifetime.ApplicationStopped.Register(() => { expiry.Dispose(); captures.Dispose(); });
         app.Use(async (context, next) =>
         {
@@ -74,11 +74,16 @@ public static class BridgeHost
             catch (BridgeException error) { context.Response.StatusCode = error.Status; await context.Response.WriteAsJsonAsync(new { error = error.Message }); }
             catch (Exception) { context.Response.StatusCode = 400; await context.Response.WriteAsJsonAsync(new { error = "INVALID_REQUEST" }); }
         });
-        app.MapGet("/v1/health", () => new { running = true, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString, automaticInbox = inbox is not null });
+        app.MapGet("/v1/health", () => new { running = true, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString, automaticInbox = inbox is not null, durableRecovery = true, recoveryError = captures.RecoveryError, captureAuthorization = authorization is not null });
+        app.MapPost("/v2/pair/renew", (HttpContext c) => new { expires = trust.Renew(Owner(c)).Expires });
         app.MapPost("/v1/pair/start", async (HttpContext c) => new { id = await trust.Begin(c.Request.Headers.Origin.ToString(), Body<PairStart>(c)) });
         app.MapPost("/v1/pair/finish", (HttpContext c) => { var r = trust.Finish(c.Request.Headers.Origin.ToString(), Body<PairFinish>(c)); return new { credentialId = r.Id, expires = r.Expires, workstationId }; });
         app.MapGet("/v1/status", () => new { workstationId, protocolVersion = Protocol.Version, bridgeVersion = Protocol.VersionString, paired = true });
         app.MapGet("/v1/devices", async (HttpContext c) => new { devices = await backend.Devices(c.RequestAborted) });
+        app.MapGet("/v2/pending", (HttpContext c) => captures.Pending(Owner(c)));
+        void AuthorizeExisting(HttpContext c, string id, string purpose = "capture") { if (authorization is not null) authorization.Verify(captures.Request(Owner(c), id) with { Authorization = Body<PermitBody>(c).Authorization }, workstationId, purpose); }
+        app.MapPost("/v2/capture/{id}/discard", (HttpContext c, string id) => { AuthorizeExisting(c, id); captures.Discard(Owner(c), id); return new { ok = true }; });
+        app.MapPost("/v2/capture/{id}/read", (HttpContext c, string id) => { AuthorizeExisting(c, id); return captures.Read(Owner(c), id); });
         if (inbox is not null)
         {
             app.MapPost("/v2/session", async (HttpContext c) => {
@@ -90,12 +95,13 @@ public static class BridgeHost
             app.MapPost("/v2/session/{id}/pause", (HttpContext c, string id) => { inbox.Pause(Owner(c), id); return new { ok = true }; });
         }
         app.MapPost("/v1/unpair", (HttpContext c) => { trust.Revoke(Owner(c)); captures.RevokeAll(); inbox?.Revoke(); return new { ok = true }; });
-        app.MapPost("/v1/capture", (HttpContext c) => captures.Begin(Owner(c), Body<CaptureRequest>(c)));
-        app.MapGet("/v1/capture/{id}", (HttpContext c, string id) => captures.Read(Owner(c), id));
-        app.MapPost("/v1/capture/{id}/ack", (HttpContext c, string id) => { captures.Ack(Owner(c), id); return new { ok = true }; });
+        app.MapPost("/v1/capture", (HttpContext c) => { var request = Body<CaptureRequest>(c); authorization?.Verify(request, workstationId); return captures.Begin(Owner(c), request); });
+        app.MapGet("/v1/capture/{id}", (HttpContext c, string id) => { if (authorization is not null) throw new BridgeException("CLOUD_CAPTURE_UNAUTHORIZED", 403); return captures.Read(Owner(c), id); });
+        app.MapPost("/v1/capture/{id}/ack", (HttpContext c, string id) => { AuthorizeExisting(c, id, "ack"); captures.Ack(Owner(c), id); return new { ok = true }; });
         app.MapPost("/v1/capture/{id}/cancel", (HttpContext c, string id) => { captures.Cancel(Owner(c), id); return new { ok = true }; });
         return app;
     }
     private static string Owner(HttpContext c) => (string)c.Items["owner"]!;
+    private record PermitBody(string Authorization);
     private static T Body<T>(HttpContext c) => JsonSerializer.Deserialize<T>((string)c.Items["body"]!, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new BridgeException("INVALID_REQUEST");
 }

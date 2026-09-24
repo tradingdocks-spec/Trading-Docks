@@ -49,7 +49,31 @@ static class InboxTests
             platform.Connected=true; File.WriteAllBytes(Path.Combine(root,"reconnected.jpg"),[0xff,0xd8,0xff]);
             using(var reconnected=await inbox.Capture("owner",next.Id,"reconnected",default)) check(reconnected.Bytes.Length==3,"reconnected device works without reinstall");
             inbox.Ack("owner",next.Id,"reconnected");
+            var journal = new Journal();
+            var durable = new ScannerInbox(root, platform, 5, journal); durable.Start("owner", next);
+            var durablePath = Path.Combine(root, "restart.jpg"); File.WriteAllBytes(durablePath, [0xff,0xd8,0xff]);
+            using var pending = await durable.Capture("owner", next.Id, "restart", default);
+            var restarted = new ScannerInbox(root, platform, 5, journal); restarted.Prepare();
+            using var recovered = restarted.Recover("owner", next.Id, "restart");
+            check(recovered?.Bytes.SequenceEqual(pending.Bytes) == true && File.Exists(durablePath), "Inbox restart retains pending image and original file");
+            check(restarted.Recover("other", next.Id, "restart") is null, "Inbox restart cannot hand image to another pairing");
+            restarted.Start("owner", next); restarted.Ack("owner", next.Id, "restart");
+            var acknowledged = new ScannerInbox(root, platform, 5, journal); acknowledged.Prepare(); acknowledged.Ack("owner", next.Id, "restart");
+            check(!File.Exists(durablePath) && acknowledged.Recover("owner", next.Id, "restart") is null, "Inbox ACK survives restart without duplicate ingestion");
+            var orphan = Path.Combine(root, "interrupted.jpg"); File.WriteAllBytes(orphan, [0xff,0xd8,0xff]);
+            acknowledged.DiscardAttempt("owner", next.Id, "unclaimed"); acknowledged.Start("owner", next);
+            using(var timeout = new CancellationTokenSource(40)) {
+                try { await acknowledged.Capture("owner", next.Id, "new-request", timeout.Token); throw new Exception("Discarded orphan was reassigned"); }
+                catch(OperationCanceledException) { check(File.Exists(orphan), "discarded unclaimed file preserved but excluded from subsequent captures"); }
+            }
+
+
         } finally { Directory.Delete(root,true); }
+    }
+    private sealed class Journal : IRecoveryStore {
+        private readonly Dictionary<string, byte[]> data = new();
+        public byte[]? Read(string key) => data.GetValueOrDefault(key)?.ToArray();
+        public void Write(string key, byte[] value) => data[key] = value.ToArray();
     }
     private sealed class Fixture:IScanSnapPlatform {
         public bool Connected=true;

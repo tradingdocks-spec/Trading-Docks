@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { requireApiCapability } from "@/lib/platform/server-access";
+import { issueCapturePermit } from "@/lib/chaos-sort/capture-permit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,18 @@ export async function POST(request: Request) {
       return Response.json({ captureId: payload.captureId, sourceImageUrl: `/api/chaos-sort/scans?captureId=${payload.captureId}` }, { headers });
     }
     const body = await request.json();
+    if (body.action === "authorize-capture") {
+      if (!auth.user) return Response.json({ error: "Sign in before scanning." }, { status: 401, headers });
+      const snapshot = await auth.supabase.rpc("chaos_scan_command", { action: "snapshot", payload: { batchId: body.payload?.batchId } });
+      const album = snapshot.data?.album;
+      if (snapshot.error || !album || (body.payload?.purpose !== "ack" && album.state !== "ACTIVE") || album.intake_mode !== "live" || album.device_id !== body.payload?.deviceId || album.workstation_id !== body.payload?.workstationId || !/^[0-9a-f-]{36}$/i.test(body.payload?.captureId ?? "")) throw new Error("Capture not authorized for this batch.");
+      const purpose = body.payload?.purpose === "preview" ? "preview" : body.payload?.purpose === "ack" ? "ack" : "capture";
+      if (purpose === "preview" && !/^[0-9a-f-]{36}$/i.test(body.payload.previewSessionId ?? "")) throw new Error("Invalid preview session.");
+      if (purpose === "ack" && !snapshot.data.captures?.some((capture: { capture_id: string; status: string }) => capture.capture_id === body.payload.captureId && capture.status === "RECEIVED")) throw new Error("Cloud has not accepted this capture.");
+      const key = process.env.SCANNER_CAPTURE_SIGNING_KEY;
+      if (!key) throw new Error("Scanner Agent authorization is not configured. Your batch is unchanged.");
+      return Response.json({ authorization: issueCapturePermit({ userId: auth.user.id, workspaceId: album.workspace_id, batchId: album.id, sessionId: purpose === "preview" ? body.payload.previewSessionId : album.id, workstationId: album.workstation_id, deviceId: album.device_id, destinationId: album.destination_id, captureId: body.payload.captureId, purpose }, key) }, { headers });
+    }
     if (!["create", "mode", "settings", "start", "csv", "review", "commit", "label"].includes(body.action)) throw new Error("Invalid scan action.");
     const result = await auth.supabase.rpc("chaos_scan_command", body);
     if (result.error) throw new Error(result.error.message);

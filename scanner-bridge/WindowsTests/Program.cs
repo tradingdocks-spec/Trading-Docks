@@ -21,6 +21,16 @@ if (args.SequenceEqual(["--detect"]))
 }
 var root = Path.Combine(Path.GetTempPath(), "td-scansnap-image-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
 var file = Path.Combine(root, "capture.jpg");
+var recoveryRoot = Path.Combine(root, "recovery");
+var protectedStore = new EncryptedRecoveryStore(recoveryRoot);
+var recoveryBytes = System.Text.Encoding.UTF8.GetBytes("synthetic-capture-recovery");
+protectedStore.Write("captures", recoveryBytes);
+if (!new EncryptedRecoveryStore(recoveryRoot).Read("captures")!.SequenceEqual(recoveryBytes)) throw new Exception("DPAPI restore failed");
+if (System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(recoveryRoot, "captures.dpapi"))).Contains("synthetic-capture-recovery")) throw new Exception("Recovery plaintext on disk");
+protectedStore.Write("captures", [1,2,3]);
+if (!protectedStore.Read("captures")!.SequenceEqual(new byte[] {1,2,3})) throw new Exception("Atomic replacement failed");
+Console.WriteLine("PASS: Windows DPAPI encrypted recovery read/restart/atomic replacement");
+
 try
 {
     using (var bitmap = new Bitmap(50, 70)) bitmap.Save(file, ImageFormat.Jpeg);
@@ -37,7 +47,7 @@ try
     finally { File.Delete(link); }
     Console.WriteLine("PASS: hard-linked input rejected");
 }
-finally { File.Delete(file); Directory.Delete(root); }
+finally { File.Delete(file); File.Delete(Path.Combine(recoveryRoot, "captures.dpapi")); Directory.Delete(recoveryRoot); Directory.Delete(root); }
 
 static class Native
 {

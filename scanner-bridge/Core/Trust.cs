@@ -10,7 +10,7 @@ public record PairFinish(string Id, string Challenge, string Code);
 public record PairPrompt(string Origin, string Code);
 
 // Browser credential IDs are not bearer credentials: every request requires the paired private key.
-public sealed class Trust(ITrustStore store, Func<PairPrompt, Task<bool>> approve, TimeProvider? time = null)
+public sealed class Trust(ITrustStore store, Func<PairPrompt, Task<bool>> approve, TimeProvider? time = null, IRecoveryStore? recovery = null)
 {
     private readonly TimeProvider clock = time ?? TimeProvider.System;
     private readonly object gate = new();
@@ -18,6 +18,7 @@ public sealed class Trust(ITrustStore store, Func<PairPrompt, Task<bool>> approv
     private readonly Dictionary<string, Pending> pending = new();
     private readonly Dictionary<string, DateTimeOffset> challenges = new();
     private readonly Dictionary<string, DateTimeOffset> nonces = new();
+    private bool replayLoaded;
     private sealed record Pending(string Origin, string Challenge, string PublicKey, string Code, DateTimeOffset Expires) { public bool Approved; public int Attempts; }
     public int Count { get { lock (gate) return records.Count; } }
     public async Task<string> Begin(string origin, PairStart request)
@@ -60,6 +61,12 @@ public sealed class Trust(ITrustStore store, Func<PairPrompt, Task<bool>> approv
     {
         lock (gate)
         {
+            if (!replayLoaded)
+            {
+                var saved = recovery?.Read("replay");
+                if (saved is not null) foreach (var entry in System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, DateTimeOffset>>(saved) ?? throw new InvalidDataException("Invalid replay state")) nonces.Add(entry.Key, entry.Value);
+                replayLoaded = true;
+            }
             Prune();
             if (!records.TryGetValue(id, out var record) || record.Origin != origin || record.Expires <= clock.GetUtcNow()) throw new BridgeException("UNPAIRED_OR_EXPIRED", 401);
             if (!long.TryParse(timestamp, out var milliseconds) || Math.Abs(clock.GetUtcNow().ToUnixTimeMilliseconds() - (double)milliseconds) > 60_000 || nonce.Length != 64 || !nonce.All(Uri.IsHexDigit)) throw new BridgeException("INVALID_PROOF", 401);
@@ -74,10 +81,22 @@ public sealed class Trust(ITrustStore store, Func<PairPrompt, Task<bool>> approv
             }
             catch { throw new BridgeException("INVALID_PROOF", 401); }
             nonces[replayKey] = clock.GetUtcNow().AddMinutes(2);
+            recovery?.Write("replay", System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(nonces));
             return id;
         }
     }
     public void Revoke(string? id = null) { lock (gate) { if (id is null) records.Clear(); else records.Remove(id); pending.Clear(); store.Save(records.Values.ToArray()); } }
+    public TrustRecord Renew(string id)
+    {
+        lock (gate)
+        {
+            Prune();
+            if (!records.TryGetValue(id, out var record)) throw new BridgeException("UNPAIRED_OR_EXPIRED", 401);
+            // Requires an already verified signed request. Expired/revoked keys cannot renew.
+            if (record.Expires < clock.GetUtcNow().AddDays(23)) { record = record with { Expires = clock.GetUtcNow().AddDays(30) }; records[id] = record; store.Save(records.Values.ToArray()); }
+            return record;
+        }
+    }
     private void Prune()
     {
         foreach (var key in pending.Where(p => p.Value.Expires <= clock.GetUtcNow()).Select(p => p.Key).ToArray()) pending.Remove(key);

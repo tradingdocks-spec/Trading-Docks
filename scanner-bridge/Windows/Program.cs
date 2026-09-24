@@ -34,6 +34,7 @@ internal sealed class BridgeTray : ApplicationContext
     {
         _ = dispatcher.Handle;
         var state = new LocalState();
+        var recovery = new EncryptedRecoveryStore(Path.Combine(LocalState.DirectoryPath, "recovery"));
         var setupMarker = Path.Combine(LocalState.DirectoryPath, "scansnap-inbox-configured");
         backend = new(new WiaScannerBackend(state.Salt), new ScanSnapBackend(new ScanSnapPlatform(dispatcher), Path.Combine(LocalState.DirectoryPath, "captures"), state.Salt, () => File.Exists(setupMarker)));
         trust = new(state, prompt =>
@@ -41,14 +42,18 @@ internal sealed class BridgeTray : ApplicationContext
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dispatcher.BeginInvoke(() => completion.SetResult(MessageBox.Show($"Allow pairing from:\n{prompt.Origin}\n\nEnter this one-time code in that browser: {prompt.Code}\n\nCode expires after two minutes. Approve only if you initiated pairing.", "Pair Trading Docks workstation", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes));
             return completion.Task;
-        });
-        var inbox = new ScannerInbox(Path.Combine(LocalState.DirectoryPath, "Inbox"), new ScanSnapPlatform(dispatcher));
+        }, recovery: recovery);
+        var inbox = new ScannerInbox(Path.Combine(LocalState.DirectoryPath, "Inbox"), new ScanSnapPlatform(dispatcher), recovery: recovery);
         inbox.Prepare();
-        captures = new(backend, inbox);
+        captures = new(backend, inbox, recovery);
         // Additional origins must be reviewed and explicitly set in this local-user file.
         var config = Path.Combine(LocalState.DirectoryPath, "origins.json");
         var origins = File.Exists(config) ? System.Text.Json.JsonSerializer.Deserialize<string[]>(File.ReadAllText(config)) ?? [] : ["https://www.tradingdocks.com"];
-        server = BridgeHost.Create(new(state.Certificate(), origins), trust, captures, backend, state.WorkstationId, inbox);
+        // Public keys only, provisioned with the reviewed internal build. Missing
+        // keys fail closed; never download trust anchors from a browser request.
+        var keysPath = Path.Combine(AppContext.BaseDirectory, "capture-public-keys.json");
+        var keys = File.Exists(keysPath) ? System.Text.Json.JsonSerializer.Deserialize<string[]>(File.ReadAllText(keysPath)) ?? [] : [];
+        server = BridgeHost.Create(new(state.Certificate(), origins), trust, captures, backend, state.WorkstationId, inbox, new CaptureAuthorization(keys));
         server.StartAsync().GetAwaiter().GetResult();
         var menu = new ContextMenuStrip();
         menu.Items.Add("ScanSnap setup", null, (_, _) => MessageBox.Show($"Create a Trading Docks Cards profile in ScanSnap Home.\nPC (Scan to file), direct save, JPEG, color, 300 DPI, single-sided. Disable per-scan Save/rename prompts.\nSave destination (configure once):\n{inbox.Root}\n\nStart Live Scan in Trading Docks before pressing the physical Scan button. Only new JPEG files in this inbox are accepted. Physical certification pending.", "Finish ScanSnap setup"));

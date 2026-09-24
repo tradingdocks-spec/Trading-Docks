@@ -4,7 +4,7 @@ export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: s
 export type ScanSettings = { dpi: number; colorMode: string; source: string; duplex: boolean; autoCrop: boolean };
 export type ScannerDevice = { id: string; name: string; simulated: boolean; manufacturer?: string; model?: string; connection?: string; backend?: string; scanCapabilities?: ScanCapabilities };
 export type ScannerCapture = { captureId: string; file: File };
-export type ScannerSession = { id: string; workspaceId: string; batchId: string; destinationId: string; workstationId: string; deviceId: string; limit: 100 };
+export type ScannerSession = { id: string; userId?: string; preview?: boolean; workspaceId: string; batchId: string; destinationId: string; workstationId: string; deviceId: string; limit: 100 };
 export type ScannerConfiguration = { delayMs?: number; scenario?: "success" | "failure" | "jam" | "duplicate" | "disconnect" | "slow"; fixtures?: File[]; settings?: ScanSettings };
 export interface ScannerProvider {
   readonly capabilities: { detect: boolean; capture: boolean; cancelCapture: boolean; configure: boolean };
@@ -20,7 +20,9 @@ export interface ScannerProvider {
   startSession?(session: ScannerSession): Promise<void>;
   pauseSession?(): Promise<void>;
   acknowledge?(captureId: string): Promise<void>;
-  recoverPendingCapture?(): Promise<{ captureId: string; file: File } | null>;
+  recoverPendingCapture?(): Promise<{ captureId: string; file: File; preview?: boolean } | null>;
+  hasPendingCapture?(): Promise<boolean>;
+  discardPendingCapture?(): Promise<void>;
 }
 
 /** Development only. No device discovery, local network access or vendor SDK. */
