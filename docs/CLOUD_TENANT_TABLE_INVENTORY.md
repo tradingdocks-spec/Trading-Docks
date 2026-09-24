@@ -1161,4 +1161,3 @@ WITH CHECK ((bucket_id = 'marketing-assets'::text) AND is_admin('admin'::admin_r
 USING (not specified)
 WITH CHECK ((bucket_id = 'marketing-assets'::text) AND is_admin('admin'::admin_role))
 ```
-
