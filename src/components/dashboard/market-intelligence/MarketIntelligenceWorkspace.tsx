@@ -10,28 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-type GameId =
-  | "magic"
-  | "pokemon"
-  | "pokemon-japan"
-  | "lorcana"
-  | "one-piece";
-
-type MarketCard = {
-  id: string;
-  game: GameId;
-  name: string;
-  subtitle: string;
-  setName: string;
-  image: string;
-  marketPrice: number;
-  lowPrice: number;
-  change24h: number;
-  change7d: number;
-  inventoryOwned: number;
-  potentialRevenue: number;
-  demand: "High" | "Medium" | "Low";
-};
+import type { GameId, MarketCard } from "@/lib/market-engine/types";
 
 const GAMES: Array<{
   id: GameId;
@@ -84,8 +63,8 @@ export function MarketIntelligenceWorkspace() {
               Multi-Game Market Center
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-td-muted">
-              Compare live card prices, market movement, demand,
-              and inventory exposure across the major trading card games.
+              Compare provider card quotes. Unavailable market movement, demand,
+              and inventory exposure are not estimated.
             </p>
           </div>
 
@@ -124,7 +103,7 @@ export function MarketIntelligenceWorkspace() {
 
         <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => {
-            const positive = card.change7d >= 0;
+            const positive = card.change7d !== null && card.change7d >= 0;
 
             return (
               <article
@@ -160,7 +139,7 @@ export function MarketIntelligenceWorkspace() {
                           : "text-td-danger",
                       ].join(" ")}
                     >
-                      {positive ? (
+                      {card.change7d === null ? null : positive ? (
                         <ArrowUpRight className="h-3 w-3" />
                       ) : (
                         <ArrowDownRight className="h-3 w-3" />
@@ -181,7 +160,7 @@ export function MarketIntelligenceWorkspace() {
                   />
                   <Metric
                     label="Inventory"
-                    value={card.inventoryOwned.toString()}
+                    value={card.inventoryOwned === null ? "Unavailable" : card.inventoryOwned.toString()}
                   />
                   <Metric
                     label="Revenue"
@@ -216,7 +195,8 @@ function Metric({
   );
 }
 
-function currency(value: number) {
+function currency(value: number | null) {
+  if (value === null) return "Unavailable";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -224,6 +204,7 @@ function currency(value: number) {
   }).format(Number.isFinite(value) ? value : 0);
 }
 
-function signedPercent(value: number) {
+function signedPercent(value: number | null) {
+  if (value === null) return "Insufficient data";
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
 }

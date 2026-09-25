@@ -107,7 +107,7 @@ export async function loadPokemonJapan(): Promise<MarketCard[]> {
             dataQuality: "live",
           }),
         )
-        .filter((card) => card.marketPrice > 0);
+        .filter((card) => card.marketPrice !== null && card.marketPrice > 0);
 
       if (normalized.length) return normalized;
     }

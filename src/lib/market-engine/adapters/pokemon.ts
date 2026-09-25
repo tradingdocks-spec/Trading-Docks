@@ -72,7 +72,7 @@ export async function loadPokemon(): Promise<MarketCard[]> {
         money(
           (priceObject as any).market ??
             (priceObject as any).mid,
-        ) || seed.fallbackPrice;
+        );
 
       return normalizeCard({
         id: selectedId,

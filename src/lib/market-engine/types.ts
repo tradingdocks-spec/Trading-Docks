@@ -1,3 +1,5 @@
+import type { IntelligenceValue } from "../intelligence-provenance.ts";
+
 export type GameId =
   | "magic"
   | "pokemon"
@@ -16,20 +18,21 @@ export type MarketCard = {
   setCode: string;
   collectorNumber: string;
   image: string;
-  marketPrice: number;
-  lowPrice: number;
-  change24h: number;
-  change7d: number;
-  inventoryOwned: number;
-  potentialRevenue: number;
-  demand: "High" | "Medium" | "Low";
-  volumeScore: number;
-  opportunityScore: number;
+  marketPrice: number | null;
+  lowPrice: number | null;
+  change24h: number | null;
+  change7d: number | null;
+  inventoryOwned: number | null;
+  potentialRevenue: number | null;
+  demand: "High" | "Medium" | "Low" | null;
+  volumeScore: number | null;
+  opportunityScore: number | null;
   sparkline: number[];
   source: string;
   sourceUrl?: string;
   dataQuality: "live" | "reference" | "fallback";
-  signal: MarketSignal;
+  signal: MarketSignal | null;
+  provenance: Record<"marketPrice" | "lowPrice" | "change24h" | "change7d" | "inventoryOwned" | "potentialRevenue" | "demand" | "volumeScore" | "opportunityScore" | "sparkline" | "signal", IntelligenceValue<unknown>>;
 };
 
 export type MarketGameStatus = {

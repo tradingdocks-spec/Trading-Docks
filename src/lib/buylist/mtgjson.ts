@@ -1,5 +1,6 @@
 import { gunzipSync } from "node:zlib";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { physicalFinish, physicalLanguage, knownAttribute } from "../card-intelligence/resolution.ts";
 
 type InventoryData = {
   id?: string; name?: string; set?: string; setCode?: string; collectorNumber?: string;
@@ -16,13 +17,6 @@ const REQUEST_TIMEOUT_MS = 120_000;
 const CACHE_TTL_MS = 15 * 60_000;
 let priceCache: { loadedAt: number; value: Promise<PriceFile> } | null = null;
 const setCache = new Map<string, { loadedAt: number; value: Promise<SetCard[]> }>();
-
-function normalizedFinish(value?: string) {
-  const finish = (value || "nonfoil").toLowerCase();
-  if (finish.includes("etched")) return "etched";
-  if (finish.includes("foil")) return "foil";
-  return "nonfoil";
-}
 
 function latest(point?: PricePoint) {
   if (!point) return null;
@@ -90,28 +84,32 @@ export async function syncMtgjsonForUser(admin: SupabaseClient, userId: string) 
 
     const setPayloads = await Promise.all(setCodes.map(cardsForSet));
     const identity = new Map<string, SetCard>();
-    for (const card of setPayloads.flat()) {
+    for (const [setIndex, cards] of setPayloads.entries()) for (const card of cards) {
       const scryfall = card.identifiers?.scryfallId?.toLowerCase();
       if (scryfall) identity.set(`s:${scryfall}`, card);
-      identity.set(`p:${card.name.toLowerCase()}|${card.number.toLowerCase()}`, card);
+      identity.set(`p:${setCodes[setIndex]}|${card.name.toLowerCase()}|${card.number.toLowerCase()}`, card);
     }
 
     const prices = await currentPrices();
     const verifiedAt = prices.meta?.date ? new Date(`${prices.meta.date}T09:00:00Z`).toISOString() : startedAt;
     const offers = inventory.flatMap((item) => {
-      if ((item.language || "English").toLowerCase() !== "english" && (item.language || "").toLowerCase() !== "en") return [];
-      const card = (item.scryfallId ? identity.get(`s:${item.scryfallId.toLowerCase()}`) : undefined)
-        || identity.get(`p:${item.name!.toLowerCase()}|${(item.collectorNumber || "").toLowerCase()}`);
+      if (physicalLanguage(item.language) !== "en" || !knownAttribute(item.condition)) return [];
+      const card = item.scryfallId ? identity.get(`s:${item.scryfallId.toLowerCase()}`)
+        : identity.get(`p:${setCodeFor(item)}|${item.name!.toLowerCase()}|${(item.collectorNumber || "").toLowerCase()}`);
       if (!card) return [];
+      // An explicit provider ID must not silently fall back to another printing.
+      if (item.collectorNumber && item.collectorNumber.toLowerCase() !== card.number.toLowerCase()) return [];
+      if (!setPayloads[setCodes.indexOf(setCodeFor(item))]?.some((candidate) => candidate.uuid === card.uuid)) return [];
       const buylist = prices.data?.[card.uuid]?.paper?.cardkingdom?.buylist;
-      const finish = normalizedFinish(item.finish);
+      const finish = physicalFinish(item.finish);
+      if (!finish) return [];
       const cashPrice = latest(finish === "foil" ? buylist?.foil : finish === "etched" ? buylist?.etched : buylist?.normal);
       if (cashPrice == null) return [];
       return [{
         user_id: userId, provider: "mtgjson_cardkingdom", source_kind: "aggregated", indicative: true,
         store_name: "Card Kingdom", scryfall_id: card.identifiers?.scryfallId || item.scryfallId || null,
         card_name: item.name!, set_code: setCodeFor(item).toLowerCase(),
-        collector_number: item.collectorNumber || card.number, finish, language: "English", condition: item.condition || "NM",
+        collector_number: item.collectorNumber || card.number, finish, language: item.language!, condition: item.condition!,
         cash_price: cashPrice, credit_price: null, quantity_wanted: 1,
         source_url: "https://www.cardkingdom.com/purchasing/mtg_singles", verified_at: verifiedAt,
         expires_at: new Date(new Date(verifiedAt).getTime() + 48 * 3_600_000).toISOString(), updated_at: startedAt,
