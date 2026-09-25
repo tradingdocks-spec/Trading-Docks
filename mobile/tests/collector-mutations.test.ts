@@ -192,7 +192,7 @@ test('all non-not_for_trade trade statuses remain visible in trade filters', () 
   assert.equal(isTradeBinderVisibleInTradeFilters('for_sale'), true);
 });
 
-test('offline queue isolates writes by user and replaces duplicate queued mutations', () => {
+test('offline queue isolates writes by user and preserves the first queued identity', () => {
   const firstMutation: CollectorMutation = { type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 3 };
   const secondMutation: CollectorMutation = { type: 'quantity', userId: 'user-1', inventoryItemId: 'card-1', quantity: 4 };
   const otherUserMutation: CollectorMutation = { type: 'quantity', userId: 'user-2', inventoryItemId: 'card-1', quantity: 7 };
@@ -213,7 +213,7 @@ test('offline queue isolates writes by user and replaces duplicate queued mutati
 
   assert.equal(queue.length, 2);
   assert.equal(queue.filter((operation) => operation.userId === 'user-1').length, 1);
-  assert.equal((queue.find((operation) => operation.userId === 'user-1')?.payload as { quantity?: number }).quantity, 4);
+  assert.equal((queue.find((operation) => operation.userId === 'user-1')?.payload as { quantity?: number }).quantity, 3);
   assert.equal(queue.filter((operation) => operation.userId === 'user-2').length, 1);
 });
 

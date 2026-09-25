@@ -7,7 +7,7 @@ import {
   type ScannerConfirmation,
 } from './scanner-foundation.ts';
 import { loadInventoryQuantityTotal } from './inventory-quantity-total.ts';
-import type { OfflineOperation } from './storage/offline-core.ts';
+import type { OfflineOperation, OfflineQueue } from './storage/offline-core.ts';
 
 export type ScannerReplayTrigger = 'network_reconnect' | 'app_resume' | 'session_restore' | 'manual_retry';
 export type ScannerSyncState = 'pending' | 'syncing' | 'synced' | 'failed' | 'action_required';
@@ -49,7 +49,7 @@ export type ScannerReplayResult = {
 
 export type ScannerReplayDependencies = {
   getQueue: () => Promise<OfflineOperation[]>;
-  replaceQueue: (queue: OfflineOperation[]) => Promise<void>;
+  processOperation: OfflineQueue['process'];
   getAuthenticatedUserId: () => Promise<string | null>;
   loadCurrentTotalQuantity: (userId: string) => Promise<number>;
   inventoryItemExists: (userId: string, inventoryItemId: string) => Promise<boolean>;
@@ -60,6 +60,8 @@ export type ScannerReplayDependencies = {
 };
 
 export function scannerSyncStateForOperation(operation: OfflineOperation): ScannerSyncState {
+  if (operation.status === 'review_required') return 'action_required';
+  if (operation.status === 'processing') return 'syncing';
   if (isActionRequiredCode(operation.errorCode)) return 'action_required';
   return operation.lastError ? 'failed' : 'pending';
 }
@@ -127,10 +129,9 @@ export function discardQueuedScannerAddFromQueue(
 }
 
 export async function discardQueuedScannerAdd(operationId: string, userId: string, confirmed: boolean) {
-  const { getOfflineQueue, replaceOfflineQueue } = await import('./storage/offline.ts');
-  const result = discardQueuedScannerAddFromQueue(await getOfflineQueue(), operationId, userId, confirmed);
-  if (result.discarded) await replaceOfflineQueue(result.queue);
-  return result.discarded;
+  if (!confirmed) return false;
+  const { discardOfflineOperation } = await import('./storage/offline.ts');
+  return discardOfflineOperation(operationId, userId, SCANNER_COLLECTION_QUEUE_TYPE);
 }
 
 export async function retryQueuedScannerAdd({
@@ -178,7 +179,6 @@ export async function replayQueuedScannerAddsWithDependencies(
     return { trigger: input.trigger, attempted: 0, succeeded: 0, failed: 0, actionRequired: 0, remaining: scannerRemainingForUser(queue, input.userId) };
   }
 
-  const remaining: OfflineOperation[] = [];
   let attempted = 0;
   let succeeded = 0;
   let failed = 0;
@@ -186,29 +186,28 @@ export async function replayQueuedScannerAddsWithDependencies(
 
   for (const operation of queue) {
     const entry = scannerQueuedAddFromOperation(operation, input.userId);
-    if (!entry || (input.operationId && entry.operationId !== input.operationId)) {
-      remaining.push(operation);
+    if (operation.userId !== input.userId || operation.type !== SCANNER_COLLECTION_QUEUE_TYPE || (input.operationId && operation.id !== input.operationId)) continue;
+    if (!entry) {
+      await dependencies.processOperation(operation.id, input.userId, SCANNER_COLLECTION_QUEUE_TYPE, async () => {
+        throw scannerAuthorityError('Malformed scanner operation preserved for review.');
+      }, { retrySafe: false, classify: classifyScannerReplayError });
+      actionRequired += 1;
       continue;
     }
 
+    const outcome = await dependencies.processOperation(operation.id, input.userId, SCANNER_COLLECTION_QUEUE_TYPE, async (claimed) => {
+      const current = scannerQueuedAddFromOperation(claimed, input.userId);
+      if (!current) throw new Error('Invalid queued scanner payload. Review required.');
+      await executeScannerReplayEntry(current, input.membershipTier, dependencies);
+    }, { retrySafe: !entry.confirmation.addToWishlist && entry.confirmation.tradeStatus === 'not_for_trade', classify: classifyScannerReplayError });
+    if (outcome.status === 'skipped') continue;
     attempted += 1;
-    const syncingOperation = { ...operation, lastError: undefined, errorCode: undefined };
-    try {
-      await executeScannerReplayEntry(entry, input.membershipTier, dependencies);
-      succeeded += 1;
-    } catch (error) {
-      const classified = classifyScannerReplayError(error);
-      failed += 1;
-      if (classified.actionRequired) actionRequired += 1;
-      remaining.push({
-        ...syncingOperation,
-        lastError: classified.message,
-        errorCode: classified.code,
-      });
-    }
+    if (outcome.status === 'committed') succeeded += 1;
+    else { failed += 1; if (isActionRequiredCode(outcome.errorCode)) actionRequired += 1; }
   }
 
-  await dependencies.replaceQueue(remaining);
+  const remaining = await dependencies.getQueue();
+  actionRequired = remaining.filter((operation) => operation.userId === input.userId && operation.type === SCANNER_COLLECTION_QUEUE_TYPE && operation.status === 'review_required').length;
   return {
     trigger: input.trigger,
     attempted,
@@ -224,17 +223,16 @@ async function executeScannerReplayEntry(
   membershipTier: unknown,
   dependencies: ScannerReplayDependencies,
 ) {
-  const currentTotalQuantity = await dependencies.loadCurrentTotalQuantity(entry.userId);
-  const validation = validateScannerConfirmation(entry.confirmation, { membershipTier, currentTotalQuantity });
-  if (!validation.ok) {
-    const error = new Error(validation.reason) as Error & { scannerCode: string };
-    error.scannerCode = validation.code;
-    throw error;
-  }
-
   const exists = await dependencies.inventoryItemExists(entry.userId, entry.inventoryItemId);
   let authoritativeConfirmation = entry.confirmation;
   if (!exists) {
+    const currentTotalQuantity = await dependencies.loadCurrentTotalQuantity(entry.userId);
+    const validation = validateScannerConfirmation(entry.confirmation, { membershipTier, currentTotalQuantity });
+    if (!validation.ok) {
+      const error = new Error(validation.reason) as Error & { scannerCode: string };
+      error.scannerCode = validation.code;
+      throw error;
+    }
     authoritativeConfirmation = await dependencies.validatePrintingIdentity(entry.confirmation);
     await dependencies.insertInventoryItem(buildScannerAddPayload(authoritativeConfirmation, entry.inventoryItemId));
   }
@@ -253,9 +251,9 @@ function createScannerReplayDependencies(): ScannerReplayDependencies {
       const { getOfflineQueue } = await import('./storage/offline.ts');
       return getOfflineQueue();
     },
-    async replaceQueue(queue) {
-      const { replaceOfflineQueue } = await import('./storage/offline.ts');
-      await replaceOfflineQueue(queue);
+    async processOperation(...args) {
+      const { processOfflineOperation } = await import('./storage/offline.ts');
+      return processOfflineOperation(...args);
     },
     getAuthenticatedUserId: currentUserId,
     loadCurrentTotalQuantity,
@@ -344,8 +342,8 @@ async function insertInventoryItem(payload: ScannerAddPayload) {
     p_related_entity_id: inventoryItemId || null,
   });
   if (!error) return;
-  const classified = classifyScannerReplayError(error);
-  if (classified.code === 'unknown' && /duplicate|unique/i.test(error.message)) return;
+  // A uniqueness error is not proof of this operation's success. Reconcile the
+  // exact owner/item on the next retry, never swallow an unrelated constraint.
   throw new Error(error.message);
 }
 

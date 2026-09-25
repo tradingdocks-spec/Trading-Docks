@@ -1,6 +1,6 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1H PARTIALLY IMPLEMENTED — ARCHITECTURAL STOP — PHASE 1 INCOMPLETE**.
+Status: **PHASE 1I QUEUE REPAIR IMPLEMENTED LOCALLY — PHASE 1 INCOMPLETE**.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -512,5 +512,123 @@ Passing baseline acquisition tests does not override the scanner stop or complet
 - **G20:** lifecycle-preserving native recovery convergence and actual same-fixture main/acceptance parity; no physical acceptance claimed.
 
 **PHASE 1 INCOMPLETE. Phase 2 is not ready.** Resume implementation only after the H01 architectural stop is reviewed. Keep the existing cloud inventory and purchase authorities; do not add a competing queue or ledger.
+
+## PHASE 1I — SHARED OFFLINE QUEUE CONCURRENCY REPAIR
+
+The owner's Phase 1I approval supersedes the H01 stop above. The existing queue abstraction was repaired locally; no second queue, new schema, production change, scanner feature or UI redesign was introduced. The historical Phase 1H reproduction is retained in Git history and now asserts the repaired result.
+
+### 1. Root cause and complete shared-queue audit
+
+Native storage is AsyncStorage; Expo web uses localStorage via `app-storage.ts`. One JSON array lives at `td-offline-operation-queue-v1`. The original operation held `id`, `type`, `payload`, `userId`, `dedupeKey`, `createdAt`, optional error fields. There was no shared lock, revision or item claim. Malformed JSON previously looked like an empty queue. Enqueue, replay, discard and the unused clear/replace exports could overwrite an entire persisted snapshot.
+
+| Consumer | Enqueue / replay / removal | Current treatment |
+|---|---|---|
+| `scanner-data.ts` | Queue offline/failed scanner confirmation | Stable inventory ID used as explicit queue operation ID; ancillary uncertain workflows held for review |
+| `scanner-replay.ts` | List, retry one/all, discard | Claim exact operation; item-only completion/failure; owner/type-scoped discard |
+| `collector-mutation-data.ts` | Offline/failed inventory edits, retry export | Shared claim coordinator; uncertain replies require review |
+| `storage-location-data.ts` | Failed storage assignment, retry export | Shared claim coordinator; replay key derives from claimed ID, not current timestamp |
+| `trade-binder-wishlist-data.ts` | Offline/failed trade/wishlist changes, retry export | Shared claim coordinator; uncertain replies require review |
+| `scanner-replay-bridge.tsx` | Auth session restoration, auth change, app foreground, browser online | Calls the same replay service; local busy flag remains only a UX optimization |
+| `scanner-recovery.tsx`, `automatic-scanner-screen.tsx` | Manual retries / discard / scanner workflow | Same coordinator; no separate component-level authority |
+
+No native headless/background task registration was found for this queue. The non-scanner retry functions are exported but no automatic startup/reconnect call sites were found in the active app. They were still migrated because they share persistence and may be invoked later. Pure `addOfflineOperation` / `discardQueuedScannerAddFromQueue` helpers remain for in-memory calculations/tests only; neither is a persistent replacement API. There are no `replaceOfflineQueue`, `replaceQueue`, or `clearOfflineQueue` callers/exports remaining in runtime services.
+
+The original lost-item schedule was not scanner-specific: any delayed snapshot replacement could erase newer cross-type work or resurrect entries another worker completed. The reproduction now ends with `[B]`, not `[]`.
+
+### 2. New concurrency model
+
+`offline-core.ts` supplies the queue implementation; `offline.ts` supplies its platform storage and lock adapter. They operate on the same existing storage key. A shared storage critical section reloads the latest durable state and changes only the target operation. Network requests do not hold the global storage lock.
+
+Replay takes an operation-specific lock, persists `processing` plus a unique claim token/attempt count, releases the storage lock, executes the request, then reloads current state and acknowledges only the matching claim. The per-operation lock covers the request, preventing overlapping handlers for A while permitting B to enqueue or complete. There is no unsafe timer-based lease expiry that can launch a second worker while the first still runs.
+
+Native uses one globally retained coordinator/mutex in the current JS runtime, including module reloads. Web uses browser Web Locks for both storage and per-item locks across tabs. Web without locking support fails closed and preserves storage; it does not silently fall back to a tab-local mutex. SSR is not allowed to report a durable enqueue through a no-op storage write.
+
+Success retains a terminal `committed` tombstone and removes only that item from the active list. Discard retains a terminal marker and refuses to discard an in-flight claim. Tombstones preserve explicit-operation deduplication. No pruning policy is invented in this phase.
+
+### 3. Stable identity and server boundaries
+
+Queue ID/payload remain immutable across retries, claim changes, app resume and restart. Re-enqueue with the same explicit ID returns the original record, including its claim or terminal state; a conflicting payload fails without replacing it. Pending dedupe keys are scoped by user and type. A new logical intent may use a new ID; content-based keys are not proof that two separate online intentions are the same operation.
+
+For stock-only scanner replay, the same persisted inventory ID is used on every delivery. The existing database primary key prevents a second stock row with that ID. Recovery checks that owner's exact item before reapplying collection limits or inserting. An existing committed item is reconciled even if its receipt filled the free-plan limit. Broad duplicate/unique errors are no longer swallowed as successful writes.
+
+**Actual database acceptance:** invoke the real scanner replay function with real PostgreSQL inventory/event creation, throw a simulated client timeout after SQL committed, then replay. Result: one stock row, quantity 2, one event, zero new purchases/links, one creation call, queue converges to committed. Both schema variants pass.
+
+**Exact remaining gaps:** `create_inventory_item_with_event` is not a general operation/payload receipt protocol: item-ID uniqueness and reconciliation prove the tested same-ID path, not changed-payload retry correctness. Online `saveScannerConfirmation` still allocates an item ID per invocation; separate repeated online submissions/session finalization need durable intent creation before the first network request. Collector keys are still derived from target/content, wishlist inserts lack transactional operation deduplication, and optional trade/wishlist follow-ups are not one atomic stock transaction. These are G19 follow-ups, not silently certified by a mutex. No financial mutation was moved into this queue.
+
+### 4. Multi-worker prevention, crash and poison behavior
+
+| Situation | Behavior |
+|---|---|
+| B/C/D enqueue while A awaits server | Persist independently under shared storage lock; A completion keeps them |
+| Two workers replay A | Same item lock; second sees terminal/blocked state and skips |
+| B completes before A | Each completion checks its own claim; neither replaces the other's snapshot |
+| Claim write fails | No server request starts |
+| Server commits, reply lost | Retry-safe handler retains stable identity; stock-only DB acceptance proves no duplicate |
+| Completion write fails | Persisted processing item remains; local success is not returned |
+| App restarts with processing item | Browser locks release on termination; fresh native runtime has no live old worker. Retry-safe handler can reclaim; unsafe handler transitions to review |
+| Unknown unsafe response | Retain `review_required`; do not automatically repeat wishlist/movement/ancillary writes |
+| Legacy entry without status | Retain original ID/payload as review-required: prior server outcome is unknowable from the old format |
+| Invalid individual row | Preserve raw local evidence as quarantined review record; valid neighbors still run |
+| Invalid JSON/root format | Throw explicit recovery error, never turn it into an empty queue or overwrite it |
+| Unsupported mutation payload | Retain failed/review state; do not claim a no-op was committed |
+
+This phase deliberately does not add a reconciliation UI or guess the outcome of legacy operations. Warnings state when automatic replay is blocked. No historical queue item is silently dropped to obtain a passing test. A queue promise that fails persistence has not succeeded; shutdown acceptance models both claim and acknowledgement interruption, not a physical device reboot.
+
+### 5. Structured diagnostics
+
+The shared coordinator emits enqueue, duplicate enqueue, claim, replay start/success/failure, blocked/duplicate replay, restart recovery/review, and discard events with operation ID, type, attempts and queue depth. Payloads, user IDs, auth data and raw error messages are omitted. Diagnostic failures cannot fail a persisted operation. There is no fabricated `idempotent_server_response` flag: the existing scanner API does not return an authoritative replay receipt; its exact-record reconciliation is tested separately. A server receipt/response diagnostic remains part of the G19 protocol work.
+
+### 6. Scanner parity follow-up
+
+Rechecked the retained main/prior candidate and `3269e252`: both referenced the same **old** `mobile/services/storage/offline.ts` blob (`40fefbe746e9699c00e449cf51951d7d7ed61e9b`). The new local candidate changes that module and all active mobile replay consumers together. No build-specific mobile retry implementation was added.
+
+| Path | Phase 1I queue/retry result |
+|---|---|
+| Active main-mobile source candidate | Shared repaired queue; 596 mobile tests, mobile TS/lint pass |
+| Expo web queue | Same core; cross-tab Web Locks/localStorage test passes |
+| Retained private acceptance revision | Still old code; not rebuilt/promoted. Cannot claim new semantics in that artifact |
+| Windows Scanner Agent | Separate hardware-only encrypted capture journal is platform-specific; not a stock mutation queue. Unchanged, equivalence/lifecycle recovery acceptance still pending |
+| Web Chaos cloud capture | Existing cloud acceptance authority unchanged; not rerouted into mobile offline queue |
+| Camera/OCR/visual/exact printing/finish/language/confidence/manual review | Phase 1H matrix remains applicable; no capabilities removed or new parity certification claimed |
+
+Old and new browser builds must not run concurrently against this queue during a future rollout: old writers do not participate in Web Locks. A coordinated client refresh/upgrade and pending-item review are release gates. Native multi-process/headless queue access would also require an inter-process transactional adapter; none exists in the audited runtime. These limitations are explicit, not evidence of current production readiness.
+
+### 7. Regression and integration tests
+
+- A/B/H: A in flight plus one, three or 50 new operations; every unique item remains.
+- C: failed A updates only A and preserves B/its attempts.
+- D: two coordinators share a claim; only one handler runs.
+- E: simulated idempotent server plus real PostgreSQL scanner commit/lost-response/replay in two variants.
+- F: pending/processing restart, failed claim write, failed completion write, safe recovery and unsafe-outcome review.
+- G: poison row retained; valid neighbor completes; malformed root never overwritten.
+- I/J: cross-type enqueue and out-of-order completion.
+- Additional: duplicate payload conflict, in-flight discard denied, terminal retry suppression, legacy preservation, redacted diagnostics, free-limit reconciliation of already committed stock.
+- Original Phase 1H reproducer now prints **RACE_FIXED** using actual scanner replay and the shared coordinator.
+- `tests/offline-queue-browser.mjs`: two real browser pages sharing localStorage/Web Locks, cross-tab enqueue, overlapping workers and reload persistence.
+
+### 8. Validation and remaining blockers
+
+Validation completed locally on 2026-09-24:
+
+| Check | Result |
+|---|---|
+| Root tests | 1,038 passed |
+| Mobile tests, including concurrency/scanner replay | 596 passed; 15 new shared-queue tests and one scanner reconciliation regression |
+| Database checks | 44 passed across minimal and legacy variants |
+| Original lost-item reproducer | RACE_FIXED; newly enqueued B survives A completion |
+| Real browser storage/concurrency | Two pages, shared localStorage/Web Locks, duplicate-worker suppression and reload passed |
+| Authenticated acquisition acceptance | Passed against isolated local Auth/PostgREST/database fixtures |
+| Root/mobile TypeScript | Passed |
+| Root/mobile lint | Passed with existing warnings; no errors |
+| Webpack production build | Passed |
+| Dependency audit | Zero reported vulnerabilities |
+| Scoped secret/artifact audit | Passed: 14 changed/new text files and 355 static bundles; no high-signal secret matches or sensitive artifact paths |
+| Whitespace integrity | git diff --check passed |
+
+No production credentials, migrations or data were used. All database/browser fixtures are local and synthetic. The dedicated local acceptance stack was stopped after testing. These checks do not certify physical hardware, a private installer, or multi-process native recovery.
+
+H01's same-version lost-item race is repaired and reproduced safely. **G19 is only partially resolved:** the queue is safe, but all online-to-offline intent/transaction boundaries are not yet certified. Legacy uncertain operations are retained for review rather than retried speculatively. **G20 remains:** retained private builds and hardware recovery have not demonstrated equivalent semantics. **G17/G18** retain their broader provenance/uncertainty work from Phase 1H.
+
+**PHASE 1 INCOMPLETE. Phase 2 is not ready to begin.** No push, production deployment, schema change, inventory mutation, POS/Square change, installer distribution or physical certification occurred.
 
 Before production promotion: review the legacy workflow gates, compare the actual production schema and recovery freshness, apply only reviewed forward migrations in schema-first order, run normal CI, and conduct separately authorized post-deployment checks. No such promotion is performed here. **Phase 2 is not ready to begin.**

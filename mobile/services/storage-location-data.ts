@@ -17,8 +17,7 @@ import {
 import {
   enqueueOfflineOperation,
   getOfflineQueue,
-  replaceOfflineQueue,
-  type OfflineOperation,
+  processOfflineOperation,
 } from '@/services/storage/offline';
 
 type LocationResult<T = void> =
@@ -117,16 +116,16 @@ export async function assignMobileStorageLocation(assignment: LocationAssignment
   try {
     await executeLocationAssignment(assignment, userId);
     return { ok: true, data: undefined };
-  } catch (error) {
+  } catch {
     await enqueueOfflineOperation(
       STORAGE_LOCATION_QUEUE_TYPE,
       assignment as unknown as Record<string, unknown>,
-      { userId: assignment.userId, dedupeKey: locationAssignmentQueueKey(assignment) },
+      { userId: assignment.userId, dedupeKey: locationAssignmentQueueKey(assignment), uncertain: true },
     );
     return {
       ok: true,
       queued: true,
-      warning: error instanceof Error ? error.message : 'Storage move queued for sync.',
+      warning: 'Storage outcome is uncertain. Operation preserved for review; automatic replay is blocked.',
       data: undefined,
     };
   }
@@ -134,26 +133,20 @@ export async function assignMobileStorageLocation(assignment: LocationAssignment
 
 export async function retryQueuedStorageLocationAssignments(userId: string) {
   const queue = await getOfflineQueue();
-  const remaining: OfflineOperation[] = [];
+  let attempted = 0;
   for (const operation of queue) {
-    if (operation.type !== STORAGE_LOCATION_QUEUE_TYPE || operation.userId !== userId) {
-      remaining.push(operation);
-      continue;
-    }
-    try {
-      await executeLocationAssignment(operation.payload as unknown as LocationAssignment, userId);
-    } catch (error) {
-      remaining.push({
-        ...operation,
-        lastError: error instanceof Error ? error.message : 'Queued storage move failed.',
-      });
-    }
+    if (operation.type !== STORAGE_LOCATION_QUEUE_TYPE || operation.userId !== userId) continue;
+    const outcome = await processOfflineOperation(operation.id, userId, STORAGE_LOCATION_QUEUE_TYPE, async (claimed) => {
+      const assignment = claimed.payload as unknown as LocationAssignment;
+      if (assignment.userId !== userId || !assignment.inventoryItemId) throw new Error('Invalid location operation.');
+      await executeLocationAssignment(assignment, userId, claimed.id);
+    }, { retrySafe: false });
+    if (outcome.status !== 'skipped') attempted += 1;
   }
-  await replaceOfflineQueue(remaining);
-  return { attempted: queue.length - remaining.length, remaining: remaining.length };
+  return { attempted, remaining: (await getOfflineQueue()).filter((op) => op.userId === userId && op.type === STORAGE_LOCATION_QUEUE_TYPE).length };
 }
 
-async function executeLocationAssignment(assignment: LocationAssignment, userId: string) {
+async function executeLocationAssignment(assignment: LocationAssignment, userId: string, operationId: string = createId()) {
   if (!supabase) throw new Error('Supabase storage locations are not configured.');
   const { data: item, error: itemError } = await supabase
     .from('inventory_items')
@@ -170,7 +163,7 @@ async function executeLocationAssignment(assignment: LocationAssignment, userId:
     p_condition: null,
     p_finish: null,
     p_location_id: assignment.toLocationId,
-    p_idempotency_key: `storage:${assignment.inventoryItemId}:${assignment.toLocationId ?? 'unassigned'}:${new Date().toISOString()}`,
+    p_idempotency_key: `storage:${operationId}`,
     p_source: 'mobile',
   });
   if (error) throw new Error(error.message);

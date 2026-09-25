@@ -10,8 +10,7 @@ import { loadInventoryQuantityTotal } from '@/services/inventory-quantity-total'
 import {
   enqueueOfflineOperation,
   getOfflineQueue,
-  replaceOfflineQueue,
-  type OfflineOperation,
+  processOfflineOperation,
 } from '@/services/storage/offline';
 
 type MutationResult =
@@ -49,7 +48,7 @@ export async function runMobileCollectorMutation({
     const authoritativeError = classifyCollectorAuthoritativeError(error);
     if (authoritativeError) return { ok: false, error: authoritativeError.message };
     const message = error instanceof Error ? error.message : 'Collection update failed.';
-    return queueCollectorMutation(mutation, message);
+    return queueCollectorMutation(mutation, message, true);
   }
 }
 
@@ -61,27 +60,19 @@ export async function retryQueuedCollectorMutations({
   membershipTier: unknown;
 }) {
   const queue = await getOfflineQueue();
-  const remaining: OfflineOperation[] = [];
+  let attempted = 0;
   for (const operation of queue) {
-    if (operation.type !== COLLECTION_MUTATION_QUEUE_TYPE || operation.userId !== userId) {
-      remaining.push(operation);
-      continue;
-    }
-    const mutation = operation.payload as unknown as CollectorMutation;
-    try {
+    if (operation.type !== COLLECTION_MUTATION_QUEUE_TYPE || operation.userId !== userId) continue;
+    const outcome = await processOfflineOperation(operation.id, userId, COLLECTION_MUTATION_QUEUE_TYPE, async (claimed) => {
+      const mutation = claimed.payload as unknown as CollectorMutation;
+      if (mutation.userId !== userId || !mutation.inventoryItemId) throw new Error('Invalid collector operation.');
+      if (!['quantity', 'condition', 'finish', 'storage', 'trade_binder_status', 'wishlist'].includes(mutation.type)) throw new Error('Unsupported queued mutation requires review.');
       const totals = await loadMutationQuantityContext(userId, mutation.inventoryItemId);
       await executeOnlineMutation(mutation, userId, membershipTier, totals.currentTotalQuantity, totals.currentCardQuantity);
-    } catch (error) {
-      const authoritativeError = classifyCollectorAuthoritativeError(error);
-      remaining.push({
-        ...operation,
-        lastError: authoritativeError?.message ?? (error instanceof Error ? error.message : 'Queued collection update failed.'),
-        errorCode: authoritativeError?.code,
-      });
-    }
+    }, { retrySafe: false });
+    if (outcome.status !== 'skipped') attempted += 1;
   }
-  await replaceOfflineQueue(remaining);
-  return { attempted: queue.length - remaining.length, remaining: remaining.length };
+  return { attempted, remaining: (await getOfflineQueue()).filter((op) => op.userId === userId && op.type === COLLECTION_MUTATION_QUEUE_TYPE).length };
 }
 
 async function executeOnlineMutation(
@@ -211,13 +202,13 @@ function matchingWishlistQuery(userId: string, mutation: Extract<CollectorMutati
   return query;
 }
 
-async function queueCollectorMutation(mutation: CollectorMutation, error: string): Promise<MutationResult> {
+async function queueCollectorMutation(mutation: CollectorMutation, error: string, uncertain = false): Promise<MutationResult> {
   await enqueueOfflineOperation(
     COLLECTION_MUTATION_QUEUE_TYPE,
     mutation as unknown as Record<string, unknown>,
-    { userId: mutation.userId, dedupeKey: mutationQueueKey(mutation) },
+    { userId: mutation.userId, dedupeKey: mutationQueueKey(mutation), uncertain },
   );
-  return { ok: true, queued: true, warning: error };
+  return { ok: true, queued: true, warning: uncertain ? 'Server outcome is uncertain. Operation preserved for review; automatic replay is blocked.' : error };
 }
 
 async function currentUserId() {

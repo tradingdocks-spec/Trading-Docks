@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { createOfflineQueue, createQueueLock } from '../mobile/services/storage/offline-core.ts';
+import { replayQueuedScannerAddsWithDependencies } from '../mobile/services/scanner-replay.ts';
+import { SCANNER_COLLECTION_QUEUE_TYPE } from '../mobile/services/scanner-foundation.ts';
 const runtime = resolve(process.env.TD_TEST_RUNTIME ?? '.local-fixtures/pos-db/node_modules/embedded-postgres/dist/index.js');
 const { default: EmbeddedPostgres } = await import(pathToFileURL(runtime).href);
 const db = new EmbeddedPostgres({ databaseDir: mkdtempSync(join(tmpdir(),'td-acquisition-')), user:'postgres',password:'local-test-only',port:55448,persistent:true,postgresFlags:['-c','listen_addresses=127.0.0.1'],onLog(){},onError(){} });
@@ -97,6 +100,21 @@ try{
   assert.equal(lines.length,2);assert.equal(lines.reduce((sum,l)=>sum+Number(l.total_cost),0),5);
   assert.equal(lines.reduce((sum,l)=>sum+l.quantity,0),3);assert.deepEqual(lines.map(l=>l.details.collectorNumber).sort(),['1','2']);
   assert.equal(new Set(lines.map(l=>l.inventory_item_id)).size,2);
+ });
+ await check('scanner queue recovers a lost response after actual stock/event commit without duplicate',async()=>{
+  let persisted='[]';let insertCalls=0;
+  const q=createOfflineQueue({storage:{getItem:async()=>persisted,setItem:async(_key,value)=>{persisted=value;}},lock:createQueueLock(),runtimeId:'db-fixture',newId:randomUUID});
+  const id=randomUUID();const confirmation={userId:owner,candidate:{id:randomUUID(),name:'Queue fixture',setCode:'TST',setName:'Test',collectorNumber:'9',finishes:['normal'],language:'en',confidence:.9,recognitionMode:'manual_search'},quantity:2,condition:'near_mint',finish:'normal',language:'en',storageLocationId:null,tradeStatus:'not_for_trade',addToWishlist:false};
+  const before=await totals();
+  await q.enqueue(SCANNER_COLLECTION_QUEUE_TYPE,{confirmation,inventoryItemId:id,idempotencyKey:id},{userId:owner,operationId:id});
+  const deps={getQueue:q.list,processOperation:q.process,getAuthenticatedUserId:async()=>owner,loadCurrentTotalQuantity:async()=>0,inventoryItemExists:async(user,item)=>(await client.query('select id from inventory_items where user_id=$1 and id=$2',[user,item])).rowCount>0,validatePrintingIdentity:async(c)=>c,
+   insertInventoryItem:async(payload)=>{insertCalls++;await client.query("select create_inventory_item_with_event($1,'scanner_replay',$2,'scanner_queue_entry',$3)",[payload,`scanner-replay:${id}`,id]);throw Error('simulated client timeout after server commit');},runTradeStatus:async()=>assert.fail('not requested'),runWishlist:async()=>assert.fail('not requested')};
+  assert.equal((await replayQueuedScannerAddsWithDependencies({userId:owner,membershipTier:'collector',trigger:'network_reconnect'},deps)).failed,1);
+  assert.equal((await q.list())[0].status,'retryable');
+  assert.equal((await replayQueuedScannerAddsWithDependencies({userId:owner,membershipTier:'collector',trigger:'app_resume'},deps)).succeeded,1);
+  assert.equal(insertCalls,1);assert.deepEqual(await q.list(),[]);
+  const after=await totals();assert.equal(after.items,before.items+1);assert.equal(after.events,before.events+1);assert.equal(after.purchases,before.purchases);assert.equal(after.links,before.links);
+  assert.equal((await client.query('select quantity from inventory_items where id=$1 and user_id=$2',[id,owner])).rows[0].quantity,2);
  });
  console.log(`PASS ${passed} acquisition database checks`);
 }finally{await client?.end();await admin?.end();await db.stop();}

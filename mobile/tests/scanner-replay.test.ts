@@ -15,7 +15,7 @@ import {
   type ScannerReplayDependencies,
   type ScannerReplayTrigger,
 } from '../services/scanner-replay.ts';
-import { addOfflineOperation, type OfflineOperation } from '../services/storage/offline-core.ts';
+import { addOfflineOperation, createOfflineQueue, createQueueLock, type OfflineOperation } from '../services/storage/offline-core.ts';
 
 const candidate = normalizeScannerCandidate({
   id: 'sf-rhystic',
@@ -113,14 +113,21 @@ test('successful replay removes queue entry and preserves exact printing fields'
   assert.equal(harness.wishlistAdds.length, 1);
 });
 
-test('failed replay remains visible with retryable failed state', async () => {
+test('uncertain replay with non-idempotent ancillary writes remains visible for review', async () => {
   const harness = replayHarness([operationFor(confirmation, 'scan-1')], { insertError: new Error('network unavailable') });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'manual_retry' }, harness.deps);
   const entry = scannerQueuedAddFromOperation(harness.queue[0], 'user-1');
 
   assert.equal(result.failed, 1);
-  assert.equal(entry?.syncState, 'failed');
+  assert.equal(entry?.syncState, 'action_required');
   assert.equal(entry?.lastError, 'network unavailable');
+});
+
+test('already committed stock is reconciled before applying the free quantity limit again', async () => {
+  const harness = replayHarness([operationFor({ ...confirmation, addToWishlist: false, tradeStatus: 'not_for_trade' }, 'scan-1')], { existingIds: new Set(['scan-1']), currentTotalQuantity: 500 });
+  const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'free', trigger: 'app_resume' }, harness.deps);
+  assert.equal(result.succeeded, 1);
+  assert.equal(harness.inserted.length, 0);
 });
 
 test('queued replay validates before insert and preserves existing quantity behavior', async () => {
@@ -200,6 +207,7 @@ function operationFor(input: ScannerConfirmation, inventoryItemId: string): Offl
   return {
     id: `${input.userId}-${inventoryItemId}`,
     type: SCANNER_COLLECTION_QUEUE_TYPE,
+    status: 'pending',
     createdAt: '2026-08-05T00:00:00.000Z',
     payload: { confirmation: input, inventoryItemId, idempotencyKey } as unknown as Record<string, unknown>,
     userId: input.userId,
@@ -226,13 +234,17 @@ function replayHarness(
     events: [] as string[],
   };
   const existingIds = options.existingIds ?? new Set<string>();
+  let durable = JSON.stringify(initialQueue);
+  let sequence = 0;
+  const coordinator = createOfflineQueue({
+    storage: { getItem: async () => durable, setItem: async (_key, value) => { durable = value; harness.queue = JSON.parse(value).filter((row: OfflineOperation) => row.status !== 'committed'); } },
+    lock: createQueueLock(), runtimeId: 'fixture', newId: () => 'claim-' + (++sequence),
+  });
   const deps: ScannerReplayDependencies = {
     async getQueue() {
       return harness.queue;
     },
-    async replaceQueue(next) {
-      harness.queue = next;
-    },
+    processOperation: coordinator.process,
     async getAuthenticatedUserId() {
       return options.authUserId ?? 'user-1';
     },

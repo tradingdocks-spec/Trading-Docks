@@ -224,9 +224,10 @@ async function queueScannerAdd(confirmation: ScannerConfirmation, inventoryItemI
   await enqueueOfflineOperation(
     SCANNER_COLLECTION_QUEUE_TYPE,
     { confirmation, inventoryItemId, idempotencyKey } as unknown as Record<string, unknown>,
-    { userId: confirmation.userId, dedupeKey: idempotencyKey },
+    { userId: confirmation.userId, dedupeKey: idempotencyKey, operationId: inventoryItemId, uncertain: confirmation.addToWishlist || confirmation.tradeStatus !== 'not_for_trade' },
   );
-  return { ok: true, queued: true, warning, inventoryItemId };
+  return { ok: true, queued: true, warning: confirmation.addToWishlist || confirmation.tradeStatus !== 'not_for_trade'
+    ? 'Scan with ancillary changes preserved for review; automatic replay is blocked until its server outcome is reconciled.' : warning, inventoryItemId };
 }
 
 async function loadRecentScannerCandidates(): Promise<ScannerCardCandidate[]> {

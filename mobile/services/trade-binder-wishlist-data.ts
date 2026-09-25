@@ -10,7 +10,7 @@ import {
   type TradeStatus,
   type WishlistPriority,
 } from '@/services/trade-binder-wishlist';
-import { enqueueOfflineOperation, getOfflineQueue, replaceOfflineQueue, type OfflineOperation } from '@/services/storage/offline';
+import { enqueueOfflineOperation, getOfflineQueue, processOfflineOperation } from '@/services/storage/offline';
 
 export type TradeWishlistMutation =
   | { type: 'trade_status'; userId: string; inventoryItemId: string; status: TradeStatus }
@@ -52,26 +52,24 @@ export async function runMobileTradeWishlistMutation(mutation: TradeWishlistMuta
     await executeMutation(mutation, userId);
     return { ok: true };
   } catch (error) {
-    return queueMutation(mutation, error instanceof Error ? error.message : 'Trade Binder update queued for sync.');
+    return queueMutation(mutation, error instanceof Error ? error.message : 'Trade Binder update queued for sync.', true);
   }
 }
 
 export async function retryQueuedTradeWishlistMutations(userId: string) {
   const queue = await getOfflineQueue();
-  const remaining: OfflineOperation[] = [];
+  let attempted = 0;
   for (const operation of queue) {
-    if (operation.type !== TRADE_BINDER_OFFLINE_TYPE || operation.userId !== userId) {
-      remaining.push(operation);
-      continue;
-    }
-    try {
-      await executeMutation(operation.payload as unknown as TradeWishlistMutation, userId);
-    } catch (error) {
-      remaining.push({ ...operation, lastError: error instanceof Error ? error.message : 'Queued Trade Binder update failed.' });
-    }
+    if (operation.type !== TRADE_BINDER_OFFLINE_TYPE || operation.userId !== userId) continue;
+    const outcome = await processOfflineOperation(operation.id, userId, TRADE_BINDER_OFFLINE_TYPE, async (claimed) => {
+      const mutation = claimed.payload as unknown as TradeWishlistMutation;
+      if (mutation.userId !== userId) throw new Error('Invalid wishlist operation.');
+      if (!['trade_status', 'wishlist_priority', 'wishlist_toggle'].includes(mutation.type)) throw new Error('Unsupported wishlist operation requires review.');
+      await executeMutation(mutation, userId);
+    }, { retrySafe: false });
+    if (outcome.status !== 'skipped') attempted += 1;
   }
-  await replaceOfflineQueue(remaining);
-  return { attempted: queue.length - remaining.length, remaining: remaining.length };
+  return { attempted, remaining: (await getOfflineQueue()).filter((op) => op.userId === userId && op.type === TRADE_BINDER_OFFLINE_TYPE).length };
 }
 
 async function executeMutation(mutation: TradeWishlistMutation, userId: string) {
@@ -113,13 +111,13 @@ async function executeMutation(mutation: TradeWishlistMutation, userId: string) 
   }
 }
 
-async function queueMutation(mutation: TradeWishlistMutation, warning: string): Promise<MutationResult> {
+async function queueMutation(mutation: TradeWishlistMutation, warning: string, uncertain = false): Promise<MutationResult> {
   await enqueueOfflineOperation(
     TRADE_BINDER_OFFLINE_TYPE,
     mutation as unknown as Record<string, unknown>,
-    { userId: mutation.userId, dedupeKey: mutationDedupeKey(mutation) },
+    { userId: mutation.userId, dedupeKey: mutationDedupeKey(mutation), uncertain },
   );
-  return { ok: true, queued: true, warning };
+  return { ok: true, queued: true, warning: uncertain ? 'Server outcome is uncertain. Operation preserved for review; automatic replay is blocked.' : warning };
 }
 
 function mutationDedupeKey(mutation: TradeWishlistMutation) {
