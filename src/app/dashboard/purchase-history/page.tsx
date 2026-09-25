@@ -130,7 +130,7 @@ export default async function PurchaseHistoryPage({ searchParams }: PageProps) {
           <Metric label="Spent today" value={currency.format(metrics.spentToday)} icon={WalletCards} />
           <Metric label="Spent this week" value={currency.format(metrics.spentThisWeek)} icon={WalletCards} />
           <Metric label="Pending intake" value={integer.format(metrics.pendingIntakeCount)} icon={ClipboardList} />
-          <Metric label="Inventory acquired" value={integer.format(metrics.inventoryAcquiredUnits)} icon={PackageCheck} />
+          <Metric label="Purchased units" value={integer.format(metrics.inventoryAcquiredUnits)} icon={PackageCheck} />
           <Metric label="Avg acquisition" value={currency.format(metrics.averageAcquisitionCost)} icon={Database} />
         </section>
 

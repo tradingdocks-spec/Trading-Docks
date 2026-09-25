@@ -1,6 +1,93 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **STOPPED AT ARCHITECTURAL CONFLICT — NOT IMPLEMENTED / NOT RELEASE READY**.
+Status: **PHASE 1F IMPLEMENTED LOCALLY — REVIEW / RELEASE GATES REMAIN OPEN**.
+
+The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
+
+## Phase 1F: purchase ledger audit
+
+Inspected `202608110001_purchase_history_ledger_proposal.sql`, `202608120004_collection_intake.sql`, the inventory persistence/event migrations, collection-intake services/API/UI, purchase-history services/types/tests and dashboard analytics consumers before changing runtime behavior.
+
+| Concern | Existing representation and finding |
+|---|---|
+| Purchase | `purchase_ledger`: one purchase header, not one card or movement. Source, seller/customer/vendor, actor, workspace, status, payment method, purchased/received timestamps, notes and JSON details exist. |
+| Lines/quantity | `purchase_ledger_lines`: purchase children with quantity, unit_count, unit_cost, total_cost, description and optional inventory ID. Header item_count counts lines; unit_count counts units. |
+| Money | Header subtotal + adjustment and total_cost; line cost allocation. Decimal columns and nonnegative checks exist, but legacy services normalize invalid/missing values and do not prove historical cost. |
+| Fees/tax/shipping | No dedicated authoritative breakdown. Adjustment/details can hold information, but are not a verified fees/taxes/shipping model. This release does not invent one. |
+| Identity | Line `details` carries game/product/printing/variant/language data. No typed catalog FK on purchase lines. Scryfall ID, SKU, or set+collector and explicit condition/finish/language can preserve reviewed exact identity; the ledger does not independently verify a catalog match. |
+| Stock lineage | `purchase_inventory_links` references purchase, line and composite inventory owner/item; quantity and cost_basis. Lines also have inventory_item_id. These links support receipt without making stock the financial ledger. |
+| Constraints/indexes | Existing header/line/link PKs and FKs, monetary/count checks, source/status/payment checks, owner/workspace/date and parent indexes. Legacy delete cascades/set-null behavior remains; no historical rewrite. New intake links use RESTRICT and unique indexes. |
+| RLS/grants | Existing owner/workspace-member SELECT and owner/manager write policies; authenticated DML grants; anon revoked. These do not make the old collection-purchases completion valid. The new boundary protects intake-linked finance from direct edits while retaining legacy manual-ledger behavior. |
+| Triggers/RPCs | Existing updated_at triggers and event-backed inventory writer are reused. The old intake SECURITY INVOKER finalizer contradicts its write grants/policies and writes a second financial table. It is replaced by a compatibility delegate to the single finalizer. |
+| Services/APIs/UI | `purchase-history/server.ts`, `/api/purchase-history`, purchase-history types, and purchasing bulk/collection consumers represent the existing financial model. Generic `createPurchaseLedgerRecord` inserts header then lines separately; it is **not** reused by the atomic intake command and remains a legacy limitation. |
+| Analytics | Dashboard inventory timestamps previously implied acquisitions and fabricated age buckets. Purchase History also counted pending records in spending. Both calculations are corrected below. Purchase History's legacy 250-record load remains a bounded list, not an all-history accounting report. |
+
+No new `collection_purchases` table is installed. If the old proposal was installed, its historical table and records remain untouched. Legacy purchased intakes with only completed_purchase_id cannot be silently finalized again; mapping requires reviewed evidence.
+
+## Phase 1F: domain and state contract
+
+`collection_intakes` → optional `purchase_ledger` → `purchase_ledger_lines` → on receipt, `inventory_items` + `purchase_inventory_links` + `inventory_events`.
+
+Intake is operational intent/review. A purchase is a financial commitment. Inventory is physically received stock. An edit or inventory event is not another financial purchase.
+
+Retain existing states:
+
+- `draft`, `evaluating`, `offer_ready`: editable pre-purchase workflow. Explicit `declined` and `archived` have no financial effect; reopening for review is permitted through an authorized save.
+- Only `evaluating` / `offer_ready` with fully reviewed lines can finalize.
+- Intake `purchased`: financial agreement persisted; immutable through draft commands. `purchase_ledger_id` is its authoritative link.
+- Purchase `completed`: committed financially, awaiting physical receipt. `received_at` is null and stock does not yet exist.
+- Purchase `received`: physical receipt succeeded. Purchased timestamp/value remains unchanged; received_at records the separate receipt time.
+- Pending/cancelled purchase headers do not contribute to financial acquisition aggregates. No new state vocabulary is installed.
+
+`receiveNow=false` enables commitment now and receipt later using the same stable request/key. The current intake screen keeps its existing immediate purchase+receipt behavior. Split shipment, partial acceptance, payable settlement, cancellation/refund accounting and a deferred-receipt UI are not implemented here.
+
+## Phase 1F: transactional authority, permission and retry
+
+New forward migration: `20260924235138_acquisition_purchase_authority.sql`.
+
+`save_collection_intake(jsonb)` atomically saves the header and stable line IDs, with an optimistic revision and a transaction-level draft lock. It derives actor/current workspace in the database and refuses cross-owner drafts, conflicting revisions, duplicate line IDs and finalized drafts. Unknown language is preserved rather than defaulted to English. New UI drafts contain no seeded pretend cards or implied condition/finish.
+
+`finalize_intake_purchase(uuid,numeric,text,boolean,text)` is the **one** financial finalization implementation. `complete_collection_intake` delegates to it. The server service invokes this RPC rather than coordinating finance in React or inserting a second purchase table.
+
+The finalizer locks the intake, validates authenticated current-workspace owner/admin/manager membership and account ban state, then requires the intake's canonical owner and workspace to match. Client user/workspace claims cannot select another owner. It requires reviewed identity, positive whole quantities and finite nonnegative two-decimal agreed money. Paid allocations require saved positive valuation evidence for every line. Invalid states/locations or unresolved identity fail before completion.
+
+SECURITY DEFINER with empty search_path safely encapsulates the transaction: explicit authorization happens before writes; object references are qualified; only authenticated callers receive public command EXECUTE; private helpers/schema are not exposed. Direct authenticated draft DML is revoked. Restrictive policies protect newly linked financial headers, lines and links against direct mutation. Legacy non-intake ledger permissions are unchanged. This resolves the old invoker/grant mismatch without opening anonymous, employee or cross-tenant writes.
+
+The transaction creates the purchase and lines, then optionally invokes the existing event-backed inventory writer, records links/cost attribution and transitions receipt/intake states. Any exception rolls back that entire call. Failed **later** receipt preserves the earlier valid commitment and leaves it awaiting receipt. Diagnostic logs contain stage and SQLSTATE, not seller/card/provider data.
+
+One unique purchase per source_intake_id and one finalization_key per owner, plus the intake row lock, prevent concurrent duplicate purchases. Repeated matching keys/amounts return the same IDs. Changed key/amount or conflicting receipt location is rejected. Inventory ID and receipt event key derive from the persisted purchase-line UUID. The UI retains an uncertain completion request for retry instead of attempting to edit a potentially finalized draft. A lost draft-save response requires reloading its revision; it does not create another draft automatically.
+
+## Phase 1F: cost and analytics
+
+Purchase header total_cost is the agreed amount. Existing proportional-market allocation is retained using **saved, reviewed** item values at agreement; cents round on lines with remainder on the final line. Line totals sum to agreed cost; rounded unit cost and exact total are both retained. No live market revaluation rewrites cost. Unpriced paid collections are blocked for allocation review, not allocated arbitrary zero/equal costs. Purchase lines snapshot identity and valuation; stock data and purchase_inventory_links point back to the original purchase/line.
+
+Future allocation methods require explicit versioned policy, review and any corrections as auditable operations. They are not introduced by this migration. Current schema does not prove historical cost basis for stock without purchase links; those records remain unattributed. No guessed backfill, acquisition-date reset or historical acquisition rewrite occurs.
+
+Dashboard acquisition metrics now page through authorized owner/workspace purchase rows. Completed/received purchase dates drive financial counts/cost; received_at separately drives physical receipt units. Failed ledger loads show unavailable, and invalid financial attribution shows insufficient data. Inventory updated_at is no longer an acquisition signal. Fabricated inventory-aging buckets were removed and replaced with the existing panel's ledger-backed metrics; age remains unavailable without lineage. Purchase History spending excludes pending/cancelled rows. Movement, condition, repricing and notes do not enter the acquisition inputs.
+
+## Phase 1F: validation and limitations
+
+Local automated evidence (no production calls or data mutation):
+
+- Root suite: 1,024 passing (baseline 1,014 retained), including intake, purchase ledger, financial/receipt separation and edit-invariance tests.
+- Mobile suite: 580 passing; no mobile runtime changes.
+- Real PostgreSQL roles/RLS: 19 checks in each of two isolated synthetic schemas, with and without the historical intake proposal. Tests cover retry/concurrency, invalid states/identity/money/location, anonymous/employee/cross-tenant denial, direct financial mutation denial, deferred receipt, and failures injected at purchase, line, stock, event and link writes.
+- Migration replay: empty and populated replay passes in both variants; populated financial/stock/event/intake snapshots remain identical.
+- The two minimal DB fixtures execute real ledger/writer/forward SQL with a minimal workspace helper/identity schema. A separate Supabase Postgres 17.6 rehearsal cloned the preserved recovery database, applied the reviewed cloud baseline **only to that clone**, then replayed this migration. Actual owner receipt and retry passed under the existing inventory triggers: one item / two units / one event / one purchase / one link / zero unscoped items / $4 agreed cost. Cross-tenant and anonymous finalization were denied. Existing non-fixture inventory rows, units, events and Chaos batch totals remained unchanged. Original recovery database untouched. Harness: `tests/acquisition-supabase-db.mjs`; retained local clone: `acquisition_rehearsal_1790295038844`. This is a production-shaped local rehearsal, not a live production freshness check.
+- TypeScript passed. ESLint: zero errors, 551 existing warnings (unchanged baseline). Root final check and npm audit passed; audit reports zero vulnerabilities.
+- Production build: `next build --webpack` passed, including compilation, TypeScript, page generation and traces. Default `next build` failed because Turbopack rejects this worktree's node_modules junction outside its filesystem root. No production bundler/config change was made to conceal that local limitation. A subsequently found single Windows-1252 dash in the edited analytics component was corrected to UTF-8; the successful build is after that fix.
+- Changed/untracked release file audit: 18 text files, valid UTF-8, zero private-key/token pattern or sensitive-path findings. No dumps, credentials, recovery artifacts or private fixtures added. `git diff --check` passed. Generated next-env/tsbuildinfo changes were reverted.
+- Scanner runtime was not touched; existing root scanner regressions passed as part of the full suite. No physical scanner test was attempted. No authenticated browser end-to-end acceptance was claimed.
+
+The legacy generic purchase-header/line service is still nontransactional, old ledger data may carry normalized unknowns, purchase-history list totals are bounded, and complete-catalog identity validation is not provided by this SQL. The current live schema must still be compared against the successful local recovery-clone rehearsal before release. These are explicit boundaries, not evidence that every acquisition entry point is repaired.
+
+Manual/private acceptance still required: authenticated owner finalization and response-loss retry in the browser; two-workspace isolation with the current full Supabase schema; physical receipt cost/location provenance; reload a purchased intake; verify reporting against a known purchase/receipt cohort. No production purchase or stock may be created merely to satisfy this checklist without separate authorization.
+
+**Phase 1 completion recommendation: NOT COMPLETE / NOT RELEASE READY.** Phase 1F's local architecture and executable transaction proof resolve the financial-model stop. Remaining Phase 1B–1E issues, legacy writer limitations, authenticated browser acceptance and production release review still gate completion. Phase 2 remains blocked. Production, CS-000023, inventory, POS/Square settings and hardware certification were not changed.
+
+---
+
+## Historical investigation (before the approved Phase 1F decision)
 
 Date: 2026-09-24. Runtime baseline: `6f8af6c49a66ee15ffe2eabd03b99b42614a21c6`. Branch: `codex/acquisition-integrity-phase1`.
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { AcquisitionSummary } from "@/lib/purchase-history/acquisition-summary";
 import { useMemo, useState } from "react";
 import {
   Activity,
@@ -36,7 +37,8 @@ import type {
 
 type Props = {
   plan: AccountTier;
-  inventory: { units: number; value: number; skus: number; addedLast30Days: number };
+  inventory: { units: number; value: number; skus: number; addedLast30Days: number | null };
+  acquisitions?: AcquisitionSummary | null;
   fullPlatformAccess?: boolean;
   platformRole?: PlatformRole;
 };
@@ -61,6 +63,7 @@ const rangeLabels: Record<Range, string> = {
 export function AnalyticsCommandCenter({
   plan,
   inventory,
+  acquisitions,
   fullPlatformAccess = false,
   platformRole = "user",
 }: Props) {
@@ -195,23 +198,17 @@ export function AnalyticsCommandCenter({
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          <Panel title="Inventory aging" eyebrow="Capital by time held" icon={Clock3}>
-            <div className="mt-5 space-y-3">
-              {[
-                ["0-30 days", inventory.addedLast30Days, "Fresh", "bg-td-accent"],
-                ["31-90 days", 0, "Healthy", "bg-td-success"],
-                ["91-180 days", 0, "Slowing", "bg-td-warning"],
-                ["181-365 days", 0, "At risk", "bg-td-warning"],
-                ["365+ days", 0, "Dead stock", "bg-td-danger"],
-              ].map(([age, count, status, color]) => (
-                <div key={String(age)} className="grid grid-cols-[78px_1fr_auto] items-center gap-3">
-                  <span className="text-[11px] font-medium text-td-secondary">{age}</span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-td-ink/[0.055]"><div className={`h-full rounded-full ${color}`} style={{ width: Number(count) ? "18%" : "0%" }} /></div>
-                  <span className="w-16 text-right text-[11px] text-td-muted">{Number(count) ? `${number.format(Number(count))} - ` : ""}{status}</span>
-                </div>
-              ))}
+          <Panel title="Acquisitions — last 30 days" eyebrow="Purchase ledger; not inventory edits" icon={Clock3}>
+            <div className="mt-5 space-y-3 text-sm text-td-secondary">
+              {acquisitions ? <>
+                <p>Financial purchases: {number.format(acquisitions.purchaseCount)}</p>
+                <p>Agreed acquisition cost: {acquisitions.acquisitionCost === null ? "Insufficient data" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(acquisitions.acquisitionCost)}</p>
+                <p>Purchased units: {number.format(acquisitions.purchasedUnits)}</p>
+                <p>Physically received units: {number.format(acquisitions.receivedUnits)}</p>
+                {acquisitions.unattributedCount > 0 && <p>Some historical records cannot be classified.</p>}
+              </> : <p>Acquisition data unavailable.</p>}
+              <p className="text-xs text-td-muted">Inventory age requires traceable receipt and remaining-lot history. Inventory edits do not establish acquisition dates.</p>
             </div>
-            {!hasInventory ? <MiniEmpty text="Inventory age starts when cards are added." /> : null}
           </Panel>
 
           <Panel title="Marketplace performance" eyebrow="Channel comparison" icon={Store}>

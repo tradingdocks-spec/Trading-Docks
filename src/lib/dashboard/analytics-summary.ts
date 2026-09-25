@@ -9,14 +9,15 @@ export type AnalyticsInventorySummary = {
   units: number;
   value: number;
   skus: number;
-  addedLast30Days: number;
+  addedLast30Days: null;
 };
 
 export function summarizeAnalyticsInventory(
   rows: AnalyticsInventoryRow[],
-  nowMs = Date.now(),
+  _nowMs = Date.now(),
 ): AnalyticsInventorySummary {
-  const recentThreshold = nowMs - 30 * 86_400_000;
+  // Retained parameter for callers; inventory edits cannot establish acquisition.
+  void _nowMs;
 
   return rows.reduce<AnalyticsInventorySummary>(
     (summary, row) => {
@@ -26,10 +27,8 @@ export function summarizeAnalyticsInventory(
       summary.value += storedValue;
       summary.skus += 1;
 
-      const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-      if (updatedAt >= recentThreshold) summary.addedLast30Days += quantity;
       return summary;
     },
-    { units: 0, value: 0, skus: 0, addedLast30Days: 0 },
+    { units: 0, value: 0, skus: 0, addedLast30Days: null },
   );
 }
