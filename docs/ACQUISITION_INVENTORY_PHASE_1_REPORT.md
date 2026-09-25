@@ -1,6 +1,6 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1G CERTIFICATION EXECUTED — PHASE 1 INCOMPLETE**.
+Status: **PHASE 1H PARTIALLY IMPLEMENTED — ARCHITECTURAL STOP — PHASE 1 INCOMPLETE**.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -392,5 +392,125 @@ Webpack is a passing local production-build cross-check, **not established as th
 ### 9. Final decision and next gate
 
 **PHASE 1 INCOMPLETE.** Authenticated acquisition/receipt authority is now demonstrated and unsafe legacy financial entry points are gated locally. G17 (intelligence provenance), G18 (buylist uncertainty), G19 (mobile/physical retry) and G20 (scanner parity) remain substantive blockers from the accepted Phase 1 scope. They are not waived or moved to Phase 2.
+
+## PHASE 1H — TRUST / RETRY / SCANNER CONVERGENCE
+
+### Decision and stop condition
+
+**PHASE 1 INCOMPLETE.** Local trust changes and diagnostic evidence only. No schema migration, production mutation, deployment, hardware operation, POS/Square change or Phase 2 work occurred.
+
+The current instruction requires: **“If another architectural conflict appears, STOP and document it. Do not create parallel systems to bypass the conflict.”** The mobile retry audit found a shared-queue ownership conflict, H01, that prevents scanner-only durable recovery. Implementation stopped when this was established. Validation of already-made changes continued; the stop is not a claim that the four blockers are resolved.
+
+### H01: competing writers can erase durable offline work
+
+`mobile/services/storage/offline.ts` stores all operation types in one `td-offline-operation-queue-v1` JSON array. Enqueue is read/modify/write. Scanner replay snapshots this array, awaits authentication/validation/network writes, then replaces the entire queue using the stale snapshot. Scanner discard also replaces a snapshot. Collector edits, storage moves and trade/wishlist replay independently use the same replacement API. There is no queue revision, atomic per-operation acknowledgement, claim/lease, or common replay ownership.
+
+**Reproduced with synthetic fixtures:** start scanner operation A; enqueue B while A waits for its insert response; A succeeds and replaces the queue with its original remaining list; B disappears without being attempted. `tests/phase1h-offline-evidence.mjs` invokes the actual replay function with controlled persistence/network dependencies. Output is `DEFECT_REPRODUCED`, not a passing retry-safety test. No network, real user, database or device storage is used. This proves the algorithmic race, not an assertion that a specific production scan was lost.
+
+Other paths that can overwrite or resurrect work: `collector-mutation-data.ts`, `storage-location-data.ts`, `trade-binder-wishlist-data.ts`, plus concurrent scanner retry triggers in `scanner-replay-bridge.tsx`, scanner recovery and automatic scanner screens. A per-screen busy flag does not establish shared queue ownership.
+
+**Required architectural continuation:** evolve the existing queue into one versioned, serialized operation journal used by every enqueue/replay/discard consumer; acknowledge/update only the claimed operation, preserve operations appended during network waits, and prevent stale workers from overwriting terminal state. Persist operation identity before any network mutation. Migrate existing queued operations without discarding or guessing whether uncertain requests committed. Pair this with server-side operation/payload identity and transactional stock/event/location outcomes through the existing inventory writer. This is a shared storage/replay change, not a second scanner queue or a second inventory ledger. Do not ship a scanner-only acknowledgement workaround while whole-queue replacement writers remain.
+
+### Intelligence provenance changes — partially implemented
+
+- Added `intelligence-provenance.ts`: value/status/source/input/time/confidence/explanation metadata. Synthetic, unsourced, invalid and unavailable values are suppressed at this boundary; no default confidence or observation timestamp is invented.
+- `market-engine/helpers.ts` no longer synthesizes demand/opportunity scores, percentage changes, low quotes or sparklines from hashes/indexes. No inferred buy/sell signal remains there.
+- The public market feed has no authenticated owner inventory query. Seeded owned quantities and projected revenue now return null, not invented personal holdings.
+- Real provider quotes retain source/printing provenance and explicitly unknown observation time. Static reference/fallback prices return insufficient data. The Pokémon adapter no longer substitutes its seed price for a missing provider quote.
+- Both Market Center components use the shared nullable contract and display unavailable/insufficient states without treating null as a zero price or percentage.
+
+**Still open:** this is not an exhaustive provenance conversion. `dashboard/home/MarketPulse.tsx` still has static changes/sparklines and derived previous prices; card ranking scores still need field-level calculation provenance; other intelligence/recommendation/API paths and landing demo isolation require the full requested audit. Clearly labeled marketing simulations are not evidence of real market conditions. G17 remains open.
+
+### Buylist uncertainty changes — partially implemented
+
+- `card-intelligence/resolution.ts` provides explicit resolution states and physical-attribute review reasons. Only `CONFIRMED` yields `canFinalize`; catalog identity does not establish physical condition/finish/language.
+- Exact buylist matching no longer substitutes nonfoil/English/NM. Blank, unknown, unrecorded and conflicting inputs require review. Matching provider IDs no longer override conflicting set/collector values. Candidate multiplicity, supplied provider conflicts and variant ambiguity block automation.
+- CSV import and display no longer invent those attributes. MTGJSON matching requires known physical attributes, scopes name/number lookup by set, rejects explicit provider-ID fallback and collector/set conflicts. Finish matching recognizes nonfoil explicitly instead of treating the substring “foil” in “nonfoil” as foil.
+
+**Still open:** end-to-end import/provider ambiguity evidence, legacy already-defaulted offers without original observations, and all scanner consumers are not certified. In particular mobile continuous scanning still defaults absent condition to near-mint and can substitute normal finish; these were identified after the local buylist slice and remain unchanged at the architectural stop. Existing `rankCandidate` provider-ID matching also accepts any matching known provider ID rather than requiring agreement across supplied identities. G18 remains open; unit fixtures are not proof all provider paths are safe.
+
+### Retry / idempotency findings — not implemented
+
+Online `saveScannerConfirmation` generates a new inventory ID for each invocation. Its key differs from replay's `scanner-replay:<item>` key. Replay checks item existence before insert and treats broad duplicate/unique errors as success; that is not payload-verified operation deduplication. Trade and wishlist actions occur after stock creation; wishlist insertion has a separate queued lifetime. Storage moves generate a new timestamp key during replay. Session finalization loops reviewed collection lines without durable per-line acknowledgement before continuing.
+
+The existing purchase finalizer's tested financial idempotency does not fix these mobile physical paths. H01 must be resolved through the shared queue first; then server-side keys, payload conflicts, lost responses, quantity/cost/history and duplicate movement must be proved with actual database concurrency tests. No new idempotency table/RPC or alternative authority was introduced in this step.
+
+### Scanner capability matrix — source audit, not certification
+
+No new private mobile artifact was supplied or built in Phase 1H. “Private acceptance” below refers to the retained Windows native candidate `3269e252`, not an assumed equivalent mobile release. Main mobile is the active `mobile/` tree. Browser/cloud behavior is distinct from hardware acquisition.
+
+| Capability | Main mobile | Private Windows candidate | Web / cloud | Main Windows 1.3.1 | Fallback |
+|---|---|---|---|---|---|
+| Camera capture | Expo/native vision paths | WIA / ScanSnap acquisition | Image upload/camera inputs | WIA / ScanSnap | Manual lookup/upload |
+| Rapid scan | Continuous scanner | Inbox capture | Live scanner intake | Inbox capture | Manual pacing |
+| OCR | Native/provider signals | Cloud responsibility | Provider pipeline | Cloud responsibility | Manual correction |
+| Visual recognition | Native/index/provider paths | Cloud responsibility | Provider pipeline | Cloud responsibility | No invented recognition |
+| Exact printing | Candidate then server validation | Delegated to website | Canonical catalog ranking | Delegated to website | Explicit selection |
+| Finish | Observation/review; unsafe defaults still present | Not hardware authority | Confirmation required; audit open | Not hardware authority | Human confirmation |
+| Language | Catalog/confirmation; not fully converged | Not hardware authority | Candidate/review metadata | Not hardware authority | Unknown preserved where implemented |
+| Confidence | Separate native confidence model | No business score | Canonical ranking model | No business score | Shared semantics not proved |
+| Manual review | Session review | Website | Cloud review | Website | Manual selection |
+| Batch mode | Local session lines | Active capture binding | Cloud 100 active capture contract | Active session | Upload/CSV |
+| Offline mode | Shared JSON queue, H01 | Encrypted pending journal | Recovery UI/cloud acknowledgement | In-memory jobs | Manual retry |
+| Retry safety | BLOCKED H01/G19 | No new parity proof | Separate capture protocol | Lifecycle repair retained | Not equivalent |
+| Inventory validation | Server printing validation | None directly | Authorized commands | None directly | Must use same validation |
+| Inventory mutation | Inventory RPC plus follow-ups | None directly | Authoritative cloud writer | None directly | No separate authority approved |
+| Location assignment | Payload + separate move RPC | No location authority | Cloud batch destination | No location authority | Human selects destination |
+| Error recovery | Queue classification; race remains | Journal/permit/ack additions | Recovery controls | Lifecycle fix | Review/manual retry |
+| Provider fallback | Cached/manual candidates | Hardware capabilities only | Configured providers | Hardware capabilities only | No substitute confidence certified |
+| Diagnostics | Fragmented | Recovery diagnostics | Request/provider diagnostics | Lifecycle logs | Unified safe event contract pending |
+
+### Parity, recovery and observability
+
+No native capability was removed. No private tree was copied over main. The native difference still includes removal of `AgentLifecycle.cs`; recovery additions require a selective lifecycle-preserving port, not tree replacement. Same-fixture recognition parity is unproved.
+
+Recovery classification remains a required implementation, not a new unused wrapper: permission/capture/OCR/provider failures must expose retry/review without claiming a save; conflicts/low confidence/unsupported identity require review; unknown commit outcomes need durable reconciliation; confirmed DB commit must be distinguishable from pending optional follow-ups. A timeout must not be labeled `FAILED_WITHOUT_MUTATION` without evidence. H01 currently prevents trustworthy pending/offline state. Existing mobile errors remain; no claim of unified recovery completion.
+
+No new production diagnostics were added after the stop. The synthetic reproduction reports operation categories only and emits no tokens, customer data or raw recognition payloads. Operation/session identity, normalized provider/resolution/confidence, replay attempt and separate inventory/location outcomes still need wiring into the eventual shared journal and existing telemetry, with explicit redaction.
+
+### Added tests and acceptance scope
+
+`tests/acquisition-trust.test.ts`: 12 passing focused tests covering explicit confirmed match; foil ambiguity; unknown condition/language; multiple printings; collector/provider/set/variant conflict; name-only/blank offer rejection; synthetic/unsourced suppression; absence of generated market metrics and invented owner exposure. These are domain tests, not financial end-to-end certification.
+
+`tests/phase1h-offline-evidence.mjs`: deterministic queue-loss reproduction, **known failure evidence, not a safety PASS**.
+
+| Requested acceptance | Phase 1H result |
+|---|---|
+| A unknown attributes | Buylist domain cases pass; scanner end-to-end still blocked |
+| B duplicate retry | Not certified; G19/H01 remain |
+| C offline commit race | Queue-loss defect reproduced; actual DB committed-timeout acceptance still required |
+| D provider failure | Market fallback suppression tested; full scanner fallback pending |
+| E low confidence | Existing policy not newly certified |
+| F post-scan mutation failure | H01 prevents reliable recovery certification |
+| G main/private fixture parity | Not run; no shared parity port yet |
+
+Local validation completed:
+
+| Check | Result |
+|---|---|
+| Root suite | PASS, 1,038 tests (baseline 1,026 plus 12 trust tests) |
+| Mobile suite | PASS, 580 tests; unchanged mobile implementation |
+| Real acquisition DB variants | PASS, 21 minimal + 21 legacy-intake checks |
+| Authenticated acceptance | PASS, real local GoTrue / Next / PostgREST / RLS: draft, financial commitment, receipt, duplicates, edits, cost protection, owner/workspace/anonymous isolation and actual purchase button |
+| TypeScript / ESLint | PASS, zero errors; existing warnings remain |
+| Webpack production build | PASS, `npx next build --webpack` |
+| Dependency audit | PASS, zero vulnerabilities from `npm run check` |
+| Secret/artifact audit | No matches across 18 changed/generated files and 355 static assets; high-signal key/credential patterns and sensitive artifact paths checked. Generated agent/types/cache files subsequently excluded. This is a scoped scan, not proof all possible secrets are absent. |
+| Diff whitespace | PASS |
+| Offline loss reproduction | DEFECT REPRODUCED; not counted as a retry acceptance PASS |
+| Physical scanner / same-fixture private parity | NOT RUN at architectural stop |
+
+Private logs: `%TEMP%/td-phase1h-{check,mobile,db,db-legacy,browser,build}.log`. Existing local acceptance project `td-phase1g-auth-20260924` was restarted for the browser run and stopped afterwards with its fixture volumes preserved; no hosted project or production data was used. No secrets or raw customer payloads were added to Git. The known local Turbopack dependency-junction issue was not rerun or addressed with dependency churn; Webpack success is not a claim about production CI/deployment strategy.
+
+Passing baseline acquisition tests does not override the scanner stop or complete requested scanner scenarios A–G.
+
+### Exact remaining blockers and final decision
+
+- **G17:** complete provenance inventory and every production consumer; this step fixes the multi-game normalization boundary only.
+- **G18:** converge physical-attribute policy across imports/catalog/scanner, resolve provider disagreement, and prove full unknown-attribute flow.
+- **H01 / G19:** establish one shared queue ownership/acknowledgement contract across all existing writers, then durable operation identity and transactional server retry proof.
+- **G20:** lifecycle-preserving native recovery convergence and actual same-fixture main/acceptance parity; no physical acceptance claimed.
+
+**PHASE 1 INCOMPLETE. Phase 2 is not ready.** Resume implementation only after the H01 architectural stop is reviewed. Keep the existing cloud inventory and purchase authorities; do not add a competing queue or ledger.
 
 Before production promotion: review the legacy workflow gates, compare the actual production schema and recovery freshness, apply only reviewed forward migrations in schema-first order, run normal CI, and conduct separately authorized post-deployment checks. No such promotion is performed here. **Phase 2 is not ready to begin.**
