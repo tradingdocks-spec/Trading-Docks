@@ -1931,9 +1931,9 @@ The selected angle is attached to the existing scan review record. The inspector
 
 Base source commit: `b697b9240f756bf832be8b465837d7338faca6c5`.
 
-Local code/test candidate SHA-256 manifest: `1f46d5d48aa0abb0c4d325fa67b07a5255aaa108c4f7eb0355b75aadcb4fb350`. This manifest covers the ten source/test files changed for the remediation and identifies the uncommitted candidate exactly; it is not a Git commit or deployed build. The successful local build is the webpack `.next` output produced from that worktree.
+Local code/test candidate SHA-256 manifest: `1f46d5d48aa0abb0c4d325fa67b07a5255aaa108c4f7eb0355b75aadcb4fb350`. This manifest covers the ten source/test files changed for the remediation. The remediation is now committed as `63d904ed74a6e4fb1cc335deab79519ce944a6ec`; see the release-candidate section below for the exact deployment and current gates.
 
-**Status: BLOCKED.** Software checks are green, but the remediation has not been pushed into a private Preview, the Preview-to-Supabase target/origin trust has not been reverified for this exact candidate, .NET installed-agent tests could not run on the available SDK, and no physical scanner retest occurred. The previous Preview/PR build does not contain this uncommitted patch. A physical retest must use a new exact-source private build after an explicitly authorized promotion step. Do not merge PR #137, deploy this patch, change scanner access gates, or mark physical acceptance passed based on these automated checks.
+**Status: BLOCKED.** The exact-HEAD Preview is READY and CI passed, but Preview-to-Supabase identity is unverified and physical scanner retest has not occurred. Do not merge PR #137, use Preview for physical acceptance, change scanner access gates, or mark physical acceptance passed until the remaining environment and hardware gates pass.
 
 ## PHYSICAL ACCEPTANCE RELEASE CANDIDATE
 
@@ -1941,13 +1941,14 @@ Local code/test candidate SHA-256 manifest: `1f46d5d48aa0abb0c4d325fa67b07a5255a
 
 - Branch: `codex/acquisition-integrity-phase1`; source baseline: `b697b9240f756bf832be8b465837d7338faca6c5`. Remediation source/test manifest remains `1f46d5d48aa0abb0c4d325fa67b07a5255aaa108c4f7eb0355b75aadcb4fb350`.
 - PR #137 remains OPEN and MUST NOT be merged until physical scanner retest passes.
-- The remediation commit and exact-HEAD Vercel Preview are pending push. Preview Supabase reference and Preview-only provider configuration are not yet verified. No physical test is authorized until Preview is proven to use staging/test Supabase.
+- Remediation commit: `63d904ed74a6e4fb1cc335deab79519ce944a6ec`. Exact-HEAD Vercel Preview: [deployment](https://trading-docks-346a-hkdbuwcyf-tradingdocks-specs-projects.vercel.app), state **READY**, source SHA matches this commit. GitHub `verify` workflow passed on this SHA.
+- Preview Supabase classification is **BLOCKED / UNVERIFIED**. A deployment-scoped Vercel environment pull masked `NEXT_PUBLIC_SUPABASE_URL` as a sensitive placeholder, preventing safe extraction of the project reference. No secret was printed; the temporary environment file was removed. Do not use this Preview for physical acceptance until an authorized configuration view confirms its Supabase reference is staging/test and differs from production.
 
 ### Preview services and source contract
 
 | Service | Status | Evidence / gate |
 |---|---|---|
-| Supabase | **MISSING verification** | No exact-candidate Preview exists yet. After deployment, compare the public project reference compiled into the Preview against the known production reference; require staging/test. |
+| Supabase | **BLOCKED / UNVERIFIED** | Exact-HEAD Preview exists, but Vercel masked the project URL during a deployment-scoped environment pull. The Preview-to-production reference comparison could not be completed. Require an authorized non-secret project-ref comparison proving staging/test before physical testing. |
 | Scanner Agent communication | **CONFIGURED locally; Preview origin pending** | Installed process is signed `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`; its read-only health response reports protocol 1, automatic inbox, durable recovery, and capture authorization enabled. Exact trusted Preview origin remains unverified. |
 | Recognition provider | **MISSING verification** | No Preview runtime check has been made. Do not substitute production credentials. A prior review screen displayed `credit_balance_exhausted`; require an explicit healthy Preview provider before physical recognition testing. |
 | Trusted Chaos validation | **MISSING verification** | The route and local database contracts exist, but the Preview’s Supabase target and migrated staging schema must be confirmed before the trusted commit path is exercised. |
@@ -1971,7 +1972,7 @@ The web client’s protocol gate is protocol version 1, and the installed agent 
 
 ### Five-card physical acceptance — staging only
 
-Use the exact-HEAD Preview only after CI is clean, Preview state is READY, its Supabase reference is confirmed staging/test (not production), trusted Preview origin pairing succeeds, and the Preview recognition provider is healthy. Use a disposable staging workspace and five known cards; do not use production `CS-000023` or production inventory.
+Use the exact-HEAD Preview only after CI is clean, Preview state is READY, its Supabase reference is confirmed staging/test (not production), trusted Preview origin pairing succeeds, and the Preview recognition provider is healthy. Use a disposable staging workspace and five known cards; do not use production `CS-000023` or production inventory. The exact-HEAD deployment is currently READY and CI is clean, but Supabase identity remains unverified, so physical acceptance is blocked.
 
 1. Connect the physical scanner in normal Chrome. Confirm `Agent: CONNECTED`, the named scanner, and capture `READY`.
 2. Scan one normal upright card. Verify one physical capture reaches the browser automatically, appears upright in Review, recognition starts, and exact identity is correct or safely requires review.
@@ -1983,4 +1984,4 @@ For every card, record capture status, orientation result, recognition status, i
 
 **Physical acceptance remains MANUAL REQUIRED.** Automated pixel fixtures, installed-agent tests, and recovery-clone tests are not physical acceptance. Required evidence is a real scanner + real cards + actual installed agent + exact Preview + staging backend + actual review + an explicitly authorized staging commit.
 
-**Status: BLOCKED.** Commit/push, exact-HEAD Preview, staging Supabase confirmation, Preview provider checks, and physical retest remain outstanding. PR #137 must remain unmerged. Production, production inventory, POS, and Square remain unchanged.
+**Status: BLOCKED.** Commit `63d904ed74a6e4fb1cc335deab79519ce944a6ec` is pushed, PR #137 is open/unmerged, exact-HEAD Preview is READY, and GitHub CI passed. Preview Supabase staging identity, Preview provider health/trusted-Chaos validation, and physical retest remain outstanding. PR #137 must remain unmerged. Production, production inventory, POS, and Square remain unchanged.
