@@ -42,6 +42,8 @@ export type CollectionIntakeItem = {
 
 export type CollectionIntake = {
   id: string;
+  revision?: number;
+  purchaseLedgerId?: string | null;
   status: CollectionIntakeStatus;
   title: string;
   sellerName: string;
@@ -204,6 +206,7 @@ export function inferReviewState(item: Partial<CollectionIntakeItem>): Collectio
   if (!item.setCode && !item.collectorNumber && !item.scryfallId && !item.tcgplayerProductId) return "ambiguous_printing";
   if (!item.condition?.trim() && item.productType !== "bulk") return "unknown_condition";
   if (!item.finish?.trim() && item.productType !== "bulk") return "unknown_finish";
+  if (!item.language?.trim()) return "unresolved_identity";
   const marketValue = normalizeNullableMoney(item.unitMarketValue);
   if (marketValue === null || marketValue <= 0) return "missing_price";
   if (marketValue >= 100) return "high_value_confirmation";

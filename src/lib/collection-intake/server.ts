@@ -40,6 +40,7 @@ export type CollectionIntakeLoadResult = {
 
 export type SaveCollectionIntakeInput = {
   id?: string;
+  revision?: number;
   title: string;
   sellerName?: string;
   sellerContact?: string;
@@ -55,6 +56,8 @@ export type CompleteCollectionIntakeInput = {
   intakeId: string;
   actualOffer: number;
   idempotencyKey?: string | null;
+  receiveNow?: boolean;
+  locationId?: string | null;
 };
 
 function objectRecord(value: unknown) {
@@ -85,8 +88,7 @@ function bigintNumberOrNull(value: unknown) {
 function isMissingSchemaError(error: SupabaseError | null) {
   if (!error) return false;
   return error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    /collection_intakes|collection_intake_items|collection_purchases|complete_collection_intake/i.test(error.message ?? "");
+    error.code === "PGRST205" || error.code === "PGRST202";
 }
 
 export function collectionIntakeFromRow(row: Record<string, unknown>): CollectionIntake {
@@ -95,6 +97,8 @@ export function collectionIntakeFromRow(row: Record<string, unknown>): Collectio
     : [];
   return {
     id: stringValue(row.id),
+    revision: Number(row.revision ?? 0),
+    purchaseLedgerId: nullableString(row.purchase_ledger_id),
     status: normalizeStatus(row.status),
     title: stringValue(row.title) || "Collection intake",
     sellerName: stringValue(row.seller_name),
@@ -122,7 +126,7 @@ export function collectionIntakeItemFromRow(row: Record<string, unknown>): Colle
     tcgplayerSkuId: bigintNumberOrNull(row.tcgplayer_sku_id),
     condition: nullableString(row.condition),
     finish: nullableString(row.finish),
-    language: stringValue(row.language) || "English",
+    language: stringValue(row.language) || "",
     quantity: normalizeQuantity(row.quantity),
     unitMarketValue: numberOrNull(row.unit_market_value),
     reviewState: normalizeReviewState(row.review_state),
@@ -188,8 +192,15 @@ export async function saveCollectionIntake({
   workspaceId: string | null;
   input: SaveCollectionIntakeInput;
 }) {
+  void userId; void workspaceId; // Database derives actor/workspace.
   const client = supabase as SupabaseClientLike;
-  const items = input.items.map(normalizeInputItem).filter((item) => item.quantity > 0);
+  if (!input.id || !Array.isArray(input.items) || input.items.length > 1000 || input.items.some(item =>
+    !item || !item.id || !Number.isInteger(item.quantity) || (item.quantity ?? 0) <= 0 ||
+    (item.unitMarketValue != null && (!Number.isFinite(item.unitMarketValue) || item.unitMarketValue < 0))) ||
+    (input.actualOffer != null && (!Number.isFinite(input.actualOffer) || input.actualOffer < 0))) {
+    return { data: null, error: { code: "22023", message: "Provide stable line ids, positive whole quantities and valid monetary values." } };
+  }
+  const items = input.items.map(normalizeInputItem);
   const scenarioKey = normalizeScenarioKey(input.scenarioKey);
   const scenario = normalizeScenario(scenarioKey, input.customScenario);
   const valuation = calculateCollectionValuation({
@@ -202,79 +213,11 @@ export async function saveCollectionIntake({
     : valuation.blockingReviewCount > 0
       ? "evaluating"
       : "offer_ready";
-  const row = {
-    user_id: userId,
-    workspace_id: workspaceId,
-    title: input.title?.trim() || "Collection intake",
-    seller_name: input.sellerName?.trim() ?? "",
-    seller_contact: input.sellerContact?.trim() ?? "",
-    status,
-    scenario_key: scenarioKey,
-    scenario,
-    valuation,
-    actual_offer: input.actualOffer ?? null,
-    notes: input.notes?.trim() ?? "",
-    updated_at: new Date().toISOString(),
-  };
-
-  const intakeResult = input.id
-    ? await client
-      .from("collection_intakes")
-      .update(row)
-      .eq("user_id", userId)
-      .eq("id", input.id)
-      .select("id")
-      .single() as SupabaseResult<unknown>
-    : await client
-      .from("collection_intakes")
-      .insert(row)
-      .select("id")
-      .single() as SupabaseResult<unknown>;
-
-  if (intakeResult.error) return { data: null, error: intakeResult.error };
-  const intakeId = stringValue(objectRecord(intakeResult.data).id);
-  if (!intakeId) return { data: null, error: { message: "Collection intake was saved without a returned id." } };
-
-  const deleteResult = await client
-    .from("collection_intake_items")
-    .delete()
-    .eq("user_id", userId)
-    .eq("intake_id", intakeId) as SupabaseResult<unknown>;
-  if (deleteResult.error) return { data: null, error: deleteResult.error };
-
-  if (items.length) {
-    const itemRows = items.map((item) => ({
-      intake_id: intakeId,
-      user_id: userId,
-      workspace_id: workspaceId,
-      card_name: item.cardName,
-      game_id: item.gameId,
-      product_type: item.productType,
-      set_code: item.setCode,
-      collector_number: item.collectorNumber,
-      scryfall_id: item.scryfallId,
-      tcgplayer_product_id: item.tcgplayerProductId,
-      tcgplayer_sku_id: item.tcgplayerSkuId,
-      condition: item.condition,
-      finish: item.finish,
-      language: item.language,
-      quantity: item.quantity,
-      unit_market_value: item.unitMarketValue,
-      review_state: item.reviewState,
-      notes: item.notes,
-      metadata: {},
-    }));
-    const itemResult = await client
-      .from("collection_intake_items")
-      .insert(itemRows)
-      .select("id") as SupabaseResult<unknown>;
-    if (itemResult.error) return { data: null, error: itemResult.error };
-  }
-
-  return {
-    data: { intakeId, valuation, itemCount: items.length },
-    error: null,
-  };
+  return client.rpc("save_collection_intake", { p_intake: {
+    id: input.id, revision: input.revision ?? 0, title: input.title, sellerName: input.sellerName,
+    sellerContact: input.sellerContact, status, scenarioKey, scenario, valuation,
+    actualOffer: input.actualOffer ?? null, notes: input.notes, items,
+  } }) as PromiseLike<SupabaseResult<{ intakeId: string; revision: number; itemCount: number; valuation: unknown }>>;
 }
 
 export async function completeCollectionIntake({
@@ -285,9 +228,11 @@ export async function completeCollectionIntake({
   input: CompleteCollectionIntakeInput;
 }) {
   const client = supabase as SupabaseClientLike;
-  return client.rpc("complete_collection_intake", {
+  return client.rpc("finalize_intake_purchase", {
     p_intake_id: input.intakeId,
     p_actual_offer: input.actualOffer,
+    p_receive_now: input.receiveNow ?? true,
+    p_location_id: input.locationId ?? null,
     p_idempotency_key: input.idempotencyKey ?? `collection-intake:${input.intakeId}`,
   }) as PromiseLike<SupabaseResult<unknown>>;
 }
@@ -305,7 +250,7 @@ function normalizeInputItem(input: Partial<CollectionIntakeItem>): CollectionInt
     tcgplayerSkuId: bigintNumberOrNull(input.tcgplayerSkuId),
     condition: input.condition?.trim() || null,
     finish: input.finish?.trim() || null,
-    language: input.language?.trim() || "English",
+    language: input.language?.trim() || "",
     quantity: normalizeQuantity(input.quantity || 1),
     unitMarketValue: normalizeNullableMoney(input.unitMarketValue),
     reviewState: normalizeReviewState(input.reviewState),

@@ -25,15 +25,13 @@ function stringValue(value: unknown) {
 function errorResponse(error: { code?: string; message?: string; details?: string; hint?: string } | null, fallback: string) {
   const missingSchema =
     error?.code === "42P01" ||
-    error?.code === "PGRST205" ||
-    /collection_intakes|collection_intake_items|collection_purchases|complete_collection_intake/i.test(error?.message ?? "");
+    error?.code === "PGRST205" || error?.code === "PGRST202";
   return NextResponse.json({
     error: missingSchema ? "Collection Intake schema is not configured for this environment." : fallback,
     message: error?.message ?? fallback,
     code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-  }, { status: missingSchema ? 503 : 500 });
+
+  }, { status: missingSchema ? 503 : error?.code === "42501" ? 403 : error?.code === "40001" ? 409 : error?.code === "22023" ? 400 : 500 });
 }
 
 export async function GET() {
@@ -78,7 +76,9 @@ export async function POST(request: Request) {
       supabase: capability.supabase,
       input: {
         intakeId: input.intakeId,
-        actualOffer: Number(input.actualOffer ?? 0),
+        actualOffer: input.actualOffer,
+        receiveNow: input.receiveNow,
+        locationId: input.locationId,
         idempotencyKey: input.idempotencyKey ?? `collection-intake:${input.intakeId}`,
       },
     });

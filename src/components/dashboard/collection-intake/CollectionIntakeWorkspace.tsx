@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import Link from "next/link";
 import {
@@ -42,9 +42,9 @@ const EMPTY_ITEM: Omit<CollectionIntakeItem, "id"> = {
   scryfallId: null,
   tcgplayerProductId: null,
   tcgplayerSkuId: null,
-  condition: "Near Mint",
-  finish: "nonfoil",
-  language: "English",
+  condition: null,
+  finish: null,
+  language: "",
   quantity: 1,
   unitMarketValue: null,
   reviewState: "unresolved_identity",
@@ -94,7 +94,7 @@ function rowToItem(row: IntakeRow): CollectionIntakeItem {
     tcgplayerSkuId: row.tcgplayerSkuId,
     condition: row.condition?.trim() || null,
     finish: row.finish?.trim() || null,
-    language: row.language.trim() || "English",
+    language: row.language.trim(),
     quantity: normalizeQuantity(row.quantityInput),
     unitMarketValue: normalizeNullableMoney(row.unitMarketValueInput),
     reviewState: row.reviewState,
@@ -107,22 +107,21 @@ function rowToItem(row: IntakeRow): CollectionIntakeItem {
 }
 
 export function CollectionIntakeWorkspace() {
-  const [intakeId, setIntakeId] = useState<string | null>(null);
+  const [intakeId, setIntakeId] = useState<string | null>(() => crypto.randomUUID());
+  const [revision, setRevision] = useState(0);
   const [title, setTitle] = useState("Walk-in collection");
   const [sellerName, setSellerName] = useState("");
   const [sellerContact, setSellerContact] = useState("");
   const [notes, setNotes] = useState("");
   const [scenarioKey, setScenarioKey] = useState<CollectionIntakeScenarioKey>("standard");
   const [actualOfferInput, setActualOfferInput] = useState("");
-  const [rows, setRows] = useState<IntakeRow[]>([
-    newRow({ cardName: "Rhystic Study", setCode: "WOT", collectorNumber: "25", quantity: 1, unitMarketValue: 41.5 }),
-    newRow({ cardName: "Sol Ring", setCode: "CMM", collectorNumber: "399", quantity: 4, unitMarketValue: 1.75 }),
-    newRow({ cardName: "", quantity: 20, unitMarketValue: null, reviewState: "unresolved_identity" }),
-  ]);
+  const [rows, setRows] = useState<IntakeRow[]>([newRow()]);
   const [savedIntakes, setSavedIntakes] = useState<CollectionIntake[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const completionBusy = useRef(false);
+  const pendingCompletion = useRef<{ intakeId: string; offer: number } | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -138,7 +137,7 @@ export function CollectionIntakeWorkspace() {
     scenario,
     actualOffer,
   }), [actualOffer, items, scenario]);
-  const canComplete = items.length > 0 && valuation.blockingReviewCount === 0 && !completing;
+  const canComplete = items.length > 0 && valuation.blockingReviewCount === 0 && !completing && !saving;
 
   async function loadIntakes() {
     setLoading(true);
@@ -161,6 +160,7 @@ export function CollectionIntakeWorkspace() {
 
   function loadDraft(intake: CollectionIntake) {
     setIntakeId(intake.id);
+    setRevision(intake.revision ?? 0);
     setTitle(intake.title);
     setSellerName(intake.sellerName);
     setSellerContact(intake.sellerContact);
@@ -191,7 +191,8 @@ export function CollectionIntakeWorkspace() {
         body: JSON.stringify({
           action: "save",
           intake: {
-            id: intakeId ?? undefined,
+            id: intakeId,
+            revision,
             title,
             sellerName,
             sellerContact,
@@ -209,25 +210,34 @@ export function CollectionIntakeWorkspace() {
         return null;
       }
       setIntakeId(payload.intakeId);
+      setRevision(payload.revision);
       setNotice(`Saved ${payload.itemCount ?? items.length} line${(payload.itemCount ?? items.length) === 1 ? "" : "s"}.`);
-      await loadIntakes();
       return String(payload.intakeId);
+    } catch {
+      setError("Save response unavailable. Reload the saved intake before retrying.");
+      return null;
     } finally {
       setSaving(false);
     }
   }
 
   async function completePurchase() {
-    const savedId = intakeId ?? await saveDraft("offer_ready");
-    if (!savedId) return;
-    if (!canComplete) return;
-    const offer = actualOffer ?? valuation.calculatedMaxOffer;
-    const confirmed = window.confirm(`Complete this collection purchase for ${money(offer)}? This will create inventory rows and event history.`);
-    if (!confirmed) return;
+    if (!canComplete || completionBusy.current) return;
+    completionBusy.current = true;
     setCompleting(true);
     setError("");
     setNotice("");
     try {
+      const pending = pendingCompletion.current?.intakeId === intakeId ? pendingCompletion.current : null;
+      const existing = savedIntakes.find((intake) => intake.id === intakeId && intake.purchaseLedgerId);
+      const offer = pending?.offer ?? existing?.actualOffer ?? actualOffer ?? valuation.calculatedMaxOffer;
+      const confirmed = window.confirm(`${pending ? "Retry" : "Complete"} this collection purchase for ${money(offer)}? This records the purchase and physical receipt. A retry cannot create another purchase.`);
+      if (!confirmed) return;
+      const savedId = pending?.intakeId ?? existing?.id ?? await saveDraft("offer_ready");
+      if (!savedId) return;
+      // Retain the exact request after an uncertain response; do not try to
+      // re-save a draft that the server may already have finalized.
+      pendingCompletion.current = { intakeId: savedId, offer };
       const response = await fetch("/api/collection-intake", {
         method: "POST",
         credentials: "same-origin",
@@ -246,9 +256,13 @@ export function CollectionIntakeWorkspace() {
         setError(payload.message ?? payload.error ?? "Collection purchase could not be completed.");
         return;
       }
+      pendingCompletion.current = null;
       setNotice("Purchase completed. Inventory rows and event history were created.");
       await loadIntakes();
+    } catch {
+      setError("Completion response unavailable. Retry this same purchase to recover its authoritative result; do not create a new intake.");
     } finally {
+      completionBusy.current = false;
       setCompleting(false);
     }
   }
@@ -262,7 +276,8 @@ export function CollectionIntakeWorkspace() {
         icon={ClipboardCheck}
         actionLabel="New intake"
         onAction={() => {
-          setIntakeId(null);
+          setIntakeId(crypto.randomUUID());
+          setRevision(0);
           setTitle("Walk-in collection");
           setSellerName("");
           setSellerContact("");
