@@ -1,3 +1,4 @@
+import { availableMoney } from "@/lib/intelligence-provenance";
 import { createClient } from "@/lib/supabase/client";
 
 export type InventoryPersistenceRecord = {
@@ -34,7 +35,6 @@ const TABLES: Record<InventoryCollection, string> = {
   movements: "inventory_movements",
 };
 
-const CHUNK_SIZE = 500;
 
 export async function loadInventorySnapshot(): Promise<InventorySnapshot> {
   const supabase = createClient();
@@ -119,7 +119,7 @@ function mergeDatabaseFields(collection: InventoryCollection, row: InventoryData
       set: record.set || row.set_code || "",
       collectorNumber: record.collectorNumber || row.collector_number || "",
       quantity: typeof record.quantity === "number" ? record.quantity : row.quantity ?? 0,
-      value: typeof record.value === "number" ? record.value : row.inventory_value ?? 0,
+      value: typeof record.value === "number" ? record.value : row.inventory_value ?? null,
       batchCode: record.batchCode || record.batch_code || "",
       imageUrl:
         record.imageUrl ||
@@ -135,45 +135,13 @@ export async function persistInventorySnapshotDiff(
   previous: InventorySnapshot,
   current: InventorySnapshot,
 ) {
-  const supabase = createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error("Sign in again to save your inventory.");
-
-  for (const collection of Object.keys(TABLES) as InventoryCollection[]) {
-    const before = new Map(previous[collection].map((record) => [record.id, JSON.stringify(record)]));
-    const after = new Map(current[collection].map((record) => [record.id, record]));
-    const changed = current[collection].filter(
-      (record) => before.get(record.id) !== JSON.stringify(record),
-    );
-    const removed = previous[collection]
-      .filter((record) => !after.has(record.id))
-      .map((record) => record.id);
-
-    for (let index = 0; index < changed.length; index += CHUNK_SIZE) {
-      const rows = changed
-        .slice(index, index + CHUNK_SIZE)
-        .map((record) => toDatabaseRow(collection, user.id, record));
-      const { error } = await supabase.from(TABLES[collection]).upsert(rows, {
-        onConflict: "user_id,id",
-      });
-      if (error) throw new Error(`Inventory could not be saved: ${error.message}`);
-    }
-
-    for (let index = 0; index < removed.length; index += CHUNK_SIZE) {
-      const { error } = await supabase
-        .from(TABLES[collection])
-        .delete()
-        .eq("user_id", user.id)
-        .in("id", removed.slice(index, index + CHUNK_SIZE));
-      if (error) throw new Error(`Inventory could not be updated: ${error.message}`);
-    }
-  }
+  // This legacy helper has RECONCILE semantics (including deletes), not APPEND.
+  // Its old chunked upsert/delete path has no immutable receipt. Do not replay it.
+  if (JSON.stringify(previous) === JSON.stringify(current)) return;
+  throw new Error('REVIEW_REQUIRED: legacy snapshot reconciliation is unavailable. Use the explicit durable append import or inventory edit commands. No snapshot was written.');
 }
 
-function toDatabaseRow(
+export function toDatabaseRow(
   collection: InventoryCollection,
   userId: string,
   record: InventoryPersistenceRecord,
@@ -202,7 +170,8 @@ function toDatabaseRow(
       set_code: stringValue(record.set) || null,
       collector_number: stringValue(record.collectorNumber) || null,
       quantity: numberValue(record.quantity),
-      inventory_value: numberValue(record.value),
+      inventory_value: availableMoney(record.value),
+      ...(Object.hasOwn(record, "askingPrice") ? { asking_price: availableMoney(record.askingPrice) } : {}),
     };
   }
   return {

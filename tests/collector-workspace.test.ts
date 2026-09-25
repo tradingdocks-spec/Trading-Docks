@@ -51,7 +51,7 @@ const cards = buildCollectionCards({
       quantity: 2,
       inventory_value: 84,
       updated_at: '2026-08-03T12:00:00Z',
-      data: {
+      data: { inventoryValueSemantics: "total_row_v1",
         name: 'Rhystic Study',
         set: 'wot',
         setName: 'Wilds of Eldraine',
@@ -456,7 +456,7 @@ test('Collection supports Pokemon singles through the existing inventory adapter
         language: 'English',
         quantity: 2,
         inventory_value: 6,
-        data: {
+        data: { inventoryValueSemantics: "total_row_v1",
           setName: 'ME: 30th Celebration',
           set: '30C',
           collectorNumber: '036/128',
@@ -495,7 +495,7 @@ test('Collection handles Pokemon sealed products without card-condition controls
         tcgplayer_product_id: 704148,
         quantity: 3,
         inventory_value: 36,
-        data: {
+        data: { inventoryValueSemantics: "total_row_v1",
           gameLabel: 'Pokemon',
           setName: 'ME: 30th Celebration',
           productType: 'sealed',
@@ -518,7 +518,7 @@ test('Collection handles Pokemon sealed products without card-condition controls
 test('Collection summary groups games and singles versus sealed products', () => {
   const mixed = buildCollectionCards({
     items: [
-      { id: 'magic-card', card_name: 'Sol Ring', quantity: 1, inventory_value: 2, data: { set: 'ltc', collectorNumber: '301' } },
+      { id: 'magic-card', card_name: 'Sol Ring', quantity: 1, inventory_value: 2, data: { inventoryValueSemantics: "total_row_v1", set: 'ltc', collectorNumber: '301' } },
       {
         id: 'pokemon-card',
         card_name: 'Victini',
@@ -526,7 +526,7 @@ test('Collection summary groups games and singles versus sealed products', () =>
         product_type: 'card',
         quantity: 2,
         inventory_value: 4,
-        data: { set: '30C', collectorNumber: '013/128', variant: 'Holofoil' },
+        data: { inventoryValueSemantics: "total_row_v1", set: '30C', collectorNumber: '013/128', variant: 'Holofoil' },
       },
       {
         id: 'pokemon-sealed',
@@ -535,7 +535,7 @@ test('Collection summary groups games and singles versus sealed products', () =>
         product_type: 'sealed',
         quantity: 1,
         inventory_value: 18,
-        data: { sealedType: 'Battle Deck' },
+        data: { inventoryValueSemantics: "total_row_v1", sealedType: 'Battle Deck' },
       },
     ],
   });

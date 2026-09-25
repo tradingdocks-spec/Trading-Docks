@@ -1,3 +1,4 @@
+import { trustedInventoryValue, summarizeInventoryValues } from "@/lib/intelligence-provenance";
 import type {
   CollectorProfile,
   PortfolioGameTotal,
@@ -52,7 +53,7 @@ function itemFrom(value: InventoryRow): PortfolioInventoryItem | null {
   const locationId = value.location_id || (typeof payload.locationId === "string" ? payload.locationId : "");
   const quantity = Number(value.quantity ?? payload.quantity ?? 0);
   if (!value.id || !name || !locationId || !Number.isFinite(quantity) || quantity <= 0) return null;
-  const marketValue = Number(value.inventory_value ?? payload.value ?? payload.marketValue ?? 0);
+  const marketValue = trustedInventoryValue({ inventory_value: value.inventory_value, data: value.data });
   const gameId = value.game_id ?? payload.gameId ?? payload.game_id ?? payload.game;
   const productType = value.product_type ?? payload.productType ?? payload.product_type ?? payload.itemKind ?? payload.item_kind;
   return {
@@ -63,8 +64,8 @@ function itemFrom(value: InventoryRow): PortfolioInventoryItem | null {
     productType: normalizePortfolioProductType(productType),
     quantity,
     locationId,
-    value: Number.isFinite(marketValue) ? marketValue : 0,
-    unitMarketValue: quantity > 0 && Number.isFinite(marketValue) ? marketValue / quantity : undefined,
+    value: marketValue,
+    unitMarketValue: quantity > 0 && marketValue !== null ? marketValue / quantity : undefined,
     imageUrl: typeof payload.imageUrl === "string" ? payload.imageUrl : undefined,
     set: value.set_code ?? (typeof payload.set === "string" ? payload.set : undefined),
     condition: typeof payload.condition === "string" ? payload.condition : undefined,
@@ -143,7 +144,8 @@ async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSup
       location,
       cards,
       cardCount: cards.reduce((sum, card) => sum + card.quantity, 0),
-      estimatedValue: cards.reduce((sum, card) => sum + card.value, 0),
+      estimatedValue: summarizeInventoryValues(cards.map((card) => card.value)).value,
+      unpricedRows: summarizeInventoryValues(cards.map((card) => card.value)).unpricedRows,
       occupiedPockets: cards.filter((card) => card.binderPage && card.binderSlot).length,
       pageCount: location.binderPages ?? 20,
     };
@@ -185,7 +187,7 @@ async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSup
     totals: {
       cards: items.reduce((sum, item) => sum + item.quantity, 0),
       uniqueCards: items.length,
-      value: items.reduce((sum, item) => sum + item.value, 0),
+      ...summarizeInventoryValues(items.map((item) => item.value)),
       games: summarizePortfolioGames(items),
       productTypes: summarizePortfolioProductTypes(items),
       binders: binderViews.length,
@@ -203,11 +205,13 @@ function summarizePortfolioGames(items: PortfolioInventoryItem[]): PortfolioGame
       label: item.game ?? portfolioGameLabel(gameId),
       quantity: 0,
       uniqueItems: 0,
-      value: 0,
+      value: null,
+      unpricedRows: 0,
     };
     current.quantity += item.quantity;
     current.uniqueItems += 1;
-    current.value += item.value;
+    if (item.value === null) current.unpricedRows += 1;
+    else current.value = (current.value ?? 0) + item.value;
     byGame.set(gameId, current);
   }
   return [...byGame.values()];
@@ -221,11 +225,13 @@ function summarizePortfolioProductTypes(items: PortfolioInventoryItem[]): Portfo
       productType,
       quantity: 0,
       uniqueItems: 0,
-      value: 0,
+      value: null,
+      unpricedRows: 0,
     };
     current.quantity += item.quantity;
     current.uniqueItems += 1;
-    current.value += item.value;
+    if (item.value === null) current.unpricedRows += 1;
+    else current.value = (current.value ?? 0) + item.value;
     byType.set(productType, current);
   }
   return [...byType.values()];

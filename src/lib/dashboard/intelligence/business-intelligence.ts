@@ -1,3 +1,4 @@
+import { trustedInventoryValue } from "../../intelligence-provenance.ts";
 import {
   channelLabel,
   normalizeChannelId,
@@ -116,6 +117,7 @@ export type InventoryCapitalRow = {
   id?: string | null;
   quantity?: number | string | null;
   inventory_value?: number | string | null;
+  data?: unknown;
   updated_at?: string | null;
 };
 
@@ -313,9 +315,10 @@ export function calculateInventoryCapital(input: {
   let valuedRows = 0;
 
   for (const row of input.inventoryRows) {
-    const value = Math.max(0, numeric(row.inventory_value));
+    const knownValue = trustedInventoryValue(row);
+    const value = knownValue ?? 0; // subtotal only; coverage distinguishes unavailable from zero
     totalValue += value;
-    if (value > 0) valuedRows += 1;
+    if (knownValue !== null) valuedRows += 1;
     if (row.id && listedIds.has(row.id)) listedValue += value;
     const updated = parseDate(row.updated_at);
     if (value > 0 && updated && updated.getTime() < cutoff) {

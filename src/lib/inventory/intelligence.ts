@@ -1,3 +1,4 @@
+import { trustedInventoryValue } from "../intelligence-provenance.ts";
 export type InventoryAttentionType =
   | "missing_price"
   | "missing_cost_basis"
@@ -190,7 +191,7 @@ export function buildInventoryAttentionSummary({
   for (const row of rows) {
     const payload = recordValue(row.data);
     const quantity = positiveNumber(row.quantity) ?? positiveNumber(payload.quantity) ?? 0;
-    const value = positiveNumber(row.inventory_value) ?? positiveNumber(payload.value) ?? null;
+    const value = trustedInventoryValue(row);
     const costBasis = knownCostBasisValue(payload);
     const locationId = stringValue(row.location_id) ?? stringValue(payload.locationId);
     const condition = payload.condition;
@@ -296,7 +297,7 @@ async function loadExactIssueCounts(
         .from("inventory_items")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
-        .or("and(or(inventory_value.is.null,inventory_value.eq.0),or(data->>value.is.null,data->>value.eq.0,data->>value.eq.))"),
+        .or("inventory_value.is.null,inventory_value.lt.0,data->>inventoryValueSemantics.is.null,data->>inventoryValueSemantics.neq.total_row_v1"),
     ),
     countQuery(
       "missing cost basis",
@@ -524,7 +525,7 @@ function issueRule(type: Exclude<InventoryAttentionType, "inventory_setup_requir
         severity: "high" as const,
         title: "Missing price",
         description: "Inventory records without a usable market value weaken portfolio value, offers, and listing decisions.",
-        reason: "inventory_value and data.value are absent or zero.",
+        reason: "Market valuation is unavailable or has unverified legacy semantics.",
         action: "Review pricing",
       };
     case "missing_cost_basis":

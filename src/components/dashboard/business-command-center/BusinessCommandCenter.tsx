@@ -337,15 +337,15 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
 function InventoryCapitalModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
     <section className="rounded-2xl bg-td-surface p-5 ring-1 ring-td-ink/[0.055]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Inventory Capital</p>
-      <p className="mt-3 text-3xl font-semibold text-td-primary">{money(summary.inventoryCapital.totalValue)}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-secondary">Known inventory market subtotal</p>
+      <p className="mt-3 text-3xl font-semibold text-td-primary">{summary.inventoryCapital.coveragePercent > 0 ? money(summary.inventoryCapital.totalValue) : "Valuation unavailable"}</p>
       <p className="mt-1 text-xs leading-5 text-td-secondary">
         {Math.round(summary.inventoryCapital.coveragePercent)}% of sampled inventory rows have value coverage.
       </p>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <MiniStat label="Listed value" value={money(summary.inventoryCapital.listedValue)} />
-        <MiniStat label="Unlisted value" value={money(summary.inventoryCapital.unlistedValue)} />
-        <MiniStat label="Capital at risk" value={money(summary.inventoryCapital.staleValue)} />
+        <MiniStat label="Listed value" value={summary.inventoryCapital.coveragePercent > 0 ? money(summary.inventoryCapital.listedValue) : "Unavailable"} />
+        <MiniStat label="Unlisted value" value={summary.inventoryCapital.coveragePercent > 0 ? money(summary.inventoryCapital.unlistedValue) : "Unavailable"} />
+        <MiniStat label="Capital at risk" value={summary.inventoryCapital.coveragePercent > 0 ? money(summary.inventoryCapital.staleValue) : "Unavailable"} />
       </div>
       {summary.inventoryCapital.staleValue > 0 ? (
         <p className="mt-3 rounded-2xl bg-td-warning/[0.06] p-3 text-xs leading-5 text-td-warning/80">

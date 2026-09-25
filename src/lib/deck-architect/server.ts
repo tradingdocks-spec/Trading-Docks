@@ -1,3 +1,4 @@
+import { trustedInventoryValue } from "../intelligence-provenance.ts";
 import type { User } from "@supabase/supabase-js";
 
 import {
@@ -96,8 +97,7 @@ function toCollectionGraphCard(row: unknown): CollectionGraphCard | null {
   const unitMarketPrice = numberValue(data.unitMarketValue)
     ?? numberValue(data.unit_market_value)
     ?? numberValue(data.marketPrice)
-    ?? numberValue(data.price)
-    ?? totalValueToUnitValue(record.inventory_value, quantity);
+    ?? totalValueToUnitValue(trustedInventoryValue({inventory_value: record.inventory_value, data}), quantity);
 
   return {
     inventoryId: String(record.id ?? `${name}:${record.set_code ?? ""}:${record.collector_number ?? ""}`),

@@ -12,6 +12,7 @@ export type CollectionLocationImportRow = {
   collectorNumber?: string | null;
   condition?: string | null;
   finish?: string | null;
+  language?: string | null;
   quantity?: string | number | null;
   storageLocation?: string | null;
   storagePath?: string | null;
@@ -26,6 +27,7 @@ export type ReviewedCollectionLocationImportRow = {
   collectorNumber: string | null;
   condition: CardCondition;
   finish: CardFinish;
+  language: string | null;
   quantity: number;
   storagePath: string | null;
   tcgplayerId: number | null;
@@ -39,6 +41,7 @@ export function reviewCollectionLocationImportRow(row: CollectionLocationImportR
   const collectorNumber = stringValue(row.collectorNumber).trim() || null;
   const condition = normalizeCardCondition(row.condition);
   const finish = normalizeCardFinish(row.finish);
+  const language = row.language?.trim() || null;
   const quantity = positiveInteger(row.quantity);
   const storagePath = normalizeStoragePath(stringValue(row.storagePath) || stringValue(row.storageLocation));
   const tcgplayerId = positiveNumericId(row.tcgplayerId);
@@ -49,6 +52,8 @@ export function reviewCollectionLocationImportRow(row: CollectionLocationImportR
   if (quantity <= 0) issues.push("invalid_quantity");
   if (condition === "unknown") issues.push("unknown_condition");
   if (finish === "unknown") issues.push("unknown_finish");
+  if (!language) issues.push("unknown_language");
+  if (!setCode || !collectorNumber) issues.push("unresolved_printing");
 
   return {
     ok: issues.length === 0,
@@ -57,6 +62,7 @@ export function reviewCollectionLocationImportRow(row: CollectionLocationImportR
     collectorNumber,
     condition,
     finish,
+    language,
     quantity,
     storagePath,
     tcgplayerId,

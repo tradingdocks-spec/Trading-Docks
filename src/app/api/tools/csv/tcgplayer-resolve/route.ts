@@ -144,7 +144,8 @@ function stringValue(value: unknown, max: number) {
 
 function normalizeFinish(value: string) {
   const normalized = value.trim().toLowerCase();
-  if (!normalized || ["normal", "regular", "nonfoil", "non-foil", "false", "no", "0"].includes(normalized)) return "normal";
+  if (!normalized) return "";
+  if (["normal", "regular", "nonfoil", "non-foil", "false", "no", "0"].includes(normalized)) return "normal";
   if (normalized.includes("etched")) return "etched";
   if (normalized.includes("foil") && !normalized.includes("etched")) return "foil";
   return value;

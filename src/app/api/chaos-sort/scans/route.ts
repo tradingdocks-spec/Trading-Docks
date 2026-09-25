@@ -3,6 +3,8 @@ import sharp from "sharp";
 import { requireApiCapability } from "@/lib/platform/server-access";
 import { issueCapturePermit } from "@/lib/chaos-sort/capture-permit";
 import { scannerBridgeOwnerAccess } from "@/lib/chaos-sort/scanner-bridge-access";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { chaosCommitClaim, validateChaosCommitSnapshot, type CommitSnapshot } from "@/lib/chaos-sort/trusted-commit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,6 +72,19 @@ export async function POST(request: Request) {
       return Response.json({ authorization: issueCapturePermit({ userId: auth.user.id, workspaceId: album.workspace_id, batchId: album.id, sessionId: purpose === "preview" ? body.payload.previewSessionId : album.id, workstationId: album.workstation_id, deviceId: album.device_id, destinationId: album.destination_id, captureId: body.payload.captureId, purpose }, key) }, { headers });
     }
     if (!["create", "mode", "settings", "start", "csv", "review", "commit", "label"].includes(body.action)) throw new Error("Invalid scan action.");
+    if (body.action === 'commit') {
+      const snapshot = await auth.supabase.rpc('chaos_scan_command', { action: 'snapshot', payload: { batchId: body.payload?.batchId } });
+      if (snapshot.error || !snapshot.data?.album) throw new Error('Cloud batch unavailable.');
+      // Already committed operations must replay without mutable provider calls.
+      if (snapshot.data.album.state !== 'CLOSED') {
+        const state = snapshot.data as CommitSnapshot;
+        const items = await validateChaosCommitSnapshot(state);
+        const issued = await createAdminClient().rpc('issue_chaos_commit_validation', {
+          p_batch_id: state.album.id, p_claim: chaosCommitClaim(state), p_validated_items: items,
+        });
+        if (issued.error) throw new Error(issued.error.message);
+      }
+    }
     const result = await auth.supabase.rpc("chaos_scan_command", body);
     if (result.error) throw new Error(result.error.message);
     return Response.json(result.data, { headers });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildOrientationCandidates, resolveOrientationEvidence, type CardRotation, type OrientationResult } from "@/lib/card-photo-scanner/orientation";
 import { requireApiCapability } from "@/lib/platform/server-access";
 import { parseRetryAfterMs } from "@/lib/chaos-sort/batch-queue";
 import { classifyProviderFailure, providerFailureDetails } from "@/lib/chaos-sort/provider-errors";
@@ -159,20 +160,31 @@ function toCandidate(
   };
 }
 
-function parseVisionJson(text: string): Partial<ScanIdentification> {
+type VisionIdentification = Partial<ScanIdentification> & { rotationAppliedDegrees?: number; orientationConfidence?: number };
+function parseVisionJson(text: string): VisionIdentification {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1] ?? text;
   const start = fenced.indexOf("{");
   const end = fenced.lastIndexOf("}");
   if (start < 0 || end < 0) throw new Error("No JSON in vision response");
-  return JSON.parse(fenced.slice(start, end + 1)) as Partial<ScanIdentification>;
+  return JSON.parse(fenced.slice(start, end + 1)) as VisionIdentification;
 }
 
-async function identifyWithVision(file: File, requestItemId: string, attempt: number): Promise<ScanIdentification | null> {
+async function identifyWithVision(file: File, requestItemId: string, attempt: number, orientationHint?: number): Promise<{ identification: ScanIdentification; orientation: OrientationResult } | null> {
   if (!process.env.OPENAI_API_KEY) throw new RecognitionPipelineError("configuration", "Image recognition is not configured on the server.");
   const bytes = await file.arrayBuffer();
   if (bytes.byteLength < 16) throw new RecognitionPipelineError("image_decode", "The scanner image is empty or could not be decoded.");
   recognitionLog("IMAGE DECODED", { contentType: file.type, bytes: bytes.byteLength });
-  const data = Buffer.from(bytes).toString("base64");
+  let candidates: Awaited<ReturnType<typeof buildOrientationCandidates>>;
+  try { candidates = await buildOrientationCandidates(Buffer.from(bytes)); }
+  catch {
+    throw new RecognitionPipelineError("image_decode", "The scan could not be decoded. The original capture is retained for review or retry.");
+  }
+  const forcedRotation = [0, 90, 180, 270].includes(orientationHint ?? -1) ? orientationHint as CardRotation : null;
+  const forced = forcedRotation !== null;
+  const orientation = forced
+    ? { rotationAppliedDegrees: forcedRotation, confidence: 1, source: "manual" as const, reviewRequired: false }
+    : null;
+  const views = forced ? candidates.filter(candidate => candidate.degrees === orientationHint) : candidates;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   let response: Response;
@@ -193,13 +205,14 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
             content: [
               {
                 type: "input_text",
-                text: "Identify this Magic: The Gathering card. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.",
+                text: forced
+                  ? `This image has been normalized by applying ${orientationHint} degrees clockwise to the original scan. Identify this Magic: The Gathering card in the normalized image. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.`
+                  : "The same scanned trading card follows in four views labeled by the clockwise rotation applied to the source (0, 90, 180, 270 degrees). Compare text direction, card name/set/collector text placement, and frame/layout orientation. Choose the clearly upright view; do not infer orientation from card art alone. Identify the card using that upright view. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes, rotationAppliedDegrees (0|90|180|270), orientationConfidence (0..1). If upright orientation is uncertain, set orientationConfidence below 0.8 and rotationAppliedDegrees to 0. Use null instead of guessing unreadable printing details.",
               },
-              {
-                type: "input_image",
-                image_url: `data:${file.type};base64,${data}`,
-                detail: "high",
-              },
+              ...views.flatMap(view => [
+                ...(!forced ? [{ type: "input_text" as const, text: `View with ${view.degrees} degrees clockwise rotation applied:` }] : []),
+                { type: "input_image" as const, image_url: `data:image/jpeg;base64,${view.bytes.toString("base64")}`, detail: "high" as const },
+              ]),
             ],
           },
         ],
@@ -255,7 +268,7 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
     "";
   if (!text) throw new RecognitionPipelineError("parse", "Recognition provider returned no readable result.");
   recognitionLog("OCR RESULT", { provider: "openai", characters: text.length });
-  let parsed: Partial<ScanIdentification>;
+  let parsed: VisionIdentification;
   try {
     parsed = parseVisionJson(text);
   } catch {
@@ -264,7 +277,8 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
   }
   if (!parsed.name || typeof parsed.name !== "string") throw new RecognitionPipelineError("parse", "Recognition did not return a card name.");
   recognitionLog("CARD NAME CANDIDATE", { name: parsed.name.trim() });
-  return {
+  const resolvedOrientation = orientation ?? resolveOrientationEvidence(parsed.rotationAppliedDegrees, parsed.orientationConfidence);
+  const identification: ScanIdentification = {
     name: parsed.name.trim(),
     setCode: typeof parsed.setCode === "string" ? parsed.setCode.trim() : null,
     collectorNumber:
@@ -284,6 +298,8 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
     gameId: "magic",
     provider: "scryfall",
   };
+  if (resolvedOrientation.reviewRequired) identification.notes = [...(identification.notes ?? []), "Image orientation is uncertain; verify upright orientation before confirming this card."];
+  return { identification, orientation: resolvedOrientation };
 }
 
 async function getCandidates(identification: ScanIdentification) {
@@ -530,6 +546,9 @@ export async function POST(request: Request) {
     const manualName = String(form.get("cardName") ?? "").trim();
     const gameId = normalizeGameId(form.get("gameId"));
     const compressedImage = String(form.get("compressedImage") ?? "").trim();
+    const orientationHintText = String(form.get("orientationHint") ?? "");
+    const orientationHint = orientationHintText === "" ? undefined : Number(orientationHintText);
+    if (orientationHint !== undefined && ![0, 90, 180, 270].includes(orientationHint)) return NextResponse.json({ error: "Orientation correction must be 0, 90, 180, or 270 degrees." }, { status: 400 });
     const file = image instanceof File && image.size > 0 ? image : null;
     if (file) recognitionLog("FILE INGESTED", { surface, contentType: file.type, bytes: file.size });
     if (!file && !manualName && !compressedImage) {
@@ -587,7 +606,8 @@ export async function POST(request: Request) {
     }
 
     let recognitionMode: CardScanResponse["recognitionMode"] = "manual";
-    let identification = file ? await identifyWithVision(file, requestItemId, attempt) : null;
+    const visionResult = file ? await identifyWithVision(file, requestItemId, attempt, orientationHint) : null;
+    let identification = visionResult?.identification ?? null;
     if (identification) recognitionMode = "vision";
     if (!identification && manualName) {
       identification = {
@@ -607,6 +627,7 @@ export async function POST(request: Request) {
     const candidates = await getCandidates(identification);
     const payload: CardScanResponse = {
       identification,
+      orientation: visionResult?.orientation ?? null,
       candidates,
       recognitionMode,
       warnings,

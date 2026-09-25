@@ -88,8 +88,8 @@ test("review policy blocks ambiguous identity before valuation confidence", () =
   assert.equal(inferReviewState({ cardName: "Winota, Joiner of Forces", condition: "NM", finish: "nonfoil" }), "ambiguous_printing");
   assert.equal(inferReviewState({ cardName: "Sol Ring", setCode: "CMM", condition: "", finish: "nonfoil" }), "unknown_condition");
   assert.equal(inferReviewState({ cardName: "Sol Ring", setCode: "CMM", condition: "NM", finish: "" }), "unknown_finish");
-  assert.equal(inferReviewState({ cardName: "Sol Ring", setCode: "CMM", condition: "NM", finish: "nonfoil", unitMarketValue: null }), "missing_price");
-  assert.equal(inferReviewState({ cardName: "Mox Diamond", setCode: "STH", condition: "NM", finish: "nonfoil", unitMarketValue: 650 }), "high_value_confirmation");
+  assert.equal(inferReviewState({ cardName: "Sol Ring", setCode: "CMM", condition: "NM", finish: "nonfoil", language: "English", unitMarketValue: null }), "missing_price");
+  assert.equal(inferReviewState({ cardName: "Mox Diamond", setCode: "STH", condition: "NM", finish: "nonfoil", language: "English", unitMarketValue: 650 }), "high_value_confirmation");
 });
 
 test("missing prices are warning-only but reduce pricing coverage", () => {

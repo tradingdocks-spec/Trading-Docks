@@ -17,66 +17,27 @@ test("Collector Workspace mutation API does not cap Free-plan quantity checks at
   assert.doesNotMatch(source, /\.select\("quantity"\)\.eq\("user_id", user\.id\)\.limit\(1000\)/);
 });
 
-test("Collector Workspace inventory mutations use the transactional ledger RPC", () => {
-  const source = readFileSync(
-    path.join(repoRoot, "src/app/api/collector-workspace/mutations/route.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /applyInventoryMutation/);
-  assert.match(source, /\.rpc\("apply_collector_inventory_mutation"/);
-  assert.match(source, /mutationType: "quantity"/);
-  assert.match(source, /mutationType: mutation\.type/);
-  assert.match(source, /mutationType: "storage"/);
-  assert.match(source, /inventoryMutationIdempotencyKey/);
-  assert.doesNotMatch(source, /recordCollectorEvent/);
-  assert.doesNotMatch(source, /eventType: "moved_location"/);
-  assert.doesNotMatch(source, /eventType: mutation\.quantity > beforeQuantity/);
+test("Collector mutation API forwards immutable whitelisted commands without reminting keys", () => {
+  const source = readFileSync(path.join(repoRoot, "src/app/api/collector-workspace/mutations/route.ts"), "utf8");
+  assert.match(source, /'apply_collector_inventory_mutation', 'remove_inventory_lot_quantity', 'move_inventory_lot_quantity'/);
+  assert.match(source, /supabase\.rpc\(endpoint, args\)/);
+  assert.match(source, /OPERATION_ID_REQUIRED/); assert.match(source, /access.isSuspended/);
+  assert.doesNotMatch(source, /inventoryMutationIdempotencyKey|recordCollectorEvent/);
 });
-
-test("Collector Workspace partial move and removal use authoritative lot RPCs", () => {
-  const source = readFileSync(
-    path.join(repoRoot, "src/app/api/collector-workspace/mutations/route.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /mutation\.type === "move_quantity"/);
-  assert.match(source, /\.rpc\("move_inventory_lot_quantity"/);
-  assert.match(source, /p_to_location_id: mutation\.storageLocationId/);
-  assert.match(source, /mutation\.type === "remove_quantity"/);
-  assert.match(source, /\.rpc\("remove_inventory_lot_quantity"/);
-  assert.match(source, /p_reason: mutation\.reason/);
+test("partial move/removal commands retain exact quantity, reason and destination", () => {
+  const source = readFileSync(path.join(repoRoot, "mobile/services/collector-inventory-command.ts"), "utf8");
+  assert.match(source, /p_quantity: mutation.quantity/); assert.match(source, /p_reason: mutation.reason/);
+  assert.match(source, /p_to_location_id: mutation.storageLocationId/); assert.match(source, /p_idempotency_key: operationId/);
 });
-
-test("Collector Workspace bulk removal validates ownership and reuses the lot removal RPC", () => {
-  const source = readFileSync(
-    path.join(repoRoot, "src/app/api/collector-workspace/bulk-remove/route.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /requireApiCapability\("collection\.write"\)/);
-  assert.match(source, /\.from\("inventory_items"\)/);
-  assert.match(source, /\.eq\("user_id", user\.id\)/);
-  assert.match(source, /\.in\("id", ids\)/);
-  assert.match(source, /rows\.length !== ids\.length/);
-  assert.match(source, /\.rpc\("remove_inventory_lot_quantity"/);
-  assert.match(source, /p_reason: reason/);
-  assert.match(source, /eventTypes: \["quantity_removed"\]/);
+test("legacy bulk IDs-only endpoint fails closed instead of rereading retry quantities", () => {
+  const source = readFileSync(path.join(repoRoot, "src/app/api/collector-workspace/bulk-remove/route.ts"), "utf8");
+  assert.match(source, /requireApiCapability/); assert.match(source, /OPERATION_ID_REQUIRED/);
+  assert.doesNotMatch(source, /\.rpc\(|\.from\(/);
 });
-
-test("Collector Workspace bulk removal hides missing RPC internals from users", () => {
-  const source = readFileSync(
-    path.join(repoRoot, "src/app/api/collector-workspace/bulk-remove/route.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /isMissingInventoryRemovalRpcError/);
-  assert.match(source, /PGRST202/);
-  assert.match(source, /Inventory removal is temporarily unavailable in this environment\./);
-  assert.match(source, /inventory_removal_unavailable/);
-  assert.match(source, /We couldn't remove these cards\. Nothing was changed\. Please try again\./);
-  assert.match(source, /console\.error\("Collector bulk removal RPC failed"/);
-  assert.doesNotMatch(source, /return NextResponse\.json\(\{ error: removeError\.message/);
+test("bulk uncertainty is honest and retained for original-command recovery", () => {
+  const source = readFileSync(path.join(repoRoot, "src/lib/collector-workspace-client-data.ts"), "utf8");
+  assert.match(source, /persistInventoryBatch/); assert.match(source, /deliverInventoryBatch/);
+  assert.match(source, /Earlier rows may have completed/); assert.doesNotMatch(source, /Nothing was changed/);
 });
 
 test("Collection location authority migration exposes deployable lot removal RPCs", () => {

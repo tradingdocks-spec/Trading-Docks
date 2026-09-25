@@ -8,7 +8,7 @@ function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unre
   const storage: BridgeStorage = { get: async () => credential, set: async value => { credential = value; }, clear: async () => { credential = undefined; } };
   const requests: { path: string; body: Record<string, unknown>; headers: Headers }[] = [];
   let publicKey: CryptoKey, pairChallenge: string;
-  let captures = 0, ackFailure = false, startFailure = false, version = 1, cancelled = false;
+  let captures = 0, ackFailure = false, startFailure = false, version = 1, cancelled = false, deviceAvailable = true;
   const captureIds = new Map<string, string>();
   const nonces = new Set<string>();
   const request: typeof fetch = async (url, init) => {
@@ -24,20 +24,20 @@ function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unre
     const digest = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw))).toString("hex");
     const canonical = `${init?.method}\n${path}\n${headers.get("X-TD-Timestamp")}\n${nonce}\n${digest}`;
     assert.equal(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, publicKey, Buffer.from(headers.get("X-TD-Proof")!, "base64"), new TextEncoder().encode(canonical)), true);
-    if (path === "/v1/devices") return respond({ devices: [{ id: "opaque", displayName: "Fixture WIA", manufacturer: "Fixture", model: "Mock", connection: "Driver-managed", backend: "WIA", capabilities: caps }] });
+    if (path === "/v1/devices") return respond({ devices: deviceAvailable ? [{ id: "opaque", displayName: "Fixture WIA", manufacturer: "Fixture", model: "Mock", connection: "Driver-managed", backend: "WIA", capabilities: caps }] : [] });
     if (path === "/v1/capture") { if (!captureIds.has(body.requestId)) { captures++; captureIds.set(body.requestId, crypto.randomUUID()); } if (startFailure) { startFailure = false; throw new TypeError("response lost"); } return respond({ captureId: captureIds.get(body.requestId) }); }
     if (path.endsWith("/ack")) { if (ackFailure) { ackFailure = false; throw new TypeError("ack response lost"); } return respond({ ok: true }); }
     if (path.endsWith("/cancel")) { cancelled = true; return respond({ ok: true }); }
     if (path.startsWith("/v1/capture/")) {
       if (cancelledStatus && !cancelled) provider.cancelCapture();
       if (cancelledStatus === "unreachable") throw new TypeError("response lost");
-      return respond({ status: cancelledStatus ?? "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800 });
+      return deviceAvailable ? respond({ status: cancelledStatus ?? "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800 }) : respond({ status: "failed", error: "DEVICE_OFFLINE" });
     }
     return respond({ ok: true });
   };
   const provider = new TradingDocksLocalScannerProvider(storage, request);
   const connect = async () => { await provider.startPairing(); await provider.finishPairing("123456"); const [device] = await provider.detect(); await provider.selectDevice(device); await provider.connect(); };
-  return { provider, storage, requests, connect, reload: () => new TradingDocksLocalScannerProvider(storage, request), count: () => captures, credential: () => credential, cancelled: () => cancelled, loseAck: () => { ackFailure = true; }, loseStart: () => { startFailure = true; }, oldVersion: () => { version = 0; } };
+  return { provider, storage, requests, connect, reload: () => new TradingDocksLocalScannerProvider(storage, request), count: () => captures, credential: () => credential, cancelled: () => cancelled, loseAck: () => { ackFailure = true; }, loseStart: () => { startFailure = true; }, oldVersion: () => { version = 0; }, disconnectDevice: () => { deviceAvailable = false; } };
 }
 test("bridge pairs with nonextractable proof key, remembers local device, captures and acknowledges", async () => {
   const f = fixture(); await f.connect(); assert.equal(f.credential()?.privateKey.extractable, false);
@@ -62,6 +62,13 @@ test("profiles negotiate available capabilities and unsupported duplex stays blo
   assert.throws(() => f.provider.configure({ settings: { ...defaultScanSettings(caps), duplex: true } }), /does not support/);
 });
 test("cancelled input starts no hardware capture", async () => { const f = fixture(); await f.connect(); const abort = new AbortController(); abort.abort(); await assert.rejects(f.provider.capture(abort.signal), /cancelled/); assert.equal(f.count(), 0); });
+test("agent reports disconnect during capture and disables the next scan", async () => {
+  const f = fixture(); await f.connect(); f.disconnectDevice();
+  await assert.rejects(f.provider.capture(), /disconnected/);
+  assert.equal(f.provider.getStatus(), "disconnected");
+  assert.deepEqual(await f.provider.detect(), []);
+  assert.equal(f.provider.getStatus(), "disconnected");
+});
 
 const recoverySession = { id: "album", userId: "user", workspaceId: "workspace", batchId: "batch", destinationId: "destination", workstationId: "local-test", deviceId: "opaque", limit: 100 as const };
 for (const status of ["cancelled", "ready", "interrupted", "unreachable"] as const) {

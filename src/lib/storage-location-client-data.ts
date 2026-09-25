@@ -1,5 +1,6 @@
 "use client";
 
+import { runWebCollectorMutation } from '@/lib/collector-workspace-client-data';
 import { createClient } from "@/lib/supabase/client";
 import { buildCollectionCards, type RawInventoryItem, type RawInventoryLocation } from "@/lib/collector-workspace";
 import {
@@ -91,21 +92,11 @@ export async function archiveWebStorageLocation(locationId: string, explicitArch
 }
 
 export async function assignWebStorageLocation(assignment: LocationAssignment) {
-  const { supabase, userId, locations, rawItems } = await authLocationContext();
+  const { userId, locations, rawItems } = await authLocationContext();
   const validation = validateLocationAssignment({ assignment, authenticatedUserId: userId, locations });
   if (!validation.ok) throw new Error(validation.reason);
   if (!rawItems.some((item) => item.id === assignment.inventoryItemId)) throw new Error("Choose one of your collection records.");
-  const { error } = await supabase.rpc("apply_collector_inventory_mutation", {
-    p_inventory_item_id: assignment.inventoryItemId,
-    p_mutation_type: "storage",
-    p_quantity: null,
-    p_condition: null,
-    p_finish: null,
-    p_location_id: assignment.toLocationId,
-    p_idempotency_key: `storage:${assignment.inventoryItemId}:${assignment.toLocationId ?? "unassigned"}:${new Date().toISOString()}`,
-    p_source: "collector_workspace",
-  });
-  if (error) throw new Error(error.message);
+  await runWebCollectorMutation({ type: 'storage', userId, inventoryItemId: assignment.inventoryItemId, storageLocationId: assignment.toLocationId });
 }
 
 async function authLocationContext() {

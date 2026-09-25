@@ -30,6 +30,7 @@ import type { ScannerProvider, ScannerSession } from "@/lib/chaos-sort/scanner-p
 import { RecognitionPool, physicalCardCount, unresolvedLiveItems, liveScanStatus, assertIntakeRoom } from "@/lib/chaos-sort/live-intake";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { physicalResolution } from "@/lib/card-intelligence/resolution";
 import { csvValue, parseSimpleCsv } from "@/lib/csv-simple";
 import {
   buildChaosSortPlan,
@@ -60,7 +61,7 @@ type InventoryRow = {
   set_code: string | null;
   collector_number: string | null;
   quantity: number;
-  inventory_value: number;
+  inventory_value: number | null;
   data: Record<string, unknown> | null;
 };
 
@@ -71,7 +72,7 @@ type LocationRow = {
 };
 
 type FilterState = "all" | "ready" | "needs_review" | "unknown" | "failed" | "exceptions";
-type StagedScan = { id: string; file: File; hash: string; previewUrl: string; live?: boolean; replaceId?: string };
+type StagedScan = { id: string; file: File; hash: string; previewUrl: string; live?: boolean; replaceId?: string; orientationHint?: 0 | 90 | 180 | 270 };
 type BatchHistoryRow = {
   id: string;
   batch_code: string;
@@ -524,6 +525,9 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         captureId: entry.input.id,
         sourceFileHash: hash,
         sourceImageUrl: previewUrl,
+        orientationRotation: entry.input.orientationHint ?? previous?.orientationRotation ?? 0,
+        orientationConfidence: entry.input.orientationHint !== undefined ? 1 : previous?.orientationConfidence ?? 0,
+        orientationSource: entry.input.orientationHint !== undefined ? "manual" : previous?.orientationSource ?? "ambiguous",
         processingState: "processing",
         recognitionState: "review",
         humanState: "pending",
@@ -575,6 +579,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           form.append("surface", "chaos-sort");
           form.append("itemId", base.id);
           form.append("attempt", String(attempt));
+          if (entry.input.orientationHint !== undefined) form.append("orientationHint", String(entry.input.orientationHint));
           response = await fetch("/api/purchasing/card-photo-scan", { method: "POST", body: form });
           payload = await response.json().catch(() => ({}));
           if (response.ok) break;
@@ -624,7 +629,9 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           collectorNumber,
         });
         const exactCandidates = new Set((Array.isArray(payload.candidates) ? payload.candidates : []).map((value: { id?: string }) => value.id).filter(Boolean));
-        const recognitionState = candidate && machineState === "high_confidence" && exactCandidates.size === 1 && payload.requiresConfirmation !== true
+        const orientation = payload.orientation as { rotationAppliedDegrees?: 0 | 90 | 180 | 270; confidence?: number; source?: "vision-four-view" | "manual" | "ambiguous"; reviewRequired?: boolean } | null;
+        const orientationNeedsReview = orientation?.reviewRequired === true;
+        const recognitionState = candidate && machineState === "high_confidence" && exactCandidates.size === 1 && payload.requiresConfirmation !== true && !orientationNeedsReview
           ? "high_confidence"
           : cardName
             ? "review"
@@ -634,6 +641,9 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           processingState: "ready",
           recognitionState,
           humanState: recognitionState === "high_confidence" && autoConfirmRef.current ? "confirmed" : "pending",
+          orientationRotation: orientation?.rotationAppliedDegrees ?? entry.input.orientationHint ?? 0,
+          orientationConfidence: orientation?.confidence ?? 0,
+          orientationSource: orientation?.source ?? (entry.input.orientationHint !== undefined ? "manual" : "ambiguous"),
           cardName,
           scryfallId: candidate?.id ?? null,
           setCode,
@@ -683,8 +693,8 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         const setCode = csvValue(values, "set", "set_code", "set code") || null;
         const collectorNumber = csvValue(values, "collector number", "collector_number", "number") || null;
         const scryfallId = csvValue(values, "scryfall id", "scryfall_id", "scryfallid") || null;
-        const condition = csvValue(values, "condition") || "NM";
-        const finish = csvValue(values, "finish", "printing") || "nonfoil";
+        const condition = csvValue(values, "condition") || null;
+        const finish = csvValue(values, "finish", "printing") || null;
         const language = csvValue(values, "language", "lang") || null;
         const now = new Date().toISOString();
         const id = crypto.randomUUID();
@@ -696,7 +706,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           sourceImageUrl: null,
           processingState: "ready",
           recognitionState: cardName && setCode && collectorNumber ? "high_confidence" : "review",
-          humanState: cardName && setCode && collectorNumber ? "confirmed" : "pending",
+          humanState: cardName && physicalResolution({ exactPrinting: Boolean(setCode && collectorNumber), condition, finish, language }).canFinalize ? "confirmed" : "pending",
           cardName,
           scryfallId,
           gameId: csvValue(values, "game", "game_id") || "magic",
@@ -803,7 +813,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     const candidates = retryItems.filter((item) => item.processingState === "failed" && item.sourceImageUrl);
     const staged = await Promise.all(candidates.map(async (item) => {
       const blob = await fetch(item.sourceImageUrl as string).then((response) => response.blob());
-      return { id: item.id, file: new File([blob], item.sourceFileName, { type: blob.type || "image/jpeg" }), hash: item.sourceFileHash, previewUrl: item.sourceImageUrl as string, live: item.intakeSource === "live", replaceId: item.id };
+      return { id: item.captureId ?? item.id, file: new File([blob], item.sourceFileName, { type: blob.type || "image/jpeg" }), hash: item.sourceFileHash, previewUrl: item.sourceImageUrl as string, live: item.intakeSource === "live", replaceId: item.id, ...(item.orientationSource === "manual" ? { orientationHint: item.orientationRotation ?? 0 } : {}) };
     }).filter(Boolean));
     await processFiles(staged);
   }, [processFiles, scannerBusy, loadingItems, staging]);
@@ -1026,6 +1036,19 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
       if (albumRef.current) await saveScanReview(batch.id, itemsRef.current.filter(item => item.captureId === captureId));
     } catch (error) { captureReceiptsRef.current.delete(captureId); throw error; }
     finally { intakePendingRef.current -= 1; }
+  }
+  async function correctSelectedOrientation(direction: "left" | "right") {
+    if (!selectedItem?.sourceImageUrl || !selectedItem.captureId || scannerBusy || loadingItems > 0 || staging) return;
+    const current = selectedItem.orientationRotation ?? 0;
+    const orientationHint = (((current + (direction === "left" ? 270 : 90)) % 360) as 0 | 90 | 180 | 270);
+    try {
+      const response = await fetch(selectedItem.sourceImageUrl, { cache: "no-store" });
+      if (!response.ok) throw new Error("Original scan image could not be loaded; no changes were made.");
+      const blob = await response.blob();
+      const file = new File([blob], selectedItem.sourceFileName, { type: blob.type || "image/jpeg" });
+      const hash = await makeChaosSortFileHash(file);
+      await processFiles([{ id: selectedItem.captureId, file, hash, previewUrl: selectedItem.sourceImageUrl, live: selectedItem.intakeSource === "live", replaceId: selectedItem.id, orientationHint }]);
+    } catch (error) { setError(error instanceof Error ? error.message : "Orientation correction failed; original scan retained."); }
   }
   async function startAlbum(scanner: ScannerProvider): Promise<ScannerSession> {
     if (switchingModeRef.current || intakeMode !== "live") throw new Error("Select Live Scan before starting the scanner.");
@@ -1512,9 +1535,10 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
               {selectedItem ? (
                 <div className="space-y-4">
                   <div className="space-y-2"><label className="block text-sm" htmlFor="printing-search">Search / correct printing</label><div className="flex gap-2"><input id="printing-search" className="min-w-0 flex-1 rounded border p-2" value={printingQuery} onChange={event => setPrintingQuery(event.target.value)} /><TDButton size="sm" disabled={printingBusy || printingQuery.trim().length < 2} onClick={() => void searchPrinting()}>Find printings</TDButton></div>{(printingCandidates.length ? printingCandidates : selectedItem.recognitionCandidates ?? []).map(candidate => <button key={candidate.id} className="block w-full rounded border p-2 text-left text-sm" onClick={() => { updateItem(selectedItem.id, { cardName: candidate.name, scryfallId: candidate.id, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, language: candidate.language ?? selectedItem.language, humanState: "pending", recognitionState: "review" }); setPrintingCandidates([]); }}>{candidate.name} · {candidate.setCode} #{candidate.collectorNumber}</button>)}</div>
-                  <div className="overflow-hidden rounded-[22px] border border-td-ink/[0.06] bg-black">
-                    {selectedItem.sourceImageUrl ? <img src={selectedItem.sourceImageUrl} alt={selectedItem.cardName} className="h-64 w-full object-contain" /> : <p className="py-8 text-center text-sm text-td-muted">No source image available.</p>}
+                  <div className="flex min-h-64 items-center justify-center overflow-hidden rounded-[22px] border border-td-ink/[0.06] bg-black">
+                    {selectedItem.sourceImageUrl ? <img src={selectedItem.sourceImageUrl} alt={selectedItem.cardName || "Captured card"} className="max-h-64 max-w-full object-contain" style={{ transform: `rotate(${selectedItem.orientationRotation ?? 0}deg)` }} /> : <p className="py-8 text-center text-sm text-td-muted">No source image available.</p>}
                   </div>
+                  {selectedItem.sourceImageUrl && <div className="flex flex-wrap items-center gap-2 text-sm"><span>Orientation: {selectedItem.orientationRotation ? `corrected ${selectedItem.orientationRotation}°` : selectedItem.orientationSource === "ambiguous" ? "needs review" : "unchanged"} · {Math.round((selectedItem.orientationConfidence ?? 0) * 100)}% confidence</span><TDButton size="sm" variant="secondary" disabled={scannerBusy || loadingItems > 0 || staging} onClick={() => void correctSelectedOrientation("left")}>Rotate Left</TDButton><TDButton size="sm" variant="secondary" disabled={scannerBusy || loadingItems > 0 || staging} onClick={() => void correctSelectedOrientation("right")}>Rotate Right</TDButton></div>}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <TDInput label="Card name" value={selectedItem.cardName} onChange={(event) => updateItem(selectedItem.id, { cardName: event.target.value })} />
                     <TDInput label="Set code" value={selectionValue(selectedItem.setCode)} onChange={(event) => updateItem(selectedItem.id, { setCode: event.target.value.toUpperCase() })} />

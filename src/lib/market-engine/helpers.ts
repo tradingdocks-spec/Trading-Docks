@@ -1,7 +1,7 @@
+import { intelligenceValue, missingIntelligence } from "../intelligence-provenance.ts";
 import type {
   GameId,
   MarketCard,
-  MarketSignal,
 } from "./types";
 
 export function normalizeCard(input: {
@@ -22,113 +22,29 @@ export function normalizeCard(input: {
   sourceUrl?: string;
   dataQuality?: "live" | "reference" | "fallback";
 }): MarketCard {
-  const change24h = input.change24h ?? deterministicChange(input.id, input.index, 1);
-  const change7d = input.change7d ?? deterministicChange(input.id, input.index, 7);
-  const volumeScore = deterministicScore(input.id, input.index, 58, 99);
-  const opportunityScore = deterministicScore(
-    `${input.id}-opportunity`,
-    input.index,
-    42,
-    96,
-  );
-  const signal = deriveSignal(change7d, volumeScore, opportunityScore);
-
+  // This public market feed has no authenticated inventory context or observations
+  // for demand/history. Seed counts, waves and reference prices are not evidence.
+  const marketPrice = intelligenceValue<number>({
+    value: input.marketPrice > 0 ? round(input.marketPrice) : null,
+    status: input.dataQuality === "live" ? "OBSERVED" : "INSUFFICIENT_DATA",
+    confidence: null, observedAt: null, sources: input.source ? [input.source] : [],
+    inputs: [input.id], explanation: "Provider-reported quote; provider observation time unavailable. Not a realized sale.",
+  });
+  const unavailable = missingIntelligence("No observed data is available for this metric.");
   return {
-    id: input.id,
-    game: input.game,
-    name: input.name,
-    subtitle: input.subtitle,
-    setName: input.setName,
-    setCode: input.setCode,
-    collectorNumber: input.collectorNumber,
-    image: input.image,
-    marketPrice: round(input.marketPrice),
-    lowPrice: round(input.marketPrice * (0.89 + (input.index % 3) * 0.02)),
-    change24h,
-    change7d,
-    inventoryOwned: input.inventoryOwned,
-    potentialRevenue: round(input.marketPrice * input.inventoryOwned),
-    demand:
-      volumeScore >= 84
-        ? "High"
-        : volumeScore >= 68
-          ? "Medium"
-          : "Low",
-    volumeScore,
-    opportunityScore,
-    sparkline: deterministicSparkline(
-      input.id,
-      input.index,
-      input.marketPrice,
-      change7d,
-    ),
-    source: input.source ?? "Market reference",
-    sourceUrl: input.sourceUrl,
-    dataQuality: input.dataQuality ?? "live",
-    signal,
+    id: input.id, game: input.game, name: input.name, subtitle: input.subtitle,
+    setName: input.setName, setCode: input.setCode, collectorNumber: input.collectorNumber,
+    image: input.image, marketPrice: marketPrice.value,
+    lowPrice: null, change24h: null, change7d: null, inventoryOwned: null,
+    potentialRevenue: null, demand: null, volumeScore: null, opportunityScore: null,
+    sparkline: [], source: input.source ?? "Unavailable", sourceUrl: input.sourceUrl,
+    dataQuality: input.dataQuality ?? "fallback", signal: null,
+    provenance: { marketPrice, lowPrice: unavailable, change24h: unavailable, change7d: unavailable,
+      inventoryOwned: missingIntelligence("This public feed does not query owner inventory."),
+      potentialRevenue: unavailable, demand: unavailable, volumeScore: unavailable,
+      opportunityScore: unavailable, sparkline: unavailable, signal: unavailable },
   };
 }
-
-export function deterministicChange(
-  id: string,
-  index: number,
-  period: number,
-) {
-  const code = hashCode(id);
-  const limit = period === 1 ? 4.5 : 12;
-
-  return Number(
-    (
-      Math.sin((code + index * 19 + period * 13) * 0.09) *
-      limit
-    ).toFixed(2),
-  );
-}
-
-export function deterministicScore(
-  id: string,
-  index: number,
-  minimum: number,
-  maximum: number,
-) {
-  const code = hashCode(id) + index * 31;
-  const normalized = (Math.sin(code * 0.071) + 1) / 2;
-  return Math.round(minimum + normalized * (maximum - minimum));
-}
-
-export function deterministicSparkline(
-  id: string,
-  index: number,
-  price: number,
-  change7d: number,
-) {
-  const code = hashCode(id) + index * 23;
-  const base = Math.max(price, 1);
-  return Array.from({ length: 12 }, (_, point) => {
-    const progress = point / 11;
-    const trend = (change7d / 100) * progress;
-    const wave = Math.sin((code + point * 17) * 0.13) * 0.028;
-    return round(base * (1 + trend + wave));
-  });
-}
-
-function deriveSignal(
-  change7d: number,
-  volumeScore: number,
-  opportunityScore: number,
-): MarketSignal {
-  if (opportunityScore >= 84) return "opportunity";
-  if (volumeScore >= 88) return "volume";
-  return change7d >= 0 ? "gainer" : "loser";
-}
-
-function hashCode(id: string) {
-  return [...id].reduce(
-    (sum, character) => sum + character.charCodeAt(0),
-    0,
-  );
-}
-
 export function proxyImage(
   url: string | null | undefined,
 ) {

@@ -2,6 +2,7 @@ import {
   MEMBERSHIP_PLANS,
   normalizeMembershipTier,
 } from './membership-catalog.ts';
+import type { InventoryCommand } from './inventory-command.ts';
 import {
   normalizeCardCondition,
   normalizeCardFinish,
@@ -105,7 +106,7 @@ export type ScannerValidationContext = {
 
 export type ScannerValidationResult =
   | { ok: true }
-  | { ok: false; code: 'invalid_quantity' | 'free_limit' | 'invalid_printing' | 'invalid_condition' | 'invalid_finish'; reason: string };
+  | { ok: false; code: 'invalid_quantity' | 'free_limit' | 'invalid_printing' | 'invalid_condition' | 'invalid_finish' | 'invalid_language'; reason: string };
 
 export type ScannerDraft = {
   userId: string;
@@ -170,12 +171,13 @@ export function validateScannerConfirmation(
   if (!Number.isInteger(confirmation.quantity) || confirmation.quantity <= 0) {
     return { ok: false, code: 'invalid_quantity', reason: 'Quantity must be a whole number above zero.' };
   }
-  if (normalizeCardCondition(confirmation.condition) !== confirmation.condition) {
+  if (confirmation.condition === 'unknown' || normalizeCardCondition(confirmation.condition) !== confirmation.condition) {
     return { ok: false, code: 'invalid_condition', reason: 'Choose a supported condition.' };
   }
-  if (normalizeCardFinish(confirmation.finish) !== confirmation.finish) {
+  if (confirmation.finish === 'unknown' || normalizeCardFinish(confirmation.finish) !== confirmation.finish) {
     return { ok: false, code: 'invalid_finish', reason: 'Choose a supported finish.' };
   }
+  if (!confirmation.language?.trim()) return { ok: false, code: 'invalid_language', reason: 'Confirm the card language before saving.' };
   const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(context.membershipTier)];
   if (plan.limits.cardLimit !== null && context.currentTotalQuantity + confirmation.quantity > plan.limits.cardLimit) {
     return {
@@ -248,6 +250,25 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
       scannerRecognitionMode: confirmation.candidate.recognitionMode,
     },
   };
+}
+
+/** Called once after authoritative resolution; replay uses its persisted output. */
+export function buildScannerInventoryCommand(confirmation: ScannerConfirmation, operationId: string, workspaceId: string, createdAt: string): InventoryCommand {
+  const payload = { ...buildScannerAddPayload(confirmation, operationId), workspace_id: workspaceId };
+  payload.data.scannerAddedAt = createdAt;
+  return { version: 1, operationId, userId: confirmation.userId, workspaceId, createdAt,
+    inventoryItemId: operationId, endpoint: 'create_inventory_item_with_event',
+    args: { p_inventory: payload, p_source: 'scanner', p_idempotency_key: operationId,
+      p_related_entity_type: 'scanner_confirmation', p_related_entity_id: operationId } };
+}
+
+/** Detect edits to a queued intent without treating price/recognition UI as stock. */
+export function scannerIntentFingerprint(c: ScannerConfirmation) {
+  return JSON.stringify({ user: c.userId, printing: c.candidate.id, game: c.candidate.gameId ?? null,
+    providerIds: Object.entries(c.candidate.providerIds ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+    quantity: c.quantity, condition: c.condition, finish: c.finish, language: c.language,
+    location: c.storageLocationId, binderPage: c.binderPage ?? null, binderSlot: c.binderSlot ?? null,
+    tradeStatus: c.tradeStatus, wishlist: c.addToWishlist });
 }
 
 export function scannerQueueKey(confirmation: ScannerConfirmation) {
@@ -355,8 +376,8 @@ export function normalizeScannerCandidate(raw: {
     setCode: stringValue(raw.setCode)?.toUpperCase() ?? null,
     setName: stringValue(raw.setName) ?? null,
     collectorNumber: stringValue(raw.collectorNumber) ?? null,
-    finishes: finishes.length ? [...new Set(finishes)] : ['normal'],
-    language: stringValue(raw.language) ?? 'en',
+    finishes: [...new Set(finishes)],
+    language: stringValue(raw.language),
     variant: stringValue(raw.variant),
     imageUrl: stringValue(raw.imageUrl),
     confidence: typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? Math.max(0, Math.min(1, raw.confidence)) : 0,

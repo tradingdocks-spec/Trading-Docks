@@ -85,7 +85,7 @@ export type WishlistMutation = {
   finish: CardFinish;
 };
 
-export type CollectorMutation =
+export type CollectorMutation = (
   | QuantityMutation
   | ConditionMutation
   | FinishMutation
@@ -93,7 +93,7 @@ export type CollectorMutation =
   | MoveQuantityMutation
   | RemoveQuantityMutation
   | TradeBinderMutation
-  | WishlistMutation;
+  | WishlistMutation) & { operationId?: string };
 
 export type MutationValidationContext = {
   membershipTier: unknown;

@@ -1,7 +1,10 @@
+import { knownAttribute, physicalFinish, physicalLanguage, physicalResolution } from "./card-intelligence/resolution.ts";
+
 export type InventoryBuylistItem = {
   id: string; name: string; quantity: number; set?: string; collectorNumber?: string;
   scryfallId?: string; finish?: string; language?: string; condition?: string;
   unitMarketValue?: number; value?: number; imageUrl?: string;
+  variant?: string; variantAmbiguous?: boolean; candidateCount?: number; conflictingSignals?: string[];
 };
 
 export type BuylistOffer = {
@@ -9,20 +12,36 @@ export type BuylistOffer = {
   set_code: string; collector_number: string; finish: string; language: string;
   condition: string; cash_price: number; credit_price: number | null;
   quantity_wanted: number; source_url: string | null; verified_at: string;
-  provider?: string; source_kind?: string; indicative?: boolean; expires_at?: string | null;
+  provider?: string; source_kind?: string; indicative?: boolean; expires_at?: string | null; variant?: string;
 };
 
 const clean = (value?: string | null) => (value ?? "").trim().toLowerCase();
 export function offerMatchesItem(offer: BuylistOffer, item: InventoryBuylistItem) {
-  const identityMatches = item.scryfallId && offer.scryfall_id
+  return resolveBuylistMatch(offer, item).canFinalize;
+}
+
+export function resolveBuylistMatch(offer: BuylistOffer, item: InventoryBuylistItem) {
+  const conflicts = [...(item.conflictingSignals ?? [])];
+  for (const [field, left, right] of [
+    ["printing", item.scryfallId, offer.scryfall_id],
+    ["set", item.set, offer.set_code],
+    ["collector number", item.collectorNumber, offer.collector_number],
+    ["variant", item.variant, offer.variant],
+  ]) {
+    if (knownAttribute(left) && knownAttribute(right) && clean(left) !== clean(right)) conflicts.push(`${field} conflict`);
+  }
+  const identityMatches = knownAttribute(item.scryfallId) && knownAttribute(offer.scryfall_id)
     ? clean(item.scryfallId) === clean(offer.scryfall_id)
-    : clean(item.name) === clean(offer.card_name) &&
+    : Boolean(knownAttribute(item.set) && knownAttribute(item.collectorNumber)) && clean(item.name) === clean(offer.card_name) &&
       clean(item.set) === clean(offer.set_code) &&
       clean(item.collectorNumber) === clean(offer.collector_number);
-  return Boolean(identityMatches) &&
-    clean(item.finish || "nonfoil") === clean(offer.finish || "nonfoil") &&
-    clean(item.language || "English") === clean(offer.language || "English") &&
-    clean(item.condition || "NM") === clean(offer.condition || "NM");
+  if (!physicalFinish(offer.finish) || physicalFinish(item.finish) !== physicalFinish(offer.finish)) conflicts.push("Finish unconfirmed or different");
+  if (!physicalLanguage(offer.language) || physicalLanguage(item.language) !== physicalLanguage(offer.language)) conflicts.push("Language unconfirmed or different");
+  if (!knownAttribute(offer.condition) || knownAttribute(item.condition) !== knownAttribute(offer.condition)) conflicts.push("Condition unconfirmed or different");
+  return physicalResolution({ exactPrinting: Boolean(identityMatches), candidateCount: item.candidateCount,
+    finish: item.finish, language: item.language, condition: item.condition, conflicts,
+    variantAmbiguous: item.variantAmbiguous || Boolean(offer.variant && !item.variant),
+  });
 }
 
 export function marketUnitValue(item: InventoryBuylistItem) {

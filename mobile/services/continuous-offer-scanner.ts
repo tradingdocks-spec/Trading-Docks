@@ -202,6 +202,7 @@ export type ScannerSessionLine = {
 };
 
 export type ContinuousScannerSession = {
+  inventoryCommandVersion?: 1;
   id: string;
   userId: string;
   name: string;
@@ -586,6 +587,7 @@ export function createContinuousScannerSession(input: {
 }): ContinuousScannerSession {
   const now = input.createdAt ?? new Date().toISOString();
   return {
+    inventoryCommandVersion: 1,
     id: input.id,
     userId: input.userId,
     name: input.name.trim() || scannerModeLabel(input.mode),
@@ -702,7 +704,10 @@ export function addRecognitionToSession(
 ) {
   const candidate = input.candidate ?? input.recognition.topCandidate;
   const confidence = input.recognition.confidenceState;
-  const reviewStatus = session.autoConfirm === 'auto_confirm_high_confidence' && confidence === 'high_confidence'
+  const attributesKnown = input.condition && input.condition !== 'unknown'
+    && (input.language ?? candidate?.language)?.trim()
+    && normalizeLineFinish(input.finish ?? input.recognition.finish.finish).length > 0;
+  const reviewStatus = !attributesKnown ? 'needs_review' : session.autoConfirm === 'auto_confirm_high_confidence' && confidence === 'high_confidence'
     ? 'confirmed'
     : confidence === 'high_confidence'
       ? 'suggested'
@@ -711,7 +716,7 @@ export function addRecognitionToSession(
   const marketPrice = input.marketPrice ?? null;
   const lineBase = {
     game: input.recognition.detectedGame,
-    condition: input.condition ?? 'near_mint',
+    condition: input.condition ?? 'unknown',
     quantity,
     marketPrice,
   };
@@ -729,7 +734,7 @@ export function addRecognitionToSession(
     exactPrintingId: candidate?.id ?? null,
     language: input.language ?? candidate?.language ?? null,
     finish: input.finish ?? input.recognition.finish.finish,
-    condition: input.condition ?? 'near_mint',
+    condition: input.condition ?? 'unknown',
     quantity,
     confidence,
     confidenceScore: input.recognition.overallConfidence,
@@ -876,7 +881,7 @@ export function updateScannerSessionLinePrinting(session: ContinuousScannerSessi
         marketPrice,
         priceSource: marketPrice === null ? 'unavailable' : 'scryfall',
         priceTimestamp: candidate.marketPrice?.fetchedAt ?? new Date().toISOString(),
-        reviewStatus: 'confirmed',
+        reviewStatus: finish.finish !== 'unknown' && item.condition !== 'unknown' && candidate.language ? 'confirmed' : 'needs_review',
         confidence: 'likely',
         confidenceScore: Math.max(item.confidenceScore, Math.round(candidate.confidence * 100)),
         notes: item.notes ? `${item.notes} Printing manually corrected.` : 'Printing manually corrected.',
@@ -919,11 +924,16 @@ export function removeScannerSessionLine(session: ContinuousScannerSession, line
   };
 }
 
+function resolvedPhysicalIdentity(line: ScannerSessionLine) {
+  return Boolean(line.exactPrintingId && line.setCode && line.collectorNumber && line.language?.trim()
+    && line.condition !== 'unknown' && normalizeLineFinish(line.finish).length);
+}
+
 export function bulkConfirmReviewedCards(session: ContinuousScannerSession) {
   return {
     ...session,
     updatedAt: new Date().toISOString(),
-    lines: session.lines.map((line) => line.reviewStatus === 'needs_review' ? { ...line, reviewStatus: 'confirmed' as const } : line),
+    lines: session.lines.map((line) => line.reviewStatus === 'needs_review' && resolvedPhysicalIdentity(line) ? { ...line, reviewStatus: 'confirmed' as const } : line),
   };
 }
 
@@ -991,8 +1001,8 @@ export function sessionReviewMetrics(totals: ScannerSessionTotals | null): Sessi
 }
 
 export function sessionFinalizeEligibility(session: ContinuousScannerSession): SessionFinalizeEligibility {
-  const blockingReviewCount = session.lines.filter((line) => line.reviewStatus === 'needs_review').length;
-  const readyCount = session.lines.filter((line) => line.reviewStatus !== 'needs_review').length;
+  const blockingReviewCount = session.lines.filter((line) => line.reviewStatus === 'needs_review' || !resolvedPhysicalIdentity(line)).length;
+  const readyCount = session.lines.length - blockingReviewCount;
   if (!session.lines.length) {
     return { canFinalize: false, reason: 'Scan cards before finalizing this session.', readyCount, blockingReviewCount };
   }
@@ -1098,10 +1108,13 @@ export function calculateSessionTotals(session: ContinuousScannerSession): Scann
 }
 
 export function buildScannerCollectionConfirmation(line: ScannerSessionLine, userId: string): ScannerConfirmation | null {
-  if (!line.exactPrintingId || line.reviewStatus !== 'confirmed') return null;
+  if (!line.exactPrintingId || !resolvedPhysicalIdentity(line) || line.reviewStatus !== 'confirmed') return null;
+  const exact = line.recognition.topThree.find((card) => card.id === line.exactPrintingId)
+    ?? (line.recognition.topCandidate?.id === line.exactPrintingId ? line.recognition.topCandidate : null);
   return {
     userId,
     candidate: {
+      ...exact,
       id: line.exactPrintingId,
       name: line.cardName,
       setCode: line.setCode,
@@ -1114,7 +1127,7 @@ export function buildScannerCollectionConfirmation(line: ScannerSessionLine, use
     },
     quantity: line.quantity,
     condition: line.condition,
-    finish: normalizeLineFinish(line.finish)[0] ?? 'normal',
+    finish: normalizeLineFinish(line.finish)[0] ?? 'unknown',
     language: line.language,
     storageLocationId: line.storageLocationId,
     binderPage: line.binderPage,
@@ -1311,11 +1324,11 @@ function ruleMatches(rule: OfferRule, line: Pick<ScannerSessionLine, 'game' | 'c
 }
 
 function normalizeLineFinish(finish: ScannerSessionLine['finish']): CardFinish[] {
-  if (finish === 'likely_foil') return ['foil'];
-  if (finish === 'likely_etched') return ['etched'];
+  if (finish === 'likely_foil') return [];
+  if (finish === 'likely_etched') return [];
   if (finish === 'nonfoil') return ['normal'];
   if (finish === 'normal' || finish === 'foil' || finish === 'etched') return [finish];
-  return ['normal'];
+  return [];
 }
 
 function selectLineScryfallPrice(candidate: ScannerCardCandidate, finish: CardFinish | string) {

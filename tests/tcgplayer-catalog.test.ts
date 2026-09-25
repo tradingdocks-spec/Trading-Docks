@@ -1127,7 +1127,8 @@ test("CSV converter presents a clean TCGplayer match and download workflow", () 
   assert.match(converter, /TCGPLAYER_REASON_LABELS/);
   assert.match(converter, /collectorNumbersEquivalent/);
   assert.match(converter, /setNamesEquivalent/);
-  assert.match(converter, /identityCandidates\.length === 1/);
+  assert.match(converter, /const candidates = setCandidates;/);
+  assert.doesNotMatch(converter, /identityCandidates\.length === 1/);
   assert.match(converter, /Set could not be identified/);
   assert.match(converter, /hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount/);
   assert.match(converter, /\["Card", "Set", "#", "Condition", "Finish", "Qty"/);

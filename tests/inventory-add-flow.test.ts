@@ -64,20 +64,13 @@ test("CSV import can create a storage destination without losing review state", 
   assert.doesNotMatch(csv, /window\.location/);
 });
 
-test("bulk inventory removal is one server request with confirmation copy", () => {
-  const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
-  const route = source("src/app/api/collector-workspace/bulk-remove/route.ts");
-
-  assert.match(workspace, /Remove from collection/);
-  assert.match(workspace, /\/api\/collector-workspace\/bulk-remove/);
-  assert.match(workspace, /selectedQuantity/);
-  assert.match(workspace, /Acquisition and history records are preserved/);
-  assert.match(workspace, /quantity_removed/);
-  assert.match(route, /requireApiCapability\("collection\.write"\)/);
-  assert.match(route, /\.eq\("user_id", user\.id\)/);
-  assert.match(route, /rows\.length !== ids\.length/);
-  assert.match(route, /\.rpc\("remove_inventory_lot_quantity"/);
-  assert.match(route, /MAX_BULK_REMOVE_ROWS = 1000/);
+test("bulk removal freezes selected quantities and offers recovery", () => {
+ const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
+ const client = source("src/lib/collector-workspace-client-data.ts");
+ assert.match(workspace, /removeWebCollectorBatch/); assert.match(workspace, /quantity: card.quantityOwned/);
+ assert.match(workspace, /Recover pending inventory operations/);
+ assert.match(workspace, /Acquisition and history records are preserved/);
+ assert.match(client, /persistInventoryBatch/); assert.match(client, /reason: 'Bulk remove from collection'/);
 });
 
 test("inventory workspace hides ledger rows after their quantity reaches zero", () => {

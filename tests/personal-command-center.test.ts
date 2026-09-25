@@ -41,7 +41,7 @@ test("personal command center derives storage and price actions from user-scoped
         quantity: 2,
         inventory_value: 42,
         location_id: "binder-1",
-        data: { condition: "near_mint", finish: "foil", costBasis: 12 },
+        data: { inventoryValueSemantics: "total_row_v1", condition: "near_mint", finish: "foil", costBasis: 12 },
       },
       {
         id: "unassigned",
@@ -78,7 +78,7 @@ test("personal command center labels bounded inventory analysis as a sample", ()
     quantity: 1,
     inventory_value: 1,
     location_id: "box-1",
-    data: { condition: "near_mint", finish: "normal", costBasis: 1 },
+    data: { inventoryValueSemantics: "total_row_v1", condition: "near_mint", finish: "normal", costBasis: 1 },
   }));
   const summary = buildPersonalCommandCenterSummary({
     access,

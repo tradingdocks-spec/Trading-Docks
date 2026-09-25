@@ -106,17 +106,16 @@ export default async function PurchaseHistoryPage({ searchParams }: PageProps) {
                 Purchase History
               </p>
               <h1 className="mt-3 max-w-4xl text-3xl font-semibold tracking-[-0.04em] text-td-primary sm:text-4xl">
-                Canonical acquisition ledger for every inbound buy.
+                Recorded financial acquisitions.
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-td-secondary">
-                Track bulk buys, collection intake, sealed purchases, vendors,
-                buylist payouts, trade-ins, card-show buys, and manual purchase
-                records without turning Purchase History into the inventory authority.
+                Reviewed Collection Intake purchases and preserved historical purchase records.
+                Inventory imports and edits do not create financial acquisitions.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/dashboard/bulk-buying" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent">
-                Start bulk buy
+              <Link href="/dashboard/collection-buying" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover focus:outline-none focus:ring-2 focus:ring-td-accent">
+                Start reviewed intake
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/dashboard/collection-buying" className="inline-flex h-10 items-center rounded-xl border border-td-ink/[0.1] bg-td-ink/[0.03] px-4 text-xs font-semibold text-td-primary transition hover:border-td-accent/30 hover:text-td-accent-text focus:outline-none focus:ring-2 focus:ring-td-accent/50">
@@ -126,11 +125,12 @@ export default async function PurchaseHistoryPage({ searchParams }: PageProps) {
           </div>
         </header>
 
+        <p className="mt-5 text-xs text-td-secondary">These summaries cover the latest 250 accessible purchase records. They are not an all-history accounting report.</p>
         <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <Metric label="Spent today" value={currency.format(metrics.spentToday)} icon={WalletCards} />
           <Metric label="Spent this week" value={currency.format(metrics.spentThisWeek)} icon={WalletCards} />
           <Metric label="Pending intake" value={integer.format(metrics.pendingIntakeCount)} icon={ClipboardList} />
-          <Metric label="Inventory acquired" value={integer.format(metrics.inventoryAcquiredUnits)} icon={PackageCheck} />
+          <Metric label="Purchased units" value={integer.format(metrics.inventoryAcquiredUnits)} icon={PackageCheck} />
           <Metric label="Avg acquisition" value={currency.format(metrics.averageAcquisitionCost)} icon={Database} />
         </section>
 

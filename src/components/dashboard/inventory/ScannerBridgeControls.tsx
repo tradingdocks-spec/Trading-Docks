@@ -26,7 +26,7 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
   async function choose(device: ScannerDevice) {
     await bridge.current!.selectDevice(device); await bridge.current!.connect();
     setSelected(device.id); setSettings(defaultScanSettings(device.scanCapabilities!)); setProfile("fast");
-    setStatus("Ready"); callbacks.current.onReady(bridge.current!);
+    setStatus(`Connected — ${device.name} ready to capture`); callbacks.current.onReady(bridge.current!);
   }
   async function refresh() {
     if (refreshing.current || operation.current.disabled || operation.current.pairing) return;
@@ -40,7 +40,7 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
       const remembered = await bridge.current.rememberedDevice();
       const device = list.find(d => d.id === remembered);
       if (device && bridge.current.getStatus() !== "ready") await choose(device);
-      else if (device) { setSelected(device.id); setStatus("Ready"); callbacks.current.onReady(bridge.current!); }
+      else if (device) { setSelected(device.id); setStatus(`Connected — ${device.name} ready to capture`); callbacks.current.onReady(bridge.current!); }
       else { setSelected(""); callbacks.current.onUnavailable(); setStatus(remembered ? "Previously selected scanner not found. Choose another scanner." : list.length ? "Paired — select a scanner" : "Paired — no supported scanners detected"); }
     } catch (error) { if (error instanceof ScannerBridgeError && ["UNPAIRED_OR_EXPIRED", "INVALID_PROOF"].includes(error.code)) setPaired(false); callbacks.current.onUnavailable(); setDiagnostic(error instanceof Error ? error.message : "Agent unavailable"); setStatus("Scanner disconnected"); }
     finally { refreshing.current = false; setBusy(false); }
@@ -70,6 +70,7 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
   return <div className="rounded-xl border p-3 space-y-3" aria-label="Scanner Bridge connection">
     <p role="status">{status}</p>
     {!found && <p className="text-sm">Needs setup. Start the installed Scanner Agent and allow the browser's local-network connection. Do not bypass certificate warnings.</p>}
+    {!found && <TDButton size="sm" variant="secondary" disabled={disabled || busy} onClick={() => void refresh()}>Reconnect Scanner Agent</TDButton>}
     {!paired && <TDButton size="sm" disabled={!found || disabled || busy} onClick={() => void pair()}>Pair this workstation</TDButton>}
     {pairing && <div className="flex flex-wrap gap-2"><label>One-time pairing code<input className="block border rounded p-2" inputMode="numeric" autoComplete="off" maxLength={7} value={code} onChange={event => setCode(event.target.value)} /></label><TDButton disabled={disabled || busy || code.replaceAll(" ", "").length !== 6} onClick={() => void finish()}>Confirm pairing</TDButton></div>}
     <label className="block">Scanner<select aria-label="Installed scanner" className="block w-full border rounded p-2" value={selected} disabled={!paired || disabled || busy} onChange={async event => { const next = devices.find(d => d.id === event.target.value); if (!next) return; setBusy(true); try { await choose(next); } catch (error) { setStatus(error instanceof Error ? error.message : "Scanner disconnected"); callbacks.current.onUnavailable(); } finally { setBusy(false); } }}><option value="">{paired ? "Select a scanner" : "Pair this workstation first"}</option>{devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
@@ -81,7 +82,7 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
     </details>}
     {showSettings && device && settings && <>
       {device.scanCapabilities?.setupRequired && <p role="status">Needs setup. Complete the scanner's one-time output profile before scanning.</p>}
-      {device.scanCapabilities?.externalSettings && <p>Use the configured Trading Docks card profile. Arm capture here, then press the scanner's physical Scan button. No per-card file selection is needed.</p>}
+      {device.scanCapabilities?.externalSettings && <p>Ready to capture. ScanSnap Home controls this model: arm one capture here, then press the iX500 physical Scan button. The agent accepts only the new file for this capture request. No per-card file selection is needed.</p>}
       {!device.scanCapabilities?.externalSettings && <label>Profile<select aria-label="Scanner profile" disabled={disabled || busy} value={profile} onChange={event => configure(defaultScanSettings(device.scanCapabilities!, event.target.value === "quality"), event.target.value)}><option value="fast">Trading Cards — Fast</option><option value="quality">Trading Cards — High Quality</option>{profile === "custom" && <option value="custom">Custom scanner settings</option>}</select></label>}
       {showSettings && !device.scanCapabilities?.externalSettings && <fieldset disabled={disabled || busy} className="flex flex-wrap gap-3"><label>DPI<select aria-label="Scanner DPI" value={settings.dpi} onChange={e => configure({ ...settings, dpi: Number(e.target.value) })}>{device.scanCapabilities!.dpi.map(d => <option key={d}>{d}</option>)}</select></label><label>Source<select aria-label="Scanner source" value={settings.source} onChange={e => configure({ ...settings, source: e.target.value })}>{device.scanCapabilities!.sources.map(s => <option key={s}>{s}</option>)}</select></label><label>Color<select aria-label="Scanner color" value={settings.colorMode} onChange={e => configure({ ...settings, colorMode: e.target.value })}>{device.scanCapabilities!.colorModes.map(c => <option key={c}>{c}</option>)}</select></label>{device.scanCapabilities!.autoCrop && <label><input type="checkbox" checked={settings.autoCrop} onChange={e => configure({ ...settings, autoCrop: e.target.checked })} />Auto crop</label>}{device.scanCapabilities!.duplex && <label><input type="checkbox" checked={settings.duplex} onChange={e => configure({ ...settings, duplex: e.target.checked })} />Duplex</label>}</fieldset>}
     </>}

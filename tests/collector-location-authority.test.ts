@@ -47,6 +47,7 @@ test('remove-from-collection validates quantity without deleting account data cl
 test('collection CSV review normalizes condition, finish, quantity, storage path, and TCGplayer ids', () => {
   const row = reviewCollectionLocationImportRow({
     name: 'Unblinking Observer',
+    language: 'en',
     set: 'MID',
     collectorNumber: '82',
     condition: 'NearMint',
@@ -75,5 +76,5 @@ test('collection CSV review marks unknown physical fields for review instead of 
   });
 
   assert.equal(row.ok, false);
-  assert.deepEqual(row.issues.sort(), ['unknown_condition', 'unknown_finish']);
+  assert.deepEqual(row.issues.sort(), ['unknown_condition', 'unknown_finish', 'unknown_language', 'unresolved_printing']);
 });

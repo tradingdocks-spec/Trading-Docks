@@ -243,7 +243,7 @@ export async function loadBusinessCommandCenter({
       : Promise.resolve({ data: null, count: null }),
     supabase
       .from<InventoryCapitalRow>("inventory_items")
-      .select("id,quantity,inventory_value,updated_at")
+      .select("id,quantity,inventory_value,updated_at,data")
       .eq("user_id", access.userId)
       .order("updated_at", { ascending: false })
       .limit(1000),

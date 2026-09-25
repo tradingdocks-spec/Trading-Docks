@@ -128,16 +128,16 @@ export function supportedVisibleFinishes(candidate: ScannerCardCandidate): CardF
   return candidate.finishes.filter((finish): finish is CardFinish => finish === 'normal' || finish === 'foil' || finish === 'etched');
 }
 
-export function defaultFinishForPrinting(candidate: ScannerCardCandidate, preferred?: CardFinish | string | null): { finish: CardFinish; fallbackMessage: string | null } {
+export function defaultFinishForPrinting(candidate: ScannerCardCandidate, preferred?: CardFinish | string | null): { finish: CardFinish; fallbackMessage: string | null; evidence: 'EXPLICIT' | 'DERIVED_FROM_AUTHORITATIVE_CATALOG' | 'UNRESOLVED' } {
   const supported = supportedVisibleFinishes(candidate);
   if (preferred === 'normal' || preferred === 'foil' || preferred === 'etched') {
-    if (supported.includes(preferred)) return { finish: preferred, fallbackMessage: null };
+    if (supported.includes(preferred)) return { finish: preferred, fallbackMessage: null, evidence: 'EXPLICIT' };
+    return { finish: 'unknown', fallbackMessage: 'The observed finish conflicts with this printing. Review required.', evidence: 'UNRESOLVED' };
   }
-  const fallback = supported.includes('normal') ? 'normal' : supported[0] ?? 'normal';
-  return {
-    finish: fallback,
-    fallbackMessage: preferred ? `${finishLabel(preferred)} isn't available for this printing. Switched to ${finishLabel(fallback)}.` : null,
-  };
+  if (candidate.identityAuthority === 'provider_confirmed' && supported.length === 1) {
+    return { finish: supported[0], fallbackMessage: null, evidence: 'DERIVED_FROM_AUTHORITATIVE_CATALOG' };
+  }
+  return { finish: 'unknown', fallbackMessage: 'Choose the observed finish before saving.', evidence: 'UNRESOLVED' };
 }
 
 export function finishLabel(finish: string) {

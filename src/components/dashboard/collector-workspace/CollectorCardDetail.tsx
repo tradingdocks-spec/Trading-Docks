@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   loadWebCollectorCardById,
   runWebCollectorMutation,
+  retryWebCollectorEdits,
 } from "@/lib/collector-workspace-client-data";
 import {
   CARD_CONDITION_OPTIONS,
@@ -227,6 +228,16 @@ export function CollectorCardDetail({ cardId }: { cardId: string }) {
               value={displayTradeStatus(draft.tradeStatus)}
             />
           </TDCard>
+          <TDButton label="Recover pending edits" variant="secondary" disabled={saveState === "saving" || !userId} onClick={async () => {
+            if (!userId) return;
+            setSaveState("saving");
+            try {
+              const remaining = await retryWebCollectorEdits(userId);
+              await refresh();
+              setSaveError(remaining.length ? `${remaining.length} saved edit(s) still require review. Their original commands are preserved.` : null);
+            } catch (failure) { setSaveError(failure instanceof Error ? failure.message : "Recovery unavailable."); }
+            finally { setSaveState("idle"); }
+          }} />
           {saveError ? (
             <div
               role="alert"

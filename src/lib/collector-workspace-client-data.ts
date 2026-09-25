@@ -21,6 +21,10 @@ import {
   type RawTradeBinderStatus,
   type RawWishlistItem,
 } from "@/lib/collector-workspace";
+import { persistInventoryBatch, deliverInventoryBatch, INVENTORY_BATCH_QUEUE_TYPE } from '../../mobile/services/inventory-command-batch';
+import { collectorEditQueue } from '@/lib/collector-edit-queue';
+import { isDurableCollectorEdit, persistCollectorEdit, deliverCollectorEdit, collectorEditCommand } from '../../mobile/services/collector-inventory-command';
+import { COLLECTION_MUTATION_QUEUE_TYPE } from '@/lib/collector-mutations';
 import type { CollectorMutation } from "@/lib/collector-mutations";
 import { ownedInventoryQuery } from "@/lib/owned-inventory-query";
 import { currentInventoryWorkspace } from "@/lib/inventory-workspace";
@@ -183,6 +187,17 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
 }
 
 export async function runWebCollectorMutation(mutation: CollectorMutation) {
+  if (isDurableCollectorEdit(mutation)) {
+    const original = structuredClone(mutation);
+    const operationId = mutation.operationId ?? crypto.randomUUID();
+    const transport = collectorEditTransport();
+    const context = await transport.context();
+    const queue = collectorEditQueue();
+    await persistCollectorEdit(queue, original, operationId, context);
+    const result = await deliverCollectorEdit(queue, operationId, original.userId, transport);
+    if (!result.committed) throw new Error(`Edit ${operationId} is preserved for recovery. ${result.operation?.lastError ?? 'Delivery was not confirmed.'}`);
+    return { ok: true, operationId };
+  }
   const response = await fetch("/api/collector-workspace/mutations", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -191,6 +206,53 @@ export async function runWebCollectorMutation(mutation: CollectorMutation) {
   const payload = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(payload.error ?? "Collection update failed.");
   return payload;
+}
+
+export function collectorEditTransport() {
+  const client = createClient();
+  return {
+    context: async () => {
+      const { data: { user }, error } = await client.auth.getUser();
+      if (error || !user) throw new Error('AUTHORIZATION_FAILURE: sign in again.');
+      return { userId: user.id, workspaceId: await currentInventoryWorkspace(client) };
+    },
+    rpc: async (endpoint: import('../../mobile/services/inventory-command').InventoryCommand['endpoint'] | 'apply_inventory_manifest', args: Record<string, unknown>) => {
+      const response = await fetch('/api/collector-workspace/mutations', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ command: { endpoint, args } }),
+      });
+      const payload = await response.json() as { data?: unknown; error?: { message: string; code?: string } | string };
+      if (!response.ok || payload.error) return { data: null, error: typeof payload.error === 'object' ? payload.error : { message: payload.error ?? 'Edit acknowledgement unavailable.', code: String(response.status) } };
+      return { data: payload.data, error: null };
+    },
+  };
+}
+
+/** Capture selected quantities once, before any removal request. */
+export async function removeWebCollectorBatch(cards: Array<{ id: string; quantity: number }>, userId: string) {
+  const transport = collectorEditTransport(), context = await transport.context(), queue = collectorEditQueue();
+  if (context.userId !== userId) throw Error('AUTHORIZATION_FAILURE');
+  const id = crypto.randomUUID(), createdAt = new Date().toISOString();
+  const commands = cards.filter(c => c.quantity > 0).map(c => collectorEditCommand({ type: 'remove_quantity', userId,
+    inventoryItemId: c.id, quantity: c.quantity, reason: 'Bulk remove from collection' }, `${id}:${c.id}`, context.workspaceId, createdAt));
+  await persistInventoryBatch(queue, id, commands, 'bulk_remove');
+  const result = await deliverInventoryBatch(queue, id, userId, transport);
+  if (!result.committed) throw Error(`Removal is not fully acknowledged. Earlier rows may have completed. Recover saved operation ${id}; do not start a new removal.`);
+}
+
+/** Explicit recovery resends persisted commands; never reconstructs them from current UI values. */
+export async function retryWebCollectorEdits(userId: string) {
+  const queue = collectorEditQueue();
+  const transport = collectorEditTransport();
+  const context = await transport.context();
+  if (context.userId !== userId) throw new Error('AUTHORIZATION_FAILURE');
+  for (const operation of await queue.list()) {
+    if (operation.userId !== userId) continue;
+    if (operation.type === INVENTORY_BATCH_QUEUE_TYPE) { await deliverInventoryBatch(queue, operation.id, userId, transport); continue; }
+    if (operation.type !== COLLECTION_MUTATION_QUEUE_TYPE || !operation.payload.command) continue;
+    await deliverCollectorEdit(queue, operation.id, userId, transport);
+  }
+  return (await queue.list()).filter((operation) => operation.userId === userId && [COLLECTION_MUTATION_QUEUE_TYPE, INVENTORY_BATCH_QUEUE_TYPE].includes(operation.type));
 }
 
 function buildWebStorageLocations(locations: RawInventoryLocation[]): StorageLocation[] {

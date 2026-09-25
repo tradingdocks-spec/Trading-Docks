@@ -119,7 +119,7 @@ test('finish changes update the same session row and recalculate offer', () => {
   assert.equal(updated.lines[0].cashOffer, 7);
 });
 
-test('selecting another printing updates the same row and falls back unsupported finish', () => {
+test('selecting another printing updates the same row and preserves unsupported finish as unresolved', () => {
   const foilOnly = { ...regularCandidate, finishes: ['foil' as const], marketPrice: { ...regularCandidate.marketPrice!, usdFoil: 12 } };
   const session = addRecognitionToSession(createContinuousScannerSession({ id: 's2', userId: 'u1', name: 'Review', mode: 'card_show_purchase' }), {
     stableScanId: 'scan-2',
@@ -131,11 +131,11 @@ test('selecting another printing updates the same row and falls back unsupported
   const line = session.lines[0];
   const fallback = defaultFinishForPrinting(foilOnly, 'etched');
   const updated = updateScannerSessionLinePrinting(session, line.id, foilOnly);
-  assert.equal(fallback.finish, 'foil');
+  assert.equal(fallback.finish, 'unknown');
   assert.equal(updated.session.lines[0].id, line.id);
   assert.equal(updated.session.lines[0].exactPrintingId, 'sf-regular');
-  assert.equal(updated.session.lines[0].finish, 'foil');
-  assert.match(updated.fallbackMessage ?? '', /Switched to Foil/);
+  assert.equal(updated.session.lines[0].finish, 'unknown');
+  assert.match(updated.fallbackMessage ?? '', /Review required/);
 });
 
 test('other-printings lookup caches repeated Scryfall responses', async () => {

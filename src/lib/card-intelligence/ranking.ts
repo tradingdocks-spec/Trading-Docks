@@ -68,7 +68,9 @@ function providerIdSignal(signals: CardRecognitionSignals, candidate: CanonicalP
   if (!entries.length) return missing(WEIGHTS.providerId);
   const authoritativeEntries = entries.filter(([key]) => candidate.providerIds[key] !== undefined);
   if (!authoritativeEntries.length || candidate.identityAuthority !== "provider_confirmed") return { status: "partial", score: 0.25, weight: WEIGHTS.providerId, observed: entries.map(([key, value]) => `${key}:${value}`).join(", "), expected: "provider-confirmed identifier" };
-  const match = authoritativeEntries.some(([key, value]) => `${candidate.providerIds[key]}` === `${value}`);
+  const disagreement = authoritativeEntries.some(([key, value]) => `${candidate.providerIds[key]}` !== `${value}`);
+  if (!disagreement && authoritativeEntries.length !== entries.length) return { status: "partial", score: 0.25, weight: WEIGHTS.providerId, expected: "all supplied identifiers verified" };
+  const match = authoritativeEntries.every(([key, value]) => `${candidate.providerIds[key]}` === `${value}`);
   return match
     ? { status: "exact", score: 1, weight: WEIGHTS.providerId, observed: entries.map(([key, value]) => `${key}:${value}`).join(", "), expected: candidate.printingId }
     : { status: "conflict", score: 0, weight: WEIGHTS.providerId, observed: entries.map(([key, value]) => `${key}:${value}`).join(", "), expected: candidate.printingId };
@@ -120,12 +122,12 @@ function finishSignal(signals: CardRecognitionSignals, candidate: CanonicalPrint
 }
 
 function combinedExactSignal(first: unknown, second: unknown, expectedFirst: unknown, expectedSecond: unknown, weight: number): CandidateSignal {
-  const observed = normalize(first) || normalize(second);
-  if (!observed) return missing(weight);
-  const expected = normalize(first) ? normalize(expectedFirst) : normalize(expectedSecond);
-  return observed === expected
-    ? { status: "exact", score: 1, weight, observed, expected }
-    : { status: "conflict", score: 0, weight, observed, expected };
+  const supplied = [[first, expectedFirst], [second, expectedSecond]].filter(([value]) => normalize(value));
+  if (!supplied.length) return missing(weight);
+  const conflict = supplied.some(([value, expected]) => normalize(value) !== normalize(expected));
+  return { status: conflict ? "conflict" : "exact", score: conflict ? 0 : 1, weight,
+    observed: supplied.map(([value]) => normalize(value)).join(" / "),
+    expected: supplied.map(([, expected]) => normalize(expected)).join(" / ") };
 }
 
 function exactSignal(observedValue: unknown, expectedValue: unknown, weight: number): CandidateSignal {

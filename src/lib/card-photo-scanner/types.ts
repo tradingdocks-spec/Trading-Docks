@@ -56,6 +56,12 @@ export type CardCandidate = {
 
 export type CardScanResponse = {
   identification: ScanIdentification;
+  orientation?: {
+    rotationAppliedDegrees: 0 | 90 | 180 | 270;
+    confidence: number;
+    source: "vision-four-view" | "manual" | "ambiguous";
+    reviewRequired: boolean;
+  } | null;
   candidates: CardCandidate[];
   recognitionMode: "vision" | "manual" | "filename" | "tcgtracking";
   warnings: string[];

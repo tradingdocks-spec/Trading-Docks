@@ -229,7 +229,7 @@ export function summarizePurchaseHistory(
   startOfWeek.setDate(startOfWeek.getDate() - diffToMonday);
   startOfWeek.setHours(0, 0, 0, 0);
 
-  const activeRecords = records.filter((record) => record.status !== "cancelled");
+  const activeRecords = records.filter((record) => record.status === "completed" || record.status === "received");
   const totalCost = activeRecords.reduce((sum, record) => sum + record.totalCost, 0);
   const unitCount = activeRecords.reduce((sum, record) => sum + record.unitCount, 0);
 

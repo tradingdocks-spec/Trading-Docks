@@ -39,7 +39,7 @@ test("inventory attention returns no issues for clean inventory", () => {
         quantity: 4,
         inventory_value: 12,
         location_id: "binder-1",
-        data: { condition: "near_mint", finish: "normal", costBasis: 3 },
+        data: { inventoryValueSemantics: "total_row_v1", condition: "near_mint", finish: "normal", costBasis: 3 },
       },
     ],
     totalInventoryRows: 1,
@@ -120,7 +120,7 @@ test("inventory attention can use exact database counts beyond the representativ
     quantity: 1,
     inventory_value: 2,
     location_id: "binder-1",
-    data: { condition: "near_mint", finish: "normal", costBasis: 1 },
+    data: { inventoryValueSemantics: "total_row_v1", condition: "near_mint", finish: "normal", costBasis: 1 },
   }));
   const summary = buildInventoryAttentionSummary({
     userId: "user-larger-than-sample",

@@ -347,7 +347,7 @@ test("analytics workspace composes Owner/Admin access from platform authority", 
   assert.doesNotMatch(componentSource, /Live priorities/);
 });
 
-test("analytics inventory summary counts recent rows from real timestamps", () => {
+test("analytics inventory edits do not establish acquisition", () => {
   const now = Date.parse("2026-08-15T12:00:00.000Z");
 
   assert.deepEqual(
@@ -368,7 +368,7 @@ test("analytics inventory summary counts recent rows from real timestamps", () =
       ],
       now,
     ),
-    { units: 5, value: 19.75, skus: 2, addedLast30Days: 3 },
+    { units: 5, value: null, knownSubtotal: 0, unpricedRows: 2, coverage: 0, status: "INSUFFICIENT_DATA", skus: 2, addedLast30Days: null },
   );
 });
 

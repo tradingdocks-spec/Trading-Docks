@@ -77,7 +77,11 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
     try { response = await this.request(BRIDGE_URL + path, { method, headers, body: body || undefined, credentials: "omit", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(path === "/v1/pair/start" ? 125_000 : 15_000) }); }
     catch { this.status = "disconnected"; throw new ScannerBridgeError("BRIDGE_DISCONNECTED"); }
     const result = await response.json();
-    if (!response.ok) throw new ScannerBridgeError(String(result.error ?? "CAPTURE_FAILED"));
+    if (!response.ok) {
+      const code = String(result.error ?? "CAPTURE_FAILED");
+      if (["DEVICE_OFFLINE", "BRIDGE_DISCONNECTED"].includes(code)) this.status = "disconnected";
+      throw new ScannerBridgeError(code);
+    }
     return result as T;
   }
   async health() {
@@ -109,7 +113,9 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
       this.credential!.expires = renewed.expires; await this.storage.set(this.credential!);
     }
     const result = await this.call<{ devices: BridgeDevice[] }>("/v1/devices");
-    return result.devices.map(d => ({ id: d.id, name: d.displayName, simulated: false, manufacturer: d.manufacturer, model: d.model, connection: d.connection, backend: d.backend, scanCapabilities: d.capabilities }));
+    const devices = result.devices.map(d => ({ id: d.id, name: d.displayName, simulated: false, manufacturer: d.manufacturer, model: d.model, connection: d.connection, backend: d.backend, scanCapabilities: d.capabilities }));
+    if (this.device && !devices.some(device => device.id === this.device?.id)) { this.device = undefined; this.status = "disconnected"; }
+    return devices;
   }
   async rememberedDevice() { this.credential ??= await this.storage.get(); return this.credential?.selectedDevice; }
   async getWorkstationId() { this.credential ??= await this.storage.get(); if (!this.credential?.workstationId) throw new ScannerBridgeError("UNPAIRED_OR_EXPIRED"); return this.credential.workstationId; }
@@ -211,7 +217,7 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
           return { captureId: started.captureId, file };
         }
         if (result.status === "interrupted") throw new ScannerBridgeError(result.error ?? "CAPTURE_INTERRUPTED");
-        if (result.status !== "capturing") { this.pendingRequest = undefined; if (this.credential) { this.credential.pendingRequest = undefined; await this.storage.set(this.credential); } throw new ScannerBridgeError(result.error ?? "CAPTURE_FAILED"); }
+        if (result.status !== "capturing") { this.pendingRequest = undefined; if (["DEVICE_OFFLINE", "BRIDGE_DISCONNECTED"].includes(result.error ?? "")) this.status = "disconnected"; if (this.credential) { this.credential.pendingRequest = undefined; await this.storage.set(this.credential); } throw new ScannerBridgeError(result.error ?? "CAPTURE_FAILED"); }
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       this.cancelCapture(); throw new ScannerBridgeError("CAPTURE_FAILED");

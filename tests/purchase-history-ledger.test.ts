@@ -95,17 +95,17 @@ test("purchase history supports all requested source types", () => {
   assert.equal(records.length, 8);
 });
 
-test("spending aggregates exclude cancelled purchases and keep pending visible", () => {
+test("spending aggregates exclude pending and cancelled purchases and keep pending visible", () => {
   const metrics = summarizePurchaseHistory([
     record({ id: "today", totalCost: 100, unitCount: 10, purchasedAt: "2026-08-11T09:00:00.000Z", status: "pending" }),
     record({ id: "received", totalCost: 50, unitCount: 5, purchasedAt: "2026-08-10T09:00:00.000Z", status: "received" }),
     record({ id: "cancelled", totalCost: 999, unitCount: 100, purchasedAt: "2026-08-11T09:00:00.000Z", status: "cancelled" }),
   ], new Date("2026-08-11T18:00:00.000Z"));
 
-  assert.equal(metrics.spentToday, 100);
-  assert.equal(metrics.spentThisWeek, 150);
+  assert.equal(metrics.spentToday, 0);
+  assert.equal(metrics.spentThisWeek, 50);
   assert.equal(metrics.pendingIntakeCount, 1);
-  assert.equal(metrics.inventoryAcquiredUnits, 15);
+  assert.equal(metrics.inventoryAcquiredUnits, 5);
   assert.equal(metrics.averageAcquisitionCost, 10);
 });
 

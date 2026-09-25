@@ -1,4 +1,6 @@
 "use client";
+import { summarizeInventoryValues, trustedInventoryValue } from "@/lib/intelligence-provenance";
+import { legacyAcquisitionWriteDecision } from "@/lib/purchase-history/legacy-gate";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +34,8 @@ type LinkedItem = {
   bulk_purchase_id: string | null;
   card_name: string;
   quantity: number;
-  inventory_value: number;
+  inventory_value: number | null;
+  data?: unknown;
 };
 
 type Sale = {
@@ -45,16 +48,17 @@ type Sale = {
 
 type PurchaseStats = {
   scannedCards: number;
-  scannedValue: number;
+  scannedValue: number | null;
+  unpricedRows: number;
   revenue: number;
   fees: number;
-  remainingValue: number;
-  projectedProfit: number;
+  remainingValue: number | null;
+  projectedProfit: number | null;
   cashPosition: number;
   recovery: number;
 };
 
-const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const money = { format: (value: number | null) => value === null ? "Unavailable" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value) };
 const whole = new Intl.NumberFormat("en-US");
 
 export function BulkPurchasesWorkspace() {
@@ -81,7 +85,7 @@ export function BulkPurchasesWorkspace() {
     }
     const [purchaseResult, itemResult, saleResult] = await Promise.all([
       supabase.from("bulk_purchases").select("*").eq("user_id", user.id).order("purchased_at", { ascending: false }),
-      supabase.from("inventory_items").select("id,bulk_purchase_id,card_name,quantity,inventory_value").eq("user_id", user.id),
+      supabase.from("inventory_items").select("id,bulk_purchase_id,card_name,quantity,inventory_value,data").eq("user_id", user.id),
       supabase.from("bulk_purchase_sales").select("id,bulk_purchase_id,gross_revenue,selling_fees,shipping_cost").eq("user_id", user.id),
     ]);
     const firstError = purchaseResult.error || itemResult.error || saleResult.error;
@@ -110,14 +114,15 @@ export function BulkPurchasesWorkspace() {
     for (const purchase of purchases) {
       const linked = items.filter((item) => item.bulk_purchase_id === purchase.id);
       const linkedSales = sales.filter((sale) => sale.bulk_purchase_id === purchase.id);
-      const scannedValue = linked.reduce((sum, item) => sum + Number(item.inventory_value || 0), 0);
+      const valuation = summarizeInventoryValues(linked.map(trustedInventoryValue));
+      const scannedValue = valuation.value;
       const scannedCards = linked.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
       const revenue = linkedSales.reduce((sum, sale) => sum + Number(sale.gross_revenue || 0), 0);
       const fees = linkedSales.reduce((sum, sale) => sum + Number(sale.selling_fees || 0) + Number(sale.shipping_cost || 0), 0);
       const investment = Number(purchase.purchase_cost) + Number(purchase.additional_expenses);
       map.set(purchase.id, {
-        scannedCards, scannedValue, revenue, fees, remainingValue: scannedValue,
-        projectedProfit: revenue - fees + scannedValue - investment,
+        scannedCards, scannedValue, unpricedRows: valuation.unpricedRows, revenue, fees, remainingValue: scannedValue,
+        projectedProfit: scannedValue === null || valuation.unpricedRows > 0 ? null : revenue - fees + scannedValue - investment,
         cashPosition: revenue - fees - investment,
         recovery: investment > 0 ? Math.max(0, (revenue - fees) / investment * 100) : 0,
       });
@@ -128,11 +133,12 @@ export function BulkPurchasesWorkspace() {
   const totals = useMemo(() => purchases.reduce((acc, purchase) => {
     const stats = statsByPurchase.get(purchase.id);
     acc.invested += Number(purchase.purchase_cost) + Number(purchase.additional_expenses);
-    acc.value += stats?.scannedValue ?? 0;
-    acc.profit += stats?.projectedProfit ?? 0;
+    if (stats?.scannedValue != null) acc.value = (acc.value ?? 0) + stats.scannedValue;
+    acc.unpricedRows += stats?.unpricedRows ?? 0;
+    acc.profit = acc.profit === null || stats?.projectedProfit == null ? null : acc.profit + stats.projectedProfit;
     acc.cards += stats?.scannedCards ?? 0;
     return acc;
-  }, { invested: 0, value: 0, profit: 0, cards: 0 }), [purchases, statsByPurchase]);
+  }, { invested: 0, value: null as number | null, profit: 0 as number | null, cards: 0, unpricedRows: 0 }), [purchases, statsByPurchase]);
 
   const visiblePurchases = purchases.filter((purchase) =>
     `${purchase.name} ${purchase.source}`.toLowerCase().includes(query.toLowerCase()),
@@ -165,7 +171,7 @@ export function BulkPurchasesWorkspace() {
 
       <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={CircleDollarSign} label="Total invested" value={money.format(totals.invested)} detail={`${purchases.length} purchases`} tone="cyan" />
-        <Metric icon={Layers3} label="Scanned value" value={money.format(totals.value)} detail={`${whole.format(totals.cards)} cards linked`} tone="violet" />
+        <Metric icon={Layers3} label="Known market subtotal" value={money.format(totals.value)} detail={`${whole.format(totals.cards)} cards linked · ${totals.unpricedRows} unpriced rows`} tone="violet" />
         <Metric icon={TrendingUp} label="Projected profit" value={money.format(totals.profit)} detail="Revenue + remaining value − costs" tone="emerald" />
         <Metric icon={PackageOpen} label="Still processing" value={String(purchases.filter((p) => p.status !== "completed").length)} detail="Unsorted, scanning, or listed" tone="amber" />
       </section>
@@ -203,8 +209,8 @@ export function BulkPurchasesWorkspace() {
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <Tiny label="Paid" value={money.format(investment)} />
-                    <Tiny label="Scanned value" value={money.format(stats.scannedValue)} />
-                    <Tiny label="Projected profit" value={money.format(stats.projectedProfit)} positive={stats.projectedProfit >= 0} />
+                    <Tiny label="Known market subtotal" value={money.format(stats.scannedValue)} />
+                    <Tiny label="Projected profit" value={money.format(stats.projectedProfit)} positive={stats.projectedProfit === null ? undefined : stats.projectedProfit >= 0} />
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between text-[11px] font-semibold text-td-muted"><span>{whole.format(stats.scannedCards)} of {whole.format(purchase.estimated_card_count)} cards scanned</span><span>{purchase.estimated_card_count ? Math.min(100, Math.round(stats.scannedCards / purchase.estimated_card_count * 100)) : 0}%</span></div>
@@ -241,7 +247,7 @@ function PurchaseDetail({ purchase, stats, items, onImport }: { purchase: Purcha
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2">
       <Tiny label="Total invested" value={money.format(investment)} />
-      <Tiny label="Scanned value" value={money.format(stats.scannedValue)} />
+      <Tiny label="Known market subtotal" value={money.format(stats.scannedValue)} />
       <Tiny label="Sales revenue" value={money.format(stats.revenue)} />
       <Tiny label="Cash position" value={money.format(stats.cashPosition)} positive={stats.cashPosition >= 0} />
     </div>
@@ -252,7 +258,7 @@ function PurchaseDetail({ purchase, stats, items, onImport }: { purchase: Purcha
     </div>
     <div className="mt-4 flex items-center justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Linked inventory</p><p className="mt-1 text-xs text-td-secondary">{whole.format(stats.scannedCards)} cards · {items.length} inventory rows</p></div><button type="button" onClick={onImport} className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[0.05] px-3 text-[11px] font-semibold text-td-accent-text"><Upload className="h-3.5 w-3.5" /> Add cards</button></div>
     <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
-      {items.slice(0, 12).map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] bg-black/[0.08] px-3 py-2 text-[11px]"><span className="min-w-0 truncate text-td-secondary">{item.card_name}</span><span className="ml-3 shrink-0 text-td-muted">{item.quantity} · {money.format(Number(item.inventory_value))}</span></div>)}
+      {items.slice(0, 12).map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] bg-black/[0.08] px-3 py-2 text-[11px]"><span className="min-w-0 truncate text-td-secondary">{item.card_name}</span><span className="ml-3 shrink-0 text-td-muted">{item.quantity} · {money.format(trustedInventoryValue(item))}</span></div>)}
       {!items.length ? <p className="rounded-xl border border-dashed border-td-ink/[0.07] px-3 py-5 text-center text-[11px] text-td-muted">No cards linked yet.</p> : null}
     </div>
   </section>;
@@ -265,6 +271,8 @@ function CreatePurchaseModal({ onClose, onCreated }: { onClose: () => void; onCr
   const [form, setForm] = useState({ name: "", source: "", purchased_at: new Date().toISOString().slice(0, 10), estimated_card_count: "5000", purchase_cost: "", additional_expenses: "0", purchase_type: "collection", payment_method: "", status: "unsorted", cost_basis_method: "proportional", notes: "" });
   const set = (key: string, value: string) => setForm((current) => ({ ...current, [key]: value }));
   async function submit(event: React.FormEvent) {
+    const gate = legacyAcquisitionWriteDecision();
+    if (!gate.allowed) { event.preventDefault(); setError(gate.message); return; }
     event.preventDefault(); setSaving(true); setError("");
     const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Sign in again to save this purchase."); setSaving(false); return; }
@@ -308,6 +316,8 @@ function ImportCardsModal({ purchases, initialPurchaseId, onClose, onImported }:
     });
   }
   async function importRows() {
+    const gate = legacyAcquisitionWriteDecision();
+    if (!gate.allowed) { setError(gate.message); return; }
     setSaving(true); setError("");
     const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Sign in again to import inventory."); setSaving(false); return; }
@@ -331,7 +341,7 @@ function ImportCardsModal({ purchases, initialPurchaseId, onClose, onImported }:
     <Select label="Which purchase did these cards come from?" value={purchaseId} onChange={setPurchaseId} options={purchases.map((p) => [p.id, p.name])} />
     <button type="button" onClick={() => inputRef.current?.click()} className="mt-4 flex w-full flex-col items-center rounded-2xl border border-dashed border-td-accent/20 bg-td-accent/[0.025] px-5 py-8 text-center"><FileSpreadsheet className="h-7 w-7 text-td-accent-text" /><span className="mt-3 text-xs font-semibold text-td-primary">{fileName || "Choose inventory CSV"}</span><span className="mt-1 text-[11px] text-td-muted">Card name, quantity, set, condition, and market value are detected automatically.</span></button>
     <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
-    {rows.length ? <div className="mt-4 grid grid-cols-3 gap-2"><Tiny label="Rows detected" value={whole.format(rows.length)} /><Tiny label="Cards" value={whole.format(rows.reduce((s,r) => s + Number(findValue(r,["quantity","total quantity","add to quantity","qty"]) || 1),0))} /><Tiny label="Scanned value" value={money.format(totalValue)} /></div> : null}
+    {rows.length ? <div className="mt-4 grid grid-cols-3 gap-2"><Tiny label="Rows detected" value={whole.format(rows.length)} /><Tiny label="Cards" value={whole.format(rows.reduce((s,r) => s + Number(findValue(r,["quantity","total quantity","add to quantity","qty"]) || 1),0))} /><Tiny label="Known market subtotal" value={money.format(totalValue)} /></div> : null}
     {error ? <p className="mt-3 text-[11px] text-td-danger">{error}</p> : null}
     <div className="mt-5 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button><button type="button" onClick={importRows} disabled={saving || !rows.length || !purchaseId} className="h-11 flex-[1.4] rounded-xl bg-gradient-to-b from-td-accent to-td-accent text-[11px] font-bold text-td-on-accent disabled:opacity-45">{saving ? "Importing…" : "Import and link cards"}</button></div>
   </Modal>;

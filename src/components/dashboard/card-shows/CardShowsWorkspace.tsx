@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { legacyAcquisitionWriteDecision } from "@/lib/purchase-history/legacy-gate";
 import {
   ArrowRight,
   BadgeDollarSign,
@@ -572,6 +573,8 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   }
 
   async function finalizePurchase() {
+    const gate = legacyAcquisitionWriteDecision();
+    if (!gate.allowed) { setPurchaseMessage(gate.message); return; }
     const paid = Number(actualPaid);
     if (!purchaseOrder.length) return;
     if (!purchaseDate) {
