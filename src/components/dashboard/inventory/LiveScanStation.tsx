@@ -131,6 +131,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
           if (onStartSession) await scanner.acknowledge?.(result.captureId);
           setMessage("Test capture successful. No card added to this batch."); break;
         }
+        setMessage("Capture received; sending the image through the private batch and recognition pipeline.");
         if (!replaceId) accepted += 1;
         const job = callbacks.current.onCapture(result.file, result.captureId, replaceId).then(async () => { if (onStartSession) await scanner.acknowledge?.(result.captureId); }).catch(error => {
           running.current = false;
@@ -177,7 +178,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         if (!mounted.current || provider.current !== scanner || running.current || recoveryRunning.current || recoveryNeedsDecision.current) return;
         if (pending) { setRecoveryRequired(true); await recover(); }
       }).catch(error => { recoveryNeedsDecision.current = true; setRecoveryRequired(true); setMessage(error instanceof Error ? error.message : "Could not inspect unfinished scans."); }).finally(() => { inspectingRecovery.current = false; }); }} onUnavailable={() => { setConnected(false); }} />}
-    {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Use Upload Instead</button></p>}
+    {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Scanner Agent access is not enabled for this workspace. If this workstation has approved scanner access, ask the workspace owner to enable it. <button onClick={onUpload} className="underline">Use Upload Images instead</button></p>}
     {source === "emulator" && settings && <div className="rounded-xl border p-3 space-y-3 text-sm">
       <p>A reviewed physical provider is required for hardware. Development simulation uses image fixtures, not a connected scanner.</p>
       {process.env.NODE_ENV !== "production" && <>
@@ -192,12 +193,12 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
     </div>}
     <div className="grid gap-4 md:grid-cols-[180px_1fr]">
       <div className="min-h-48 rounded-xl border border-dashed flex items-center justify-center bg-black/10">
-        {(testImage || latest?.sourceImageUrl) ? <img className="h-52 max-w-full object-contain" src={testImage || latest?.sourceImageUrl || ""} alt="Latest captured card" /> : <div className="text-center text-sm text-td-muted"><ScanLine className="mx-auto mb-3" />Place next card in scanner<br />Captured-image preview</div>}
+        {(testImage || latest?.sourceImageUrl) ? <img className="h-52 max-w-full object-contain" style={{ transform: testImage ? undefined : `rotate(${latest?.orientationRotation ?? 0}deg)` }} src={testImage || latest?.sourceImageUrl || ""} alt="Latest captured card" /> : <div className="text-center text-sm text-td-muted"><ScanLine className="mx-auto mb-3" />Place next card in scanner<br />Captured-image preview</div>}
       </div>
       <div className="space-y-3">
         <p className="text-3xl font-bold tabular-nums">{count} / 100 <span className="text-sm font-normal">physical cards</span></p>
-        <p role="status">{capturing ? physicalButton ? "Waiting for ScanSnap — place one card in the feeder and press the physical Scan button." : "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : recoveryRequired ? "Unfinished scan — resume or discard before scanning again." : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Ready")}</p>
-        {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% confidence · {liveScanStatus(latest)}</p></div>}
+        <p role="status">{capturing ? physicalButton ? "SCANNING — request armed. Place one card in the feeder and press the iX500 physical Scan button." : "SCANNING — agent acquisition in progress." : busy ? "IMAGE RECEIVED / PROCESSING — recognition pipeline active." : locked ? "Batch read only" : recoveryRequired ? "Unfinished scan — resume or discard before scanning again." : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : connected ? "Connected — ready for a physical scan." : "DISCONNECTED — use Upload Images, or reconnect the Scanner Agent.")}</p>
+        {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% recognition confidence · {liveScanStatus(latest)} · Orientation {latest.orientationRotation ? `corrected ${latest.orientationRotation}°` : latest.orientationSource === "ambiguous" ? "requires review" : "unchanged"}</p></div>}
         <div className="flex flex-wrap gap-2">
           <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (recoveryRequired || Boolean(blockedReason) || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? physicalButton ? "Arm Continuous Capture" : "Start Continuous Scan" : "Resume Scanner"}</TDButton>
           {busy && source === "bridge" && <TDButton size="sm" variant="secondary" onClick={pause}>Cancel Current Scan</TDButton>}

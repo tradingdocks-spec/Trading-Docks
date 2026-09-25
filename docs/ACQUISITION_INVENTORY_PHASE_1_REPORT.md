@@ -1894,3 +1894,93 @@ The candidate diff was screened for the listed Phase 2 workflows; no implementat
 - Scoped secret/artifact audit: **94 candidate files, no findings**. `git diff --check` PASS. The three excluded local/generated files remain unchanged from the incoming tree.
 
 The candidate was tested locally; production was not deployed or mutated. POS and Square remain unchanged.
+
+## PHYSICAL ACCEPTANCE REMEDIATION — SCANNER CAPTURE + ORIENTATION
+
+### Original failure
+
+Physical acceptance found that a production page could show the old browser-only scanner fallback instead of the owner-gated Scanner Agent controls. A prior ScanSnap capture did reach the batch, but its image appeared upside down and recognition did not identify it. The capture path and the orientation/recognition path are separate; a recognition-provider failure does not mean the agent failed to receive the image.
+
+### Agent architecture and capture flow
+
+This remediation reuses the installed Trading Docks Scanner Agent; it adds no daemon and does not let the browser access TWAIN/WIA directly. The browser speaks to the agent at `https://127.0.0.1:47391`, with the existing exact-origin allowlist, loopback-only TLS listener, workstation pairing key, signed timestamped/nonce-protected requests, and device enumeration. The website continues to obtain a short-lived cloud capture permit bound to the authenticated owner, active workspace, open batch, destination, workstation, scanner, and capture ID. The agent returns the image under that stable capture identity. The browser stores it in the existing private scan album, starts the existing recognition/review path, and acknowledges/cleans the local agent copy only after cloud receipt succeeds.
+
+WIA devices use the agent's acquisition call to request a scan. ScanSnap iX500 uses the existing ScanSnap Home integration: Trading Docks arms a single capture and waits for the user to press the physical Scan button; the agent accepts only the newly created file for that request from its controlled inbox. The UI now says this explicitly. It does not claim that the website can trigger the iX500 hardware. When the agent or selected device is unavailable, capture controls remain unavailable, the state is shown as disconnected, reconnect/install guidance is offered, and Upload Images remains available.
+
+The page continues to render the bridge integration only through the existing server-side owner/workspace gate. Pairing, cloud authorization, album RLS, active-batch limits, capture identity, and the trusted inventory commit command are unchanged. This remediation does not grant scanner access to another account, expose agent credentials, or perform inventory mutations during capture/rotation.
+
+### Orientation normalization and correction
+
+The card-photo recognition route now applies EXIF orientation once with `sharp`, bounds/resizes the raster, and compares 0°, 90°, 180°, and 270° clockwise pixel candidates in the same vision request. The prompt asks for text-direction, card-name/set/collector placement, and frame/layout evidence, then returns an angle and confidence alongside card identification. Confidence below 0.80 or invalid orientation evidence selects no additional rotation and forces review. An ambiguous angle is never silently guessed as a correction.
+
+The selected angle is attached to the existing scan review record. The inspector preserves aspect ratio, centers the card, displays the selected rotation, and provides Rotate Left/Rotate Right. A manual turn reruns recognition against the same capture ID with an explicit orientation hint; it does not create a capture or inventory mutation ID. The original private scan remains the archived evidence; display rotation and recognition correction do not overwrite it. Each capture is independently oriented, so a prior card cannot affect the next one. The confidence is model-reported rather than benchmark-calibrated; difficult borderless, dark, foil/glare, or off-center physical fixtures still need acceptance testing.
+
+### Tests and validation
+
+- Added orientation tests proving an asymmetric image marker is restored upright from all four quarter-turn inputs, plus bounded raster output, confidence threshold/fail-closed behavior, and manual rotation cycling. Focused orientation + Scanner Agent tests: **19/19 PASS**.
+- Extended Scanner Agent protocol tests for a device disconnect during capture, disconnected status, and preventing the next scan until the device is available.
+- Existing signed pairing, capture-image delivery, lost-response retry, cloud acknowledgement, reload recovery, and wrong-workspace rejection tests remain passing.
+- Root tests: **1,079/1,079 PASS**. Mobile tests: **613/613 PASS**.
+- TypeScript: **PASS**. Root ESLint: **0 errors, 550 warnings** across the repository. `git diff --check`: **PASS**.
+- Production build: **PASS** with `next build --webpack`. Default Turbopack could not traverse this managed worktree's `node_modules` symlink and failed before compilation; the webpack build compiled and generated all 169 pages.
+- Installed-agent .NET tests: **PASS** under the existing isolated .NET SDK 10.0.401 toolchain. The installed signed Core assembly fixture passed **403 security/contract assertions**; WindowsTests passed **5/5** checks for host shutdown/relaunch metadata, version alignment, image validation, and unsafe input rejection. These are synthetic tests, not physical acceptance.
+- Database checks were not run because this change adds no migration, schema, policy, or SQL function. Browser recovery with the installed hardware agent and physical scanner has not been exercised in this local worktree.
+- Scoped secret review and `git diff --check` found no new credentials or private scan artifacts. Production, PR #137, Vercel, inventory, POS, and Square were not changed.
+
+### Exact candidate and retest gate
+
+Base source commit: `b697b9240f756bf832be8b465837d7338faca6c5`.
+
+Local code/test candidate SHA-256 manifest: `1f46d5d48aa0abb0c4d325fa67b07a5255aaa108c4f7eb0355b75aadcb4fb350`. This manifest covers the ten source/test files changed for the remediation and identifies the uncommitted candidate exactly; it is not a Git commit or deployed build. The successful local build is the webpack `.next` output produced from that worktree.
+
+**Status: BLOCKED.** Software checks are green, but the remediation has not been pushed into a private Preview, the Preview-to-Supabase target/origin trust has not been reverified for this exact candidate, .NET installed-agent tests could not run on the available SDK, and no physical scanner retest occurred. The previous Preview/PR build does not contain this uncommitted patch. A physical retest must use a new exact-source private build after an explicitly authorized promotion step. Do not merge PR #137, deploy this patch, change scanner access gates, or mark physical acceptance passed based on these automated checks.
+
+## PHYSICAL ACCEPTANCE RELEASE CANDIDATE
+
+### Candidate and deployment gate
+
+- Branch: `codex/acquisition-integrity-phase1`; source baseline: `b697b9240f756bf832be8b465837d7338faca6c5`. Remediation source/test manifest remains `1f46d5d48aa0abb0c4d325fa67b07a5255aaa108c4f7eb0355b75aadcb4fb350`.
+- PR #137 remains OPEN and MUST NOT be merged until physical scanner retest passes.
+- The remediation commit and exact-HEAD Vercel Preview are pending push. Preview Supabase reference and Preview-only provider configuration are not yet verified. No physical test is authorized until Preview is proven to use staging/test Supabase.
+
+### Preview services and source contract
+
+| Service | Status | Evidence / gate |
+|---|---|---|
+| Supabase | **MISSING verification** | No exact-candidate Preview exists yet. After deployment, compare the public project reference compiled into the Preview against the known production reference; require staging/test. |
+| Scanner Agent communication | **CONFIGURED locally; Preview origin pending** | Installed process is signed `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`; its read-only health response reports protocol 1, automatic inbox, durable recovery, and capture authorization enabled. Exact trusted Preview origin remains unverified. |
+| Recognition provider | **MISSING verification** | No Preview runtime check has been made. Do not substitute production credentials. A prior review screen displayed `credit_balance_exhausted`; require an explicit healthy Preview provider before physical recognition testing. |
+| Trusted Chaos validation | **MISSING verification** | The route and local database contracts exist, but the Preview’s Supabase target and migrated staging schema must be confirmed before the trusted commit path is exercised. |
+| Image processing/orientation | **CONFIGURED in source** | `sharp` is used by the card-photo scan route; orientation fixtures pass locally. Verify the deployed route responds on the exact Preview. |
+| Scanner capture routes | **CONFIGURED in source** | Web uses `/v1/health`, pairing, `/v1/devices`, and `/v1/capture`; ScanSnap uses `/v2/session`. Cloud-authorized capture/read/ack uses `/api/chaos-sort/scans` and optional agent `/v2/capture` calls. Routes are present; Preview runtime still must be checked. |
+
+The web client’s protocol gate is protocol version 1, and the installed agent reports protocol version 1 / bridge version 1.3.1. The installed health flags match the client’s durable-recovery and capture-authorization branches. Pairing, device enumeration, capture request/response, cancel/ack, and ScanSnap inbox session endpoints are compatible. Orientation metadata is created by the web recognition route after image receipt; the native agent transports the source image and does not choose an orientation. The Preview origin must be allowed by the existing pairing/trust configuration; no trust relaxation is approved.
+
+### Installed-agent validation
+
+- Existing isolated .NET SDK: **10.0.401** at `%LOCALAPPDATA%\TradingDocksBuild\dotnet`; the system default remains 9.0.317. No system PATH or registry change was made.
+- Installed signed Core assembly test: **403/403 security/contract assertions PASS**, including loopback HTTPS, pairing/replay denial, enumeration, capture, retries, restart recovery, capture authorization scope, and no arbitrary file/command capabilities. No OS trust store was changed.
+- WindowsTests: **5/5 PASS**. Scanner hardware was not accessed by these tests.
+- Installed-agent-to-cloud handoff rehearsal against the disposable recovery clone: **BLOCKED**. Its harness left a PSQL client idle after a transaction and produced no completion result; the harness was stopped and its uniquely named temporary database was dropped and verified absent. Do not count this test as a pass; rerun with a corrected harness before relying on that downstream evidence.
+
+### Orientation and diagnostic states
+
+- Four-angle pixel fixtures (0°, 90°, 180°, 270°) all restore the same asymmetric marker to the canonical upright result; already-upright input remains upright. Focused orientation + bridge suite: **19/19 PASS**.
+- Manual Rotate Left/Right cycles the review orientation and reruns recognition against the same capture identity. It creates no new capture or inventory mutation. Recognition receives the orientation candidates/selected hint; the inspector renders the selected orientation over the preserved private original image.
+- UI exposes agent connected/disconnected status, selected scanner name, capture ready/capturing/recovery/error messages, per-card recognition/review status, and the orientation/rotation result. Inventory is unchanged before the explicit batch commit control; no consolidated inventory-state badge is implemented. Production UX was not modified outside this remediation.
+
+### Five-card physical acceptance — staging only
+
+Use the exact-HEAD Preview only after CI is clean, Preview state is READY, its Supabase reference is confirmed staging/test (not production), trusted Preview origin pairing succeeds, and the Preview recognition provider is healthy. Use a disposable staging workspace and five known cards; do not use production `CS-000023` or production inventory.
+
+1. Connect the physical scanner in normal Chrome. Confirm `Agent: CONNECTED`, the named scanner, and capture `READY`.
+2. Scan one normal upright card. Verify one physical capture reaches the browser automatically, appears upright in Review, recognition starts, and exact identity is correct or safely requires review.
+3. Repeat with card physically upside down, then 90° clockwise, then 90° counter-clockwise. For each, verify the reviewed image is upright and identity is correct or safely requires review; no duplicate capture is created.
+4. Use a card with a difficult printing/finish. Verify the UI requests human review rather than inventing the printing or finish.
+5. Before committing, verify the staging inventory row/unit/event counts are unchanged and the capture/review records belong to the staging batch. Resolve all review items, commit once, then verify one intended inventory business effect per kept card and no duplicates.
+
+For every card, record capture status, orientation result, recognition status, identity outcome, and before/after inventory evidence. Stop immediately on wrong-batch/workspace binding, duplicate capture, unexpected inventory mutation, or recognition/provider error. Only after all five cards pass should the tester proceed to a separate 25–50 card set.
+
+**Physical acceptance remains MANUAL REQUIRED.** Automated pixel fixtures, installed-agent tests, and recovery-clone tests are not physical acceptance. Required evidence is a real scanner + real cards + actual installed agent + exact Preview + staging backend + actual review + an explicitly authorized staging commit.
+
+**Status: BLOCKED.** Commit/push, exact-HEAD Preview, staging Supabase confirmation, Preview provider checks, and physical retest remain outstanding. PR #137 must remain unmerged. Production, production inventory, POS, and Square remain unchanged.

@@ -43,6 +43,9 @@ export type ChaosSortItem = {
   captureId?: string;
   sourceFileHash: string;
   sourceImageUrl: string | null;
+  orientationRotation?: 0 | 90 | 180 | 270;
+  orientationConfidence?: number;
+  orientationSource?: "vision-four-view" | "manual" | "ambiguous";
   processingState: ChaosSortProcessingState;
   recognitionState: ChaosSortRecognitionState;
   humanState: ChaosSortHumanState;
