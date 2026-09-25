@@ -82,5 +82,21 @@ try{
    'intakes',(select jsonb_agg(to_jsonb(p) order by id) from collection_intakes p)) value`)).rows[0].value;
   const before=await snapshot();await admin.query(sql(migration));assert.deepEqual(await snapshot(),before);
  });
+ await check('legacy write gate and receipt cost protection preserve authorized edits',async()=>{
+  const gate=sql('supabase/migrations/20260925002945_acquisition_legacy_write_gate.sql');await admin.query(gate);await admin.query(gate);
+  await assert.rejects(client.query("insert into purchase_ledger(user_id,created_by) values($1,$1)",[owner]),/permission denied/);
+  const d=await draft();const p=await finish(d);const id=p.items[0].inventoryItemId;
+  await assert.rejects(admin.query("update inventory_items set data=jsonb_set(data,'{costBasis}','99') where id=$1",[id]),/COST_IMMUTABLE/);
+  await admin.query("update inventory_items set inventory_value=20,data=data||'{\"condition\":\"LP\",\"notes\":\"correction\"}' where id=$1",[id]);
+  assert.equal((await admin.query('select total_cost from purchase_ledger where id=$1',[p.purchaseId])).rows[0].total_cost,'4.00');
+ });
+ await check('multi-card collection conserves agreed cost and exact receipt identity',async()=>{
+  const d=await draft();d.items.push({...d.items[0],id:randomUUID(),cardName:'Second printing',collectorNumber:'2',quantity:1,unitMarketValue:2});
+  await client.query('select save_collection_intake($1)',[{...d,revision:1}]);const p=await finish(d,true,5);
+  const lines=(await admin.query('select quantity,total_cost,details,inventory_item_id from purchase_ledger_lines where purchase_id=$1',[p.purchaseId])).rows;
+  assert.equal(lines.length,2);assert.equal(lines.reduce((sum,l)=>sum+Number(l.total_cost),0),5);
+  assert.equal(lines.reduce((sum,l)=>sum+l.quantity,0),3);assert.deepEqual(lines.map(l=>l.details.collectorNumber).sort(),['1','2']);
+  assert.equal(new Set(lines.map(l=>l.inventory_item_id)).size,2);
+ });
  console.log(`PASS ${passed} acquisition database checks`);
 }finally{await client?.end();await admin?.end();await db.stop();}

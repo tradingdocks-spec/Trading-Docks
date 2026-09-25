@@ -101,6 +101,9 @@ export async function POST(request: Request) {
   });
 
   if (result.error) {
+    if (result.error.code === "ACQUISITION_WORKFLOW_REQUIRED") {
+      return NextResponse.json({ error: result.error.message, code: result.error.code }, { status: 409 });
+    }
     const missingSchema =
       result.error.code === "42P01" ||
       result.error.code === "PGRST205" ||

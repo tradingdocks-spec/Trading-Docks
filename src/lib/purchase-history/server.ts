@@ -1,4 +1,5 @@
 import type { PlatformAccessContext } from "@/lib/platform/client-access";
+import { legacyAcquisitionWriteDecision } from "./legacy-gate.ts";
 import {
   normalizeCount,
   normalizeMoney,
@@ -68,7 +69,7 @@ function normalizeProductType(value: unknown) {
 function timestampValue(value: unknown) {
   return typeof value === "string" && value.trim()
     ? value
-    : new Date().toISOString();
+    : ""; // Unknown historical dates must not become today's acquisition.
 }
 
 function lineFromRow(row: Record<string, unknown>): PurchaseLedgerLine {
@@ -181,6 +182,8 @@ export async function createPurchaseLedgerRecord({
   userId: string;
   purchase: NewPurchaseInput;
 }) {
+  const gate = legacyAcquisitionWriteDecision();
+  if (!gate.allowed) return { data: null, error: { code: gate.code, message: gate.message } };
   const client = supabase as SupabaseClientLike;
   const now = new Date().toISOString();
   const { data, error } = await client

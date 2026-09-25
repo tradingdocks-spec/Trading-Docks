@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { legacyAcquisitionWriteDecision } from "@/lib/purchase-history/legacy-gate";
 
 import { requireApiCapability } from "@/lib/platform/server-access";
 import {
@@ -67,6 +68,8 @@ export async function POST(request: Request) {
   if (action === "add-wishlist") {
     return addProductToWishlist(capability, payload, product);
   }
+  const gate = legacyAcquisitionWriteDecision();
+  if (!gate.allowed) return NextResponse.json({ error: gate.message, code: gate.code }, { status: 409 });
 
   if (action === "add-binder" && typeof payload.storageLocationId !== "string") {
     return NextResponse.json({ error: "Choose a binder or storage location before adding this product to a binder." }, { status: 400 });

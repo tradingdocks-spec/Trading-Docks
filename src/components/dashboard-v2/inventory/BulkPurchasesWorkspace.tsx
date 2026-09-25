@@ -1,4 +1,5 @@
 "use client";
+import { legacyAcquisitionWriteDecision } from "@/lib/purchase-history/legacy-gate";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -265,6 +266,8 @@ function CreatePurchaseModal({ onClose, onCreated }: { onClose: () => void; onCr
   const [form, setForm] = useState({ name: "", source: "", purchased_at: new Date().toISOString().slice(0, 10), estimated_card_count: "5000", purchase_cost: "", additional_expenses: "0", purchase_type: "collection", payment_method: "", status: "unsorted", cost_basis_method: "proportional", notes: "" });
   const set = (key: string, value: string) => setForm((current) => ({ ...current, [key]: value }));
   async function submit(event: React.FormEvent) {
+    const gate = legacyAcquisitionWriteDecision();
+    if (!gate.allowed) { event.preventDefault(); setError(gate.message); return; }
     event.preventDefault(); setSaving(true); setError("");
     const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Sign in again to save this purchase."); setSaving(false); return; }
@@ -308,6 +311,8 @@ function ImportCardsModal({ purchases, initialPurchaseId, onClose, onImported }:
     });
   }
   async function importRows() {
+    const gate = legacyAcquisitionWriteDecision();
+    if (!gate.allowed) { setError(gate.message); return; }
     setSaving(true); setError("");
     const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Sign in again to import inventory."); setSaving(false); return; }
