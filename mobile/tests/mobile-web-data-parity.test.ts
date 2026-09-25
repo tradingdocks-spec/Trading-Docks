@@ -7,6 +7,8 @@ import { mobileSyncStatusFromScannerLine, mobileSyncStatusLabel } from '../servi
 const mobileSupabase = readFileSync('lib/supabase.ts', 'utf8');
 const webBrowserSupabase = readFileSync('../src/lib/supabase/client.ts', 'utf8');
 const scannerData = readFileSync('services/scanner-data.ts', 'utf8');
+const scannerContract = readFileSync('services/scanner-foundation.ts', 'utf8');
+const scannerDelivery = readFileSync('services/scanner-replay.ts', 'utf8');
 const scannerSession = readFileSync('app/scanner-session.tsx', 'utf8');
 const collectionRoute = readFileSync('app/(tabs)/collection.tsx', 'utf8');
 const tradeWishlistData = readFileSync('services/trade-binder-wishlist-data.ts', 'utf8');
@@ -24,16 +26,18 @@ test('mobile and web Supabase clients use public project identity keys', () => {
 
 test('mobile collection reads the canonical shared inventory source', () => {
   assert.match(collectionRoute, /loadCollectorCollectionPage/);
-  assert.match(scannerData, /create_inventory_item_with_event/);
+  assert.match(scannerContract, /create_inventory_item_with_event/);
   assert.match(scannerData, /eq\('user_id', userId\)/);
 });
 
 test('scanner review finalization writes canonical shared inventory records', () => {
   assert.match(scannerSession, /buildScannerCollectionConfirmation/);
   assert.match(scannerSession, /saveScannerConfirmation/);
-  assert.match(scannerData, /supabase\.rpc\('create_inventory_item_with_event'/);
-  assert.match(scannerData, /p_inventory: payload/);
-  assert.match(scannerData, /runMobileTradeWishlistMutation/);
+  assert.match(scannerDelivery, /supabase\.rpc\(endpoint, args\)/);
+  assert.match(scannerContract, /p_inventory: payload/);
+  assert.match(scannerData, /original.addToWishlist \|\| original.tradeStatus !== 'not_for_trade'/);
+  assert.match(scannerData, /uncertain: !command/);
+  assert.doesNotMatch(scannerData, /runMobileTradeWishlistMutation/);
   assert.match(scannerData, /clearScannerDraft/);
 });
 

@@ -101,11 +101,13 @@ export default function ScannerSessionReview() {
       let runningTotal = context.currentTotalQuantity;
       let nextSession = confirmedSession;
       for (const line of confirmedSession.lines) {
-        if (line.destination !== 'collection') continue;
+        if (line.destination !== 'collection' || line.syncState === 'synced') continue;
         const confirmation = buildScannerCollectionConfirmation(line, userId);
         if (!confirmation) continue;
         const result = await saveScannerConfirmation({
           confirmation,
+          operationId: `scanner:${confirmedSession.id}:${line.id}`,
+          mayCreateCommand: confirmedSession.inventoryCommandVersion === 1 && line.syncState === 'local_only',
           membershipTier: accountType,
           currentTotalQuantity: runningTotal,
         });

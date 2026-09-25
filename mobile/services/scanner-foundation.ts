@@ -2,6 +2,7 @@ import {
   MEMBERSHIP_PLANS,
   normalizeMembershipTier,
 } from './membership-catalog.ts';
+import type { InventoryCommand } from './inventory-command.ts';
 import {
   normalizeCardCondition,
   normalizeCardFinish,
@@ -248,6 +249,25 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
       scannerRecognitionMode: confirmation.candidate.recognitionMode,
     },
   };
+}
+
+/** Called once after authoritative resolution; replay uses its persisted output. */
+export function buildScannerInventoryCommand(confirmation: ScannerConfirmation, operationId: string, workspaceId: string, createdAt: string): InventoryCommand {
+  const payload = { ...buildScannerAddPayload(confirmation, operationId), workspace_id: workspaceId };
+  payload.data.scannerAddedAt = createdAt;
+  return { version: 1, operationId, userId: confirmation.userId, workspaceId, createdAt,
+    inventoryItemId: operationId, endpoint: 'create_inventory_item_with_event',
+    args: { p_inventory: payload, p_source: 'scanner', p_idempotency_key: operationId,
+      p_related_entity_type: 'scanner_confirmation', p_related_entity_id: operationId } };
+}
+
+/** Detect edits to a queued intent without treating price/recognition UI as stock. */
+export function scannerIntentFingerprint(c: ScannerConfirmation) {
+  return JSON.stringify({ user: c.userId, printing: c.candidate.id, game: c.candidate.gameId ?? null,
+    providerIds: Object.entries(c.candidate.providerIds ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+    quantity: c.quantity, condition: c.condition, finish: c.finish, language: c.language,
+    location: c.storageLocationId, binderPage: c.binderPage ?? null, binderSlot: c.binderSlot ?? null,
+    tradeStatus: c.tradeStatus, wishlist: c.addToWishlist });
 }
 
 export function scannerQueueKey(confirmation: ScannerConfirmation) {

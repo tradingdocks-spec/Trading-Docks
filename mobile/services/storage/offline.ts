@@ -24,6 +24,8 @@ function queue(): OfflineQueue {
 }
 function newId() { return globalThis.crypto?.randomUUID?.() ?? `op-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`; }
 export const getOfflineQueue = () => queue().list();
+export const findOfflineOperation: OfflineQueue['find'] = (...args) => queue().find(...args);
+export const prepareOfflineOperation: OfflineQueue['prepare'] = (...args) => queue().prepare(...args);
 export const enqueueOfflineOperation: OfflineQueue['enqueue'] = (...args) => queue().enqueue(...args);
 export const processOfflineOperation: OfflineQueue['process'] = (...args) => queue().process(...args);
 export const discardOfflineOperation: OfflineQueue['discard'] = (...args) => queue().discard(...args);

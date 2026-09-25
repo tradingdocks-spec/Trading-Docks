@@ -1,3 +1,5 @@
+import { buildScannerInventoryCommand } from '../mobile/services/scanner-foundation.ts';
+import { deliverInventoryCommand } from '../mobile/services/inventory-command.ts';
 // Isolated loopback PostgreSQL; no app env, remote connection or customer data.
 import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync } from 'node:fs';
@@ -44,7 +46,9 @@ try{
  await admin.query("insert into workspace_members values($1,$2,'owner'),($3,$4,'owner'),($1,$5,'member')",[workspace,owner,otherWorkspace,other,employee]);
  await admin.query('insert into user_preferences(user_id,active_workspace_id) values($1,$2),($3,$4),($5,$2)',[owner,workspace,other,otherWorkspace,employee]);
  client=db.getPgClient('postgres','127.0.0.1');await client.connect();await client.query('set role authenticated');await client.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
- if(process.argv.includes('--idempotency')) {
+ // Current client recovery requires the reviewed Phase 1K RPC contract in every
+ // variant. Keep --idempotency accepted for existing validation invocations.
+ {
   const writer=sql('supabase/migrations/20260921203415_inventory_authoritative_workspace_writer.sql');
   const start=writer.indexOf(" if to_regprocedure('public.create_inventory_item_with_event"),end=writer.indexOf(" if to_regprocedure('public.move_inventory_lot_quantity",start);
   await admin.query(`do $$ declare definition text; begin ${writer.slice(start,end)} end $$;`);
@@ -116,13 +120,18 @@ try{
   const q=createOfflineQueue({storage:{getItem:async()=>persisted,setItem:async(_key,value)=>{persisted=value;}},lock:createQueueLock(),runtimeId:'db-fixture',newId:randomUUID});
   const id=randomUUID();const confirmation={userId:owner,candidate:{id:randomUUID(),name:'Queue fixture',setCode:'TST',setName:'Test',collectorNumber:'9',finishes:['normal'],language:'en',confidence:.9,recognitionMode:'manual_search'},quantity:2,condition:'near_mint',finish:'normal',language:'en',storageLocationId:null,tradeStatus:'not_for_trade',addToWishlist:false};
   const before=await totals();
-  await q.enqueue(SCANNER_COLLECTION_QUEUE_TYPE,{confirmation,inventoryItemId:id,idempotencyKey:id},{userId:owner,operationId:id});
-  const deps={getQueue:q.list,processOperation:q.process,getAuthenticatedUserId:async()=>owner,loadCurrentTotalQuantity:async()=>0,inventoryItemExists:async(user,item)=>(await client.query('select id from inventory_items where user_id=$1 and id=$2',[user,item])).rowCount>0,validatePrintingIdentity:async(c)=>c,
-   insertInventoryItem:async(payload)=>{insertCalls++;await client.query("select create_inventory_item_with_event($1,'scanner_replay',$2,'scanner_queue_entry',$3)",[payload,`scanner-replay:${id}`,id]);throw Error('simulated client timeout after server commit');},runTradeStatus:async()=>assert.fail('not requested'),runWishlist:async()=>assert.fail('not requested')};
+  const command=buildScannerInventoryCommand(confirmation,id,workspace,'2026-09-24T00:00:00Z');
+  await q.enqueue(SCANNER_COLLECTION_QUEUE_TYPE,{confirmation,inventoryItemId:id,idempotencyKey:id,command},{userId:owner,operationId:id});
+  const deps={getQueue:q.list,processOperation:q.process,getAuthenticatedUserId:async()=>owner,
+   deliverCommand:async(op)=>deliverInventoryCommand(op,{context:async()=>({userId:owner,workspaceId:workspace}),rpc:async(_endpoint,args)=>{
+     insertCalls++;const data=(await client.query('select to_jsonb(create_inventory_item_with_event($1,$2,$3,$4,$5)) r',[args.p_inventory,args.p_source,args.p_idempotency_key,args.p_related_entity_type,args.p_related_entity_id])).rows[0].r;
+     if(insertCalls===1)throw Error('simulated client timeout after server commit');
+     return {data,error:null};
+   }})};
   assert.equal((await replayQueuedScannerAddsWithDependencies({userId:owner,membershipTier:'collector',trigger:'network_reconnect'},deps)).failed,1);
   assert.equal((await q.list())[0].status,'retryable');
   assert.equal((await replayQueuedScannerAddsWithDependencies({userId:owner,membershipTier:'collector',trigger:'app_resume'},deps)).succeeded,1);
-  assert.equal(insertCalls,1);assert.deepEqual(await q.list(),[]);
+  assert.equal(insertCalls,2);assert.deepEqual(await q.list(),[]);
   const after=await totals();assert.equal(after.items,before.items+1);assert.equal(after.events,before.events+1);assert.equal(after.purchases,before.purchases);assert.equal(after.links,before.links);
   assert.equal((await client.query('select quantity from inventory_items where id=$1 and user_id=$2',[id,owner])).rows[0].quantity,2);
  });

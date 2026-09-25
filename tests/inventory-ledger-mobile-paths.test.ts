@@ -24,12 +24,14 @@ test("mobile scanner saves and replay use the creation ledger RPC", () => {
   const scanner = read("mobile/services/scanner-data.ts");
   const replay = read("mobile/services/scanner-replay.ts");
 
-  assert.match(scanner, /supabase\.rpc\('create_inventory_item_with_event'/);
-  assert.match(scanner, /p_source: 'scanner'/);
-  assert.match(scanner, /scannerIdempotencyKey\(confirmation, inventoryItemId\)/);
-  assert.match(replay, /supabase\.rpc\('create_inventory_item_with_event'/);
-  assert.match(replay, /p_source: 'scanner_replay'/);
-  assert.match(replay, /scanner-replay:\$\{inventoryItemId\}/);
+  const contract = read("mobile/services/scanner-foundation.ts");
+  assert.match(contract, /endpoint: 'create_inventory_item_with_event'/);
+  assert.match(contract, /p_source: 'scanner'/);
+  assert.match(contract, /p_idempotency_key: operationId/);
+  assert.match(scanner, /prepareOfflineOperation/);
+  assert.match(replay, /deliverInventoryCommand/);
+  assert.match(replay, /supabase\.rpc\(endpoint, args\)/);
+  assert.doesNotMatch(replay, /inventoryItemExists|buildScannerAddPayload|validateQueuedPrintingIdentity|scanner-replay:/);
 });
 
 test("mobile storage assignment uses the inventory mutation ledger RPC", () => {

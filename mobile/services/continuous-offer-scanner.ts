@@ -202,6 +202,7 @@ export type ScannerSessionLine = {
 };
 
 export type ContinuousScannerSession = {
+  inventoryCommandVersion?: 1;
   id: string;
   userId: string;
   name: string;
@@ -586,6 +587,7 @@ export function createContinuousScannerSession(input: {
 }): ContinuousScannerSession {
   const now = input.createdAt ?? new Date().toISOString();
   return {
+    inventoryCommandVersion: 1,
     id: input.id,
     userId: input.userId,
     name: input.name.trim() || scannerModeLabel(input.mode),
@@ -1099,9 +1101,12 @@ export function calculateSessionTotals(session: ContinuousScannerSession): Scann
 
 export function buildScannerCollectionConfirmation(line: ScannerSessionLine, userId: string): ScannerConfirmation | null {
   if (!line.exactPrintingId || line.reviewStatus !== 'confirmed') return null;
+  const exact = line.recognition.topThree.find((card) => card.id === line.exactPrintingId)
+    ?? (line.recognition.topCandidate?.id === line.exactPrintingId ? line.recognition.topCandidate : null);
   return {
     userId,
     candidate: {
+      ...exact,
       id: line.exactPrintingId,
       name: line.cardName,
       setCode: line.setCode,

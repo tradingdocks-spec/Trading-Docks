@@ -81,13 +81,25 @@ export function createOfflineQueue(input: {
     if (change.event) emit(change.event, change.rows, change.row);
     return change.result;
   });
-  return {
+  const queue = {
+    async find(id: string, userId: string, type: string) {
+      return input.lock(OFFLINE_QUEUE_KEY, async () => (await read()).find((r) => r.id === id && r.userId === userId && r.type === type) ?? null);
+    },
+    async prepare(type: string, userId: string, operationId: string, build: () => Promise<{ payload: Record<string, unknown>; uncertain?: boolean; reviewReason?: string }>): Promise<OfflineOperation> {
+      return input.lock(`${OFFLINE_QUEUE_KEY}:prepare:${operationId}`, async () => {
+        const existing = await queue.find(operationId, userId, type);
+        if (existing) return existing;
+        const prepared = await build();
+        return queue.enqueue(type, prepared.payload, { userId, operationId, dedupeKey: operationId, uncertain: prepared.uncertain, reviewReason: prepared.reviewReason });
+      });
+    },
     async list() { return input.lock(OFFLINE_QUEUE_KEY, async () => (await read()).filter((r) => r.status !== 'committed')); },
-    async enqueue(type: string, payload: Record<string, unknown>, options: { userId?: string; dedupeKey?: string; operationId?: string; uncertain?: boolean } = {}) {
+    async enqueue(type: string, payload: Record<string, unknown>, options: { userId?: string; dedupeKey?: string; operationId?: string; uncertain?: boolean; reviewReason?: string } = {}) {
       if (!options.userId || !type) throw new Error('Queue operations require a user and type.');
-      const row: OfflineOperation = { id: options.operationId ?? input.newId(), type, payload, userId: options.userId, dedupeKey: options.dedupeKey, createdAt: now(), updatedAt: now(), attempts: 0,
-        status: options.uncertain ? 'review_required' : 'pending',
-        ...(options.uncertain ? { errorCode: 'uncertain_legacy_response', lastError: 'Server outcome requires reconciliation before replay.' } : {}),
+      // Snapshot before the first await: UI references must never alter a command.
+      const row: OfflineOperation = { id: options.operationId ?? input.newId(), type, payload: JSON.parse(JSON.stringify(payload)), userId: options.userId, dedupeKey: options.dedupeKey, createdAt: now(), updatedAt: now(), attempts: 0,
+        status: options.uncertain || options.reviewReason ? 'review_required' : 'pending',
+        ...(options.reviewReason ? { errorCode: 'REVIEW_REQUIRED', lastError: options.reviewReason } : options.uncertain ? { errorCode: 'uncertain_legacy_response', lastError: 'Server outcome requires reconciliation before replay.' } : {}),
       };
       return update((rows) => {
         const existing = rows.find((r) => r.id === row.id || (r.status !== 'committed' && row.dedupeKey && r.dedupeKey === row.dedupeKey && r.userId === row.userId && r.type === row.type));
@@ -139,6 +151,7 @@ export function createOfflineQueue(input: {
       });
     },
   };
+  return queue;
 }
 
 export type OfflineQueue = ReturnType<typeof createOfflineQueue>;

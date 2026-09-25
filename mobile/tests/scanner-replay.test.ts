@@ -4,7 +4,8 @@ import test from 'node:test';
 import {
   SCANNER_COLLECTION_QUEUE_TYPE,
   normalizeScannerCandidate,
-  scannerIdempotencyKey,
+  buildScannerAddPayload,
+  type ScannerAddPayload,
   type ScannerConfirmation,
 } from '../services/scanner-foundation.ts';
 import {
@@ -15,6 +16,7 @@ import {
   type ScannerReplayDependencies,
   type ScannerReplayTrigger,
 } from '../services/scanner-replay.ts';
+import { deliverInventoryCommand } from '../services/inventory-command.ts';
 import { addOfflineOperation, createOfflineQueue, createQueueLock, type OfflineOperation } from '../services/storage/offline-core.ts';
 
 const candidate = normalizeScannerCandidate({
@@ -40,8 +42,8 @@ const confirmation: ScannerConfirmation = {
   finish: 'foil',
   language: 'en',
   storageLocationId: 'binder-1',
-  tradeStatus: 'available',
-  addToWishlist: true,
+  tradeStatus: 'not_for_trade',
+  addToWishlist: false,
 };
 
 test('offline scanner adds are queued with user-scoped idempotency data', () => {
@@ -50,7 +52,7 @@ test('offline scanner adds are queued with user-scoped idempotency data', () => 
 
   assert.equal(entry?.userId, 'user-1');
   assert.equal(entry?.inventoryItemId, 'scan-1');
-  assert.equal(entry?.idempotencyKey, scannerIdempotencyKey(confirmation, 'scan-1'));
+  assert.equal(entry?.idempotencyKey, 'user-1-scan-1');
   assert.equal(scannerQueuedAddFromOperation(operation, 'user-2'), null);
 });
 
@@ -87,13 +89,13 @@ test('auth user mismatch stops replay without exposing another user queue', asyn
   assert.equal(harness.inserted.length, 0);
 });
 
-test('duplicate replay prevention treats an existing inventory item as success', async () => {
+test('existing inventory is not proof of success; retry obtains an authoritative RPC result', async () => {
   const harness = replayHarness([operationFor(confirmation, 'scan-1')], { existingIds: new Set(['scan-1']) });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'manual_retry' }, harness.deps);
 
   assert.equal(result.succeeded, 1);
-  assert.equal(harness.inserted.length, 0);
-  assert.equal(harness.tradeStatuses.length, 1);
+  assert.equal(harness.inserted.length, 1);
+  assert.equal(harness.tradeStatuses.length, 0);
   assert.equal(harness.queue.length, 0);
 });
 
@@ -110,16 +112,16 @@ test('successful replay removes queue entry and preserves exact printing fields'
   assert.equal(harness.inserted[0].data.finish, 'foil');
   assert.equal(harness.inserted[0].data.condition, 'near_mint');
   assert.equal(harness.inserted[0].data.language, 'en');
-  assert.equal(harness.wishlistAdds.length, 1);
+  assert.equal(harness.wishlistAdds.length, 0);
 });
 
-test('uncertain replay with non-idempotent ancillary writes remains visible for review', async () => {
+test('unknown transport outcome preserves the exact command for safe retry', async () => {
   const harness = replayHarness([operationFor(confirmation, 'scan-1')], { insertError: new Error('network unavailable') });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'manual_retry' }, harness.deps);
   const entry = scannerQueuedAddFromOperation(harness.queue[0], 'user-1');
 
   assert.equal(result.failed, 1);
-  assert.equal(entry?.syncState, 'action_required');
+  assert.equal(entry?.syncState, 'failed');
   assert.equal(entry?.lastError, 'network unavailable');
 });
 
@@ -127,20 +129,20 @@ test('already committed stock is reconciled before applying the free quantity li
   const harness = replayHarness([operationFor({ ...confirmation, addToWishlist: false, tradeStatus: 'not_for_trade' }, 'scan-1')], { existingIds: new Set(['scan-1']), currentTotalQuantity: 500 });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'free', trigger: 'app_resume' }, harness.deps);
   assert.equal(result.succeeded, 1);
-  assert.equal(harness.inserted.length, 0);
+  assert.equal(harness.inserted.length, 1);
 });
 
-test('queued replay validates before insert and preserves existing quantity behavior', async () => {
+test('queued replay does not rerun printing resolution and preserves original quantity', async () => {
   const harness = replayHarness([operationFor({ ...confirmation, quantity: 3 }, 'scan-1')]);
   await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'manual_retry' }, harness.deps);
 
-  assert.deepEqual(harness.events, ['validate', 'insert']);
+  assert.deepEqual(harness.events, ['rpc']);
   assert.equal(harness.inserted[0].quantity, 3);
 });
 
-test('failed replay validation moves the intact scan to action-required review without insert', async () => {
+test('server validation rejection moves the intact command to review', async () => {
   const authorityError = Object.assign(new Error('Provider ID mismatch. Review this exact printing.'), { scannerCode: 'invalid_printing' });
-  const harness = replayHarness([operationFor(confirmation, 'scan-1')], { validationError: authorityError });
+  const harness = replayHarness([operationFor(confirmation, 'scan-1')], { insertError: authorityError });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'network_reconnect' }, harness.deps);
   const entry = scannerQueuedAddFromOperation(harness.queue[0], 'user-1');
 
@@ -151,13 +153,13 @@ test('failed replay validation moves the intact scan to action-required review w
 });
 
 test('Free-limit replay error becomes action required', async () => {
-  const harness = replayHarness([operationFor({ ...confirmation, quantity: 2 }, 'scan-1')], { currentTotalQuantity: 499 });
+  const harness = replayHarness([operationFor({ ...confirmation, quantity: 2 }, 'scan-1')], { insertError: new Error('TD_COLLECTOR_FREE_LIMIT_EXCEEDED') });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'free', trigger: 'manual_retry' }, harness.deps);
   const entry = scannerQueuedAddFromOperation(harness.queue[0], 'user-1');
 
   assert.equal(result.actionRequired, 1);
   assert.equal(entry?.syncState, 'action_required');
-  assert.equal(entry?.errorCode, 'free_limit');
+  assert.equal(entry?.errorCode, 'VALIDATION_REJECTED');
 });
 
 test('retry one only replays the requested queued scan', async () => {
@@ -196,20 +198,23 @@ test('discard requires confirmation and removes only that user scanner entry', (
 });
 
 test('authoritative scanner replay errors are classified for UI recovery', () => {
-  assert.deepEqual(classifyScannerReplayError(new Error('TD_COLLECTOR_FREE_LIMIT_EXCEEDED')).code, 'free_limit');
-  assert.deepEqual(classifyScannerReplayError(new Error('TD_COLLECTOR_UNAUTHORIZED')).code, 'unauthorized');
+  assert.deepEqual(classifyScannerReplayError(new Error('TD_COLLECTOR_FREE_LIMIT_EXCEEDED')).code, 'VALIDATION_REJECTED');
+  assert.deepEqual(classifyScannerReplayError(new Error('TD_COLLECTOR_UNAUTHORIZED')).code, 'AUTHORIZATION_FAILURE');
   assert.deepEqual(classifyScannerReplayError(new Error('Quantity must be positive')).code, 'invalid_quantity');
   assert.deepEqual(classifyScannerReplayError(new Error('Missing membership/profile')).code, 'missing_membership');
 });
 
 function operationFor(input: ScannerConfirmation, inventoryItemId: string): OfflineOperation {
-  const idempotencyKey = scannerIdempotencyKey(input, inventoryItemId);
+  const idempotencyKey = `${input.userId}-${inventoryItemId}`;
+  const inventory = { ...buildScannerAddPayload(input, inventoryItemId), workspace_id: 'workspace-1' };
+  const command = { version: 1, operationId: idempotencyKey, userId: input.userId, workspaceId: 'workspace-1', createdAt: '2026-08-05T00:00:00.000Z', inventoryItemId,
+    endpoint: 'create_inventory_item_with_event', args: { p_inventory: inventory, p_idempotency_key: idempotencyKey, p_source: 'scanner', p_related_entity_type: 'scanner_confirmation', p_related_entity_id: inventoryItemId } };
   return {
     id: `${input.userId}-${inventoryItemId}`,
     type: SCANNER_COLLECTION_QUEUE_TYPE,
     status: 'pending',
     createdAt: '2026-08-05T00:00:00.000Z',
-    payload: { confirmation: input, inventoryItemId, idempotencyKey } as unknown as Record<string, unknown>,
+    payload: { confirmation: input, inventoryItemId, idempotencyKey, command } as unknown as Record<string, unknown>,
     userId: input.userId,
     dedupeKey: idempotencyKey,
   };
@@ -228,12 +233,11 @@ function replayHarness(
 ) {
   const harness = {
     queue: [...initialQueue],
-    inserted: [] as Parameters<ScannerReplayDependencies['insertInventoryItem']>[0][],
+    inserted: [] as ScannerAddPayload[],
     tradeStatuses: [] as string[],
     wishlistAdds: [] as string[],
     events: [] as string[],
   };
-  const existingIds = options.existingIds ?? new Set<string>();
   let durable = JSON.stringify(initialQueue);
   let sequence = 0;
   const coordinator = createOfflineQueue({
@@ -248,28 +252,17 @@ function replayHarness(
     async getAuthenticatedUserId() {
       return options.authUserId ?? 'user-1';
     },
-    async loadCurrentTotalQuantity() {
-      return options.currentTotalQuantity ?? 0;
-    },
-    async inventoryItemExists(_userId, inventoryItemId) {
-      return existingIds.has(inventoryItemId);
-    },
-    async validatePrintingIdentity(input) {
-      harness.events.push('validate');
-      if (options.validationError) throw options.validationError;
-      return options.authoritativeConfirmation ?? input;
-    },
-    async insertInventoryItem(payload) {
-      harness.events.push('insert');
-      if (options.insertError) throw options.insertError;
-      harness.inserted.push(payload);
-      existingIds.add(payload.id);
-    },
-    async runTradeStatus(_confirmation, inventoryItemId) {
-      harness.tradeStatuses.push(inventoryItemId);
-    },
-    async runWishlist(input) {
-      harness.wishlistAdds.push(input.candidate.id);
+    async deliverCommand(operation) {
+      return deliverInventoryCommand(operation, {
+        context: async () => ({ userId: options.authUserId ?? 'user-1', workspaceId: 'workspace-1' }),
+        async rpc(_endpoint, args) {
+          harness.events.push('rpc');
+          if (options.insertError) throw options.insertError;
+          const payload = args.p_inventory as ScannerAddPayload;
+          harness.inserted.push(payload);
+          return { data: payload, error: null };
+        },
+      });
     },
   };
   return Object.assign(harness, { deps });
