@@ -44,6 +44,16 @@ try{
  await admin.query("insert into workspace_members values($1,$2,'owner'),($3,$4,'owner'),($1,$5,'member')",[workspace,owner,otherWorkspace,other,employee]);
  await admin.query('insert into user_preferences(user_id,active_workspace_id) values($1,$2),($3,$4),($5,$2)',[owner,workspace,other,otherWorkspace,employee]);
  client=db.getPgClient('postgres','127.0.0.1');await client.connect();await client.query('set role authenticated');await client.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+ if(process.argv.includes('--idempotency')) {
+  const writer=sql('supabase/migrations/20260921203415_inventory_authoritative_workspace_writer.sql');
+  const start=writer.indexOf(" if to_regprocedure('public.create_inventory_item_with_event"),end=writer.indexOf(" if to_regprocedure('public.move_inventory_lot_quantity",start);
+  await admin.query(`do $$ declare definition text; begin ${writer.slice(start,end)} end $$;`);
+  const tenancy=sql('supabase/migrations/20260924013600_cloud_active_workspace_authority.sql');
+  await admin.query(tenancy.slice(tenancy.indexOf('create function public.can_current_user_access_workspace'),tenancy.indexOf('-- Refuse incomplete')).replaceAll('create function','create or replace function'));
+  await admin.query('create schema if not exists inventory_private');
+  await admin.query(tenancy.slice(tenancy.indexOf('create function inventory_private.require_active_item'),tenancy.indexOf('do $rpc_guards$')));
+  await admin.query(sql('supabase/migrations/20260925024439_inventory_mutation_idempotency.sql'));
+ }
  await check('migration replays without competing collection_purchases',async()=>assert.equal((await admin.query("select to_regclass('public.collection_purchases') r")).rows[0].r,process.argv.includes('--legacy-intake')?'collection_purchases':null));
  await check('draft/rejected intake creates no purchase',async()=>{await draft('draft');const d=await draft('declined');const before=await totals();await assert.rejects(finish(d),/NOT_PURCHASABLE/);assert.deepEqual(await totals(),before);});
  await check('atomic draft save and revision conflict',async()=>{const d=await draft();await assert.rejects(client.query('select save_collection_intake($1)',[{...d,revision:1,items:[{...d.items[0],quantity:0}]}]));assert.equal((await admin.query('select quantity from collection_intake_items where intake_id=$1',[d.id])).rows[0].quantity,2);await assert.rejects(client.query('select save_collection_intake($1)',[d]),/REVISION_CONFLICT/);});

@@ -1,6 +1,6 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1J SHARED SERVER MUTATION CONFLICT REPRODUCED — PHASE 1 INCOMPLETE**.
+Status: **PHASE 1K SHARED RPC REPAIR IMPLEMENTED AND REHEARSED LOCALLY — PHASE 1 INCOMPLETE**.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -734,3 +734,130 @@ Exact blockers: **J01** shared mutation-after-key-collision semantics; **J02** d
 **PHASE 1 INCOMPLETE**
 
 No production access or change, no inventory mutation outside synthetic disposable fixtures, no POS/Square change, no push/deploy, no private installer change, and no Phase 2 work. Review J01's shared command/event boundary before resuming implementation; a scanner-only parallel receipt implementation is not the proposed solution.
+
+## PHASE 1K — AUTHORITATIVE INVENTORY MUTATION RPC REPAIR
+
+**Implemented and rehearsed locally. Not deployed. PHASE 1 INCOMPLETE.** This phase implements the owner's approved shared-RPC repair; it does not promote code, change production, or waive the remaining initial-client-identity/private-recovery gates.
+
+### 1. Root cause and former transaction sequence
+
+Both `create_inventory_item_with_event` and `apply_collector_inventory_mutation` authenticated the owner (and, after the tenancy repair, checked active workspace). Creation then inserted stock; collector mutation locked the target row and updated quantity/location/attributes. Only afterward did either append `inventory_events`, using `ON CONFLICT (user_id,idempotency_key) DO NOTHING`. Neither checked an immutable command/result before the stock write.
+
+Consequences reproduced in Phase 1J: different stock IDs under one key bypassed the inventory primary key while the event unique index suppressed the second event; old absolute-value updates reran and replaced later quantity/location state; different payloads under one key were not compared. Concurrent transactions could each mutate separate stock rows and then compete only over the event append. A row lock alone serialized updates but did not recognize that an old operation had already committed.
+
+Inventory uniqueness is intentionally **owner + exact inventory ID**, not product/printing alone. Distinct lots, batches and positions must remain distinct. The repair does not collapse natural product identities or introduce a product-level uniqueness constraint.
+
+### 2. Migration and authoritative record
+
+New forward migration: `supabase/migrations/20260925024439_inventory_mutation_idempotency.sql`, created with the Supabase migration CLI. No historical migration was edited.
+
+The existing inventory event is the durable command receipt. `metadata.inventoryMutationV1` stores the canonical request, SHA-256 fingerprint, and complete committed `inventory_items` response snapshot. The event itself supplies owner, workspace, operation key, event ID and commit/creation timestamp. Request `kind` distinguishes creation from mutation, with the mutation subtype included. No second ledger, queue, writer, table, public endpoint or competing mutation path was introduced.
+
+The existing unique partial index on `(user_id,idempotency_key)` remains the final durable uniqueness constraint. This preserves the existing **owner-global operation-key namespace**, which is stronger than independently reusing a key in two workspaces for that owner. Same owner/key in another workspace conflicts without returning old identifiers; another tenant has an independent owner/key namespace and cannot read or mutate the first tenant's result. The workspace is also protected in the immutable request and existing active-workspace authorization.
+
+Legacy keyed events are unchanged. A retry encountering a legacy event without the saved request/result raises `INVENTORY_LEGACY_OPERATION_REVIEW_REQUIRED` (`55000`). No payload/result is guessed from today's inventory. Null/blank keys now fail with `INVENTORY_OPERATION_ID_REQUIRED`; callers must carry an actual durable key. Optional argument signatures remain for wire compatibility, but omission no longer authorizes an untraceable command. This is an intentional rollout compatibility requirement.
+
+### 3. New transaction/locking sequence
+
+1. Preserve the existing RPC names, parameter lists, composite return type, grants, business body and downstream collector/tenant triggers. The migration edits definitions in place and fails on an unrecognized body rather than replacing newer logic blindly.
+2. Resolve the authenticated active workspace. Creation rejects a foreign supplied actor/workspace; mutation checks the existing target authorization before reading prior results. Existing parameter casts are retained and do not access business rows.
+3. Build the canonical request, including actor, workspace, operation kind, complete creation input or mutation target/parameters, event source and related-entity fields where applicable.
+4. Take a **transaction-scoped advisory lock** derived from owner + key before stock insert/update. The existing append-only event cannot serve as a row lock until the business result exists; this avoids adding a dummy claim table. Hash collisions only serialize unrelated operations; they cannot identify or equate requests, which are checked separately.
+5. Look up the exact owner/key event. Check workspace first, then original request/fingerprint. Same request returns its stored result; different request raises `INVENTORY_IDEMPOTENCY_CONFLICT` (`22023`); ambiguous legacy receipt is review-only.
+6. For a new operation, execute the existing business mutation and append exactly one event with receipt metadata. The old conflict-suppressing `DO NOTHING` is removed. Any insert/event/constraint failure rolls back the entire function's effects; it cannot leave stock without its event.
+7. Commit the business result and receipt together. The advisory lock releases on transaction completion/rollback. No network call is held inside this database transaction.
+
+Under normal PostgREST **READ COMMITTED**, a blocked duplicate sees the winner's committed receipt and returns the same result. The test explicitly holds the first transaction open and observes the second waiting on an advisory lock before releasing it. Under **REPEATABLE READ**, an already-frozen snapshot may not see the winning stock/event. Such uniqueness conflicts become `INVENTORY_RETRY_TRANSACTION` (`40001`); the entire transaction must restart with the same operation key. A fresh-transaction retry returns the stored result. The repair never replays into an obsolete snapshot or claims the client may continue an aborted transaction.
+
+### 4. Payload and response semantics
+
+`inventory_private.canonical_command` recursively orders JSONB object representation and removes insignificant numeric scale. It preserves array order, explicit nulls, strings, and business differences. Known actor/workspace fields are canonical server values. It does not trim/reinterpret condition, finish, language, printing, quantity, target, location, source or related IDs. The full canonical JSONB and its SHA-256 must agree; a hash alone is not trusted as payload proof.
+
+Creation retains every supplied inventory/data field. Therefore clients must freeze timestamps and other attempt-varying fields before first delivery; they cannot rebuild a different request under the old key. This is deliberately strict. Current mobile `scannerAddedAt`, initial/replay source/key differences and per-save IDs remain part of J02, not silently normalized away here.
+
+The public response remains the existing `inventory_items` composite, allowing current callers to consume the original shape. A retry returns the **exact original snapshot**, including original timestamps/location/quantity, even if later operation B has changed the live row. It does not restore that snapshot into the database. UI needing current state must separately refresh the current row. Receipt event ID and replay/new disposition are retained in the ledger/diagnostics; no incompatible response envelope was added.
+
+Structured database logs distinguish `NEW_COMMIT`, `REPLAYED_COMMIT`, `IDEMPOTENCY_CONFLICT`, `AUTHORIZATION_FAILURE`, `BUSINESS_VALIDATION_FAILURE`, `TRANSACTION_FAILURE`, and `REVIEW_REQUIRED`. Logs use a deterministic operation-key hash, workspace, kind, safe identifiers and SQLSTATE; no payload, raw exception text, credentials, card names or arbitrary caller key text is logged. New/replayed commit logs include event and inventory identifiers. The raw key stays only in its existing authorized ledger record.
+
+### 5. Security and history
+
+No RLS policy or existing RPC grant was loosened. Private helper/schema privileges are revoked from browser roles and service_role. Public RPCs continue using their established authenticated/tenant checks and trusted writer triggers. The event ledger remains browser-read-only. An unauthorized context cannot retrieve a prior result by guessing a key. No business row, history, batch, purchase, event, or legacy metadata was backfilled or rewritten by the migration.
+
+The existing event ledger's trusted-administrator boundary still applies; this is not a claim of protection against a database administrator intentionally rewriting history. Ordinary authenticated callers cannot alter saved receipts. Keys used by different operation kinds conflict inside the repaired RPCs. Other inventory RPCs are not silently reclassified as certified by this phase; existing removal/movement/Chaos/POS/Square implementations were not rewritten.
+
+### 6. Seven exact diagnostics: before and after
+
+`tests/phase1j-idempotency-evidence.mjs` retains the original unsafe diagnostics as its default mode; `--repaired` installs the forward migration and runs the same operations with safe assertions. The original seven were not replaced with simpler scenarios.
+
+| Original diagnostic | Before | After |
+|---|---|---|
+| Identical creation twice | Second request `23505` | Exact original response; 1 stock row / 1 event |
+| Same key, different item/quantity | 2 rows / 3 units / 1 event | Conflict; first row/unit/event unchanged |
+| Concurrent key collision, distinct stock payloads | 2 rows / 2 units / 1 event | One winner; conflicting caller rejected; 1 row / 1 event |
+| Quantity A=2, B=3, retry A | Reverted to 2 without event | Live quantity remains 3; A's original result returned |
+| Same quantity key, changed quantity 7 | Accepted 7 without event | Conflict; newer quantity remains 3 |
+| Location A, B, retry A | Reverted to A without event | Live location remains B; no duplicate movement event |
+| Wrong active workspace | Denied | Still denied with `42501`; no result leakage |
+
+Sixteen additional acceptance checks cover migration replay/data preservation, identical concurrent requests, an observed database claim wait, canonical numeric scale, business-field conflicts, repeatable-read recovery, creation replay after later edits, different mutation kinds, legacy review, missing key, injected event failure/rollback, partial batch A/B/C recovery, actual RPC response loss plus shared-queue restart, receipt/event contents, cross-workspace namespace rules, tenant/anonymous denial and helper/event write restrictions (some grouped within one check). Together: **23 Phase 1K database regression/acceptance checks**.
+
+The lost-response test calls the repaired RPC again after recreating the shared queue coordinator. It does **not** use inventory-existence inspection to skip the request. The server returns the original result and the queue marks the operation committed. Per-item batch keys remain independent: successful A/C return prior results, while failed B can later commit once under its unchanged key/payload after its prerequisite becomes available.
+
+### 7. Recovery-clone rehearsal
+
+`tests/inventory-rpc-recovery-rehearsal.mjs` creates a new database from the existing isolated acquisition recovery rehearsal inside `supabase_db_trading-docks-recovery-test`. It asserts the container has no attached Docker networks. The source recovery database and original backup artifacts are untouched. The clone is retained locally; no raw rows, recovery dump or credentials enter Git.
+
+Final rehearsal target: `inventory_rpc_rehearsal_1790305193035`, Supabase-compatible PostgreSQL **17.6**. Migration and a second application both passed; full-row digests were unchanged for all eight checked business tables. These are the retained rehearsal's counts, **not a fresh production baseline**:
+
+| Table | Preserved rows |
+|---|---:|
+| inventory_items | 1,516 |
+| inventory_events | 1,551 |
+| inventory_movements | 0 |
+| chaos_sort_batches | 22 |
+| chaos_sort_inventory_positions | 1,488 |
+| purchase_ledger | 1 |
+| purchase_ledger_lines | 1 |
+| purchase_inventory_links | 1 |
+
+Both original RPCs contain the repair; stock/event RLS remains enabled; authenticated roles cannot execute the private receipt helper. Separate real-Auth/PostgREST/Next acceptance uses only synthetic local accounts and the production-shaped schema, including the reviewed acquisition authority and repaired RPCs. No production preflight, migration, or smoke mutation was performed.
+
+### 8. Validation and complete Phase 1 gate
+
+| Check | Result |
+|---|---|
+| Root `npm run check` | PASS: 1,038 tests, TypeScript, ESLint (551 existing warnings; 0 errors), npm audit (0 vulnerabilities) |
+| Active mobile | PASS: 596 tests, TypeScript, ESLint (3 existing warnings; 0 errors) |
+| Existing acquisition database variants after repair | PASS: 22 current + 22 legacy-intake checks; 44 retained checks |
+| Phase 1K authoritative RPC acceptance | PASS: all 7 original regressions + 16 additional checks; 23 total |
+| Before-repair diagnostic evidence | PASS: all 7 original unsafe behaviors reproduced in the isolated baseline |
+| Authenticated acquisition browser acceptance | PASS on final migration: real local Auth/PostgREST/Next, receipt/retry, financial history, tenant and anonymous protections |
+| Shared queue recovery / browser Web Locks | PASS: actual lost-response RPC replay, partial-batch recovery, and browser coordination |
+| Supabase-compatible recovery clone | PASS: migration applied twice; eight business-table full-row digests/counts unchanged; RPC/RLS/helper checks passed |
+| Webpack production build | PASS: 169 static pages |
+| Focused test-file ESLint | PASS |
+| Local security advisors | PASS: error-level security advisor returned no issues; this does not certify every advisor severity |
+| Current Scanner Bridge core/security suite | PASS: 376 assertions |
+| Current Windows lifecycle suite | PASS: 5 checks, using the existing local .NET 10 SDK and ignored build payload |
+| Retained private `3269e252` core suite | PASS independently: 403 assertions; source archived to a temporary local folder |
+| Private/current identical-fixture recovery parity | NOT CERTIFIED: independent suites do not close J03; durable journal/authorization behavior differs and whole-tree replacement would remove the accepted lifecycle repair |
+| Scoped secret/artifact audit | PASS: 6 changed/new text files and 355 generated static JS/JSON bundles; 0 high-signal secret findings and 0 sensitive artifact paths in the proposed commit |
+| `git diff --check` | PASS |
+
+The secret check is scoped evidence, not a blanket security certification. No recovery dumps, fixture credentials, installer binaries, certificates or private artifacts are included. Generated tracked build files were restored. The synthetic local acceptance Supabase stack was stopped after validation; the isolated recovery container and retained rehearsal clones remain local. No installed-agent change, physical scan, production mutation or deployment occurred.
+
+The database baseline is preserved and the server repair passes its local gate. The complete Phase 1 gate remains **INCOMPLETE** because J02 and J03 below remain unresolved; independent scanner test passes do not waive either gate.
+
+### 9. Remaining blockers and rollout limits
+
+**J01's two shared RPC boundaries are repaired locally. Phase 1 is not complete.**
+
+- **J02 remains:** initial scanner save still creates a new identity per invocation; continuous finalize does not persist/pass an immutable per-line command through the first online attempt; initial/replay source and payload timestamps differ. Separate wishlist/trade follow-ups still have independent outcome/transaction gaps. The repaired database correctly rejects conflicts, but cannot infer that two different keys are the same physical intent without collapsing legitimate distinct copies. No client rewrite or false certification was made in this database phase.
+- **J03 remains:** current/main bridge contract suite and retained private `3269e252` suite each pass independently, but differ in durable journal/authorization/recovery behavior. Whole-tree replacement still removes the accepted lifecycle fix. Passing two different suites does not prove same-fixture domain/recovery parity. No private artifact promotion, installed-agent upgrade or physical restart/capture acceptance occurred.
+- Legacy uncertain queue entries/keys remain review-only. No historical payload provenance is fabricated. Missing-key callers require coordinated remediation before deployment. Older creation/replay key conventions must not be presented as a fully upgraded client contract.
+- Mutation receipts increase event metadata size by storing request and result. Indexed owner/key lookup is constant-scope; normal row locks and unique checks still apply. The migration performs function DDL, no business-table scan/backfill, with a 5-second lock timeout. It fails closed on unexpected function definitions. Production rollout still needs an exact schema/definition review, fresh recovery assessment and explicit authorization.
+- Reverting to the old RPC body would restore the defect; preserve all receipt/history metadata. No destructive receipt pruning or unsafe rollback script is supplied.
+
+**PHASE 1 INCOMPLETE**
+
+Phase 2 remains blocked. Production inventory, CS-000023, POS, Square, tenant configuration and physical hardware certification are unchanged.

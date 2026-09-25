@@ -14,6 +14,7 @@ assert.equal(runtime.target,'supabase_db_td-phase1g-auth-20260924');
 const admin=createClient(runtime.url,runtime.service,{auth:{persistSession:false,autoRefreshToken:false}});
 const sql=q=>execFileSync('docker',['exec','-i',runtime.target,'psql','-U','postgres','-d','postgres','-X','-qAt','-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',timeout:30000,stdio:['pipe','pipe','pipe']}).trim();
 sql(readFileSync('supabase/migrations/20260925002945_acquisition_legacy_write_gate.sql','utf8'));
+if(process.argv.includes('--idempotency')) sql(readFileSync('supabase/migrations/20260925024439_inventory_mutation_idempotency.sql','utf8'));
 const password=randomUUID()+'!aA8';const email='phase1g-'+randomUUID()+'@example.invalid';
 const created=await admin.auth.admin.createUser({email,password,email_confirm:true});
 if(created.error) throw Error('Local fixture user creation failed: '+created.error.message);
