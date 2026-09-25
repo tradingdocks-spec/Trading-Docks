@@ -1,6 +1,6 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1I QUEUE REPAIR IMPLEMENTED LOCALLY — PHASE 1 INCOMPLETE**.
+Status: **PHASE 1J SHARED SERVER MUTATION CONFLICT REPRODUCED — PHASE 1 INCOMPLETE**.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -632,3 +632,105 @@ H01's same-version lost-item race is repaired and reproduced safely. **G19 is on
 **PHASE 1 INCOMPLETE. Phase 2 is not ready to begin.** No push, production deployment, schema change, inventory mutation, POS/Square change, installer distribution or physical certification occurred.
 
 Before production promotion: review the legacy workflow gates, compare the actual production schema and recovery freshness, apply only reviewed forward migrations in schema-first order, run normal CI, and conduct separately authorized post-deployment checks. No such promotion is performed here. **Phase 2 is not ready to begin.**
+
+## PHASE 1J — END-TO-END IDEMPOTENCY + RECOVERY PARITY
+
+Status: **STOPPED AT ARCHITECTURAL CONFLICT J01. PHASE 1 INCOMPLETE.**
+
+The Phase 1J instruction explicitly says: “If another fundamental architectural conflict is discovered: STOP. Document the evidence. Do not create a parallel mutation or recovery architecture to bypass it.” The conflict below was confirmed in a disposable loopback database. This section is an audit/evidence deliverable, **not an implemented server repair or release certification**. No runtime, schema, migration, production, installer or hardware changes were made.
+
+### 1. New conflict: ledger deduplication is not command idempotency
+
+`create_inventory_item_with_event` and `apply_collector_inventory_mutation` execute the business mutation **before** inserting the event with `ON CONFLICT (user_id, idempotency_key) ... DO NOTHING`. The unique index protects the number of events, not the number or meaning of stock effects. There is no persisted canonical command request/result at this boundary. A key collision can suppress the evidence of a successful stock change. This is more serious than returning an unhelpful duplicate error.
+
+The functions are shared by scanner, collector edits, storage assignment and acquisition receipt. Fixing only the mobile queue, or adding a scanner-only receipt beside unchanged RPCs, would leave the same key namespace and mutation boundary inconsistent. It would also fail the requirement that changed payloads under a committed operation ID are rejected. The next repair must establish one contract **inside the existing authoritative RPC infrastructure**, including an explicit policy for legacy keys without an original payload/result. No competing inventory ledger or queue is appropriate.
+
+### 2. Executable evidence
+
+Run `node tests/phase1j-idempotency-evidence.mjs` with `TD_TEST_RUNTIME` pointing to the approved local embedded-Postgres runtime. It creates only a new temporary loopback database on port 55449, runs synthetic requests as `authenticated`, and stops the database in `finally`. It never loads application environment files or contacts production.
+
+The fixture loads the actual inventory persistence/event migrations; applies the exact creation-RPC transformation from the workspace-writer repair; and applies the actual active-workspace helper/collector-RPC guard plus the restrictive inventory policy. It does **not** claim a full production recovery-clone rehearsal, all collector/POS triggers, or physical acceptance. The identity/auth prerequisites come from the existing isolated DB fixture. Those limits do not turn the demonstrated event-after-write sequence into command deduplication.
+
+| Diagnostic case | Observed current behavior |
+|---|---|
+| Identical create delivered twice | First commits; second raises SQLSTATE `23505`, not a canonical already-committed response |
+| Same key, different item ID/quantity | Both succeed: **2 rows, 3 units, 1 event** |
+| Concurrent same key with different item IDs | Both succeed: **2 rows, 2 units, 1 event** |
+| Quantity operation A sets 2, B sets 3, old A retries | Quantity returns **3 → 2**, original A event count remains 1 |
+| Same quantity key with changed payload | New quantity **7** accepted; original event retained rather than payload conflict |
+| Location A, then B, then old A retries | Old location restored without another location-change event |
+| Wrong active workspace | Existing guard rejects with `42501`; the defects occur inside authorized scope |
+
+The diagnostic exits successfully only when these unsafe counterexamples are reproduced and prints `UNSAFE_SHARED_MUTATION_BOUNDARY_REPRODUCED`. That is **not a PASS for server reliability**. After repair its assertions must be replaced/superseded with safe invariants; never count it as release acceptance.
+
+### 3. Mutation-path matrix
+
+Classification refers to the current source contract and the operation shown, not an assertion that deployed/private artifacts were tested. `IDEMPOTENT` is limited to the stated operation; incomplete canonical response semantics are called out explicitly.
+
+| Origin / operation | Endpoint and tables / transaction | Identity, retry and effect | Classification |
+|---|---|---|---|
+| Mobile single/manual/rapid confirmation | `saveScannerConfirmation` → printing validation → `create_inventory_item_with_event`; `inventory_items`, `inventory_events` in one RPC | A fresh item ID is created inside each save invocation; initial source/key differs from replay. Duplicate same-ID delivery errors; changed ID under same key can create unledgered stock. No financial purchase | **NOT IDEMPOTENT** |
+| Mobile continuous/batch finalize and partial retry | `mobile/app/scanner-session.tsx` loops through collection lines and calls the same save | Loop does not skip already-synced lines; stable session line ID is not passed as mutation ID. Results are persisted through React session state after the loop; a crash can leave A/C committed but locally unresolved. New invocation creates new IDs | **NOT IDEMPOTENT** |
+| Shared offline scanner replay; startup/auth, foreground, online and manual retry | `scanner-replay.ts` → same creation RPC; same stock/event tables | Queue preserves item ID; existence lookup can avoid repeat insert, but does not prove original payload or canonical receipt. Source `scanner_replay`, key `scanner-replay:<itemId>` differs from initial scanner key. Client mitigation is not server idempotency | **NOT IDEMPOTENT** |
+| Scanner trade-status follow-up | `runMobileTradeWishlistMutation` → `binder_card_trade_status` upsert | Composite upsert avoids duplicate rows, but an old retry can overwrite a newer status; no immutable operation receipt; separate transaction from stock | **NOT IDEMPOTENT** |
+| Scanner wishlist follow-up | Same service → `collector_wishlist` insert | No operation key passed; repeated delivery can insert another wishlist row; separate transaction and independent review-required queue | **NOT IDEMPOTENT** |
+| Scanner-related quantity correction | `apply_collector_inventory_mutation`; stock + event transaction | Absolute target quantity, row lock, event-only unique key; old retry overwrites later state, changed payload accepted | **NOT IDEMPOTENT** |
+| Initial location in scanner stock payload | Creation RPC stores `location_id` with stock | Within the same unsafe creation boundary; no separate slot allocator in this path | **NOT IDEMPOTENT** |
+| Location assignment following scan | `assignMobileStorageLocation` → `apply_collector_inventory_mutation`; inventory + location-change event, then separate location recent-use metadata | Online and queued identities are generated at different boundaries; server can reapply an old location even with same key. No quantity split/slot consumption in this call | **NOT IDEMPOTENT** |
+| Scanner printing-validation follow-up | `/api/card-intelligence/inventory-validation` | Authenticated resolution response; does not write stock, movement or purchase | **NOT APPLICABLE** |
+| Scanner-origin data explicitly routed into accepted acquisition intake | `save_collection_intake`, then `finalize_intake_purchase` / `complete_collection_intake`; intake, purchase ledger/lines, stock/events and purchase-stock links | Purchase finalization locks intake, uniquely links source intake, checks offer/key, persists purchase/line identity. Deferred receipt locks same authority, checks receipt location; line-derived stock IDs. Existing 44-check acquisition baseline covers concurrent finalization and duplicate receipt. This does not make direct scanner save a purchase | **IDEMPOTENT** for exact purchase/receipt retry under that existing authority |
+| Native WIA/ScanSnap main/private capture | Local agent hardware API and Inbox/journal | Produces image/capture data; no direct stock, movement or financial mutation. Different persistence implementations still block recovery parity | **NOT APPLICABLE** to server stock mutation; parity FAIL |
+| Web cloud capture reserve/upload/received | `/api/chaos-sort/scans` → `chaos_scan_command`; album/capture rows and private storage | Album/capture identity and SHA conflict checks, album lock; same accepted capture is reused. These are capture acceptance effects, not inventory receipt | **IDEMPOTENT** for repeated matching capture acceptance; current-turn full cloud rehearsal NOT RUN |
+| Web cloud batch inventory commit | `chaos_scan_command('commit')` → `commit_chaos_sort_batch`; batch, positions, stock/events | Existing album lock and closed/immutable gate prevent a second commit. Repeating a closed command can report `SCAN_BATCH_CLOSED`, not the original canonical result; snapshot recovery remains separate | **IDEMPOTENT** for stock effects under the same closed batch; canonical response/recovery parity gate NOT SATISFIED |
+| Headless/background native mobile replay | No registered headless consumer found in prior audited active runtime | Current shared queue assumes one native JS runtime; web tabs coordinate with Web Locks | **NOT APPLICABLE** today; future multi-runtime support is not certified |
+
+Primary source anchors: `mobile/services/scanner-data.ts`, `scanner-replay.ts`, `scanner-foundation.ts`, `trade-binder-wishlist-data.ts`, `storage-location-data.ts`, `collector-mutation-data.ts`, `mobile/app/scanner-session.tsx`, `mobile/services/continuous-offer-scanner.ts`, `src/app/api/card-intelligence/inventory-validation/route.ts`, `src/app/api/chaos-sort/scans/route.ts`, and the inventory ledger/workspace/acquisition/cloud migrations named above. No POS, Square, orders or marketplace implementation was changed.
+
+### 4. Required operation contract and repair boundary (not implemented)
+
+- Create and durably persist one logical operation ID before the first request. A stable confirmed session-line intent must survive retries/restarts; changing business payload requires a new explicit intent, not silent reuse. Do not use product identity alone: scanning another physical copy is a distinct intent.
+- Freeze the normalized mutation payload before delivery. `buildScannerAddPayload` currently generates `scannerAddedAt` at each call; payload comparison must not include a newly generated attempt timestamp. Capture/operation time should be fixed once.
+- Validate actor and active workspace **before any prior-result lookup**. Scope keys to the existing owner/workspace contract and reject conflicting context. Never return another tenant's receipt.
+- At the existing authoritative RPC boundary, serialize the operation key before modifying stock, validate the immutable request (full normalized JSONB equality or a deterministic fingerprint), execute business mutation and event creation atomically, and persist its canonical result in the same transaction.
+- Return explicit `COMMITTED_NEW` / `ALREADY_COMMITTED`; changed payload is `REJECTED`; uncertain legacy intent is `REVIEW_REQUIRED`. Do not infer committed request identity solely from the current inventory row: that row can legitimately change after the original request.
+- Decide how the current shared event key namespace maps to command identity across creation, quantity and location calls. Include operation kind, actor, workspace, item and business payload in conflict protection. Do not allow one operation kind to consume another's event key silently.
+- Historical events lack original request/result fingerprints. Preserve them; do not fabricate receipts from current stock or blindly replay old uncertain rows. A migration must fail closed for ambiguous legacy keys and leave auditable review state.
+- Fold scanner follow-up changes into an explicitly defined transaction or give each derived sub-operation a stable, server-enforced child identity under the same command contract. Current independent follow-ups can return queued/failed outcomes that scanner callers do not check before reporting success.
+- Batch orchestration must persist each line's operation/result independently, replay unchanged A/C IDs and recover B once. No second queue or batch ledger is required.
+
+### 5. Private-build and recovery parity
+
+Read-only comparison against retained private revision `3269e252` confirms different mobile scanner-data/replay/offline modules. The private revision has not been rebuilt with `6b8c1b9d`. Native comparison still shows the private durable authorization/recovery additions but removal of main's `AgentLifecycle.cs` under whole-tree replacement. Those are **DOMAIN/RETRY DIFFERENCES**, not acceptable capture-only differences. Whole-tree cherry-pick/replacement would regress the accepted lifecycle repair.
+
+WIA versus ScanSnap capture APIs are legitimate **PLATFORM/CAPTURE DIFFERENCES**. They do not authorize differing confirmation policy, stock mutation endpoints or lost-response handling. No private binary was executed, signed, distributed or certified this turn. Identical-fixture main/private parity is **NOT RUN / FAIL gate**, not inferred from matching filenames or a test harness.
+
+### 6. Unknown-commit and restart states
+
+Phase 1I queue behavior remains: pending work is retained; processing work can retry only with a proven safe handler; unsafe processing is held for review; committed tombstones suppress duplicate queue delivery; review-required rows remain; unsupported/malformed rows do not erase neighbors. A server permanent rejection must remain explicitly rejected/review-required and never be blindly converted to a new operation ID. No new state machine was added here.
+
+The existing stock-existence shortcut is insufficient to certify unknown-commit recovery end to end. Exact same-request server retry currently errors; same-key changed payload can mutate without an event. Therefore pending/processing/server-committed-before-local-ack restart acceptance cannot be declared globally safe yet. A private agent's durable capture recovery does not solve the separate server stock command gap.
+
+### 7. Validation and release gate
+
+New execution: seven diagnostic cases in `tests/phase1j-idempotency-evidence.mjs`, including two concurrent authenticated clients, payload mismatch, quantity/location replay and wrong-workspace denial. Output confirms **unsafe current behavior**, not a repaired invariant. No runtime change was made, so no new migration or recovery-clone deployment was attempted.
+
+The accepted baseline remains historical evidence from `6b8c1b9d`: 1,038 root tests, 596 mobile tests, 44 database checks, authenticated/browser acceptance, TypeScript, lint, Webpack build and scoped audit passed. Full suites/build/authenticated browser acceptance were **not rerun at this architectural stop**; they cannot certify the unsafe cases that the new diagnostic now demonstrates. New-file `node --check`, ESLint, scoped secret audit (two files, zero findings) and `git diff --check` all passed.
+
+| Phase 1J requirement | Gate |
+|---|---|
+| Identical/concurrent duplicate returns canonical result | FAIL: 23505 or silent event conflict |
+| Unknown-commit recovery | FAIL at shared server boundary |
+| Payload mismatch protection | FAIL: changed stock payload accepted |
+| Batch/partial batch retries | FAIL source contract: per-save new ID; A/C are not skipped |
+| Duplicate receipt under existing purchase authority | Prior isolated acquisition baseline PASS; not re-certified here |
+| Duplicate location/old-operation replay | FAIL: later location can be reverted silently |
+| Cross-workspace protection | Diagnostic guard denial PASS; full release tenant suite not rerun |
+| Main/private same-fixture parity | NOT RUN / gate unsatisfied |
+| Full restart/physical recovery | NOT RUN / gate unsatisfied |
+| Production readiness | NOT READY |
+
+Exact blockers: **J01** shared mutation-after-key-collision semantics; **J02** durable initial/session-line identity and atomic/explicit follow-up outcome; **J03** private/main lifecycle-preserving recovery convergence and executable parity; legacy uncertain operations also remain review-only. These are not deferred into Phase 2.
+
+**PHASE 1 INCOMPLETE**
+
+No production access or change, no inventory mutation outside synthetic disposable fixtures, no POS/Square change, no push/deploy, no private installer change, and no Phase 2 work. Review J01's shared command/event boundary before resuming implementation; a scanner-only parallel receipt implementation is not the proposed solution.
