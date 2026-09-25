@@ -106,7 +106,7 @@ export type ScannerValidationContext = {
 
 export type ScannerValidationResult =
   | { ok: true }
-  | { ok: false; code: 'invalid_quantity' | 'free_limit' | 'invalid_printing' | 'invalid_condition' | 'invalid_finish'; reason: string };
+  | { ok: false; code: 'invalid_quantity' | 'free_limit' | 'invalid_printing' | 'invalid_condition' | 'invalid_finish' | 'invalid_language'; reason: string };
 
 export type ScannerDraft = {
   userId: string;
@@ -171,12 +171,13 @@ export function validateScannerConfirmation(
   if (!Number.isInteger(confirmation.quantity) || confirmation.quantity <= 0) {
     return { ok: false, code: 'invalid_quantity', reason: 'Quantity must be a whole number above zero.' };
   }
-  if (normalizeCardCondition(confirmation.condition) !== confirmation.condition) {
+  if (confirmation.condition === 'unknown' || normalizeCardCondition(confirmation.condition) !== confirmation.condition) {
     return { ok: false, code: 'invalid_condition', reason: 'Choose a supported condition.' };
   }
-  if (normalizeCardFinish(confirmation.finish) !== confirmation.finish) {
+  if (confirmation.finish === 'unknown' || normalizeCardFinish(confirmation.finish) !== confirmation.finish) {
     return { ok: false, code: 'invalid_finish', reason: 'Choose a supported finish.' };
   }
+  if (!confirmation.language?.trim()) return { ok: false, code: 'invalid_language', reason: 'Confirm the card language before saving.' };
   const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(context.membershipTier)];
   if (plan.limits.cardLimit !== null && context.currentTotalQuantity + confirmation.quantity > plan.limits.cardLimit) {
     return {
@@ -375,8 +376,8 @@ export function normalizeScannerCandidate(raw: {
     setCode: stringValue(raw.setCode)?.toUpperCase() ?? null,
     setName: stringValue(raw.setName) ?? null,
     collectorNumber: stringValue(raw.collectorNumber) ?? null,
-    finishes: finishes.length ? [...new Set(finishes)] : ['normal'],
-    language: stringValue(raw.language) ?? 'en',
+    finishes: [...new Set(finishes)],
+    language: stringValue(raw.language),
     variant: stringValue(raw.variant),
     imageUrl: stringValue(raw.imageUrl),
     confidence: typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? Math.max(0, Math.min(1, raw.confidence)) : 0,

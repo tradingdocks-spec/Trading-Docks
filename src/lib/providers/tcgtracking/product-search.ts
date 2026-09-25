@@ -251,7 +251,7 @@ function toSkuOption(sku: TcgTrackingSku, pricing: TcgTrackingPriceSnapshot[]): 
     tcgplayerProductId: sku.tcgplayerProductId ?? null,
     condition: formatCondition(sku.condition ?? sku.conditionCode),
     variant: formatVariant(sku.variant ?? sku.variantAbbreviation),
-    language: sku.language ?? "English",
+    language: sku.language ?? "",
     marketPrice: sku.marketPrice ?? price?.tcgMarket ?? null,
     lowPrice: sku.lowPrice ?? price?.tcgLow ?? null,
     highPrice: sku.highPrice ?? price?.tcgHigh ?? null,
@@ -295,7 +295,7 @@ function formatVariant(value: string | undefined) {
   if (key === "normal" || key === "regular") return "Normal";
   if (key === "holo" || key === "holofoil") return "Holo";
   if (key === "reverseholo" || key === "reverseholofoil") return "Reverse Holo";
-  return value?.trim() || "Normal";
+  return value?.trim() || "";
 }
 
 function normalizeVariantKey(value: string) {

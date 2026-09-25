@@ -5,6 +5,7 @@ import {
   buildInventorySearchFilterExpression,
   COLLECTION_PAGE_SIZE,
   decodeCollectionCursor,
+  encodeCollectionCursor,
   normalizeCollectionPageSize,
   type CollectionCard,
   type CollectionFilter,
@@ -108,7 +109,12 @@ export async function loadCollectorCollectionPage({
       locations: buildStorageLocations((locations ?? []) as RawInventoryLocation[]),
       totalQuantity: cards.reduce((sum, card) => sum + card.quantityOwned, 0),
       stale: false,
-      pageInfo: buildCollectionPageInfo({ cards, request, hasMore: fetchedItems.length > pageSize }),
+      pageInfo: {
+        ...buildCollectionPageInfo({ cards, request, hasMore: fetchedItems.length > pageSize }),
+        ...(sort === 'price_desc' ? { nextCursor: fetchedItems.length > pageSize && rawItems.length
+          ? encodeCollectionCursor({sort, id: rawItems[rawItems.length - 1].id, value: rawItems[rawItems.length - 1].inventory_value ?? null})
+          : null } : {}),
+      },
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Collection data is unavailable.';
@@ -259,7 +265,7 @@ function applyInventorySort(query: InventoryQuery, sort: CollectionSort) {
   if (sort === 'name_desc') return query.order('card_name', { ascending: false }).order('id', { ascending: true });
   if (sort === 'quantity_desc') return query.order('quantity', { ascending: false }).order('id', { ascending: true });
   if (sort === 'set_asc') return query.order('set_code', { ascending: true }).order('collector_number', { ascending: true }).order('id', { ascending: true });
-  if (sort === 'price_desc') return query.order('inventory_value', { ascending: false }).order('id', { ascending: true });
+  if (sort === 'price_desc') return query.order('inventory_value', { ascending: false, nullsFirst: false }).order('id', { ascending: true });
   return query.order('updated_at', { ascending: false }).order('id', { ascending: true });
 }
 
@@ -270,7 +276,9 @@ function applyInventoryCursor(query: InventoryQuery, sort: CollectionSort, curso
   if (sort === 'name_asc') return query.or(`card_name.gt.${value},and(card_name.eq.${value},id.gt.${decoded.id})`);
   if (sort === 'name_desc') return query.or(`card_name.lt.${value},and(card_name.eq.${value},id.gt.${decoded.id})`);
   if (sort === 'quantity_desc') return query.or(`quantity.lt.${value},and(quantity.eq.${value},id.gt.${decoded.id})`);
-  if (sort === 'price_desc') return query.or(`inventory_value.lt.${value},and(inventory_value.eq.${value},id.gt.${decoded.id})`);
+  if (sort === 'price_desc') return value === null
+    ? query.or(`and(inventory_value.is.null,id.gt.${decoded.id})`)
+    : query.or(`inventory_value.is.null,inventory_value.lt.${value},and(inventory_value.eq.${value},id.gt.${decoded.id})`);
   if (sort === 'set_asc') return query.gt('id', decoded.id);
   return query.or(`updated_at.lt.${value},and(updated_at.eq.${value},id.gt.${decoded.id})`);
 }
@@ -282,7 +290,7 @@ type InventoryQuery = {
   in(column: string, values: unknown[]): InventoryQuery;
   limit(count: number): InventoryQuery;
   or(filters: string): InventoryQuery;
-  order(column: string, options?: { ascending?: boolean }): InventoryQuery;
+  order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): InventoryQuery;
 };
 
 function emptyPage(request: CollectionPageRequest, stale: boolean, unavailableReason?: string): CollectorCollectionPage {

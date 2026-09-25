@@ -1,3 +1,4 @@
+import { availableMoney, trustedInventoryValue } from "./inventory-valuation.ts";
 import {
   MEMBERSHIP_PLANS,
   normalizeMembershipTier,
@@ -261,11 +262,11 @@ export function buildCollectionCards({
       const locationId = stringValue(payload.locationId) || item.location_id || null;
       const rawLocation = locationId ? locationById.get(locationId) : undefined;
       const quantityOwned = positiveNumber(item.quantity) ?? positiveNumber(payload.quantity) ?? 0;
-      const inventoryValue = numberValue(item.inventory_value) ?? numberValue(payload.value);
+      const inventoryValue = trustedInventoryValue(item);
       const costBasisKnown = knownCostBasisValue(payload) !== null;
       const unitMarketValue =
-        positiveNumber(payload.unitMarketValue) ??
-        (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
+        availableMoney(payload.unitMarketValue) ??
+        (inventoryValue !== null && inventoryValue >= 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
       const productType = normalizeProductType(item.product_type ?? payload.productType ?? payload.product_type);
       const cardName = stringValue(payload.name) || item.card_name || (productType === 'sealed' ? 'Unnamed sealed product' : 'Unnamed card');
       const batchCode = stringValue(payload.batchCode) || stringValue(payload.batch_code) || null;

@@ -1,4 +1,5 @@
 "use client";
+import { availableMoney } from "@/lib/intelligence-provenance";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -21,10 +22,11 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+import { collectorEditTransport, retryWebCollectorEdits } from "@/lib/collector-workspace-client-data";
+import { appendInventoryRecords } from "@/lib/inventory-append-client";
+import { inventoryValueForCsvRow } from "@/lib/csv-conversion/templates";
 import {
   loadInventorySnapshot,
-  persistInventorySnapshotDiff,
-  type InventoryPersistenceRecord,
 } from "@/lib/inventory-persistence";
 import {
   createWebStorageLocation,
@@ -133,8 +135,8 @@ export function CsvConversionEngine({
   const [newLocationType, setNewLocationType] = useState<StorageLocationType>("box");
   const [newLocationParentId, setNewLocationParentId] = useState("");
   const [marketplace, setMarketplace] = useState("Unlisted");
-  const [defaultCondition, setDefaultCondition] = useState("Near Mint");
-  const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
+  const [defaultCondition, setDefaultCondition] = useState("");
+  const [defaultFinish, setDefaultFinish] = useState("");
   const [notice, setNotice] = useState("");
   const [completion, setCompletion] = useState<{ units: number; locationName: string } | null>(null);
   const [working, setWorking] = useState(false);
@@ -527,7 +529,7 @@ export function CsvConversionEngine({
         payload.results.forEach((result, index) => {
           const rowIndex = offset + index;
           if (result.status === "matched") {
-            const finish = result.finish === "Foil" ? "Foil" : "Nonfoil";
+            const finish = result.finish === "Foil" ? "Foil" : result.finish === "Normal" || result.finish === "Nonfoil" ? "Nonfoil" : "";
             const fallback = fallbackPrices.get(rowIndex);
             matched += 1;
             next[rowIndex] = {
@@ -637,8 +639,6 @@ export function CsvConversionEngine({
     try {
       const currentSnapshot = await loadInventorySnapshot();
       const locations = currentSnapshot.locations as unknown as LocationRecord[];
-      const items = currentSnapshot.items;
-      const movements = currentSnapshot.movements;
       const location = selectedLocation ? locations.find((item) => item.id === selectedLocation.id) ?? {
         id: selectedLocation.id,
         name: selectedLocation.label,
@@ -656,12 +656,14 @@ export function CsvConversionEngine({
           collectorNumber: row.collectorNumber,
           condition: row.condition,
           finish: row.finish,
+          language: row.language,
           quantity: row.quantity,
           storagePath: selectedLocation?.label ?? null,
           tcgplayerId: row.tcgplayerId,
         });
-        const quantity = reviewed.quantity || 1;
-        const price = Math.max(0, Number.parseFloat(row.marketPrice) || 0);
+        if (!reviewed.ok) throw new Error(`${row.name}: review required (${reviewed.issues.join(", ")}). No inventory was saved.`);
+        const quantity = reviewed.quantity;
+        const totalValue = inventoryValueForCsvRow(row, quantity);
         return {
           id: crypto.randomUUID(),
           name: reviewed.name || row.name.trim(),
@@ -672,38 +674,24 @@ export function CsvConversionEngine({
           condition: reviewed.condition,
           set: reviewed.setCode ?? row.set.trim().toUpperCase(),
           collectorNumber: reviewed.collectorNumber ?? row.collectorNumber.trim(),
-          language: row.language.trim() || "English",
+          language: reviewed.language,
           finish: reviewed.finish,
           scryfallId: row.scryfallId.trim() || undefined,
           tcgplayerId: reviewed.tcgplayerId ?? (row.tcgplayerId.trim() || undefined),
-          costBasis: Math.max(0, Number.parseFloat(row.costBasis) || 0),
-          unitMarketValue: price,
-          value: price * quantity,
+          costBasis: availableMoney(row.costBasis),
+          unitMarketValue: totalValue === null ? null : totalValue / quantity,
+          value: totalValue,
+          inventoryValueSemantics: "total_row_v1",
+          askingPrice: availableMoney(row.askingPrice),
           storagePath: selectedLocation?.label ?? "Unassigned",
           updatedAt: now,
           marketplaceListings:
             marketplace === "Unlisted"
               ? []
-              : [{ platform: marketplace, status: "Active", quantity, price, updatedAt: now }],
+              : [{ platform: marketplace, status: "Active", quantity, price: availableMoney(row.askingPrice), updatedAt: now }],
         };
       });
-      if (location) {
-        location.itemCount += newItems.reduce((sum, item) => sum + item.quantity, 0);
-        location.estimatedValue += newItems.reduce((sum, item) => sum + item.value, 0);
-      }
-      const movementRows = newItems.map((item) => ({
-        id: crypto.randomUUID(),
-        itemName: item.name,
-        to: selectedLocation?.label ?? "Unassigned",
-        quantity: item.quantity,
-        action: "filed",
-        timestamp: now,
-      }));
-      await persistInventorySnapshotDiff(currentSnapshot, {
-        locations: locations as unknown as InventoryPersistenceRecord[],
-        items: [...items, ...newItems],
-        movements: [...movements, ...movementRows],
-      });
+      await appendInventoryRecords(newItems);
       setNotice(
         `${quantityTotal.toLocaleString()} units saved to ${selectedLocation?.label ?? "Unassigned"}${
           marketplace === "Unlisted" ? "" : ` and allocated to ${marketplace}`
@@ -781,8 +769,8 @@ export function CsvConversionEngine({
         <SectionTitle step="3" title="Review and finish" detail={headers.length ? `${validRows.length.toLocaleString()} valid rows · ${quantityTotal.toLocaleString()} total cards` : "Upload a CSV to continue."} />
         {!headers.length ? <EmptyState title="Upload a CSV to review your cards" description="We will detect the format, show the mapped fields, and wait for your confirmation before importing anything." /> : <>
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-4 lg:flex-row lg:items-end">
-            <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default condition if missing</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></label>
-            <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default finish if missing</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Nonfoil</option><option>Foil</option><option>Etched</option></select></label>
+            <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default condition if missing</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option value="">Unrecorded — review required</option><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></label>
+            <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default finish if missing</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option value="">Unrecorded — review required</option><option>Nonfoil</option><option>Foil</option><option>Etched</option></select></label>
             <div className="flex flex-wrap gap-2 text-[11px] lg:pb-1"><Stat label="Valid" value={validRows.length} /><Stat label="Units" value={quantityTotal} /><Stat label="Skipped" value={converted.length - validRows.length} /></div>
           </div>
 
@@ -842,6 +830,13 @@ export function CsvConversionEngine({
                 setLocationName(next?.label ?? "Unassigned");
               }} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option value="__unassigned__">Unassigned</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></div></label>
               <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><Store className="h-4 w-4 text-td-accent-text" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
+              <button type="button" disabled={working} onClick={async () => {
+                setWorking(true);
+                try { const context = await collectorEditTransport().context(); const remaining = await retryWebCollectorEdits(context.userId);
+                  setNotice(remaining.length ? 'Saved inventory operations still need review.' : 'Saved inventory operations acknowledged. Do not reimport the same file unless you intend another addition.');
+                } catch (error) { setNotice(error instanceof Error ? error.message : 'Recovery unavailable. Original import retained.'); }
+                finally { setWorking(false); }
+              }}>Recover pending import</button>
               <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Import {quantityTotal.toLocaleString()} cards</button>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -920,10 +915,9 @@ function matchTcgplayerReference(
   const setCandidates = identityCandidates.filter((reference) =>
     !row.setName.trim() || setNamesEquivalent(reference["Set Name"], row.setName),
   );
-  // Set names differ between Scryfall/ManaBox and TCGplayer (for example
-  // Fallout naming). Accept a set-name translation only when the full
-  // name/collector/condition identity is unique in the reference export.
-  const candidates = setCandidates.length ? setCandidates : identityCandidates.length === 1 ? identityCandidates : [];
+  // A supplied conflicting set is unresolved even if another set has one match.
+  // Cross-provider aliases require catalog confirmation, not a nearest-name fallback.
+  const candidates = setCandidates;
   if (candidates.length !== 1) return {};
   const reference = candidates[0];
   return {
@@ -946,8 +940,8 @@ function matchTcgplayerReference(
   };
 }
 function tcgplayerCondition(condition: string, finish: string) {
-  const base = normalizeCondition(condition.replace(/\s+foil$/i, ""), "Near Mint");
-  return normalizeFinishValue(finish, "Nonfoil") === "Nonfoil" ? base : `${base} Foil`;
+  const base = normalizeCondition(condition.replace(/\s+foil$/i, ""), "");
+  return normalizeFinishValue(finish, "") === "Foil" ? `${base} Foil` : base;
 }
 function normalizedLookup(value = "") {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1025,7 +1019,8 @@ function normalizeFinishValue(value: string, fallback: string) {
 }
 function normalizeLanguage(value: string) {
   const clean = value.trim().toLowerCase();
-  if (!clean || clean === "0" || clean === "en") return "English";
+  if (!clean || clean === "0") return "";
+  if (clean === "en") return "English";
   const languages: Record<string, string> = {
     de: "German", es: "Spanish", fr: "French", it: "Italian",
     ja: "Japanese", ko: "Korean", pt: "Portuguese", ru: "Russian",

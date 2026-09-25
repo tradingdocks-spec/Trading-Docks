@@ -1,3 +1,4 @@
+import { availableMoney, trustedInventoryValue } from "@/lib/intelligence-provenance";
 import { NextResponse } from "next/server";
 
 import {
@@ -197,11 +198,10 @@ function rowToSharedCard(row: {
 }): SafeSharedCard | null {
   const data = isRecord(row.data) ? row.data : {};
   const quantity = safePositiveInteger(data.quantity ?? row.quantity, 1, 10_000);
-  const inventoryValue = safeFiniteNumber(row.inventory_value, 0, 0, 10_000_000);
+  const inventoryValue = trustedInventoryValue(row);
   const unitValue =
-    data.value ??
-    data.unitMarketValue ??
-    (quantity > 0 && inventoryValue > 0 ? inventoryValue / quantity : null);
+    availableMoney(data.unitMarketValue) ??
+    (quantity > 0 && inventoryValue !== null ? inventoryValue / quantity : null);
   const name = safeText(data.name ?? row.card_name, 180);
   if (!name) return null;
 

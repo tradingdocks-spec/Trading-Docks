@@ -4,7 +4,6 @@ import { getMembershipPlan } from "@/lib/membership-catalog";
 import { validateCollectorMutation, type CollectorMutation } from "@/lib/collector-mutations";
 import { createClient } from "@/lib/supabase/server";
 import { resolveServerAccess } from "@/lib/identity/server-access";
-import { inventoryMutationIdempotencyKey, type InventoryEventSource } from "@/lib/inventory/events";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -13,11 +12,39 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
-  const mutation = await request.json().catch(() => null) as CollectorMutation | null;
+  const body = await request.json().catch(() => null);
+  if (body?.command) {
+    const { endpoint, args } = body.command;
+    if (endpoint === 'apply_inventory_manifest') {
+      const access = await resolveServerAccess(supabase, user);
+      if (access.isSuspended) return NextResponse.json({ error: { message: 'AUTHORIZATION_FAILURE', code: '42501' } }, { status: 403 });
+      const { data, error } = await supabase.rpc(endpoint, args ?? {});
+      if (error) return NextResponse.json({ error: { message: error.message, code: error.code } }, { status: /IDEMPOTENCY_CONFLICT/.test(error.message) ? 409 : 400 });
+      return NextResponse.json({ data });
+    }
+
+    if (!['apply_collector_inventory_mutation', 'remove_inventory_lot_quantity', 'move_inventory_lot_quantity', 'create_inventory_item_with_event'].includes(endpoint) || !args || typeof args !== 'object'
+      || (endpoint === 'apply_collector_inventory_mutation' && !['quantity', 'condition', 'finish', 'storage'].includes(args.p_mutation_type))
+      || typeof args.p_idempotency_key !== 'string' || !args.p_idempotency_key.trim()
+      || (endpoint === 'create_inventory_item_with_event' ? args.p_source !== 'csv_import' || args.p_related_entity_type !== 'inventory_append' : args.p_source !== 'collector_workspace')) {
+      return NextResponse.json({ error: { message: 'INVALID_COMMAND', code: '22023' } }, { status: 400 });
+    }
+    const access = await resolveServerAccess(supabase, user);
+    if (access.isSuspended) return NextResponse.json({ error: { message: 'AUTHORIZATION_FAILURE', code: '42501' } }, { status: 403 });
+    // The shared RPC owns validation, owner/workspace checks, payload fingerprinting
+    // and replay-before-current-state validation. Do not recalculate a retry here.
+    const { data, error } = await supabase.rpc(endpoint, args);
+    if (error) return NextResponse.json({ error: { message: error.message, code: error.code } }, { status: /IDEMPOTENCY_CONFLICT/.test(error.message) ? 409 : 400 });
+    return NextResponse.json({ data });
+  }
+  const mutation = body as CollectorMutation | null;
   if (!mutation || typeof mutation !== "object") {
     return NextResponse.json({ error: "Choose a supported collection update." }, { status: 400 });
   }
 
+  if (['quantity', 'condition', 'finish', 'storage', 'move_quantity', 'remove_quantity'].includes(mutation.type)) {
+    return NextResponse.json({ error: 'OPERATION_ID_REQUIRED: use the durable inventory command.' }, { status: 400 });
+  }
   const itemResult = await supabase
     .from("inventory_items")
     .select("id,user_id,quantity,data,card_name,set_code,location_id")
@@ -70,95 +97,6 @@ async function executeMutation(
   mutation: CollectorMutation,
 ) {
   const now = new Date().toISOString();
-  if (mutation.type === "quantity") {
-    await applyInventoryMutation(supabase, {
-      inventoryItemId: mutation.inventoryItemId,
-      mutationType: "quantity",
-      quantity: mutation.quantity,
-      source: "collector_workspace",
-      idempotencyKey: inventoryMutationIdempotencyKey({
-        source: "collector_workspace",
-        inventoryItemId: mutation.inventoryItemId,
-        mutationType: "quantity",
-        value: mutation.quantity,
-        timestamp: now,
-      }),
-    });
-    return;
-  }
-
-  if (mutation.type === "condition" || mutation.type === "finish") {
-    const nextValue = mutation.type === "condition" ? mutation.condition : mutation.finish;
-    await applyInventoryMutation(supabase, {
-      inventoryItemId: mutation.inventoryItemId,
-      mutationType: mutation.type,
-      condition: mutation.type === "condition" ? mutation.condition : null,
-      finish: mutation.type === "finish" ? mutation.finish : null,
-      source: "collector_workspace",
-      idempotencyKey: inventoryMutationIdempotencyKey({
-        source: "collector_workspace",
-        inventoryItemId: mutation.inventoryItemId,
-        mutationType: mutation.type,
-        value: nextValue,
-        timestamp: now,
-      }),
-    });
-    return;
-  }
-
-  if (mutation.type === "storage") {
-    await applyInventoryMutation(supabase, {
-      inventoryItemId: mutation.inventoryItemId,
-      mutationType: "storage",
-      locationId: mutation.storageLocationId,
-      source: "collector_workspace",
-      idempotencyKey: inventoryMutationIdempotencyKey({
-        source: "collector_workspace",
-        inventoryItemId: mutation.inventoryItemId,
-        mutationType: "storage",
-        value: mutation.storageLocationId,
-        timestamp: now,
-      }),
-    });
-    return;
-  }
-
-  if (mutation.type === "move_quantity") {
-    const { error } = await supabase.rpc("move_inventory_lot_quantity", {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_quantity: mutation.quantity,
-      p_to_location_id: mutation.storageLocationId,
-      p_idempotency_key: inventoryMutationIdempotencyKey({
-        source: "collector_workspace",
-        inventoryItemId: mutation.inventoryItemId,
-        mutationType: "move_quantity",
-        value: `${mutation.storageLocationId ?? "unassigned"}:${mutation.quantity}`,
-        timestamp: now,
-      }),
-      p_source: "collector_workspace",
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
-
-  if (mutation.type === "remove_quantity") {
-    const { error } = await supabase.rpc("remove_inventory_lot_quantity", {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_quantity: mutation.quantity,
-      p_reason: mutation.reason ?? "Removed from collection",
-      p_idempotency_key: inventoryMutationIdempotencyKey({
-        source: "collector_workspace",
-        inventoryItemId: mutation.inventoryItemId,
-        mutationType: "remove_quantity",
-        value: `${mutation.quantity}:${mutation.reason ?? ""}`,
-        timestamp: now,
-      }),
-      p_source: "collector_workspace",
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
-
   if (mutation.type === "trade_binder_status") {
     const { error } = await supabase
       .from("binder_card_trade_status")
@@ -209,32 +147,6 @@ async function executeMutation(
     const { error } = await deleteQuery;
     if (error) throw new Error(error.message);
   }
-}
-
-async function applyInventoryMutation(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  input: {
-    inventoryItemId: string;
-    mutationType: "quantity" | "condition" | "finish" | "storage";
-    quantity?: number | null;
-    condition?: string | null;
-    finish?: string | null;
-    locationId?: string | null;
-    idempotencyKey: string;
-    source: InventoryEventSource;
-  },
-) {
-  const { error } = await supabase.rpc("apply_collector_inventory_mutation", {
-    p_inventory_item_id: input.inventoryItemId,
-    p_mutation_type: input.mutationType,
-    p_quantity: input.quantity ?? null,
-    p_condition: input.condition ?? null,
-    p_finish: input.finish ?? null,
-    p_location_id: input.locationId ?? null,
-    p_idempotency_key: input.idempotencyKey,
-    p_source: input.source,
-  });
-  if (error) throw new Error(error.message);
 }
 
 function matchingWishlistQuery(

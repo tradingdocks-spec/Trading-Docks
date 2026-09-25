@@ -240,9 +240,9 @@ export default function AutomaticScannerScreen() {
   const [ocrRuntimeDiagnostics, setOcrRuntimeDiagnostics] = useState<NativeOcrRuntimeDiagnostics | null>(null);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [condition, setCondition] = useState(CARD_CONDITION_OPTIONS[0]);
-  const [finish, setFinish] = useState<'normal' | 'foil' | 'etched'>('normal');
-  const [language, setLanguage] = useState('en');
+  const [condition, setCondition] = useState<import('@/services/collector-workspace').CardCondition>('unknown');
+  const [finish, setFinish] = useState<import('@/services/collector-workspace').CardFinish>('unknown');
+  const [language, setLanguage] = useState('');
   const [scanGame, setScanGame] = useState<TcgTrackingScanGame>('magic');
   const [storageLocationId, setStorageLocationId] = useState<string | null>(null);
   const [binderLocationId, setBinderLocationId] = useState<string | null>(null);
@@ -1488,8 +1488,8 @@ export default function AutomaticScannerScreen() {
 
   const selectCandidate = (candidate: ScannerCardCandidate) => {
     setSelected(candidate);
-    setFinish((candidate.finishes.find((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? 'normal') as 'normal' | 'foil' | 'etched');
-    setLanguage(candidate.language ?? 'en');
+    setFinish(candidate.identityAuthority === 'provider_confirmed' && candidate.finishes.length === 1 ? candidate.finishes[0] : 'unknown');
+    setLanguage(candidate.language ?? '');
   };
 
   const retryQueue = async () => {

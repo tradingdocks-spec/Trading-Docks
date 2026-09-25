@@ -1,8 +1,10 @@
+import { availableMoney, totalInventoryValue } from "../intelligence-provenance.ts";
+
 export type CanonicalKey =
   | "location" | "name" | "set" | "setName" | "collectorNumber"
   | "condition" | "language" | "finish" | "quantity" | "regularQuantity"
   | "foilQuantity" | "addQuantity" | "tradeQuantity"
-  | "marketPrice" | "lowPrice" | "midPrice" | "costBasis" | "sku"
+  | "totalInventoryValue" | "askingPrice" | "marketPrice" | "lowPrice" | "midPrice" | "costBasis" | "sku"
   | "scryfallId" | "oracleId" | "tcgplayerId" | "tcgplayerProductId"
   | "manaBoxId" | "mtgoId"
   | "rarity" | "signed" | "artistProof" | "altered" | "misprint"
@@ -32,7 +34,9 @@ export const CANONICAL_FIELDS: Array<{ key: CanonicalKey; label: string; require
   { key: "foilQuantity", label: "Foil quantity" },
   { key: "addQuantity", label: "Add to quantity" },
   { key: "tradeQuantity", label: "Trade quantity" },
-  { key: "marketPrice", label: "Market / listing price" },
+  { key: "marketPrice", label: "Unit market value" },
+  { key: "totalInventoryValue", label: "Total row market value" },
+  { key: "askingPrice", label: "Owner unit asking price" },
   { key: "lowPrice", label: "Low price" },
   { key: "midPrice", label: "Mid price" },
   { key: "costBasis", label: "Cost / purchase price" },
@@ -138,7 +142,7 @@ export const CSV_TEMPLATES: CsvTemplate[] = [
     ["Card", "name"], ["Set", "setName"], ["Mana Cost", "manaCost"],
     ["Card Type", "cardType"], ["Color", "colors"], ["Rarity", "rarity"],
     ["Mvid", "tcgplayerId"], ["Single Price", "marketPrice"],
-    ["Single Foil Price", "marketPrice"], ["Total Price", "marketPrice"],
+    ["Single Foil Price", "marketPrice"], ["Total Price", "totalInventoryValue"],
     ["Price Source", "priceSource"], ["Notes", "notes"],
   ]),
   template("deckbox", "Deckbox", [
@@ -147,7 +151,7 @@ export const CSV_TEMPLATES: CsvTemplate[] = [
     ["Condition", "condition"], ["Language", "language"], ["Foil", "finish"],
     ["Signed", "signed"], ["Artist Proof", "artistProof"],
     ["Altered Art", "altered"], ["Misprint", "misprint"], ["Promo", "promo"],
-    ["Textless", "textless"], ["My Price", "marketPrice"],
+    ["Textless", "textless"], ["My Price", "askingPrice"],
   ]),
   template("tcgplayer", "TCGplayer", [
     ["TCGplayer Id", "tcgplayerId"], ["Product Line", "productLine"],
@@ -157,7 +161,7 @@ export const CSV_TEMPLATES: CsvTemplate[] = [
     ["TCG Market Price", "marketPrice"], ["TCG Direct Low", "directLowPrice"],
     ["TCG Low Price With Shipping", "lowPrice"], ["TCG Low Price", "lowPrice"],
     ["Total Quantity", "quantity"], ["Add to Quantity", "addQuantity"],
-    ["TCG Marketplace Price", "marketPrice"], ["Photo URL", "imageUrl"],
+    ["TCG Marketplace Price", "askingPrice"], ["Photo URL", "imageUrl"],
   ]),
   template("trading-docks", "Trading Docks Universal", [
     ["Location", "location"], ["Name", "name"], ["Set Code", "set"],
@@ -215,7 +219,7 @@ function dedupeTcgplayerRows<T extends CanonicalRow & { tcgplayerPrinting?: Pick
       continue;
     }
     const existing = byId.get(id)!;
-    for (const key of ["marketPrice", "lowPrice", "directLowPrice", "imageUrl", "title", "rarity", "productLine"] as CanonicalKey[]) {
+    for (const key of ["askingPrice", "marketPrice", "lowPrice", "directLowPrice", "imageUrl", "title", "rarity", "productLine"] as CanonicalKey[]) {
       if (!existing[key] && row[key]) existing[key] = row[key];
     }
     for (const key of ["quantity", "addQuantity", "regularQuantity", "foilQuantity", "tradeQuantity"] as CanonicalKey[]) {
@@ -229,10 +233,8 @@ function dedupeTcgplayerRows<T extends CanonicalRow & { tcgplayerPrinting?: Pick
 
 function outputValue(row: CanonicalRow, key: CanonicalKey, templateId: string, header: string) {
   if (templateId === "tcgplayer" && header === "TCG Marketplace Price") {
-    // TCGplayer requires a listing price even when its market-price field is
-    // unavailable. Prefer the market price, then the lowest available seller
-    // price so matched rows remain importable without inventing a value.
-    return row.marketPrice || row.lowPrice || row.directLowPrice || "";
+    // Export explicit owner pricing only; market references are not listing instructions.
+    return row.askingPrice || "";
   }
   const value = row[key] ?? "";
   if (key === "finish") {
@@ -258,4 +260,11 @@ function template(id: string, name: string, columns: Array<[string, CanonicalKey
 }
 function normalizeHeader(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/** An explicit CSV row total wins; malformed explicit totals stay unresolved. */
+export function inventoryValueForCsvRow(row: Partial<CanonicalRow>, quantity: number): number | null {
+  return String(row.totalInventoryValue ?? '').trim()
+    ? availableMoney(row.totalInventoryValue)
+    : totalInventoryValue(row.marketPrice, quantity);
 }

@@ -1,4 +1,5 @@
 "use client";
+import { summarizeInventoryValues } from "@/lib/intelligence-provenance";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -48,7 +49,7 @@ export function CollectorBinderExperience({
         return {
           page: pageNumber,
           cards,
-          value: cards.reduce((sum, card) => sum + card.value, 0),
+          ...summarizeInventoryValues(cards.map((card) => card.value)),
         };
       }),
     [binder.cards, pageCount],
@@ -80,7 +81,7 @@ export function CollectorBinderExperience({
                       {binder.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-td-warning/[0.15] bg-td-warning/[0.05] px-2 py-1 text-[11px] font-semibold text-td-warning"><Star className="h-3 w-3 fill-td-warning" /> Featured</span> : null}
                     </div>
                     <h1 className="mt-2 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">{binder.title}</h1>
-                    <p className="mt-1 text-[11px] text-td-muted">@{profile.username} · {binder.cardCount} cards · {money(binder.estimatedValue)}</p>
+                    <p className="mt-1 text-[11px] text-td-muted">@{profile.username} · {binder.cardCount} cards · {`Known: ${money(binder.estimatedValue)} · ${binder.unpricedRows} unpriced rows`}</p>
                   </div>
                 </div>
 
@@ -99,7 +100,7 @@ export function CollectorBinderExperience({
 
             <section className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Summary label="Cards" value={binder.cardCount.toLocaleString()} />
-              <Summary label="Value" value={money(binder.estimatedValue)} accent />
+              <Summary label="Value" value={`Known: ${money(binder.estimatedValue)} · ${binder.unpricedRows} unpriced rows`} accent />
               <Summary label="Pages" value={String(pageCount)} />
               <Summary label="Current" value={view === "spread" ? `${leftPage}–${rightPage}` : String(page)} />
             </section>
@@ -228,7 +229,7 @@ function Gallery({
   onOpen,
   showValues,
 }: {
-  pages: Array<{ page: number; cards: PortfolioBinderView["cards"]; value: number }>;
+  pages: Array<{ page: number; cards: PortfolioBinderView["cards"]; value: number | null; unpricedRows: number }>;
   onOpen: (page: number) => void;
   showValues: boolean;
 }) {
@@ -244,7 +245,7 @@ function Gallery({
                 return <div key={card?.id ?? index} className="overflow-hidden rounded border border-td-ink/[0.05] bg-black/25">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : null}</div>;
               })}
             </div>
-            <div className="mt-3 flex items-center justify-between"><div><p className="text-[11px] font-semibold text-td-primary">Page {summary.page}</p><p className="mt-1 text-[11px] text-td-muted">{summary.cards.length} cards</p></div>{showValues ? <span className="text-[11px] font-semibold text-td-success">{money(summary.value)}</span> : null}</div>
+            <div className="mt-3 flex items-center justify-between"><div><p className="text-[11px] font-semibold text-td-primary">Page {summary.page}</p><p className="mt-1 text-[11px] text-td-muted">{summary.cards.length} cards</p></div>{showValues ? <span className="text-[11px] font-semibold text-td-success">{`Known: ${money(summary.value)} · ${summary.unpricedRows} unpriced`}</span> : null}</div>
           </button>
         ))}
       </div>
@@ -260,6 +261,7 @@ function Summary({ label, value, accent = false }: { label: string; value: strin
   return <div className="rounded-xl border border-td-ink/[0.07] bg-black/20 px-3 py-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-td-success" : "text-td-primary"}`}>{value}</p></div>;
 }
 
-function money(value: number) {
+function money(value: number | null) {
+  if (value === null) return "Valuation unavailable";
   return value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: value >= 1000 ? 0 : 2 });
 }

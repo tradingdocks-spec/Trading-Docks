@@ -904,7 +904,7 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     collectorNumber: card.collector_number ?? null,
     finishes: legalFinishes,
     legalFinishes,
-    language: card.lang ?? 'en',
+    language: card.lang ?? null,
     imageUrl: card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? null,
     confidence: 0,
     recognitionMode: 'assisted_capture',
@@ -946,7 +946,7 @@ function intelligenceToRecognitionCandidate(candidate: TradingDocksIntelligenceC
     collectorNumber: candidate.collectorNumber ?? null,
     finishes: legalFinishes,
     legalFinishes,
-    language: candidate.language ?? 'en',
+    language: candidate.language ?? null,
     imageUrl: candidate.imageUrl ?? null,
     confidence: Math.round((candidate.score ?? 0) * 100),
     recognitionMode: 'assisted_capture',
@@ -1201,7 +1201,7 @@ function normalizeFinishes(finishes: string[] | undefined): CardFinish[] {
   const normalized = (finishes ?? [])
     .map((finish) => finish === 'nonfoil' ? 'normal' : normalizeCardFinish(finish))
     .filter((finish) => finish !== 'unknown');
-  return normalized.length ? [...new Set(normalized)] : ['normal'];
+  return [...new Set(normalized)];
 }
 
 function emptyConfidence(reason: string): RecognitionConfidence {
@@ -1221,15 +1221,15 @@ function candidateTieBreak(candidate: RecognitionCandidate) {
 function universalToRecognitionCandidate(candidate: UniversalScanCandidate): RecognitionCandidate {
   const finish = candidate.printing.finish === 'normal' || candidate.printing.finish === 'foil' || candidate.printing.finish === 'etched'
     ? candidate.printing.finish
-    : 'normal';
+    : 'unknown';
   return {
     id: candidate.printing.externalId ?? candidate.card.externalId ?? candidate.card.name,
     name: candidate.card.name,
     setCode: candidate.printing.setCode,
     setName: candidate.printing.setName,
     collectorNumber: candidate.printing.cardNumber,
-    finishes: [finish],
-    legalFinishes: [finish],
+    finishes: finish === 'unknown' ? [] : [finish],
+    legalFinishes: finish === 'unknown' ? [] : [finish],
     language: candidate.printing.language === 'unknown' ? null : candidate.printing.language,
     imageUrl: null,
     confidence: candidate.confidence.overall / 100,

@@ -55,7 +55,7 @@ export type PortfolioInventoryItem = {
   productType?: "card" | "sealed";
   quantity: number;
   locationId: string;
-  value: number;
+  value: number | null;
   unitMarketValue?: number;
   imageUrl?: string;
   set?: string;
@@ -66,25 +66,28 @@ export type PortfolioInventoryItem = {
 };
 
 export type PortfolioGameTotal = {
+  unpricedRows: number;
   gameId: string;
   label: string;
   quantity: number;
   uniqueItems: number;
-  value: number;
+  value: number | null;
 };
 
 export type PortfolioProductTypeTotal = {
+  unpricedRows: number;
   productType: "card" | "sealed";
   quantity: number;
   uniqueItems: number;
-  value: number;
+  value: number | null;
 };
 
 export type PortfolioBinderView = PortfolioBinder & {
   location: PortfolioInventoryLocation;
   cards: PortfolioInventoryItem[];
   cardCount: number;
-  estimatedValue: number;
+  estimatedValue: number | null;
+  unpricedRows: number;
   occupiedPockets: number;
   pageCount: number;
 };

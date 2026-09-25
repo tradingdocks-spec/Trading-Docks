@@ -24,3 +24,5 @@ export function intelligenceValue<T>(input: IntelligenceValue<T>): IntelligenceV
 export function missingIntelligence<T>(explanation: string): IntelligenceValue<T> {
   return { value: null, status: "INSUFFICIENT_DATA", confidence: null, observedAt: null, sources: [], inputs: [], explanation };
 }
+
+export { availableMoney, totalInventoryValue, trustedInventoryValue, summarizeInventoryValues } from "../../mobile/services/inventory-valuation.ts";

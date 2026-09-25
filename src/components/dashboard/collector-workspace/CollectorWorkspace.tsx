@@ -41,7 +41,7 @@ import {
 } from "@/components/design-system/td-primitives";
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
 import { cn } from "@/lib/utils";
-import { loadWebCollectorCollectionPage, runWebCollectorMutation } from "@/lib/collector-workspace-client-data";
+import { loadWebCollectorCollectionPage, runWebCollectorMutation, removeWebCollectorBatch, retryWebCollectorEdits } from "@/lib/collector-workspace-client-data";
 import {
   assignWebStorageLocation,
   loadWebStorageLocationManager,
@@ -455,21 +455,11 @@ export function CollectorWorkspace({
   }, [bulkMoveTarget, handleStorageAssignment, selectedCards]);
 
   const handleBulkRemove = useCallback(async () => {
-    if (!selectedCards.length) return;
+    if (!selectedCards.length || !storageState) return;
     setBulkRemoving(true);
     setBulkRemoveError(null);
     try {
-      const response = await fetch("/api/collector-workspace/bulk-remove", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inventoryItemIds: selectedCards.map((card) => card.id),
-          operationId: globalThis.crypto?.randomUUID?.() ?? `bulk-remove-${Date.now()}`,
-          reason: "Bulk remove from collection",
-        }),
-      });
-      const payload = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Selected inventory could not be removed.");
+      await removeWebCollectorBatch(selectedCards.map(card => ({ id: card.id, quantity: card.quantityOwned })), storageState.userId);
       setBulkRemoveOpen(false);
       setSelectedCardIds([]);
       retry();
@@ -479,7 +469,7 @@ export function CollectorWorkspace({
     } finally {
       setBulkRemoving(false);
     }
-  }, [reloadStorageState, retry, selectedCards]);
+  }, [reloadStorageState, retry, selectedCards, storageState]);
 
   return (
     <TDScreen className="inventory-workspace space-y-4">
@@ -514,6 +504,18 @@ export function CollectorWorkspace({
           </Link>
         </div>
       </header>
+
+      <button type="button" disabled={!storageState || bulkRemoving} onClick={async () => {
+        if (!storageState) return;
+        setBulkRemoving(true);
+        try {
+          const remaining = await retryWebCollectorEdits(storageState.userId);
+          setBulkRemoveError(remaining.length ? 'Saved inventory operations still require review.' : null);
+          retry(); reloadStorageState();
+        } catch (error) { setBulkRemoveError(error instanceof Error ? error.message : 'Recovery was not acknowledged.'); }
+        finally { setBulkRemoving(false); }
+      }} className="text-sm underline">Recover pending inventory operations</button>
+      {bulkRemoveError && !bulkRemoveOpen ? <p role="alert">{bulkRemoveError}</p> : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5" aria-label="Collection summary">
         <SummaryMetric icon={<Boxes className="h-4 w-4" />} label="Items / cards" value={summary.totalOwnedCards.toLocaleString()} />

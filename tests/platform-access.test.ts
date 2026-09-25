@@ -368,7 +368,7 @@ test("analytics inventory edits do not establish acquisition", () => {
       ],
       now,
     ),
-    { units: 5, value: 19.75, skus: 2, addedLast30Days: null },
+    { units: 5, value: null, knownSubtotal: 0, unpricedRows: 2, coverage: 0, status: "INSUFFICIENT_DATA", skus: 2, addedLast30Days: null },
   );
 });
 

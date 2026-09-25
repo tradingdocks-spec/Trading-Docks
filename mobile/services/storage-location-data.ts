@@ -1,3 +1,4 @@
+import { runMobileCollectorMutation } from '@/services/collector-mutation-data';
 import { supabase } from '@/lib/supabase';
 import { buildCollectionCards, type RawInventoryItem, type RawInventoryLocation } from '@/services/collector-workspace';
 import {
@@ -5,7 +6,6 @@ import {
   buildStorageLocation,
   buildStorageLocationManagerState,
   createLocationPayload,
-  locationAssignmentQueueKey,
   locationDataPatch,
   validateArchiveLocation,
   validateLocationAssignment,
@@ -15,7 +15,6 @@ import {
   type StorageLocationType,
 } from '@/services/storage-location-manager';
 import {
-  enqueueOfflineOperation,
   getOfflineQueue,
   processOfflineOperation,
 } from '@/services/storage/offline';
@@ -113,22 +112,12 @@ export async function assignMobileStorageLocation(assignment: LocationAssignment
   const validation = validateLocationAssignment({ assignment, authenticatedUserId: userId, locations });
   if (!validation.ok) return { ok: false, error: validation.reason };
   if (!rawItems.some((item) => item.id === assignment.inventoryItemId)) return { ok: false, error: 'Choose one of your collection records.' };
-  try {
-    await executeLocationAssignment(assignment, userId);
-    return { ok: true, data: undefined };
-  } catch {
-    await enqueueOfflineOperation(
-      STORAGE_LOCATION_QUEUE_TYPE,
-      assignment as unknown as Record<string, unknown>,
-      { userId: assignment.userId, dedupeKey: locationAssignmentQueueKey(assignment), uncertain: true },
-    );
-    return {
-      ok: true,
-      queued: true,
-      warning: 'Storage outcome is uncertain. Operation preserved for review; automatic replay is blocked.',
-      data: undefined,
-    };
-  }
+  const result = await runMobileCollectorMutation({
+    mutation: { type: 'storage', userId, inventoryItemId: assignment.inventoryItemId, storageLocationId: assignment.toLocationId },
+    membershipTier: null, currentTotalQuantity: 0, currentCardQuantity: 0,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+  return result.queued ? { ok: true, data: undefined, queued: true, warning: result.warning } : { ok: true, data: undefined };
 }
 
 export async function retryQueuedStorageLocationAssignments(userId: string) {
@@ -137,50 +126,14 @@ export async function retryQueuedStorageLocationAssignments(userId: string) {
   for (const operation of queue) {
     if (operation.type !== STORAGE_LOCATION_QUEUE_TYPE || operation.userId !== userId) continue;
     const outcome = await processOfflineOperation(operation.id, userId, STORAGE_LOCATION_QUEUE_TYPE, async (claimed) => {
-      const assignment = claimed.payload as unknown as LocationAssignment;
-      if (assignment.userId !== userId || !assignment.inventoryItemId) throw new Error('Invalid location operation.');
-      await executeLocationAssignment(assignment, userId, claimed.id);
+      void claimed;
+      throw new Error('LEGACY_OPERATION: verify the prior storage outcome before creating another move.');
     }, { retrySafe: false });
     if (outcome.status !== 'skipped') attempted += 1;
   }
   return { attempted, remaining: (await getOfflineQueue()).filter((op) => op.userId === userId && op.type === STORAGE_LOCATION_QUEUE_TYPE).length };
 }
 
-async function executeLocationAssignment(assignment: LocationAssignment, userId: string, operationId: string = createId()) {
-  if (!supabase) throw new Error('Supabase storage locations are not configured.');
-  const { data: item, error: itemError } = await supabase
-    .from('inventory_items')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('id', assignment.inventoryItemId)
-    .maybeSingle();
-  if (itemError) throw new Error(itemError.message);
-  if (!item) throw new Error('Choose one of your collection records.');
-  const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-    p_inventory_item_id: assignment.inventoryItemId,
-    p_mutation_type: 'storage',
-    p_quantity: null,
-    p_condition: null,
-    p_finish: null,
-    p_location_id: assignment.toLocationId,
-    p_idempotency_key: `storage:${operationId}`,
-    p_source: 'mobile',
-  });
-  if (error) throw new Error(error.message);
-  if (assignment.toLocationId) {
-    const { data: location } = await supabase
-      .from('inventory_locations')
-      .select('data')
-      .eq('user_id', userId)
-      .eq('id', assignment.toLocationId)
-      .maybeSingle();
-    await supabase
-      .from('inventory_locations')
-      .update({ data: locationDataPatch(isRecord(location?.data) ? location.data : {}, { recentUsedAt: new Date().toISOString() }) })
-      .eq('user_id', userId)
-      .eq('id', assignment.toLocationId);
-  }
-}
 
 async function authLocationContext() {
   if (!supabase) throw new Error('Supabase storage locations are not configured.');
@@ -197,8 +150,4 @@ async function authLocationContext() {
 
 function createId() {
   return globalThis.crypto?.randomUUID?.() ?? `loc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

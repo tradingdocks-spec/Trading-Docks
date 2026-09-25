@@ -1,6 +1,8 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1L DURABLE SCANNER COMMAND REPAIR IMPLEMENTED AND REHEARSED LOCALLY — PRIVATE ARTIFACT PARITY NOT CERTIFIED — PHASE 1 INCOMPLETE**.
+Status: **PHASE 1O VALUATION / SHOWCASE PRICE SEPARATION IMPLEMENTED LOCALLY — PHASE 1 SOFTWARE INCOMPLETE**.
+
+The final Phase 1O follow-up below supersedes its initial architectural stop: the owner approved explicit asking-price-only Showcase requests. The total-row valuation decision is also resolved. The Phase 1M ledger remains the historical blocker classification. Earlier phase sections are chronological evidence, not concurrent verdicts. In particular, Phase 1M supersedes earlier claims that dormant MarketPulse code or standalone trade/wishlist preferences themselves block scanner certification.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -970,3 +972,925 @@ The final mobile typecheck initially caught a Node-vs-Expo global URL type confl
 **PHASE 1 INCOMPLETE.** Phase 2 has not begun. Production inventory, `CS-000023`, POS, Square, tenant settings, agent installation and hardware certification remain unchanged. The local repair may be preserved in a focused commit after validation; no push or deployment is authorized by this task.
 
 Validation cleanup: the synthetic local Supabase acceptance stack was stopped with its volumes preserved. The isolated recovery container was not changed. Generated changes to AGENTS.md, next-env.d.ts and tsconfig.tsbuildinfo remain unstaged; no existing working-tree changes were reset or undone.
+
+## PHASE 1M — FINAL CLOSURE AUDIT + INSTALLED-BUILD CERTIFICATION
+
+Audit date: 2026-09-24. Runtime baseline: `1cc6321`. This phase adds diagnostic fixtures and certification documentation only. No application/schema repair, production access, live capture, pairing change, push or deployment occurred. No new architectural system is proposed; the remaining gaps concern previously identified paths.
+
+### Definitive historical blocker ledger
+
+Evidence keys: A = `tests/acquisition-authority-db.mjs` (current/legacy); B = `tests/acquisition-auth-browser.mjs --idempotency`; K = `tests/phase1j-idempotency-evidence.mjs --repaired --client-recovery`; Q = mobile queue suite and `tests/offline-queue-browser.mjs`; L = mobile inventory-command durability/scanner replay tests; M = `tests/phase1m-closure-evidence.mjs`; I = `tests/phase1m-installed-agent-evidence.ps1`. Source audits below supplement executable coverage; they are not runtime acceptance claims.
+
+| ID / discovered | Original concern and affected path | Current status | Evidence / covering test | Release blocking? |
+|---|---|---|---|---|
+| Authority stop / A–F | Competing acquisition ledgers and finalization authority | RESOLVED | Owner chose existing purchase ledger; finalizer, A/B | No |
+| G01 / A–F | Ledger/grant contradictions in collection intake | RESOLVED | Atomic purchase-ledger boundary; A/B | No |
+| G02 / F | Draft/revision finalization atomicity | RESOLVED | Collection intake transaction/revision checks; A/B | No |
+| G03 / F–G | Authorized receipt and replay result | RESOLVED | Receipt authorization and normalized result; A/B | No |
+| G04 / F–G | Duplicate/retried financial finalization | RESOLVED | Stable finalizer identity; A/B | No |
+| G05 / A–G | Generic header/line legacy financial writes | RESOLVED | Unsafe completion entry points gated; authority tests/A | No within gated scope |
+| G06 / A–G | Purchasing quantity/metadata split writes | RESOLVED | Legacy stock-producing completion gated; root authority tests/A | No within gated scope |
+| G07 / A–G | Card-show/bulk snapshot completion | RESOLVED | Unsafe financial finalization gated; root authority tests/A | No within gated scope |
+| G08 / F–G | Later edits overwrite acquisition cost | RESOLVED | Linked cost protection; A/B | No |
+| G09 / F–G | Inventory timestamps masquerade as acquisitions | RESOLVED | Ledger-derived cohorts/spending; analytics tests/B | No |
+| G10 / F | Purchase history limited to 250 records | NON-BLOCKING LIMITATION | Bounded history service, not all-history accounting | No; limitation retained |
+| G11 / F | Unknown dates/provenance fabricated | RESOLVED | No invented historical backfill; analytics/provenance tests | No for repaired boundary |
+| G12 / F | Detailed fees/tax/shipping allocation absent | NON-BLOCKING LIMITATION | Existing adjustment/details model, no expanded accounting claim | No |
+| G13 / F | Deferred/partial/reversal UI incomplete | NON-BLOCKING LIMITATION | Full receipt API covered A/B; advanced UI not claimed | No |
+| G14 / G–K | Full-schema compatibility | RESOLVED | Prior cloned-schema rehearsal plus A/B/K rerun | No locally; rollout G24 |
+| G15 / F–G | Tenant/anonymous authority | RESOLVED | Owner, other-tenant and anonymous checks A/B/K | No for tested seams |
+| G16 / F | Exact reviewed identity/value/location at financial boundary | RESOLVED | Finalizer guards A/B; not universal scanner truth | No for financial boundary |
+| G17 / B–H | Unproven intelligence | PARTIALLY RESOLVED | Market repair M passes; active portfolio missing-price aggregate below | YES |
+| G18 / C–H | Unknown physical attributes/provider disagreement | PARTIALLY RESOLVED | Buylist M passes; scanner/shared resolver/import counterexamples M | YES |
+| G19 / A–H | Retry and partial physical mutation safety | PARTIALLY RESOLVED | Server K and scanner L pass; generic collector intent identity M fails | YES |
+| G20 / E | Private artifact downstream equivalence | PARTIALLY RESOLVED | Actual installed capture binary I passes; downstream matrix uncertified | YES |
+| G21 / G | Physical imports are not financial acquisitions | NON-BLOCKING LIMITATION | Explicit stock-vs-purchase classification; attribute defects tracked G18 | No by itself |
+| G22 / E | Physical device acceptance | MANUAL REQUIRED | A–O script below, not executed | Yes, final acceptance gate |
+| G23 / G | Turbopack/worktree build issue | NON-BLOCKING LIMITATION | Webpack production build passes; normal promotion CI still required | Not this local audit; promotion gate |
+| G24 / G | Production preflight/recovery/rollout | MANUAL REQUIRED | No current production freshness claim or deployment authorization | Yes before promotion |
+| H01 / H | Shared queue snapshot overwrite/race | RESOLVED | Q browser locks/fallback and mobile queue regressions | No |
+| J01 / J | Event uniqueness checked after stock change | RESOLVED | Phase K authoritative RPC correction; K 23 regressions | No |
+| J02 / J | Client identity and ancillary completion | PARTIALLY RESOLVED | Scanner L repaired; generic stock edits reuse intent key M; preference-only classification below | YES for stock clients |
+| J03 / J | Installed private mutation/recovery parity | PARTIALLY RESOLVED | I proves installed capture contract only; matrix below | YES |
+| Legacy uncertainty / I–L | Old commands lack trustworthy outcome/identity | NON-BLOCKING LIMITATION | Review-only, no automatic re-key/replay; L | No while fail-closed |
+| Native multiruntime / I | Queue coordination beyond one JS runtime | NON-BLOCKING LIMITATION | Q covers registered foreground runtime/browser coordination; no headless writer registered | No within current runtime model |
+
+### Provenance sweep and reconciliation
+
+Prior market-engine and buylist fixes remain effective; no regression of those fixes was reproduced. Remaining defects are incomplete cross-path coverage (A/B in the request), while the earlier MarketPulse release claim was stale (D).
+
+| Surface / source | Classification and evidence | Decision |
+|---|---|---|
+| `market-engine/helpers.ts::normalizeCard` | OBSERVED sourced quote; INSUFFICIENT_DATA unsupported metrics remain null and sparkline empty. M verifies quote retained and seven unsupported metrics absent. | Prior repair RESOLVED |
+| `MarketPulse.tsx` | UNAVAILABLE as business evidence: synthetic changes/trends remain, but repository import search finds declaration only, no active consumer. | Dormant, non-blocking; prior live-blocker claim withdrawn |
+| `market-preview.ts`, landing MarketSection/useDemoMarketTicks | UNAVAILABLE as real market evidence; visibly demo/sample signals, cosmetic seeded trend/volume/ownership. No inventory writer. | Demo-only limitation, no unrelated redesign |
+| Dashboard business intelligence | CALCULATED orders/attribution/coverage/deltas; ESTIMATED profit and possible replenishment labeled accordingly. Priority weights rank recommendations, not observed probabilities. | No fabricated sales evidence found |
+| Inventory/mobile collection intelligence | CALCULATED from loaded stock with sample/coverage/missing-price disclosures. | Bounded calculations, not all-history truth |
+| Collection intake valuation | ESTIMATED user scenario/realization/profit; CALCULATED aggregates with price coverage and review gates. | Existing financial finalizer remains authority |
+| Purchasing product lookup | OBSERVED catalog/source/SKU quotes; best-priced SKU is a reference selection, not observed physical variant. | Legacy unsafe stock completion already gated |
+| Scanner pricing/ranking | OBSERVED nullable sourced price/timestamp; CALCULATED offer/estimated margin; recognition weights are diagnostics, not calibrated market probabilities. | Attribute confidence conflict remains G18 |
+| Trade/wishlist | OBSERVED user-entered target/preferences; not acquisition spending or cost basis. | No fabricated acquisition analytics found |
+| `collector-portfolio-server.ts::itemFrom`, `CollectorPortfolioWorkspace.tsx` bookshelf | INSUFFICIENT_DATA is incorrectly normalized to zero via `inventory_value ?? payload.value ?? payload.marketValue ?? 0`. Binder aggregate is displayed as money beside card count, without missing-price coverage; highest-value sorting consumes it. | Active G17 BLOCKER: unknown valuation appears as a complete value |
+
+Portfolio/showcase stored values do not prove acquisition cost or complete price coverage. This audit does not certify those missing inputs by substituting a numeric fallback. No valuation data was rewritten.
+
+### Unknown-attribute sweep
+
+- Buylist resolver and MTGJSON repairs remain effective: unknown finish, condition and language cannot finalize (M and existing trust tests). Current collection-intake review/finalizer retains explicit material-field validation.
+- `card-intelligence/ranking.ts` accepts any matching provider ID with `.some()`: M supplies a matching Scryfall ID plus conflicting TCGplayer ID and receives high confidence with no confirmation requirement. Final `inventory-validation.ts` checks all supplied IDs and rejects disagreement; that compensating guard does not make upstream false certainty safe.
+- `mobile/services/continuous-offer-scanner.ts` supplies `near_mint` when condition is omitted and normalizes unknown finish to `normal`. M reproduces missing condition becoming NM. `exact-printing-recognition.ts::defaultFinishForPrinting` picks normal from ambiguous finishes without a warning; M reproduces this and the active printing-selector consumes it. Premium scanner defaults also represent preferences, not physical observations.
+- Active `CsvConversionEngine.tsx::saveToInventory` uses `row.language.trim() || "English"`. The dashboard CSV route imports it. Separately, legacy `csv-converter.ts::normalizeRows` defaults English but has no active source import; M labels that helper dormant rather than conflating it with the active converter.
+- Manual `InventoryWorkspace.tsx` starts language at English; editable does not mean physically established. Older collection-buying CSV NM/nonfoil defaults are in the legacy center, while the current route uses CollectionIntakeWorkspace; they are not evidence of regression in the repaired current intake.
+- Purchasing reference SKU NM/English assumptions are catalog/reference data, not permission to infer owned-copy attributes. Collector normalizers retain unknown; wishlist `any` is a preference wildcard, not a claim about physical stock. Inbound-email English fallback creates unmatched order-line metadata, not acquisition inventory; documented related follow-up outside this repair.
+- Exact set/collector checks in buylist and the final catalog validator remain intact. No convenient-first-printing permission was introduced. G18 remains software-blocking for the active scanner/shared matching/import paths, not for every wildcard or dormant helper.
+
+### Ancillary trade/wishlist classification
+
+| Path | Stock / acquisition effects | Delivery and attributes | Classification |
+|---|---|---|---|
+| Mobile `trade-binder-wishlist-data.ts` | Trade-status upsert, wishlist insert/delete/priority only. No quantity/cost/acquisition writer or inventory RPC. | Shared queue, generated queue IDs, user/type/target dedupe. Uncertain outcomes review-only. Repeated preference insert may duplicate a preference; no exactly-once stock claim. `any` is intentional preference. | SAFE BUT NON-AUTHORITATIVE; NON-BLOCKING LIMITATION |
+| Web `trade-binder-wishlist-client-data.ts` | Same preference tables only; no financial or stock mutation. | Direct owner-scoped writes, no shared offline replay; no inventory operation ID required. | SAFE BUT NON-AUTHORITATIVE |
+| Generic collector trade/wishlist branches | Preference mutations only. | Same review/queue restrictions; do not feed purchase analytics. | SAFE BUT NON-AUTHORITATIVE |
+| Scanner combined save + wishlist/trade | Currently blocked before stock mutation; neither hidden partial stock completion nor fabricated acquisition. | Explicit review; composite completion unavailable. | BLOCKED feature, NON-BLOCKING LIMITATION while fail-closed |
+| Generic collector quantity/condition/finish/storage edits | Actual stock mutations through repaired RPC. These are distinct from preference branches. | `mutationQueueKey` uses owner/item/type for different intended values; M proves two quantity intents share a key. Correct server conflict rejection then prevents a legitimate second intent. Initial command is not always durably stored before sending. | NEEDS MIGRATION; G19/J02 BLOCKER |
+| `storage-location-data.ts` assignment/retry | Inventory location mutation. | Initial generated operation identity and queued replay identity require convergence. Uncertain outcomes remain review-only; cannot claim universal automatic recovery. | NEEDS MIGRATION; G19/J02 |
+
+Owner RLS and absence of inventory-writing triggers were reviewed in collector portfolio/trade schema migrations (`202608030040`, `202608030060`). No unsafe ancillary preference-to-stock writer was found to repair. Acquisition analytics reads the purchase ledger, not preference activity. Do not migrate preference operations into a second inventory authority. Generic stock-client durability remains an existing separate blocker, not a new architectural conflict.
+
+### Actually installed private build
+
+Read-only artifact/process/health inspection found PID `32968` at audit time, executable `%LOCALAPPDATA%\Programs\TradingDocksScannerBridge\TradingDocks.ScannerBridge.exe`. File/registry version: `1.3.1.0` / `1.3.1`; product version: `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`.
+
+- EXE SHA-256: `8C37CF5B5A72751383D159042E986DDCC6EAFA254A5884F5F5E1F09BFF6E0F7C`
+- Installed Core.dll SHA-256: `9F4B39A0984815026D20872B01BDBFA671853B265187C88F00B9DA616085692F`
+- Both Authenticode signatures: Valid, `CN=Trading Docks INTERNAL TEST Scanner Agent`.
+- Normal TLS GET `/v1/health` on `127.0.0.1:47391` with the existing approved production origin returned running=true, bridgeVersion=1.3.1, protocolVersion=1, automaticInbox=true, durableRecovery=true. No privileged command was sent.
+
+I copies the installed DLL bytes, verifies their hash, and compiles matching reviewed fixture code against that binary reference. It does **not** rebuild Core from source. All devices, journals and trust stores are synthetic, with isolated HTTPS port 47392; the installed process/state is untouched. **403 assertions passed against the installed assembly.** Early harness attempts exposed omitted fixture dependencies and Windows Schannel temporary-key handling; after restoring the matching reviewed fixture setup, the final run passed. Those harness failures are not product acceptance failures.
+
+This is stronger than source-only parity but still not an installed end-to-end inventory save. Agent owns capture identity, permits and encrypted pending-image recovery. Browser `local-scanner-provider.ts` hands off through `/api/chaos-sort/scans` and `chaos_scan_command` reserve/upload/received. Recognition/review and later explicit `commit` lead to `commit_chaos_sort_batch`. Native acknowledgement means durable cloud capture acceptance, not inventory commit. Mobile durable saves reach `create_inventory_item_with_event`; collector edits use their own authoritative mutation seam. Repeated closed Chaos commit can return `SCAN_BATCH_CLOSED`, not the mobile original receipt. Different domain operations require demonstrated handoff equivalence, not forcing a capture agent to own stock.
+
+Installed capture ID/scope and journal recovery are tested. Confirmed canonical identity, immutable stock payload, inventory RPC receipt, `ALREADY_COMMITTED`, `IDEMPOTENCY_CONFLICT` and stock-review acknowledgement are **not certified end-to-end through this installed path**. No live pairing, restart, reboot, scan or cloud commit was performed. Do not port a private source tree wholesale or replace lifecycle protections to obtain superficial parity.
+
+### Required fixture matrix
+
+K/L exercise the production-intended mobile command seam against local DB fixtures; I exercises the installed capture binary. Capture analogues do not count as inventory parity.
+
+| Fixture | Production-intended mobile path | Installed private build | Equivalent? / evidence |
+|---|---|---|---|
+| Normal confirmed save | K/L authoritative save passes | I capture-ready/cloud-ack passes; no installed stock save exercised | NOT CERTIFIED; blocker |
+| Duplicate delivery | K/L original command/receipt, one effect | I repeated capture ID avoids duplicate acquisition | NOT CERTIFIED at inventory seam |
+| Lost response after commit | K/L original receipt recovery passes | I image retained until acceptance; SQL commit/reply boundary absent | NOT CERTIFIED |
+| Same ID, changed payload | K rejects conflict, L does not re-key | I scope/permit checks, not stock fingerprint | NOT CERTIFIED |
+| Offline persisted recovery | L same identity/payload after reload | I installed journal recovery passes with synthetic restart; physical reboot not run | NOT CERTIFIED downstream; hardware MANUAL REQUIRED |
+| Review-required identity | Mobile review/validation fixtures pass; G18 upstream defects remain | Agent carries image, not canonical identity; cloud review not exercised | NOT CERTIFIED |
+| Server validation rejection | K/L rejection preserves correct state | I expired/wrong-scope authorization tests pass, not stock rejection | NOT CERTIFIED |
+| Location/inventory retry | K repaired RPC passes; broader generic client G19 remains blocked | No native inventory/location RPC; browser handoff not exercised | NOT CERTIFIED |
+| Partial batch | L independent item receipts/recovery covered | I inbox/capture limits covered; atomic Chaos commit is a different downstream operation | NOT CERTIFIED; domain boundary must be tested |
+
+Thus actual installed capture contract PASS does not resolve G20/J03. No software parity PASS is inferred from two independently passing suites.
+
+### Manual real-device acceptance script — NOT EXECUTED
+
+Use an explicitly authorized isolated acceptance account/destination and a real stack containing a known card, alternate printing, ambiguous foil and visibly worn card. Record operation IDs, exact identities, receipts and event counts. Do not use production stock or `CS-000023` without separate approval. All rows are **MANUAL REQUIRED**.
+
+| Step | Action | Expected evidence |
+|---|---|---|
+| A | Scan confirmed card online | Canonical review, persisted command before send, one authoritative receipt |
+| B | Confirm exact set/collector/printing | Saved exact printing, no first-result substitution |
+| C | Scan ambiguous foil/nonfoil | Explicit review; unknown is not normal |
+| D | Leave uncertain condition unknown | Review required, no NM inference |
+| E | Enable airplane mode and scan | Durable pending state; unvalidated identity remains review-only |
+| F | Reconnect | Original ID/payload replayed once |
+| G | Force-close after persistence, before send | Original command recovered without recognition rerun |
+| H | Controlled reply loss after observed SQL commit, then force-close | Same receipt recovered; do not infer server commit merely from timing |
+| I | Restart app/agent as applicable | Pending state and supported pairing/device preference restored |
+| J | Duplicate Save tap | One command/effect/receipt |
+| K | Search exact saved position | Correct owner/workspace/location/printing |
+| L | Compare quantity | Exactly intended delta |
+| M | Inspect ledger/event history | One expected stock event; no fabricated purchase/cost |
+| N | Retry and refresh again | No duplicate position/event/receipt |
+| O | Scan wrong/low-confidence identity | Explicit review, no automatic stock write |
+
+Software blockers below must be resolved before treating this script as the only remaining release gate.
+
+### Validation and generated-file hygiene
+
+To preserve pre-existing generated changes byte-for-byte, build/typecheck/browser runs used a detached temporary worktree at `1cc6321` with dependency junctions. `AGENTS.md`, `next-env.d.ts`, `tsconfig.tsbuildinfo` in the working branch remain pre-existing, unrelated and unstaged. No reset, rewrite or cleanup of those files is authorized.
+
+| Check | Result |
+|---|---|
+| Root `npm run check` | PASS: 1,038 tests, TypeScript/lint, dependency audit 0 vulnerabilities |
+| Active mobile | PASS: 613 tests and TypeScript; lint 0 errors, 3 existing warnings |
+| Acquisition DB | PASS: 22 current + 22 legacy = 44 |
+| Server idempotency | PASS: 23; source-candidate client matrices 12 + 12 also pass, not installed parity |
+| Offline browser queue | PASS: Web Locks and localStorage coordination fallback |
+| Authenticated local browser | PASS: local Next/GoTrue/PostgREST draft/reload, receipt/retry/concurrency, cost protection and tenant/anonymous checks |
+| Production build | PASS: `next build --webpack`, 169 pages; no deployment |
+| Installed assembly | PASS: 403 capture/recovery/security assertions; downstream certification remains blocked |
+| New closure diagnostics | Completed; deliberately report unresolved G18/G19 counterexamples. Exit 0 means evidence collection completed, not release PASS |
+| Focused diagnostic ESLint | PASS |
+
+Detailed logs are local `%TEMP%\td-phase1m-*.log`; no raw customer export, agent pairing state, secret or recovery dump is included in this report or the new diagnostics.
+
+### Full historical guarantee decision
+
+| Guarantee | Verdict and scope |
+|---|---|
+| TRANSACTIONAL INTAKE | PASS at tested finalizer |
+| PURCHASE LEDGER AUTHORITY | PASS |
+| ACQUISITION ANALYTICS | PASS for repaired ledger-derived metrics |
+| INTELLIGENCE PROVENANCE | FAIL overall: active portfolio missing-price presentation |
+| UNKNOWN ATTRIBUTE SAFETY | FAIL overall: scanner/import/shared ranking counterexamples |
+| SHARED OFFLINE QUEUE | PASS within supported runtime model |
+| SERVER IDEMPOTENCY | PASS for repaired authoritative RPCs |
+| STALE RETRY SAFETY | FAIL universal claim; server/scanner pass, generic client identity incomplete |
+| PAYLOAD-CONFLICT REJECTION | PASS |
+| CLIENT COMMAND DURABILITY | FAIL universal claim; Phase 1L scanner passes |
+| PERSIST-BEFORE-SEND | FAIL universal claim; Phase 1L scanner passes |
+| APP RESTART RECOVERY | PASS deterministic scanner fixtures; real-device MANUAL REQUIRED, broader client gaps remain |
+| NO RECOGNITION ON REPLAY | PASS for durable scanner command path |
+| PRIVATE INSTALLED-BUILD PARITY | FAIL certification gate; capture binary passes, inventory handoff unproven |
+| TRADE/WISHLIST SAFETY | NON-BLOCKING preference-only paths; combined completion safely blocked |
+| TENANT ISOLATION | PASS tested local boundaries, no production freshness assertion |
+| PHYSICAL DEVICE ACCEPTANCE | MANUAL REQUIRED |
+
+Final decision: **PHASE 1 INCOMPLETE**.
+
+Remaining software work is precise: preserve missing-price provenance in active portfolio valuation; close physical-attribute/provider-conflict gaps across active consumers; migrate generic stock-edit clients to the existing durable immutable intent contract; certify the installed agent's cloud-to-inventory handoff against the same recovery guarantees. Standalone preference completion and dormant demo components are not substituted for those blockers. Phase 2 remains blocked. Production inventory, batch CS-000023, POS, Square, tenant settings and hardware certification remain unchanged.
+
+Final hygiene checks: scoped credential/private-key/JWT pattern audit passed for the three Phase 1M files and 355 built browser JavaScript bundles; this is a scoped check, not a claim of exhaustive secret detection. `git diff --check` passed. Fresh SHA-256 comparison confirms all three pre-existing generated files remain byte-identical to their pre-audit state. The synthetic Supabase acceptance stack was stopped with volumes preserved; the separate recovery container was not changed. No files were staged, committed, pushed or deployed in Phase 1M.
+
+## PHASE 1N — SEMANTIC INTEGRITY + UNIVERSAL MUTATION IDENTITY + AGENT HANDOFF
+
+### Architectural stop: one valuation column has incompatible units
+
+Status: **PHASE 1 SOFTWARE INCOMPLETE**. The owner requested: “If another architectural conflict is discovered: STOP. Document it. Do not create parallel inventory, pricing, identity or retry systems.” That stop condition was reached during the initial active valuation/writer audit, before runtime implementation.
+
+This is a newly established conflict within blocker 1, not an additional product initiative: `inventory_value` is used as both unit price and extended row value. Correcting null handling alone would leave materially incorrect known totals and quantity-change calculations.
+
+| Evidence in current local baseline | Meaning |
+|---|---|
+| `supabase/migrations/20260924235138_acquisition_purchase_authority.sql:235` | Saves `unitMarketValueAtAgreement` on the purchase line, explicitly per unit. |
+| Same migration, line 247 | Calls existing `create_inventory_item_with_event` with `quantity = line.quantity` but `inventory_value = unitMarketValueAtAgreement`, without multiplying by quantity. |
+| `supabase/migrations/202608120002_inventory_event_ledger.sql:442` | Existing create writer stores the supplied `inventory_value` without unit-to-total conversion; missing values become zero. The forward POS installation preserves this behavior. |
+| `supabase/migrations/20260925024439_inventory_mutation_idempotency.sql` | Phase 1K adds authorization, immutable fingerprint and receipt/replay to the existing function; it does not normalize valuation units. Thus idempotent delivery does not fix the meaning of the value. |
+| `src/lib/collector-portfolio-server.ts:55–67` | Treats the field as extended row value; divides it by quantity to produce unit market value. Binder/portfolio aggregates sum it. |
+| `src/components/dashboard/tools/CsvConversionEngine.tsx:679–681`, `src/lib/inventory-persistence.ts` | Active CSV import constructs `unitMarketValue = price`, `value = price * quantity`, then stores `value` as `inventory_value`. This writer uses total-row semantics. |
+| `supabase/migrations/20260922212715_collector_removal_position_authority.sql:139–146` | Scales `inventory_value` by remaining quantity / prior quantity: requires total-row semantics. |
+| `supabase/migrations/202608260001_collection_location_authority.sql:114–119` | Splits value proportionally between positions: also requires total-row semantics. |
+| `supabase/migrations/202607280004_inventory_persistence.sql:22` and create writer above | `NOT NULL DEFAULT 0` and explicit missing-to-zero conversion erase the distinction between some historical unpriced rows and genuine observed zero. |
+
+Source-derived counterexample (not a production mutation or claimed live observation): three cards priced at $10 each enter the financial receipt writer with `inventory_value = 10`. Portfolio reports $10 total and approximately $3.33 each. CSV import of the same price/quantity stores $30. Removing one card from the receipt-created row proportionally leaves approximately $6.67 rather than $20. Both operations can be individually idempotent and still disagree on business meaning.
+
+No production rows were inspected to infer incidence; no claim is made that a particular production batch has this defect. The evidence concerns active repository writer/reader contracts. Historical data cannot be normalized safely from a numeric zero or quantity alone.
+
+### Proposed resolution for owner review, not implemented
+
+1. Establish `inventory_value` as extended current-row market value, consistent with existing portfolio, split and removal behavior. Keep explicit unit quotes separate in existing payload/provenance fields. Preserve the historical `unitMarketValueAtAgreement` and financial cost basis unchanged.
+2. Use existing `IntelligenceValue` availability/provenance vocabulary. Unknown must remain unavailable, genuine evidenced zero must remain zero, and mixed aggregates must expose known subtotal plus unpriced count/coverage. Do not infer that every historical zero is either observed or unpriced.
+3. Correct the purchase-receipt caller in a forward migration, not by editing an applied migration. Coordinate any nullable storage/availability representation with the existing create writer and readers. This is a single shared value contract, not a second pricing model.
+4. Treat legacy ambiguous rows as insufficient data unless trustworthy source metadata proves the interpretation. Any historical correction requires a separate evidence-based plan; no blanket multiplication, nullification or acquisition-history rewrite.
+5. Rehearse multi-quantity create, removal and split across receipt/import/scanner paths, alongside the requested known/unknown/real-zero cases and ledger/idempotency invariants. Only then resume the other three blockers.
+
+The specific decision needed is approval of that shared total-row/availability contract and a forward-only implementation under the existing authority. No production application is requested or implied.
+
+### Other audit observations retained, not implemented
+
+- Generic mobile collector edits still use owner/item/type keys across distinct intents; mobile location initial/replay identity differs. Web collector API creates keys from a new server timestamp. Those are blocker 3's existing command-identity gaps.
+- Active CSV save invokes `persistInventorySnapshotDiff`, which upserts complete records outside the command receipt path. Its quantity, identity, valuation and retry semantics must be audited as a stock writer; labeling it a non-financial import is not equivalent to certifying universal inventory identity. Main `/dashboard/inventory` uses CollectorWorkspace; the older InventoryWorkspace autosave implementation must not be mislabeled as the active main route.
+- Existing unknown-condition/finish/language and provider-disagreement findings remain blocker 2. No inference/default paths were removed this phase.
+- Installed agent still produces capture data, not a canonical-card inventory command. Phase 1M's actual-DLL capture evidence remains valid historical evidence, but no new downstream integration fixture or certification was performed before this stop. Blocker 4 remains open.
+- Standalone trade/wishlist preferences remain non-blocking. No new queue, pricing abstraction, alternate writer, migration or installer was created.
+
+### Validation and hygiene at the stop
+
+Before any runtime editing, reran the package-script baselines: **1,038 root tests PASS; 613 mobile tests PASS**. Logs: local `%TEMP%\td-phase1n-baseline-root.log` and `%TEMP%\td-phase1n-baseline-mobile.log`.
+
+No runtime source changes were made. Database/server regressions, TypeScript, lint, build, browser recovery and 403 installed-DLL assertions retain their Phase 1M evidence; they were **not rerun in Phase 1N**, and are not represented as new closure passes. Per the explicit architectural stop, full implementation validation is deferred until the contract decision. No physical tests were performed. The Phase 1M manual A–O script remains unchanged.
+
+Only this report was edited in Phase 1N. The Phase 1M diagnostic files and report work remain local. Pre-existing AGENTS.md, next-env.d.ts and tsconfig.tsbuildinfo must remain unstaged and byte-identical. Nothing was committed, pushed or deployed. No production settings, inventory, POS, Square, CS-000023, scanner installation or pairing state was changed.
+
+### Full blocker recheck at stop
+
+PASS below denotes the existing tested boundary, not a new universal implementation claim. All unresolved software remains blocking.
+
+| Gate | Status | Basis |
+|---|---|---|
+| TRANSACTIONAL INTAKE | PASS | Existing atomicity tests; valuation units are separately blocked |
+| PURCHASE LEDGER AUTHORITY | PASS | Existing single-ledger financial authority, not inventory valuation equivalence |
+| ACQUISITION ANALYTICS | PASS | Existing ledger-derived spending/count metrics |
+| INTELLIGENCE PROVENANCE | BLOCKER | Active missing-price portfolio presentation remains |
+| MISSING PRICE SEMANTICS | BLOCKER | Unknown/zero conflation plus unit/total contract conflict above |
+| UNKNOWN ATTRIBUTE SAFETY | BLOCKER | Active scanner/shared matching defaults and conflicts |
+| IMPORT ATTRIBUTE SAFETY | BLOCKER | Active incomplete-identity/language fallback paths |
+| SHARED OFFLINE QUEUE | PASS | Prior supported-runtime coordinator fixtures; baseline unchanged |
+| SERVER IDEMPOTENCY | PASS | Phase 1K tested RPC boundary, no universal writer claim |
+| STALE RETRY SAFETY | BLOCKER | Generic client coverage incomplete |
+| PAYLOAD CONFLICT | PASS | Existing repaired RPC rejects same ID/different payload |
+| CLIENT COMMAND DURABILITY | BLOCKER | Scanner repaired; not universal across supported writers |
+| PERSIST BEFORE SEND | BLOCKER | Generic clients incomplete |
+| APP RESTART RECOVERY | MANUAL REQUIRED | Deterministic scanner fixtures pass historically; physical test not performed |
+| GENERIC INVENTORY EDIT IDENTITY | BLOCKER | Target-based and timestamp-based intent keys remain |
+| GENERIC EDIT RETRY SAFETY | BLOCKER | Broader callers not migrated/rehearsed |
+| SCANNER RECOVERY | PASS | Existing deterministic durable command evidence; physical test separate |
+| INSTALLED AGENT DOWNSTREAM PARITY | BLOCKER | Capture DLL evidence does not certify downstream stock handoff |
+| TENANT ISOLATION | PASS | Previously tested local authority boundaries; production not accessed |
+| PHYSICAL ACCEPTANCE | MANUAL REQUIRED | A–O script retained, not executed |
+
+**PHASE 1 SOFTWARE INCOMPLETE**. PHYSICAL ACCEPTANCE = MANUAL REQUIRED. Phase 2 has not begun. Resume only after the newly documented valuation-contract conflict is resolved with the owner; do not work around it with a parallel model.
+
+## PHASE 1O — INVENTORY VALUATION CONTRACT REPAIR
+
+### Accepted invariant and new stop condition
+
+The owner has resolved the Phase 1N valuation-unit decision: `inventory_value` is **TOTAL ROW / LOT MARKET VALUE**, Q × authoritative unit market value when known. Unknown is unavailable, not numeric zero. Acquisition unit cost, total cost basis and market value remain separate. That decision is accepted and is not reopened here.
+
+Phase 1O's initial repository audit found a further financial semantic: **public customer request pricing is derived from inventory market valuation**. The owner explicitly required: “If a further incompatible financial semantic is discovered: STOP. Document it. Do not hide it behind conversion logic.” Implementation stopped before any runtime edits, as required.
+
+This is not merely another reader needing division by quantity. Converting a market valuation to a per-unit number would still silently decide that it is the seller's customer-facing request price. The total-row decision does not authorize that selling-price policy.
+
+### Exact active call path and evidence
+
+- `src/lib/showcase.ts::getShowcase` calls `get_public_showcase_inventory` for an enabled public profile.
+- `supabase/migrations/202609100003_showcase_image_projection.sql:29` projects `greatest(0, coalesce(data.marketPrice, inventory_value, 0))` as `public_price`; line 36 also uses it for minimum-price filtering.
+- `src/app/api/showcase/requests/route.ts:11` calls `submit_showcase_request`; this is an implemented request endpoint, not dormant demo code.
+- `supabase/migrations/202609090001_showcase_v1.sql:157` assigns the same fallback to a variable named `unit`.
+- That function persists `unit_price_snapshot = unit`, `line_total = unit * requested_quantity`, and the resulting `showcase_requests.subtotal`.
+- Repository search found the original submission function and the later public-projection replacement; no later definition removing this fallback was found.
+
+Source-derived example, not a production transaction: with owned quantity 3, known unit market value $10 and correctly stored total $30, and no `data.marketPrice`, Showcase advertises $30 as its unit request price. A request for two copies records $60. Dividing to $10/$20 would fix the units but would still assume the owner intends to quote market value. Conversely, unknown valuation becomes a $0 request snapshot. Neither policy is established by this phase's market-value decision.
+
+These are **customer request snapshots, not proof of completed sales, charges or payments**. No production profile, row, request, sale or payment was queried or changed. Production incidence and enabled-profile configuration were not assessed.
+
+### Inventory-value usage audit at the stop
+
+Repository search enumerated runtime, SQL, types and test references before code changes. The initial local evidence lists are `%TEMP%\td-phase1o-value-files.txt` and `%TEMP%\td-phase1o-value-usages.txt`; they contain repository paths/source matches only. The table records classifications established so far. The full per-usage audit and implementation were interrupted by the required stop; this is **not** a claim that every import/export/legacy consumer has been certified.
+
+| File / function group | Reader / writer | Current assumed semantics | Quantity / unknown handling | Required action, not implemented |
+|---|---|---|---|---|
+| `20260924235138_acquisition_purchase_authority.sql` receipt | Writer | UNIT_VALUE | Agreement unit market stored without Q multiplication; missing becomes 0 | Forward caller repair; preserve separate agreement/cost data |
+| `202608120004_collection_intake.sql` historical finalizer | Historical writer | UNIT_VALUE | Same unit fallback | Do not edit applied file; verify current delegate only |
+| `202608120002_inventory_event_ledger.sql` create and collector mutation | Writer/event calculation | AMBIGUOUS | Stores input unchanged; emits it as event unit value and multiplies by Q for event total; quantity edit only changes Q | Correct current forward function/event semantics together with existing fingerprint/replay |
+| `20260921220051_pos_forward_installation.sql` embedded inventory functions | Forward-installed inventory bodies | AMBIGUOUS | Repeats create/event and split bodies | Inspect current definitions; never replay/edit historical migration |
+| `inventory-persistence.ts` / active `CsvConversionEngine.tsx` | Writer/reader | TOTAL_ROW_VALUE | Import price × Q; missing/malformed becomes zero; snapshot stores row value | Explicit import unit/total schema and unavailable state |
+| `collector-portfolio-server.ts` / portfolio item/binder types | Reader/type/aggregate | TOTAL_ROW_VALUE | Divides by Q for unit; sums row values; absent values become zero | Nullable trusted values, known subtotal and coverage |
+| `mobile/services/collector-workspace.ts` shared collector normalizer | Reader | TOTAL_ROW_VALUE | Prefers explicit unit metadata, else divides positive row total; genuine zero treated absent | Preserve legitimate zero separately from unavailable/legacy uncertainty |
+| `202608260001_collection_location_authority.sql` split | Writer | TOTAL_ROW_VALUE | Proportional total allocation; handles null branch but underlying column historically NOT NULL | Preserve null, established precision and audit history |
+| `20260922212715_collector_removal_position_authority.sql` removal | Writer | TOTAL_ROW_VALUE | Remaining/prior Q scales total; no financial acquisition | Preserve provenance, cost and event history |
+| `202609070001` / `202609070002` Chaos commit bodies | Writer/merge | TOTAL_ROW_VALUE | Quantity/value accumulation | Audit current forward definition and unknown propagation before change |
+| `202607280004` / `202607300001` schema declarations | Storage/type | AMBIGUOUS | NOT NULL DEFAULT 0 loses availability | Forward contract required; do not infer old zero provenance |
+| `dashboard/analytics-summary.ts`, business intelligence/command center | Reader/aggregate | TOTAL_ROW_VALUE | Sums row values; numeric fallback hides missing coverage | Known subtotal + coverage; preserve purchase-ledger acquisition metrics |
+| `inventory/intelligence.ts` | Reader/recommendation | TOTAL_ROW_VALUE | Missing/zero valuation flagged together | Separate observed zero from unavailable |
+| `deck-architect/server.ts` | Reader | TOTAL_ROW_VALUE | Explicit total-to-unit conversion | Audit legacy provenance, retain unit conversion only for trusted totals |
+| `binder-shares/route.ts` | Reader/display | TOTAL_ROW_VALUE | Finite-number fallback zero | Availability-aware share output |
+| `selling/candidate-service.ts` | Reader/listing candidate | AMBIGUOUS | Unit `data.market_price` falls back to row `inventory_value`, passed as candidate `marketPrice` | Preserve unit market vs selling-price distinction; no silent conversion policy |
+| `integrations/discord/inventory/route.ts` | Reader/export | AMBIGUOUS | `price` uses marketPrice or row total or zero | Define exported unit/total/availability explicitly |
+| `showcase_image_projection.sql`, `submit_showcase_request` | Public quote reader / financial snapshot writer | UNIT_VALUE plus selling-price conflation | Row value used as public unit quote and multiplied by requested Q; unknown becomes 0 | **STOP: explicit request-pricing policy needed** |
+| `collector-data.ts`, collector client/storage/binder/trade data loaders | Read/select/sort | DISPLAY_ONLY at query layer | Select row value or order/cursor by it; normalization downstream | Keep cursor/order semantics consistent with actual total, audit display normalizers |
+| `owned-inventory-query.ts`, `card-workspace.ts`, GlobalSearch/Chaos UI | Read/projection/type | DISPLAY_ONLY at projection layer | Value projected; downstream contract must carry availability | Do not infer full certification from SQL select alone |
+| POS sale/refund SQL families | Stock update/snapshot | TOTAL_ROW_VALUE | Sales prorate row total; refunds use captured inventoryValueUnit; null-to-zero cases exist | Compatibility audit required; POS/Square behavior unchanged in this phase |
+| `dashboard-v2/business/ReportsWorkspace.tsx` | Display fixture | DISPLAY_ONLY | Static report fixture | Distinguish demo from business data; not a production value writer |
+| Purchasing product-lookup route | Legacy writer | UNIT_VALUE | Market/low price directly assigned | Confirm existing write gate; no unsafe legacy re-enablement |
+| Acquisition/collector/removal/showcase/portfolio/intelligence tests | Fixtures/assertions | Mixed assumptions | Some assert counts/authority without valuation units | Add requested 12 semantic cases after policy resolution; existing passing tests do not certify units |
+| Staging repair SQL / historical migration copies | Historical definitions | Mixed | Historical deployment bodies | Evidence only; no edits/replay |
+
+### Proposed decision needed to resume
+
+Recommended: Showcase request prices should use an **explicit owner-configured per-unit asking price**, independent of market valuation and acquisition cost. When absent, show price unavailable and require owner pricing before storing a priced request; never default to free. Reuse the existing asking-price representation after verifying its owner/workspace scope. Do not create a second price store or modify historical request snapshots.
+
+Alternatively, if the intended Showcase product contract is specifically a **market-estimate request**, explicitly approve that behavior and its labeling: a trusted unit market estimate, never a row total, with unavailable values requiring review. This is a business-policy choice; the implementation must not choose it by hiding division inside a helper.
+
+Once that decision is made, resume the already approved total-row repair: forward-only writer/reader changes; explicit unavailable values; genuine-zero support; separate cost basis; no legacy guessing; idempotent replay and unchanged payload fingerprints for existing logical retries. No prior migration or historical request/inventory/purchase data should be rewritten.
+
+### Implementation, testing and current verdict
+
+- Receipt, CSV, split/removal, portfolio and nullable-storage repairs: **not implemented**, stopped during audit.
+- Safe historical migration: **none proposed or performed**; ambiguity remains explicit.
+- Requested 12 semantic regressions, DB/server/browser/build validation: **not run for Phase 1O**, because no implementation proceeded beyond the mandated stop. Prior phase results remain historical evidence, not a new Phase 1O pass.
+- Physical acceptance: **MANUAL REQUIRED**, existing script retained.
+- Missing-price semantics: **BLOCKER**; total-row invariant approved, customer request-pricing policy unresolved.
+- Active unknown-attribute inference: **BLOCKER**, unchanged.
+- Generic inventory-edit durable identity: **BLOCKER**, unchanged.
+- Installed-agent downstream parity: **BLOCKER**, unchanged; installed capture assertions do not prove stock parity.
+
+**PHASE 1 SOFTWARE INCOMPLETE**. No runtime code, schema, production data, POS/Square setting, installer or pairing state was changed. No push/deployment/Phase 2. Only this report was updated, with existing Phase 1M work retained locally and unrelated generated files preserved.
+
+
+### Phase 1O follow-up — owner price policy accepted and implemented
+
+**Implemented locally; requires reviewed migration/application promotion. Nothing pushed or deployed.** The prior stop above is historical evidence, not the current gate. The owner approved an explicit per-unit asking price for Showcase. No market-price fallback or new parallel price store is permitted.
+
+#### Authoritative money contract
+
+| Concept | Representation | Contract |
+|---|---|---|
+| Row market valuation | `inventory_items.inventory_value` | Total row/lot market valuation Q × known unit quote. NULL is unavailable, genuine zero is known. |
+| Unit market estimate | Existing `unitMarketValue` / provider market fields | Reference only; explicit row-total imports normalize unit reference by quantity. Receipt uses the immutable market quote **at agreement**, not a claim of a fresh live market price. |
+| Customer asking price | Existing `inventory_items.asking_price` | Explicit owner unit price. Showcase snapshots this amount × requested quantity; never falls back to market value or cost. |
+| Acquisition cost | Existing purchase ledger line `unit_cost` / `total_cost`, linked cost-basis metadata | Agreed allocation independent of valuation; valuation changes cannot rewrite the purchase ledger. |
+
+Example verified through actual SQL: 3 units × $10 market = $30 row valuation; agreed purchase $24 gives $8 unit cost. Separate Showcase example: quantity 3, row value $30, asking price $11.99; request 2 snapshots $23.98. Changing market reference to $50 leaves asking price and historical request snapshot unchanged.
+
+#### Forward migrations and historical policy
+
+- `20260925061021_inventory_total_valuation_contract.sql`: permits NULL/no implicit default, documents column semantics, repairs receipt/create/event/quantity mutation bodies while retaining original permission and idempotency code. Split destination keeps NULL. Existing Chaos writer retains quantity multiplication but stops inventing zero; mixing new value with an unproven legacy total produces unavailable valuation instead of certifying that total.
+- `20260925061022_showcase_explicit_asking_price.sql`: public projection/minimum-price filter use asking price; request uses canonical owner + workspace, locks stock, rejects missing/invalid asking price, and rejects a changed submitted quote. Historical requests remain untouched. It also repairs the existing invalid PL/pgSQL subtotal-variable qualification exposed by executing a real request.
+- No data backfill. No existing inventory/event/purchase/request rows are updated by either migration. Newly persisted contract values are tagged `data.inventoryValueSemantics = total_row_v1`. This marker is added **after** command fingerprinting, not to the caller's immutable payload.
+- Untagged historical amounts remain stored and are classified **UNKNOWN_LEGACY_SEMANTICS**, excluded from trusted valuation. No historical row is declared known-unit or known-total merely from its source label, timestamp, quantity or current market price. There is no automated safe legacy conversion in this candidate.
+- Dynamic function changes fail on incompatible core definitions. These are one-time forward migrations, not a production replay script. Rehearsal does not authorize production application.
+
+#### Reader/writer audit disposition (supplements the complete initial matrix)
+
+| File/function family | Final semantics / quantity handling | Unknown handling / repair |
+|---|---|---|
+| Receipt `finalize_intake_purchase` | TOTAL_ROW_VALUE: immutable agreed unit market quote × line quantity | NULL preserved; cost allocation unchanged. Positive offers with missing allocation weights still require review. |
+| `create_inventory_item_with_event` | TOTAL_ROW_VALUE; creation event unit = total/Q, total = row total | No implicit zero; marker stored outside fingerprint. |
+| `apply_collector_inventory_mutation` | Proportionally recomputes proven total for new quantity | Legacy amount not reclassified; event monetary fields unavailable for ambiguous legacy values. |
+| `move_inventory_lot_quantity`, `remove_inventory_lot_quantity` | TOTAL_ROW_VALUE; existing proportional precision logic retained | Unknown source/destination stays NULL. No purchase history rewrite. |
+| Chaos commit writer / `ChaosSortWorkspace` projection type | Existing total calculation retained; no invented zero | Nullable type, forward marker, conservative merge with legacy. Local Supabase actual function inspected: marker present and prior `coalesce(marketPrice,0)` absent. |
+| CSV templates / `CsvConversionEngine` | Explicit total takes precedence, otherwise known unit × Q once | Malformed explicit total stays unavailable; missing/malformed price and cost basis stay NULL. Explicit owner asking price separate. |
+| `inventory-persistence` | Persists supplied row total, not unit value | Parses NULL without zero. Asking price only written when explicitly present; unrelated saves do not reset it. |
+| Shared `mobile/services/inventory-valuation.ts` | One shared money/valuation parser and known-subtotal helper, re-exported for web | Strict nonnegative finite amounts; real zero accepted. No extra persisted valuation system. |
+| Shared collector normalizer, card detail/search, mobile/web location/binder/trade loaders | Trusted row total / quantity, or explicit unit market metadata | Legacy fallback removed. Location/binder/query-only loaders normalize through the shared collector service. |
+| Collector portfolio server/types/workspace/binder UI | Sum trusted TOTAL_ROW_VALUE | Nullable all-unpriced aggregate, known subtotal + unpriced rows including binder-page summaries. |
+| Dashboard analytics, business capital, inventory attention, bulk-purchase history display | TOTAL_ROW_VALUE subtotals | Unknown totals unavailable; explicit zero counts as covered; unsupported projected profit unavailable. Exact missing-price predicate recognizes legacy/unavailable values. |
+| Global Search | Unit reference from shared collector; placement total = unit × placement quantity | Unknown placement/group values no longer rendered as zero; groups show known subtotal and unpriced count. |
+| Deck Architect, binder sharing, selling candidates, Discord inventory projection | Unit reference or trusted total/Q | No raw legacy total interpreted as per-unit price; binder share no longer uses ambiguous `data.value` as unit. |
+| Mobile collection price pagination | Cursor now uses exact raw database row-total sort key, not normalized unit price | NULLs last and included in subsequent pages. Cursor is ordering metadata, not evidence that a legacy amount is a trusted valuation. |
+| Showcase public component / request RPC | ASKING_PRICE ONLY; canonical price snapshotted at request time | “Price not set”; Add/Continue blocked; changed price returns `SHOWCASE_PRICE_CHANGED`; missing price returns `SHOWCASE_PRICE_REQUIRED`. No payment processing implemented or enabled. |
+| TCGplayer export | Explicit owner asking price exports as Marketplace Price | Missing asking price remains blank; provider market/low price never silently fills it. |
+| Legacy bulk purchase and product-lookup writers | Historical conflicting code remains behind the previously established legacy write gate | Gate not reopened. Bulk historical display repaired; blocked import preview is not certified as a supported acquisition writer. |
+| POS sale/refund migration families | Existing proportional total-row stock handling | Not modified or enabled. No claim of new POS physical/payment acceptance. |
+| Historical/staging SQL, backup trees, static ReportsWorkspace fixture | Historical / DISPLAY_ONLY | Not edited or presented as current financial authority. |
+
+CSV schemas: Deck Builder `Total Price` is row total; `Single Price`/`Single Foil Price` are unit reference. Deckbox `My Price` and TCGplayer `TCG Marketplace Price` are explicit owner asking price. Dragon Shield `MARKET`, TCGplayer `TCG Market Price`, and Universal `Market Price` remain unit reference. Price Bought / Cost Basis remain cost. Other template price columns retain their mapped unit-reference semantics. A malformed explicit total does not silently fall back to a unit quote.
+
+#### Rehearsal and regression evidence
+
+Local synthetic data only; no production reads/mutations needed. The final browser harness uses real Next.js → API → local Supabase Auth/PostgREST/RLS → database, not mocked request success.
+
+| Gate | Result |
+|---|---|
+| Root tests | PASS: 1,045 (baseline 1,038 + 7 valuation/import/shared-reader tests) |
+| Active mobile tests | PASS: 613 |
+| Database | PASS: 28 current + 28 legacy = 56; retains 44 baseline checks plus 12 valuation/Showcase checks |
+| Server idempotency | PASS: 23 existing checks; additional post-valuation create/edit replay and changed-payload conflict exercised in each DB variant |
+| Required money cases | PASS: receipt 3×$10=$30; receipt 1×$10=$10; NULL/zero distinct; explicit CSV $30 remains $30; split $30→$20+$10; NULL split; removal $50→$30; mixed/all-unknown portfolios; independent $24 cost; quantity edit; legacy object unchanged |
+| Showcase database | PASS: explicit $11.99 quote, two-unit $23.98 request, changed quote denied, no market fallback, missing price denied, stock unchanged |
+| Authenticated browser | PASS: draft/reload, receipt/retry/concurrent duplicate, cost protection, same-owner other-workspace/other-user/anonymous denial; real Showcase disabled unpriced Add and $23.98 request |
+| Browser queue | PASS: Web Locks cross-tab recovery, worker exclusion and reload persistence |
+| Installed agent regression | PASS: 403 synthetic capture/security/recovery assertions on installed 1.3.1 assembly; no live pairing/device state touched. **Not downstream inventory parity or physical acceptance.** |
+| TypeScript | PASS: root and active mobile |
+| ESLint | PASS: no errors; existing warning baseline retained (root 551, mobile 3) |
+| Production build | PASS: isolated `next build --webpack`, 169 pages; not deployed |
+| Dependency audit | PASS: 0 vulnerabilities at requested production-dependency threshold |
+| Candidate secret/artifact scan | PASS: no detected credential patterns or recovery/installer/private-key artifacts in candidate files; not a claim of formal security certification |
+| `git diff --check` / generated files | PASS; pre-existing AGENTS.md, next-env.d.ts, tsconfig.tsbuildinfo SHA-256s unchanged and unstaged |
+
+During browser-fixture preparation, direct synthetic inventory insertion without an authenticated owner context correctly raised `INVENTORY_WORKSPACE_FORBIDDEN`. The fixture now supplies its synthetic owner's transaction-local claims; no production guard was changed. During receipt-case preparation, a positive offer with a missing allocation weight correctly raised `ACQUISITION_ALLOCATION_REVIEW_REQUIRED`; the missing-market test uses a legitimate zero-cost receipt, rather than bypassing allocation review.
+
+Detailed test logs and screenshots remain outside Git under `%TEMP%/td-phase1o-*`. Build/browser work ran in the existing detached temporary validation worktree so generated files in the working branch remain byte-identical. The disposable local acceptance stack was stopped after testing; no recovery artifacts were deleted or overwritten.
+
+#### Remaining Phase 1 gates
+
+- **Missing-price/total-row semantics:** implemented and rehearsed for the supported forward paths above; historical ambiguous values remain explicitly unavailable. Requires separate reviewed promotion. No claim that legacy blocked acquisition writers are now supported.
+- **Active unknown attribute inference / import attribute safety:** BLOCKER, unchanged. This price repair does not infer condition, finish or language or close the existing shared-provider identity conflict.
+- **Generic inventory-edit durable identity:** BLOCKER, unchanged. RPC replay safety does not replace the remaining target/timestamp-based client intent keys.
+- **Installed-agent downstream parity:** BLOCKER. Synthetic capture assertions do not demonstrate the installed agent's end-to-end stock handoff.
+- **Physical acceptance:** MANUAL REQUIRED; the existing A–O script remains unperformed. Phase 2 has not begun.
+
+**PHASE 1 SOFTWARE INCOMPLETE.** The Showcase architectural decision is implemented; it is no longer an unresolved policy gate. No push, merge, deployment, production migration, inventory mutation, POS/Square change, scanner installation or pairing change occurred. Earlier phase documentation and diagnostics remain local and unstaged alongside this candidate.
+
+
+## Phase 1N closure continuation — local candidate, 2026-09-25
+
+**PHASE 1 SOFTWARE INCOMPLETE. PHASE 2 BLOCKED. PHYSICAL ACCEPTANCE = MANUAL REQUIRED.**
+
+This section supersedes older closure statements only for the explicitly repaired paths below. It continues the existing program; no new architectural phase or parallel mutation authority was introduced. The candidate is local and unpromoted. No production database, inventory, CS-000023, scanner pairing, installed agent, POS or Square state was changed. Existing Phase 1O valuation/Showcase changes remain in the working tree. Production freshness is not asserted from local fixtures.
+
+### Price semantics recertification
+
+**MISSING PRICE SEMANTICS = PASS. SHOWCASE ASKING PRICE SEPARATION = PASS**, for the active supported paths in this local candidate, subject to the separately blocked write paths below.
+
+- `inventory_value` is a total row market value, not a unit asking price. Trusted forward records carry `inventoryValueSemantics: total_row_v1`. Legacy ambiguous totals remain unavailable rather than being reinterpreted or rewritten.
+- Absent market values remain NULL/unavailable. Explicit numeric zero is distinct. Portfolio aggregations disclose excluded unknown values; all-unknown portfolios remain unknown.
+- Unit estimates are multiplied by quantity once when constructing a known total; existing total values are not multiplied again. Split/removal/quantity adjustment behavior remains covered by both database variants.
+- Showcase reads explicit owner `asking_price`; missing price displays **Price not set** and disables Add. The server rejects unpriced requests. A row with quantity 3 and internal value $30 can have asking price $11.99; requesting 2 quotes $23.98. Acquisition cost stays independent.
+- A fresh source search found no active `inventory_value * quantity` or reversed equivalent in `src/` or active `mobile/`. The active Showcase request calculation uses asking price. CSV unit-to-total conversion, inventory total aggregation, and total-to-unit decomposition are internal valuation operations. Historical SQL, disabled legacy purchase completion and historical mobile snapshots are not current customer transaction paths.
+- Actual authenticated browser/API/local database checks verified missing-price rejection and the $23.98 request without changing stock or purchase accounting. This is not a production deployment claim.
+
+### Unknown attributes: repairs and remaining boundaries
+
+Implemented locally:
+
+- Shared ranking requires agreement across all supplied provider IDs. A matching Scryfall ID cannot hide a conflicting TCGplayer ID. Set name/code disagreements remain conflicts.
+- Scanner candidates no longer manufacture normal finish or English. Rapid OCR and visual/multi-signal candidates preserve absence.
+- `defaultFinishForPrinting` distinguishes `EXPLICIT`, `DERIVED_FROM_AUTHORITATIVE_CATALOG`, and `UNRESOLVED`. Only a provider-confirmed singleton finish can be derived. Multiple finishes, synthetic authority and contradictory explicit finish remain unresolved.
+- Continuous scanner omitted condition becomes unknown. Bulk confirmation, manual correction, finalization and collection command construction cannot silently resolve unknown physical attributes. Automatic scanner UI starts with unresolved condition/finish/language.
+- Current CSV converter defaults are unrecorded/review-required. Save rejects missing condition, finish, language, set or collector evidence before persisting. Reference matching no longer selects a unique card from the wrong set. TCGplayer resolver no longer turns absent finish into normal; provider SKU search no longer invents Normal/English. A missing resolved finish is not converted to Nonfoil by the client.
+- Chaos CSV rows no longer start as NM/nonfoil and only become confirmed when physical-resolution checks pass.
+
+| Active path | Evidence / remaining status |
+|---|---|
+| Primary/automatic scanner | Missing attributes preserved; save validator rejects unresolved fields. Focused scanner and root/mobile regressions pass. |
+| Rapid OCR / magic / multi-signal adapters | Missing language/finish preserved instead of synthetic physical evidence. Root/mobile regressions pass. |
+| Continuous/manual scanner confirmation | Bulk/manual correction cannot produce a save with unresolved physical identity; singleton derivation tested independently. |
+| Offline scanner command creation/replay | Retains existing frozen canonical command/receipt contract; source-candidate recovery fixtures pass. Does not certify installed agent handoff. |
+| Inventory/collection CSV converter | Actual browser missing-attribute import rejected with unchanged stock/ledger. Validated row attributes remain separate from later persistence guarantees. |
+| Chaos CSV intake | Convenience defaults removed and local confirmation tightened; SQL commit authority below remains a BLOCKER. |
+| Purchasing/provider resolver | Conflicting IDs/set/collector require review; SKU adapter omissions remain empty. Unsafe legacy financial completion remains gated, not re-enabled. |
+| Shared resolver variant/printing ambiguity | Eight deterministic ambiguity cases reject authoritative finalization; no first-result or wrong-set proof accepted. |
+| Generic direct snapshot import/manual callers | `persistInventorySnapshotDiff` still writes snapshots directly. No universal canonical identity/atomic receipt guarantee; BLOCKER. |
+| Chaos live/manual review → cloud commit | `chaos_scan_command` → `commit_chaos_sort_batch` is a separate existing boundary. Current cloud ready check requires review state/name/set/collector but does not independently enforce the full physical condition/finish/language resolution policy. Local CSV protection does not close this server-side gap; BLOCKER. |
+| Old `InventoryWorkspace` manual modal | Not the active inventory route (current route uses CollectorWorkspace); not edited or certified as an active entry point. |
+
+Tests cover name-only, same-name/different-printing ambiguity, missing finish/condition/language, collector conflict, ambiguous set and variant; explicit conflicting IDs cannot be outweighed by other matches. These tests do **not** justify universal UNKNOWN ATTRIBUTE SAFETY or IMPORT ATTRIBUTE SAFETY PASS while the direct snapshot/Chaos boundaries remain.
+
+### Generic inventory-edit command repair
+
+`mobile/services/collector-inventory-command.ts` reuses the existing serialized `InventoryCommand`, offline-core coordinator and `apply_collector_inventory_mutation`. It is not a scanner-intent queue or a new SQL writer. Web storage uses localStorage with existing Web Locks; mobile uses the shared durable storage adapter.
+
+Four whole-row edits — quantity, condition, finish, storage — now:
+
+1. Snapshot input and allocate an operation UUID before delivery.
+2. Resolve authenticated owner/current workspace and persist the complete command before any business request. Persistence failure means no send.
+3. Reject different payload under the same ID. An unresolved command for the same item must be recovered/reviewed before another edit.
+4. Send frozen original arguments to the existing RPC. Web retains its authenticated server route and suspended-account check; SQL retains owner/workspace/validation/receipt authority.
+5. Accept only a matching owner/workspace/item receipt. A missing/malformed receipt cannot acknowledge success. Conflict/authorization/validation failures remain review-required; uncertain delivery retains the original command.
+6. Recover using the saved command, never current form values. Collector detail exposes **Recover pending edits**. New commands are not fabricated when current identity/workspace cannot be established. Old target-key records remain review-held.
+
+Whole-row location assignment on web/mobile now delegates to this same path. No new schema migration was added by this closure continuation.
+
+| Client/path | Endpoint / operation identity / replay | Classification |
+|---|---|---|
+| Web detail quantity/condition/finish | Existing collector mutations API → apply RPC; durable UUID + frozen arguments, persisted before send, scoped receipt; lost-response browser recovery proved | SAFE |
+| Mobile detail quantity/condition/finish | Same serialized command → apply RPC; shared persistent queue, context validation and receipt; source-candidate recovery fixtures | SAFE |
+| Web/mobile whole-row location assignment | Same durable storage command → apply RPC; stale retry returns original receipt without moving newer state back | SAFE |
+| Primary canonical scanner create/replay | Existing stable intent → `create_inventory_item_with_event`; frozen payload/receipt, Phase 1L source-candidate tests retained | SAFE within that tested source path |
+| Partial-lot move/remove | Existing `move_inventory_lot_quantity` / `remove_inventory_lot_quantity`; API still derives timestamp keys per call; stable immutable client operation not completed | NEEDS REPAIR |
+| Bulk removal | Frontend ID per click, API rereads quantity and includes it in derived key; uncertain partial completion/retry after changed quantity is not proven safe | NEEDS REPAIR |
+| CSV/direct snapshot inventory import and snapshot-based edits | `persistInventorySnapshotDiff` direct upsert/delete in chunks; generated row IDs per import, no durable operation receipt, possible partial writes | NEEDS REPAIR |
+| Installed bridge → Chaos browser/cloud album → batch commit | Capture identity is durable but is not the shared inventory mutation command; downstream equivalence not demonstrated | NEEDS REPAIR / parity BLOCKER |
+| Notes and user preferences / wishlist / trade flags | Owner-scoped metadata/preference writes; no quantity or acquisition event. Uncertain legacy queued preference completion stays review-only | NON-AUTHORITATIVE |
+| Gated legacy purchasing/bulk completion | Fails closed before unsupported authoritative completion; no speculative retries | NON-RETRYABLE BUT SAFE while gated |
+
+No unknown-result stock operation above is called safe merely because the UI requires a manual retry. The remaining paths must use the existing domain RPC/receipt contract, not a second generic snapshot mutation system.
+
+Actual local PostgreSQL assertions using the new command coordinator prove:
+
+| Required case | Result |
+|---|---|
+| Same quantity edit twice | PASS — one event/effect |
+| Location response lost, restart and replay | PASS — one event/effect with original arguments |
+| Stale quantity replay after newer edit | PASS — newer quantity preserved |
+| Stale location replay after newer move | PASS — newer location preserved |
+| Same operation ID, changed payload | PASS — server conflict; no second mutation |
+| Concurrent duplicate edit | PASS — one event |
+| Condition correction | PASS — one condition_changed event, unchanged quantity, no acquisition event |
+| Notes change | PASS — no new inventory event; browser accounting totals unchanged |
+
+The real browser fixture additionally commits through the actual API, aborts the response after SQL success, reloads, clicks recovery, and proves one quantity effect and one event. The separate browser queue test retains cross-tab Web Locks ownership/reload evidence. These are bounded proofs for the repaired commands, not blanket bulk/import certification.
+
+### Installed 1.3.1 downstream trace and parity decision
+
+Installed artifact: `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`, private installation under `%LOCALAPPDATA%/Programs/TradingDocksScannerBridge`. Core assembly SHA-256: `9F4B39A0984815026D20872B01BDBFA671853B265187C88F00B9DA616085692F`.
+
+The installed-artifact harness copies the actual assembly bytes into an isolated temporary fixture directory and exercises synthetic devices/state on a separate loopback port. It does not restart/re-pair the owner's agent, alter its journal or take a physical capture. **403 assertions pass**, but they stop at the capture/security/recovery boundary.
+
+Actual handoff:
+
+`installed BridgeHost capture + signed session binding → local-scanner-provider → authenticated /api/chaos-sort/scans → chaos_scan_command reserve/received + private image storage → browser recognition/review → explicit batch commit → commit_chaos_sort_batch`.
+
+The installed agent owns image acquisition, capture identity and recovery. It does **not** start with a confirmed canonical card, construct `InventoryCommand`, call `apply_collector_inventory_mutation`/`create_inventory_item_with_event`, or interpret their inventory receipts. Cloud image acceptance followed by `/v1/capture/{id}/ack` is not an inventory commit acknowledgement. Its capture duplicate/recovery behavior cannot substitute for stock idempotency.
+
+- Same logical mutation contract / repaired inventory RPC: **not demonstrated** through this handoff. Direct agent stock writes were not found, but the existing Chaos batch commit is a separate server boundary.
+- `ALREADY_COMMITTED`: native agent has no inventory-level handling; current shared source command consumer accepts an authoritative matching composite receipt on replay. Chaos commit uses its own batch state/replay handling; equivalence is unproven.
+- `IDEMPOTENCY_CONFLICT`: native agent has no stock-command handling. Shared source clients retain conflicts for review; the installed downstream chain has not passed that inventory fixture.
+- Restart/retry: installed capture journal recovery passes synthetic assertions. End-to-end stock/event outcome following installed capture recovery remains uncertified.
+
+| Installed downstream fixture | Status | Exact limitation |
+|---|---|---|
+| Confirmed canonical normal save | BLOCKER | No fixture connects installed capture bytes to authenticated Chaos review and stock receipt |
+| Duplicate delivery | BLOCKER | Capture duplicates tested; inventory duplicate outcome through installed handoff not tested |
+| Lost response then retry | BLOCKER | Source/shared RPC passes; installed → Chaos commit response-loss seam absent |
+| Same key / changed payload | BLOCKER | Shared RPC conflict passes; installed downstream mutation identity not proven equivalent |
+| Review-required identity | BLOCKER | Capture layer has no canonical identity policy; cloud commit physical-attribute gap remains |
+| Invalid mutation | BLOCKER | Native artifact has no stock command; downstream invalid command fixture absent |
+| Quantity mutation | BLOCKER | Not a native agent capability; shared browser handoff parity not demonstrated |
+| Location mutation | BLOCKER | Not a native agent capability; shared browser handoff parity not demonstrated |
+| Restart/recovery handoff | BLOCKER | Journal recovery passes only through capture acceptance, not inventory commit |
+
+Missing capability is an integration fixture that runs the installed assembly against an isolated authenticated web/cloud-album stack, delivers a synthetic signed capture with its original binding, completes canonical review and explicit inventory commit, and compares inventory/event receipts under retry/conflict/restart. Existing C# installed fixtures and the 12 source/private-candidate command recovery scenarios cover opposite sides, not their connection. Physical hardware availability is not used as an excuse to label this software seam passed. No new architecture conflict is declared; this is the existing G20 parity blocker.
+
+### Required software closure matrix
+
+Statuses below refer to this local candidate and tested scope, not deployed production.
+
+| Gate | Status | Basis |
+|---|---|---|
+| TRANSACTIONAL INTAKE | PASS | Existing authoritative purchase/receipt transaction and browser/DB regressions |
+| PURCHASE LEDGER AUTHORITY | PASS | Ledger controls cost/history; unsupported legacy completion remains gated |
+| ACQUISITION ANALYTICS | PASS | Purchase-derived totals, later metadata edits do not create acquisitions |
+| INTELLIGENCE PROVENANCE | PASS | Unsupported metrics remain unavailable; sourced/calculated distinctions retained |
+| MISSING PRICE SEMANTICS | PASS | NULL/zero, total-row semantics, forward calculations and legacy exclusion verified |
+| SHOWCASE ASKING PRICE SEPARATION | PASS | Explicit asking only; missing disabled; server $23.98 quote/request verified |
+| UNKNOWN ATTRIBUTE SAFETY | BLOCKER | Repaired scanner/resolver consumers; Chaos cloud commit remains insufficiently guarded |
+| IMPORT ATTRIBUTE SAFETY | BLOCKER | CSV negative browser case passes; snapshot/canonical-import boundary remains incomplete |
+| SHARED OFFLINE QUEUE | PASS | Persistent coordinator, cross-tab locking and restart/replay regressions retained |
+| SERVER IDEMPOTENCY | BLOCKER | Shared create/apply RPC passes; distinct partial/bulk/Chaos/snapshot paths not universally certified |
+| STALE RETRY SAFETY | BLOCKER | Repaired setters/source scanner pass; remaining paths lack universal proof |
+| PAYLOAD CONFLICT REJECTION | BLOCKER | Shared RPC rejects conflicts; not established across all authoritative writers |
+| CLIENT COMMAND DURABILITY | BLOCKER | Four generic setters repaired; partial/bulk/import identities remain |
+| PERSIST BEFORE SEND | BLOCKER | Repaired command flows pass; snapshot and remaining partial/bulk paths do not |
+| APP RESTART RECOVERY | BLOCKER | Source queue/browser passes; installed downstream handoff not certified |
+| GENERIC INVENTORY EDIT IDENTITY | BLOCKER | Whole-row setters pass; partial-lot/bulk/snapshot callers remain |
+| GENERIC EDIT RETRY SAFETY | BLOCKER | Required eight cases pass on repaired apply path only |
+| INSTALLED AGENT DOWNSTREAM PARITY | BLOCKER | Capture assembly assertions are not inventory handoff proof |
+| TENANT ISOLATION | PASS | Authenticated owner, same-owner other workspace, other user and anonymous regressions retained; no RLS relaxation |
+
+**PHYSICAL ACCEPTANCE = MANUAL REQUIRED.** Existing limitation notes (bounded purchase history, advanced accounting UI, gated legacy completion) remain; they do not waive the BLOCKER rows.
+
+### Validation and artifacts
+
+| Check | Current result |
+|---|---|
+| Root tests | PASS — 1,055/1,055 (baseline 1,045 retained) |
+| Mobile tests | PASS — 613/613 |
+| Database variants | PASS — 28 + 28 = 56 |
+| Server idempotency | PASS — prior 7 + 16 = 23; additional generic actual-RPC scenarios above |
+| Source/private-candidate command recovery | PASS — 12 scenarios; not installed binary parity |
+| Unknown/import/price/generic tests | PASS — included in root/mobile suites plus real CSV browser rejection and real PostgreSQL generic cases |
+| Browser recovery / tenancy / Showcase | PASS — actual Next → Auth → API/RLS → local database; lost response/reload preserved original generic command |
+| Cross-tab queue | PASS — actual browser Web Locks/localStorage recovery |
+| Installed assembly regression | PASS — 403 capture/security assertions; downstream parity BLOCKER |
+| TypeScript | PASS — root and active mobile, root rerun after final edits |
+| ESLint | PASS — no errors; 551 existing root warnings and 3 mobile warnings; final changed-file lint no errors |
+| Production build | PASS — isolated `next build --webpack`, 169 pages; no deployment |
+| Turbopack | NON-BLOCKING LIMITATION — temporary validation directory's external node_modules junction is rejected by Turbopack; Webpack used explicitly, not reported as a Turbopack pass |
+| Scoped secrets/artifacts | Pattern scan of candidate changed/untracked files plus file-list review; see final verification below. No raw fixture/customer data added to report |
+| Generated files | Pre-existing AGENTS.md, next-env.d.ts and tsconfig.tsbuildinfo hashes preserved; none staged |
+
+Browser test development initially used an over-specific accessible button name; corrected to the actual inventory-import control and reran successfully. A source-candidate DB harness initially omitted the new valuation module from its isolated copy; its manifest was corrected and all scenarios reran successfully. Neither failure was hidden as a passing initial attempt.
+
+Logs remain outside Git under `%TEMP%/td-phase1-closure-*`; installed synthetic assembly fixtures and validation build output remain private temporary artifacts. No secrets, backup dumps or production exports are included. No push, merge, production migration/deployment, physical scan, inventory commit or Phase 2 work was performed.
+
+**Final software decision: PHASE 1 SOFTWARE INCOMPLETE.** Next work remains within Phase 1N: converge remaining partial/bulk/snapshot callers onto the existing durable domain commands, enforce unresolved identity at Chaos cloud commit, and complete installed-artifact downstream integration proof. Do not promote this partial candidate as full software closure.
+
+Final housekeeping verification: scoped scan of 73 candidate changed/untracked files found no configured credential patterns or restricted artifact paths; this is not a formal security audit. `git diff --check` passed. All three pre-existing generated-file SHA-256 comparisons matched. Nothing staged. The disposable `td-phase1g-auth-20260924` Supabase stack was stopped with its volumes retained; the dedicated browser session was closed. The production recovery stack and unrelated services were not stopped.
+
+
+## Phase 1P — existing blockers only; architectural stop (2026-09-25)
+
+**PHASE 1 SOFTWARE INCOMPLETE.** Phase 2 remains blocked. No push, deployment, production mutation, physical scan, agent restart/pairing change, POS or Square change occurred. Earlier working-tree changes were preserved.
+
+### Work completed before the stop
+
+Baseline verified: 1,055 root and 613 mobile tests. Completed valuation, Showcase and scanner-default decisions were not redesigned.
+
+**Lot removal/movement:** new local forward migration `20260925150035_inventory_lot_command_receipts.sql` extends the existing event-backed `inventoryMutationV1` request/fingerprint/result receipt to the existing `remove_inventory_lot_quantity` and `move_inventory_lot_quantity` functions. It retains existing item/workspace/owner, allocation and tracked-position guards. No applied migration is edited and no historical event/stock row is rewritten. Legacy keys without a full receipt remain review-required.
+
+The receipt is inserted with the event in the original transaction. Replay resolves before current quantity validation/mutation. Quantity, reason, destination, actor, workspace and source participate in the canonical payload. Event conflicts roll back the business effect rather than silently dropping ledger history. The returned result contains original item, owner, workspace and operation identity. It never reads current stock to reconstruct a successful retry.
+
+`InventoryCommand` and the existing generic coordinator now support partial remove/move endpoints. The web mutation API forwards frozen arguments; the mobile shared command path uses the same RPCs. Timestamp-based partial edit handlers are removed. Existing item authorization still occurs in SQL; suspended web accounts remain blocked.
+
+**Bulk removal:** `inventory-command-batch.ts` uses the existing offline-core queue to persist one immutable manifest before any send. Child operation IDs and quantities are frozen; a partially completed manifest replays the same children. Successful children return their original receipts. Conflicts remain review-required, stop remaining children and never receive new keys. The web collection UI uses this path and exposes recovery even if the removed inventory no longer appears. The obsolete IDs-only bulk endpoint returns `OPERATION_ID_REQUIRED` without mutation; it cannot reread quantities on retry. Error copy now admits that earlier rows may have completed.
+
+**Snapshot semantics established from callers, not guessed:**
+
+- Active `CsvConversionEngine.saveToInventory()` is **APPEND**: it retains existing stock and generates additional rows. It does not intentionally replace/reconcile stock.
+- Legacy `persistInventorySnapshotDiff(previous,current)` was **RECONCILE**: per-ID upserts plus deletes for missing IDs across locations/items/movements. Treating that generic implementation as APPEND would have changed its meaning.
+- `InventoryWorkspace` and `TieredInventoryWorkspace` have no active imports/routes in this tree. The card-show purchase caller is already stopped by `legacyAcquisitionWriteDecision()` before its legacy persistence path.
+
+The active CSV caller now uses explicit durable `appendInventoryRecords`: full rows, stable row IDs, owner/workspace and child commands persist before delivery; create goes through the existing `create_inventory_item_with_event` RPC. Retries use the original manifest, not a reread/reconversion of the file. Existing rows, location counters and legacy movement snapshots are not rewritten. Canonical imported events supply import provenance. The same forward migration preserves explicit `asking_price` through this existing create RPC; it does not derive asking prices from market data. The old generic reconciliation helper now refuses changes without writing; destructive reconciliation is not silently converted into append semantics. CSV provides a pending-import recovery action.
+
+**Bounded verification:**
+
+- Real isolated Supabase-compatible clone: quantity 10 → A removes 3 → 7; replay A → 7; B removes 2 → 5; old A → 5. Quantity/reason changes under A conflict. Two removal events total -5. Split-move replay returns the original destination ID and does not split twice.
+- Real existing create RPC: append receipt replays, explicit $11.99 asking price persists, later legitimate quantity 7 survives old append replay, changed payload conflicts, one imported event.
+- Durable manifest fixture: two children commit, second response is lost, coordinator restarts and retries original manifest; each child has one effect. Changed manifest conflicts. Server conflict stops before later children and is not auto-rekeyed.
+- Existing SQL/server and source-candidate recovery regressions retained. A test that directly committed concurrent RPCs but left its client command pending was corrected to acknowledge/recover that command before attempting a new edit; the runtime review guard was not bypassed.
+
+This is a partial Phase 1P candidate, not a claim that all new bulk/import UI behavior has completed an independent end-to-end acceptance matrix. No completed prior area was declared broken to justify broader work.
+
+### Newly established architectural conflict: trusted Chaos review evidence
+
+**Stop reason required by the owner's final gate:** complete Chaos canonical validation cannot safely be added only to the browser or API while leaving its direct authenticated SQL commit paths unchanged.
+
+Evidence:
+
+1. `public.chaos_scan_command(text,jsonb)` is executable by `authenticated`. Its `review` action writes the caller's `payload.item` after checking capture identity/revision, not authoritative catalog identity. Its `commit` action reads these stored client-editable items.
+2. `public.commit_chaos_sort_batch(jsonb)` is also executable by `authenticated`. Existing authorization guards enforce tenancy, but the identity checks do not resolve a Scryfall printing or verify set/collector/variant against a trusted catalog record.
+3. `src/app/api/chaos-sort/scans/route.ts` currently forwards the commit to that RPC. An API-only call to a catalog resolver would not protect direct authenticated RPC invocation.
+4. `src/lib/card-intelligence/scryfall-provider.ts` can fetch authoritative `finishes`, language, set and collector data, but those results are application-provider objects, not a trusted database review receipt bound to this album/capture revision. Copying `identityAuthority: provider_confirmed` or a singleton `finishes` array from a client payload is not proof.
+5. The existing `tcgplayer_magic_catalog` is a condition/SKU export with Normal/Foil/Unopened, set names and collector numbers. It is not a complete Scryfall printing/language/variant authority and cannot establish that an omitted SKU/finish is impossible. Deriving a singleton finish from a filtered/incomplete inventory export would recreate the forbidden convenience inference.
+
+Consequences: a non-empty-field SQL guard could reject missing condition/language, but it would not prove exact printing or reject conflicting set/collector evidence. A client-provided catalog assertion could appear to pass the singleton-finish test while remaining forgeable. Neither is accepted as closure.
+
+**Implementation stopped at this boundary.** No Chaos guard/attestation migration, new catalog table, alternative canonical ID system or parallel writer was added. This finding makes the previously broad Chaos blocker a concrete authority-design decision.
+
+**Narrow proposed resolution for review, not implemented:** retain the existing canonical provider resolver and IDs, perform validation in a trusted server context, and bind its reviewed result to owner/workspace/album/capture/revision/content. The final database commit must require that trusted result; alternate direct commit paths must enforce the same requirement. Choose the binding mechanism and authenticated RPC exposure together. Do not trust browser evidence, add a second catalog identity system, or give the agent inventory credentials. The reviewed command must distinguish a corrected deliberate operation from a retry of an already accepted payload.
+
+### Installed agent: actual artifact and downstream stop
+
+Read-only verification reconfirmed installed version `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`, valid Core signature, SHA-256 `9F4B39A0984815026D20872B01BDBFA671853B265187C88F00B9DA616085692F`. Installed state was not changed.
+
+The actual agent produces a bound capture, not a confirmed canonical inventory command. Browser/cloud review leads to `chaos_scan_command` → `commit_chaos_sort_batch`; this is not yet the repaired shared inventory-command handoff. Capture acknowledgement means durable cloud image acceptance, not inventory mutation acceptance. No native inventory `ALREADY_COMMITTED`/`IDEMPOTENCY_CONFLICT` consumer exists in this installed artifact.
+
+The earlier 403 installed-assembly assertions remain evidence for capture/security only; they were not relabeled as parity or rerun as substitute evidence. Environment limitations are not used to claim impossibility: a fuller installed-assembly → authenticated isolated cloud → canonical review → stock receipt fixture still needs to be built. Work on it is stopped pending the trusted-review decision above. The current C# fixture ends at capture acceptance, and source-command fixtures start after canonical confirmation; neither connects those sides.
+
+| Required installed downstream case | Result |
+|---|---|
+| Normal canonical save | BLOCKER — no completed installed-to-Chaos stock receipt fixture |
+| Duplicate delivery | BLOCKER — capture dedupe is not stock dedupe proof |
+| Lost response and retry | BLOCKER — inventory handoff not exercised |
+| Same ID with changed payload | BLOCKER — installed downstream conflict semantics unproved |
+| Review-required identity | BLOCKER — trusted Chaos review boundary unresolved |
+| Invalid identity | BLOCKER — canonical conflict check not enforced at final Chaos boundary |
+| Quantity mutation | BLOCKER — not native agent functionality; downstream equivalence unproved |
+| Location mutation | BLOCKER — not native agent functionality; downstream equivalence unproved |
+| Restart/recovery handoff | BLOCKER — capture recovery evidence ends before inventory command acceptance |
+
+### Phase 1 software gate matrix at the stop
+
+Previous completed gates retain their tested scope. No deployment/fresh production certification is implied.
+
+| Gate | Status |
+|---|---|
+| TRANSACTIONAL INTAKE | PASS |
+| PURCHASE LEDGER AUTHORITY | PASS |
+| ACQUISITION ANALYTICS | PASS |
+| INTELLIGENCE PROVENANCE | PASS |
+| MISSING PRICE SEMANTICS | PASS |
+| SHOWCASE ASKING PRICE SEPARATION | PASS |
+| UNKNOWN ATTRIBUTE SAFETY | BLOCKER |
+| IMPORT ATTRIBUTE SAFETY | BLOCKER |
+| SHARED OFFLINE QUEUE | PASS |
+| SERVER IDEMPOTENCY | BLOCKER — shared create/apply/lot scopes pass, Chaos parity outstanding |
+| STALE RETRY SAFETY | BLOCKER — repaired command scopes pass, universal Chaos handoff outstanding |
+| PAYLOAD CONFLICT REJECTION | BLOCKER — same scope limitation |
+| CLIENT COMMAND DURABILITY | BLOCKER — bulk/append implemented locally; full handoff acceptance unfinished |
+| PERSIST BEFORE SEND | BLOCKER — repaired manifests pass; full end-to-end closure unfinished |
+| APP RESTART RECOVERY | BLOCKER — installed downstream seam remains |
+| GENERIC INVENTORY EDIT IDENTITY | BLOCKER — lot/manifest repair verified in bounded fixtures, final release gate unfinished |
+| GENERIC EDIT RETRY SAFETY | BLOCKER — same acceptance limitation |
+| INSTALLED AGENT DOWNSTREAM PARITY | BLOCKER |
+| TENANT ISOLATION | PASS — existing tested scope; no RLS relaxation |
+
+**PHYSICAL ACCEPTANCE = MANUAL REQUIRED.**
+
+### Phase 1P local validation
+
+- Root: **1,057/1,057**; all 1,055 baseline tests retained. Source-contract tests now assert the durable flow and fail-closed legacy endpoint instead of requiring obsolete timestamp handlers.
+- Mobile: **613/613**; root and mobile TypeScript pass.
+- Prior acquisition DB variants: **28 + 28 = 56 PASS**.
+- Prior server idempotency: **7 + 16 = 23 PASS**, generic SQL fixtures PASS, 12 source/private-candidate recovery cases retained. These are not installed binary parity.
+- New isolated lot/append RPC checks and manifest retry/conflict unit fixtures: PASS as scoped above.
+- ESLint: no errors; the two newly unused imports/constants were removed after the full lint run (which reported 553 warnings, versus prior 551).
+- Production build: isolated `next build --webpack` PASS, 169 pages; not deployed. Generated files in the working branch remain excluded from build output.
+- Browser/secret/generated-file final evidence follows below. New architecture work remains stopped regardless of these checks.
+
+Candidate source additions for this slice: `mobile/services/inventory-command-batch.ts`, `src/lib/inventory-append-client.ts`, `supabase/migrations/20260925150035_inventory_lot_command_receipts.sql`, `tests/inventory-command-batch.test.ts`, `tests/phase1p-lot-db.mjs`. Related edits extend shared command endpoints, collector web/mobile paths, API forwarding/legacy endpoint, CSV append/recovery, and regression/report files. Prior local Phase 1 files remain uncommitted and unpromoted.
+
+**Final software decision: PHASE 1 SOFTWARE INCOMPLETE.** Stop for review of the trusted Chaos review-to-commit contract; do not start Phase 2 or promote this partial candidate.
+
+
+Phase 1P final verification at the stop:
+
+- Existing authenticated browser recovery/tenancy/Showcase/unknown-CSV rejection suite PASS on the candidate. This does not claim a newly completed full bulk/append UI release matrix.
+- New full-manifest limitation: local queue rejects a changed manifest under the same parent ID; server receipts bind each child, not the entire parent manifest. Changing the set of child IDs after losing/replacing client manifest storage is not yet proven to yield a server-level parent conflict. Thus the whole-snapshot changed-payload requirement remains open even though child replay/stale replay passes. Pending batch-vs-individual command ordering also needs explicit cross-path acceptance. These are Blocker 1 follow-ups, not a fourth program blocker or a reason to invent another queue.
+- Scoped scan: 82 candidate changed/untracked files; no configured credential patterns or restricted artifact paths. This is a scoped check, not formal security certification.
+- `git diff --check` PASS. Pre-existing generated-file hashes all unchanged. Nothing staged, pushed or deployed.
+- Final changed-file lint had no errors; two introduced unused declarations removed. Disposable local acceptance stack stopped with volumes retained. The test-created `phase1p_*` clone databases were dropped by their harness; the verified recovery source database/artifacts were preserved.
+- Installed agent remains unchanged. No physical capture or inventory commit was attempted on production.
+
+The stop is specifically for review of trusted canonical evidence at the Chaos SQL boundary. Do not describe child-command success, a passing build, or the old 403 capture assertions as closure of the three-blocker program.
+
+
+## PHASE 1Q — TRUSTED CHAOS COMMIT + MANIFEST PROTECTION + AGENT PARITY
+
+Local candidate, 2026-09-25. This section supersedes the Phase 1P three-blocker stop. The owner explicitly authorized a server-issued validation receipt using the existing provider authority. No new catalog, canonical identifier system, inventory writer, queue, production deployment, or Phase 2 feature was introduced. Work remains on `codex/acquisition-integrity-phase1`; no files were staged or pushed. Existing production inventory, `CS-000023`, POS, Square, scanner installation, pairing, and hardware certification were not changed.
+
+### Manifest transaction and recovery semantics
+
+Implemented `20260925152512_inventory_manifest_receipts.sql` and connected the existing shared offline batch queue to `apply_inventory_manifest`. The parent operation ID is generated and persisted before delivery. Its child operation IDs, target IDs, endpoint names and exact arguments remain frozen. CSV semantics remain **append**, not snapshot reconciliation. Bulk removal uses the existing quantity-removal RPC. The dormant destructive snapshot writer remains review-blocked.
+
+The private parent receipt binds actor, active workspace, version, purpose and every supplied child business argument: identity, quantity, observed attributes, location, source and related-entity semantics. Unknown proposed reconcile/destructive flags cannot silently change behavior. Only child `createdAt` is transport-only. Unique independent targets are sorted by child operation ID for both execution and the canonical SHA-256 fingerprint. Object keys and numeric scale use the existing recursive canonicalizer; argument array order remains meaningful. Duplicate child IDs/targets are rejected.
+
+Same parent + same manifest returns the original committed result directly, without reading current stock, invoking children or regenerating operations. Same parent + changed contents/version/membership/semantics raises `MANIFEST_IDEMPOTENCY_CONFLICT`, including an empty replacement manifest. SQL and real browser API checks cover A qty 2/B qty 4, a later A qty 9 edit, stale A replay retaining 9, and a conflicting A qty 7 manifest leaving inventory/events/receipt unchanged.
+
+New manifests are **atomic**, not per-item partial imports. An exception rolls back all child inventory/event effects in a subtransaction. The parent still saves the original fingerprint and a durable failure receipt identifying the failed child, empty committed results, SQL error category and retryability. A validation/authorization/review failure replays that review outcome. Only transient database failures may retry the same frozen request. Changing a failed manifest under its existing key is also a conflict. Recovery never silently rekeys or modifies the payload. Transport loss retries the parent receipt.
+
+Direct `inventory_append` child delivery is also guarded: only a listed child executing inside its private parent transaction can reach the existing create RPC. A browser cannot append extra children under a committed manifest or spoof this execution marker with a client setting. Parent retries return their receipt without calling children.
+
+Pre-upgrade partial groups that have child events but no server parent claim are explicitly `MANIFEST_LEGACY_OPERATION_REVIEW_REQUIRED`: original whole membership cannot honestly be reconstructed. Existing effects are preserved. This is deliberate conservative recovery, not fabricated whole-manifest certification. In the shared queue, a pending individual edit and a manifest targeting that item block each other until recovery/review; neither can silently overtake the other.
+
+### Trusted Chaos commit boundary
+
+The prior defect was real: authenticated callers could submit review fields and invoke the final writer directly without provider-backed validation. `reviewed`/`confirmed` flags and client-supplied `identityAuthority` are not trusted evidence.
+
+Implemented `src/lib/chaos-sort/trusted-commit.ts`, reusing `ScryfallCatalogProvider` and `TcgTrackingCatalogProvider`. The existing authenticated scans API reads its own RLS-scoped cloud snapshot, resolves the exact provider printing, validates the claims, and invokes the service-role-only receipt issuer. No client-supplied snapshot or provider evidence is accepted as the source for issuance.
+
+`20260925152513_chaos_trusted_commit_receipts.sql` stores the authorization in private `chaos_scan_private.commit_validation`, with RLS and no browser table privileges. The claim binds owner, workspace, batch, destination, mode, settings revision/content, active capture IDs, original review items, capture revisions and image hashes. It stores a SHA-256 fingerprint, normalized validated items and evidence, a one-hour validity window for an uncommitted review, and the immutable committed request/result. It is a per-operation receipt, **not a catalog cache**.
+
+The original inventory/position/event writer is moved unchanged into the private schema and is no longer directly executable by browser/service roles. The existing public `commit_chaos_sort_batch` name now guards access to that single implementation. It checks current owner/workspace, locks the album, verifies an exact current claim, checks the entire submitted payload, requires the authorized cloud COMMITTING state, and supplies the server-validated items. The browser cannot issue a receipt or call the underlying writer. Capture ordering in comparison is canonicalized by capture ID; original ordinal history is not modified.
+
+Successful new commits save their original result. `chaos_scan_command` closed-batch retries return that durable result before any mutable provider lookup. Direct final-RPC retries require the original canonical payload; altered payloads conflict. Historical closed albums without the new receipt retain the prior initial-count replay behavior. No historical inventory, review or acquisition records are normalized.
+
+### Attribute/evidence contract
+
+- Exact game/printing, card name, canonical ID when supplied, set/code, collector number and all supplied provider IDs must agree with the existing provider resolver. An unknown printing or conflicting identifier is review-required.
+- Condition must be explicitly supplied and match the supported NM/LP/MP/HP/DMG vocabulary or documented long-form aliases. It is stored as **USER_OBSERVED**, never catalog-verified. Missing values, invented conditions and JavaScript prototype names are rejected; there is no NM fallback.
+- Finish must match the resolved printing's supported finishes. A provider-confirmed singleton may derive an absent finish; a conflicting finish or ambiguous missing finish cannot be overridden by review flags.
+- Language requires a supported explicit mapping to the provider printing. English/en normalization is an explicit mapping, not a default. Providers without language evidence remain review-required. In particular the existing TCGTracking adapter exposes no verified language mapping; this candidate does not manufacture one.
+- Explicit unresolved/unsupported variants remain review-required. Existing provider/catalog limitations are surfaced honestly rather than silently accepted.
+- Provider identity, finish and language evidence are **CATALOG_VERIFIED** only after this server validation. Raw client evidence fields have no authority.
+
+Direct authenticated SQL tests bypass API/UI and reject unsupported finish, mismatched set/collector, missing condition, invented language, unknown printing, and `reviewed=true` payloads. A changed stored review invalidates an earlier receipt; issuing against a stale claim is rejected. Cross-tenant/anonymous callers are denied, private receipt tables have RLS, and direct private-writer execution is denied. Later stock changes do not alter the original committed receipt.
+
+### Installed artifact downstream parity
+
+Actually installed artifact inspected read-only:
+
+- Version: `1.3.1+3269e252717817e7355617eef99244be1eeb80b9`.
+- Installed `Core.dll` SHA-256: `9F4B39A0984815026D20872B01BDBFA671853B265187C88F00B9DA616085692F`.
+- Installed executable and Core Authenticode signatures: valid.
+- The runner copies and hash-checks these installed bytes; it does not build the candidate Core implementation and call that installed evidence.
+
+The expanded fixture goes beyond the retained **403** security assertions. `tests/fixtures/InstalledAgentDownstream.cs` runs the installed capture/authorization/recovery implementation with a synthetic hardware source and isolated journal. It produces an actual bound image/capture ID, rejects changed capture parameters, verifies wrong workspace/batch permits fail, and recreates the capture object over the retained journal without a second acquisition. No live scanner, installed process, pairing or private Inbox is touched.
+
+`tests/helpers/phase1q-browser.mjs` then consumes that exact artifact output in a real authenticated browser:
+
+1. Real GoTrue owner/workspace and cloud batch.
+2. Browser multipart request to the actual scans API.
+3. Actual private Supabase Storage HTTP upload and duplicate upload recovery.
+4. The original capture ID, review revision and one active capture are retained.
+5. Explicit synthetic physical observations and a real public Scryfall printing go through the existing provider resolver and receipt issuer.
+6. The authenticated authoritative Chaos RPC writes one inventory position/event and returns the saved receipt.
+7. Browser response loss is injected **after** the API/SQL commit, followed by reload/retry. No second commit/event occurs.
+8. Changed committed payload is rejected. A later deliberate quantity edit is preserved by stale replay.
+9. Unsupported finish, mismatched printing metadata, missing condition and unresolved review are denied before inventory effects; SQL bypass checks independently enforce the same boundary.
+
+The agent does not itself own inventory commands or receive an inventory mutation receipt. Its acknowledgement means durable image acceptance. The browser/cloud consumer owns the frozen reviewed batch operation and inventory receipt. Parity is demonstrated across that real handoff, not by inventing a native inventory API.
+
+| Required downstream case | Software result |
+|---|---|
+| Valid confirmed identity | PASS — installed artifact output through actual local browser/API/Storage/provider/SQL/event |
+| Duplicate delivery | PASS — same cloud capture and one commit/event |
+| Lost response + retry | PASS — abort after server commit; reload replays original result |
+| Same key changed payload | PASS — native capture parameters and committed Chaos payload both reject changes |
+| Unsupported finish | PASS — server validator and final direct RPC reject |
+| Mismatched printing/set | PASS — real API and direct RPC reject |
+| Missing required condition | PASS — no default and no inventory write |
+| Review-required identity | PASS — review remains blocked |
+| Restart/recovery | PASS for installed Core journal rehydration through downstream receipt; OS/process/hardware acceptance remains manual |
+
+Scope limitation: synthetic hardware bytes and explicit confirmed test observations replace physical scanning/OCR. The copied installed assembly runs in an isolated test host; this is not a new certification of the live tray executable, Chrome/Windows reboot, printer, driver, or iX500. Those remain **MANUAL REQUIRED**. Unlike the earlier DLL-only assertions, the parity proof includes the actual downstream authenticated browser, API, private Storage, existing catalog provider, SQL writer and inventory event.
+
+### Validation and evidence
+
+Final validation completed successfully. Evidence stays outside Git under the workstation temporary directory; it contains only local fixture state, not production exports.
+
+- Root: **1,075/1,075 PASS**, retaining all 1,057 baseline tests and adding manifest/trust regressions.
+- Mobile: **613/613 PASS**; root and mobile TypeScript PASS.
+- Acquisition database variants: 28 + 28 = 56 PASS.
+- Prior server idempotency/generic recovery: retained PASS, including 23 server cases and the source-candidate recovery fixtures; these are not relabeled as installed parity.
+- New `tests/phase1q-trusted-db.mjs`: PASS for whole-manifest replay/conflict/atomic failure/revision guards, direct-child denial, transient retry recovery, lot/append durability, direct Chaos RPC bypass and authorization checks against a disposable Supabase-compatible clone. The final fixture assertion isolates the creation operation rather than counting a later legitimate manual edit.
+- Full existing authenticated browser acceptance plus installed-artifact handoff: PASS. Focused final candidate rerun after the direct-child guard: PASS.
+- Existing 403 installed Core security/contract assertions retained.
+- Webpack production build in an isolated validation copy: 169 pages; no deployment. No Turbopack result is implied.
+- ESLint: zero errors, 551 pre-existing warnings; changed Phase 1Q files pass with zero warnings/errors.
+- Scoped secret/artifact audit: 94 candidate files, no findings. `git diff --check` PASS. The three pre-existing generated-file hashes (`AGENTS.md`, `next-env.d.ts`, `tsconfig.tsbuildinfo`) remain unchanged from the incoming working tree.
+
+### Candidate scope and release ordering
+
+Phase 1Q adds the two forward migrations named above, the trusted-commit service, trusted-commit unit tests, the disposable SQL harness, the installed-agent downstream C# fixture, and its real-browser helper. It updates the existing shared manifest queue/transport, collector command overlap guard, collector mutations API, Chaos scans API, authenticated browser harness, installed-agent evidence runner, manifest tests, and this report. Earlier uncommitted Phase 1 work is preserved.
+
+Any future approved promotion must apply the two new migrations before the matching application code. The old Chaos API cannot issue the required trusted receipt, so commits fail closed during that schema/application transition. No production promotion is authorized or attempted here.
+
+### Final software gate matrix
+
+Each PASS below describes the local reviewed candidate and tested capability scope, not a production rollout or physical certification.
+
+| Gate | Status |
+|---|---|
+| TRANSACTIONAL INTAKE | PASS |
+| PURCHASE LEDGER AUTHORITY | PASS |
+| ACQUISITION ANALYTICS | PASS |
+| INTELLIGENCE PROVENANCE | PASS |
+| MISSING PRICE SEMANTICS | PASS |
+| SHOWCASE ASKING PRICE | PASS |
+| UNKNOWN ATTRIBUTE SAFETY | PASS — unsupported/missing evidence remains review-required |
+| IMPORT ATTRIBUTE SAFETY | PASS — missing attributes cannot silently finalize |
+| SHARED OFFLINE QUEUE | PASS |
+| SERVER IDEMPOTENCY | PASS |
+| STALE RETRY SAFETY | PASS |
+| PAYLOAD CONFLICT | PASS |
+| CLIENT COMMAND DURABILITY | PASS |
+| PERSIST BEFORE SEND | PASS |
+| APP RESTART RECOVERY | PASS — software/journal/browser scope |
+| GENERIC INVENTORY EDIT IDENTITY | PASS |
+| GENERIC EDIT RETRY SAFETY | PASS |
+| PARTIAL REMOVAL DURABILITY | PASS |
+| SNAPSHOT ITEM DURABILITY | PASS — append only; destructive legacy reconcile held for review |
+| WHOLE-MANIFEST CONFLICT PROTECTION | PASS — committed and failed server receipts |
+| CHAOS TRUSTED COMMIT VALIDATION | PASS — final SQL boundary required |
+| INSTALLED AGENT DOWNSTREAM PARITY | PASS — installed artifact + actual downstream stack, bounded as above |
+| TENANT ISOLATION | PASS |
+
+Non-blocking limitations: legacy partial manifests without parent evidence require deliberate review; unsupported catalog language/variant evidence remains review-required; actual hardware and live installed-process lifecycle are not certified by synthetic software acceptance. None is silently treated as a successful mutation.
+
+Final evidence logs: `td-phase1q-root-final.log`, `td-phase1q-mobile-final.log`, `td-phase1q-db-final.log`, `td-phase1q-browser-final.log`, `td-phase1q-browser-focus-final.log`, `td-phase1q-build-final.log`, and `td-phase1q-final-scope-audit.json` under the workstation temporary directory. Installed-artifact/browser handoff evidence is in `td-phase1q-browser-agent-IoQ5Xv` in that directory.
+
+Cleanup: all test-created `phase1q_*` database clones are gone. The local `td-phase1g-auth-20260924` acceptance stack is stopped with volumes retained; the disconnected verified recovery source and artifacts remain preserved. Nothing is staged, committed, pushed, or deployed.
+
+**Final software decision: SOFTWARE PHASE 1 GATES COMPLETE.**
+
+**PHYSICAL ACCEPTANCE = MANUAL REQUIRED.** Do not begin Phase 2, push, merge, deploy, change production configuration, enable POS/Square, or promote hardware certification.
+
+
+## Release candidate preparation
+
+Release branch: `codex/acquisition-integrity-phase1`. It is based directly on the fetched `origin/main` commit `6f8af6c49a66ee15ffe2eabd03b99b42614a21c6`, with no commits behind and 12 existing Phase 1 commits ahead before packaging the remaining working-tree changes. The PR head SHA is the exact source revision for physical acceptance and is recorded in the PR. Build target: Trading Docks Next.js web application, Node.js 24, Next.js 16.3.4, production webpack build. The current local production build completed successfully in the isolated validation copy.
+
+Manual acceptance must use the private Vercel Preview generated for this PR, built from its exact head SHA, with Preview variables confirmed to point only to the approved staging Supabase project. Use the existing privately installed, internally signed Scanner Agent 1.3.1 on the Windows test workstation; no agent installer is included or republished by this PR. Before the tester signs in, verify the Preview domain and Supabase project reference from the deployment configuration. If Preview is connected to production credentials or the agent does not trust the preview origin, stop and resolve that environment boundary before scanning. Do not use production inventory for this acceptance. To confirm code identity, compare the full SHA shown as the PR head / Preview source commit with the tested commit, then verify the app's build metadata or deployment source identifies that SHA. The exact Preview URL is supplied by Vercel after PR creation; no Preview URL was available during local validation.
+
+### Phase 1 migration order
+
+The Phase 1 migrations, in deterministic timestamp order, are:
+
+1. `20260923204804_chaos_scan_albums_v2.sql`
+2. `20260924000100_chaos_cloud_authority.sql`
+3. `20260924005111_chaos_legacy_workspace_normalization.sql`
+4. `20260924013600_cloud_active_workspace_authority.sql`
+5. `20260924043103_chaos_intake_mode_switch.sql`
+6. `20260924220000_chaos_active_capture_capacity.sql`
+7. `20260924235138_acquisition_purchase_authority.sql`
+8. `20260925002945_acquisition_legacy_write_gate.sql`
+9. `20260925024439_inventory_mutation_idempotency.sql`
+10. `20260925061021_inventory_total_valuation_contract.sql`
+11. `20260925061022_showcase_explicit_asking_price.sql`
+12. `20260925150035_inventory_lot_command_receipts.sql`
+13. `20260925152512_inventory_manifest_receipts.sql`
+14. `20260925152513_chaos_trusted_commit_receipts.sql`
+
+No duplicate migration timestamps were found. The recovery-clone and local authenticated browser rehearsals exercised the Phase 1 migration dependencies; SQL authorization checks confirmed private receipt RLS and browser denial. The migrations are forward-only and do not rewrite historical purchase or inventory data. No manual production SQL patches are part of the candidate.
+
+The candidate diff was screened for the listed Phase 2 workflows; no implementation of scanner-to-Chaos auto-assignment, putaway, picking, Deal Desk, Seller Portal, Purchasing Intelligence, Inventory Health expansion, or Channel Optimizer was found. Physical acceptance remains a separate manual release gate. **Do not merge until physical acceptance passes.**
+
+### Release candidate validation rerun
+
+- Root tests: **1,075/1,075 PASS**.
+- Mobile tests: **613/613 PASS**.
+- Root and mobile TypeScript: PASS.
+- Root ESLint: **0 errors, 551 existing warnings**. Mobile lint: **0 errors, 3 existing warnings**.
+- Production webpack build: PASS, **169 pages**.
+- Dependency audit: **0 high-or-higher production dependency findings**.
+- Acquisition database authority: **22 checks PASS**; purchase migration replay/recovery clone PASS.
+- Mutation idempotency: **7 core and 16 additional acceptance checks PASS**.
+- Lot/append and full-manifest/trusted-Chaos recovery-clone checks: PASS.
+- Authenticated browser acceptance: PASS for purchase, receipt, workspace isolation, manifest replay/conflict, private capture storage, trusted Chaos commit, and installed-artifact handoff.
+- Installed agent: **403 security/contract assertions PASS**; downstream parity is additionally covered by the authenticated browser handoff. The standalone DLL report correctly remains NOT CERTIFIED for inventory mutation because the agent does not issue inventory commands itself.
+- Scoped secret/artifact audit: **94 candidate files, no findings**. `git diff --check` PASS. The three excluded local/generated files remain unchanged from the incoming tree.
+
+The candidate was tested locally; production was not deployed or mutated. POS and Square remain unchanged.

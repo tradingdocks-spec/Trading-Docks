@@ -1,3 +1,4 @@
+import { trustedInventoryValue } from "@/lib/intelligence-provenance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { calculateAvailableQuantity } from "./allocation.ts";
@@ -157,7 +158,7 @@ function toSellableRow({ base, data, position, physicalQuantity, reservedQuantit
     quantity: physicalQuantity,
     reservedQuantity,
     availableQuantity: calculateAvailableQuantity({ physicalQuantity, activeReservations: reservedQuantity }),
-    marketValue: numberValue(data.market_price) ?? numberValue(base.inventory_value),
+    marketValue: numberValue(data.market_price) ?? (trustedInventoryValue({ inventory_value: base.inventory_value, data: base.data }) === null || Number(base.quantity) <= 0 ? null : trustedInventoryValue({ inventory_value: base.inventory_value, data: base.data })! / Number(base.quantity)),
     costBasis: numberValue(data.cost_basis) ?? numberValue(data.unit_cost),
     locationId: stringValue(position?.location_id) ?? stringValue(base.location_id) ?? stringValue(data.location_id),
     inventoryBatchId: stringValue(position?.batch_id) ?? stringValue(data.batch_id),

@@ -37,7 +37,7 @@ import type {
 
 type Props = {
   plan: AccountTier;
-  inventory: { units: number; value: number; skus: number; addedLast30Days: number | null };
+  inventory: { units: number; value: number | null; unpricedRows?: number; skus: number; addedLast30Days: number | null };
   acquisitions?: AcquisitionSummary | null;
   fullPlatformAccess?: boolean;
   platformRole?: PlatformRole;
@@ -85,7 +85,7 @@ export function AnalyticsCommandCenter({
     () => [
       { label: "Gross sales", value: "$0", detail: "No completed orders", icon: CircleDollarSign },
       { label: "Net profit", value: "$0", detail: "After costs and fees", icon: TrendingUp },
-      { label: "Inventory value", value: currency.format(inventory.value), detail: `${number.format(inventory.units)} units across ${number.format(inventory.skus)} SKUs`, icon: Boxes },
+      { label: "Known inventory value", value: inventory.value === null ? "Valuation unavailable" : currency.format(inventory.value), detail: `${number.format(inventory.units)} units across ${number.format(inventory.skus)} SKUs; ${inventory.unpricedRows ?? 0} unpriced rows`, icon: Boxes },
       { label: "Sell-through", value: "0%", detail: "No sales in this period", icon: Gauge },
       { label: "Avg. order value", value: "$0", detail: "No completed orders", icon: ShoppingBag },
       { label: "Inventory turnover", value: "0.0x", detail: "Needs sales history", icon: RefreshCw },
@@ -99,7 +99,7 @@ export function AnalyticsCommandCenter({
       ["Metric", "Value"],
       ["Gross sales", "0"],
       ["Net profit", "0"],
-      ["Inventory value", inventory.value.toFixed(2)],
+      ["Inventory value", inventory.value?.toFixed(2) ?? "unavailable"],
       ["Inventory units", String(inventory.units)],
       ["Inventory SKUs", String(inventory.skus)],
       ["Sell-through", "0%"],
@@ -244,7 +244,7 @@ export function AnalyticsCommandCenter({
           <Panel title={sellerView ? "Purchasing & ROI" : "Collection performance"} eyebrow={sellerView ? "Acquisition intelligence" : "Portfolio intelligence"} icon={Percent}>
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <Breakdown label={sellerView ? "Purchasing spend" : "Acquisition cost"} value="$0" />
-              <Breakdown label="Current market value" value={currency.format(inventory.value)} accent={hasInventory} />
+              <Breakdown label="Known market subtotal" value={inventory.value === null ? "Valuation unavailable" : currency.format(inventory.value)} accent={hasInventory} />
               <Breakdown label={sellerView ? "Cost recovered" : "Value change"} value="$0" />
               <Breakdown label="Projected ROI" value="-" />
             </div>

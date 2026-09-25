@@ -9,7 +9,7 @@ import { randomUUID, createHash } from 'node:crypto';
 
 export async function runClientRecoveryFixtures({ admin, client, owner, workspace }) {
   const candidate = mkdtempSync(join(tmpdir(), 'td-phase1l-private-candidate-'));
-  const files = ['scanner-foundation.ts', 'scanner-replay.ts', 'inventory-command.ts', 'collector-workspace.ts', 'membership-catalog.ts', 'storage/offline-core.ts'];
+  const files = ['scanner-foundation.ts', 'scanner-replay.ts', 'inventory-command.ts', 'collector-workspace.ts', 'inventory-valuation.ts', 'membership-catalog.ts', 'storage/offline-core.ts'];
   const manifest = {};
   for (const file of files) {
     const bytes = readFileSync(join('mobile/services', file)), target = join(candidate, file);

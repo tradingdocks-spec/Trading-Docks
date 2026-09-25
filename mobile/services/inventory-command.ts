@@ -7,7 +7,7 @@ export type InventoryCommand = {
   userId: string;
   workspaceId: string;
   createdAt: string;
-  endpoint: 'create_inventory_item_with_event' | 'apply_collector_inventory_mutation';
+  endpoint: 'create_inventory_item_with_event' | 'apply_collector_inventory_mutation' | 'remove_inventory_lot_quantity' | 'move_inventory_lot_quantity';
   args: Record<string, unknown>;
   inventoryItemId: string;
 };
@@ -36,7 +36,7 @@ export function readInventoryCommand(operation: OfflineOperation): InventoryComm
   if (!c || c.version !== 1 || c.operationId !== operation.id || c.userId !== operation.userId
       || !c.workspaceId || !c.createdAt || !c.inventoryItemId || !c.args
       || c.args.p_idempotency_key !== c.operationId
-      || !['create_inventory_item_with_event', 'apply_collector_inventory_mutation'].includes(c.endpoint)) {
+      || !['create_inventory_item_with_event', 'apply_collector_inventory_mutation', 'remove_inventory_lot_quantity', 'move_inventory_lot_quantity'].includes(c.endpoint)) {
     throw inventoryCommandError('REVIEW_REQUIRED', 'Legacy or invalid inventory command requires review.');
   }
   if (c.endpoint === 'create_inventory_item_with_event') {
@@ -52,7 +52,7 @@ export function readInventoryCommand(operation: OfflineOperation): InventoryComm
 
 export async function deliverInventoryCommand(operation: OfflineOperation, transport: {
   context(): Promise<{ userId: string; workspaceId: string }>;
-  rpc(endpoint: InventoryCommand['endpoint'], args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
+  rpc(endpoint: InventoryCommand['endpoint'] | 'apply_inventory_manifest', args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
 }) {
   const command = readInventoryCommand(operation);
   const context = await transport.context();

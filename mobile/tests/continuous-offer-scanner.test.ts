@@ -131,7 +131,7 @@ test('card removal detection makes scanner ready for next card', () => {
 test('high-confidence recognition is suggested by default instead of silently finalized', () => {
   const session = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Show buy', mode: 'card_show_purchase' });
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
-  const next = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition, marketPrice: 20, createdAt: '2026-08-05T00:00:00.000Z' });
+  const next = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, marketPrice: 20, createdAt: '2026-08-05T00:00:00.000Z' });
   assert.equal(next.lines[0].reviewStatus, 'suggested');
   assert.equal(next.lines[0].cashOffer, 14);
   assert.equal(next.lines[0].tradeValue, 16);
@@ -140,7 +140,7 @@ test('high-confidence recognition is suggested by default instead of silently fi
 test('ambiguous recognition enters review queue and missing signals are explicit', () => {
   const lowConfidence = { ...confidence, overall: 61, requiresConfirmation: true, signals: [{ ...confidence.signals[0], score: null, evidence: 'Missing name signal' }] };
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence: lowConfidence, recognitionMethod: 'metadata_assisted' });
-  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Trade', mode: 'trade_evaluation' }), { stableScanId: 'scan-1', candidate, recognition });
+  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Trade', mode: 'trade_evaluation' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition });
   assert.equal(recognition.confidenceState, 'manual_review_required');
   assert.deepEqual(recognition.missingSignals, ['Name OCR']);
   assert.equal(session.lines[0].reviewStatus, 'needs_review');
@@ -148,7 +148,7 @@ test('ambiguous recognition enters review queue and missing signals are explicit
 
 test('failed recognition can be represented without invented printing or price', () => {
   const recognition = createRecognitionPipelineReport({ detectedGame: 'unknown', candidates: [], confidence: { ...confidence, overall: 0, requiresConfirmation: true, conflicts: ['No candidates resolved.'], signals: [] }, recognitionMethod: 'unavailable' });
-  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Mixed', mode: 'mixed_tcg_intake' }), { stableScanId: 'scan-1', candidate: null, recognition });
+  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Mixed', mode: 'mixed_tcg_intake' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate: null, recognition });
   assert.equal(session.lines[0].cardName, 'Unrecognized card');
   assert.equal(session.lines[0].marketPrice, null);
   assert.equal(calculateSessionTotals(session).missingPriceItems, 1);
@@ -163,7 +163,7 @@ test('foil evidence remains indeterminate without benchmarked frames', () => {
 test('percentage changes recalculate cash and trade values without using missing price as zero', () => {
   const session = addRecognitionToSession(
     createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Offer', mode: 'collection_purchase' }),
-    { stableScanId: 'scan-1', candidate, recognition: createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' }), marketPrice: 20 },
+    { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition: createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' }), marketPrice: 20 },
   );
   const edited = editScannerSessionLine(session, session.lines[0].id, { purchasePercentage: 65, marketPrice: null });
   assert.equal(edited.lines[0].cashOffer, null);
@@ -173,7 +173,7 @@ test('percentage changes recalculate cash and trade values without using missing
 test('session review sheet edits preserve quantity price cash percentage and offer math', () => {
   const session = addRecognitionToSession(
     createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Offer', mode: 'card_show_purchase' }),
-    { stableScanId: 'scan-1', candidate, recognition: createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' }), marketPrice: 12 },
+    { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition: createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' }), marketPrice: 12 },
   );
   const edited = editScannerSessionLine(session, session.lines[0].id, {
     quantity: 3,
@@ -196,7 +196,7 @@ test('session persistence key is user scoped', () => {
 
 test('undo, remove, filters, and bulk confirm operate on session lines', () => {
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence: { ...confidence, overall: 70, requiresConfirmation: true }, recognitionMethod: 'metadata_assisted' });
-  let session: ContinuousScannerSession = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' }), { stableScanId: 'scan-1', candidate, recognition });
+  let session: ContinuousScannerSession = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition });
   assert.equal(filterScannerSessionLines(session.lines, { status: 'needs_review' }).length, 1);
   session = bulkConfirmReviewedCards(session);
   assert.equal(session.lines[0].reviewStatus, 'confirmed');
@@ -209,7 +209,7 @@ test('undo, remove, filters, and bulk confirm operate on session lines', () => {
 
 test('session review summary exposes at most four primary metrics and never substitutes missing price as zero', () => {
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
-  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' }), { stableScanId: 'scan-1', candidate, recognition, marketPrice: null });
+  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, marketPrice: null });
   const metrics = sessionReviewMetrics(calculateSessionTotals(session));
   assert.equal(metrics.length, 4);
   assert.deepEqual(metrics.map((metric) => metric.id), ['cards', 'needs_review', 'missing_price', 'offer_total']);
@@ -233,8 +233,8 @@ test('session review filtering sorting and review-next prioritize unresolved car
   const high = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
   const low = createRecognitionPipelineReport({ detectedGame: 'pokemon', candidates: [{ ...candidate, id: 'pk-1', name: 'Pikachu', setCode: 'SVI' }], confidence: { ...confidence, overall: 65, requiresConfirmation: true }, recognitionMethod: 'future_visual_provider' });
   let session: ContinuousScannerSession = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10, createdAt: '2026-08-05T00:00:00.000Z' });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-2', candidate: low.topCandidate, recognition: low, marketPrice: null, createdAt: '2026-08-05T00:01:00.000Z' });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10, createdAt: '2026-08-05T00:00:00.000Z' });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-2', candidate: low.topCandidate, recognition: low, marketPrice: null, createdAt: '2026-08-05T00:01:00.000Z' });
   const defaults = defaultSessionReviewFilters();
   const visible = filterSessionReviewLines(session.lines, defaults);
   assert.equal(visible[0].reviewStatus, 'needs_review');
@@ -248,8 +248,8 @@ test('session review finalization requires all unresolved cards to be reviewed',
   const high = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
   const low = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence: { ...confidence, overall: 65, requiresConfirmation: true }, recognitionMethod: 'metadata_assisted' });
   let session: ContinuousScannerSession = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Review', mode: 'card_show_purchase' });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10 });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-2', candidate, recognition: low, marketPrice: 10 });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition: high, marketPrice: 10 });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-2', candidate, recognition: low, marketPrice: 10 });
   assert.equal(sessionFinalizeEligibility(session).canFinalize, false);
   session = editScannerSessionLine(session, session.lines[1].id, { reviewStatus: 'confirmed' });
   const eligibility = sessionFinalizeEligibility(session);
@@ -259,7 +259,7 @@ test('session review finalization requires all unresolved cards to be reviewed',
 
 test('confirmed collection destination can produce scanner confirmation payload', () => {
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
-  let session: ContinuousScannerSession = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Collection', mode: 'collection_intake', autoConfirm: 'auto_confirm_high_confidence' }), { stableScanId: 'scan-1', candidate, recognition, destination: 'collection', storageLocationId: 'loc-1' });
+  let session: ContinuousScannerSession = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Collection', mode: 'collection_intake', autoConfirm: 'auto_confirm_high_confidence' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, destination: 'collection', storageLocationId: 'loc-1' });
   session = bulkConfirmReviewedCards(session);
   const confirmation = buildScannerCollectionConfirmation(session.lines[0], 'user-1');
   assert.equal(confirmation?.candidate.id, candidate.id);
@@ -268,7 +268,7 @@ test('confirmed collection destination can produce scanner confirmation payload'
 
 test('CSV export includes offer session fields and keeps missing prices blank', () => {
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
-  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'CSV', mode: 'card_show_purchase' }), { stableScanId: 'scan-1', candidate, recognition, marketPrice: null, notes: 'Needs review' });
+  const session = addRecognitionToSession(createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'CSV', mode: 'card_show_purchase' }), { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, marketPrice: null, notes: 'Needs review' });
   const rows = buildContinuousScannerCsvRows(session);
   const csv = serializeContinuousScannerCsv(rows);
   assert.match(csv, /"Card Show Purchase"/);
@@ -280,8 +280,8 @@ test('mixed-game session totals include each detected game', () => {
   const magic = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
   const pokemon = createRecognitionPipelineReport({ detectedGame: 'pokemon', candidates: [{ ...candidate, id: 'pk-1', name: 'Pikachu', setCode: 'SVI' }], confidence, recognitionMethod: 'future_visual_provider' });
   let session: ContinuousScannerSession = createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Mixed', mode: 'mixed_tcg_intake' });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-1', candidate, recognition: magic, quantity: 2 });
-  session = addRecognitionToSession(session, { stableScanId: 'scan-2', candidate: pokemon.topCandidate, recognition: pokemon, quantity: 1 });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition: magic, quantity: 2 });
+  session = addRecognitionToSession(session, { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-2', candidate: pokemon.topCandidate, recognition: pokemon, quantity: 1 });
   const totals = calculateSessionTotals(session);
   assert.equal(totals.gameTotals.magic?.quantity, 2);
   assert.equal(totals.gameTotals.pokemon?.quantity, 1);
@@ -292,7 +292,7 @@ test('scan destination preference applies to unsynced session lines without repe
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
   const session = addRecognitionToSession(
     createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Binder intake', mode: 'binder_intake' }),
-    { stableScanId: 'scan-1', candidate, recognition, destination: 'collection' },
+    { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, destination: 'collection' },
   );
   const destination = buildScannerDestinationPreference({ destination: 'binder', binderId: 'binder-3', binderPage: 2, binderSlot: 'B2' });
   const next = applyScannerDestinationPreference(session, destination);
@@ -308,7 +308,7 @@ test('Card Show percentage preview and session override keep missing prices unav
   const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
   const session = addRecognitionToSession(
     createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Show buy', mode: 'card_show_purchase' }),
-    { stableScanId: 'scan-1', candidate, recognition, marketPrice: 20 },
+    { condition: 'near_mint', finish: 'normal', stableScanId: 'scan-1', candidate, recognition, marketPrice: 20 },
   );
   const updated = updateCardShowOfferRate(session, 65);
   assert.equal(updated.offerConfig.defaultCashPercentage, 65);

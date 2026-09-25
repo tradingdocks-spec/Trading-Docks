@@ -101,6 +101,10 @@ try {
     evidence.forEach((e,i)=>{e.before=e.observed;delete e.observed;delete e.items;delete e.units;delete e.events;e.after=after[i];});
     await admin.query('update user_preferences set active_workspace_id=$1 where user_id=$2',[workspace,owner]);
     await runAdditional({admin,client,second,owner,workspace,payload,create,counts,snapshot,legacyId,legacyKey,exactId,exactKey,original,mutate,firstKey});
+    if(process.argv.includes('--generic-edits')) {
+      const {runCollectorEditFixtures}=await import('./collector-command-db.mjs');
+      await runCollectorEditFixtures({admin,client,second,owner,workspace,payload,create});
+    }
     if(process.argv.includes('--client-recovery')) {
       const {runClientRecoveryFixtures}=await import('./phase1l-client-db.mjs');
       await runClientRecoveryFixtures({admin,client,owner,workspace});

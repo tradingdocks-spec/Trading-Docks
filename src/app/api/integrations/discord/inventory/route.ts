@@ -1,3 +1,4 @@
+import { availableMoney, trustedInventoryValue } from "@/lib/intelligence-provenance";
 import { NextResponse } from "next/server";
 import { canSendDiscord, resolveDiscordActor } from "@/lib/discord-access";
 
@@ -22,7 +23,7 @@ export async function GET() {
       name: item.card_name,
       set: typeof record.setName === "string" ? record.setName : item.set_code,
       condition: typeof record.condition === "string" ? record.condition : null,
-      price: Number(record.marketPrice ?? item.inventory_value ?? 0) || 0,
+      price: availableMoney(record.marketPrice) ?? (trustedInventoryValue(item) === null || item.quantity <= 0 ? null : trustedInventoryValue(item)! / item.quantity),
       quantity: item.quantity,
     };
   });

@@ -135,5 +135,85 @@ try{
   const after=await totals();assert.equal(after.items,before.items+1);assert.equal(after.events,before.events+1);assert.equal(after.purchases,before.purchases);assert.equal(after.links,before.links);
   assert.equal((await client.query('select quantity from inventory_items where id=$1 and user_id=$2',[id,owner])).rows[0].quantity,2);
  });
+
+ if(process.argv.includes('--valuation')) {
+  await admin.query(sql('supabase/migrations/202608260001_collection_location_authority.sql'));
+  await admin.query(sql('supabase/migrations/20260925061021_inventory_total_valuation_contract.sql'));
+  await check('receipt market total differs from purchase cost; replay preserves valuation', async()=>{
+   const d=await draft('offer_ready',[{id:randomUUID(),cardName:'Valuation',gameId:'magic',productType:'card',setCode:'TST',collectorNumber:'1',condition:'NM',finish:'nonfoil',language:'English',quantity:3,unitMarketValue:10,reviewState:'ready'}]);
+   const r=await finish(d,true,24); const id=r.items[0].inventoryItemId;
+   let row=(await admin.query('select * from inventory_items where id=$1',[id])).rows[0];
+   assert.equal(Number(row.inventory_value),30); assert.equal(Number(row.data.costBasis),8); assert.equal(Number(row.data.totalCostBasis),24);
+   assert.equal(row.data.inventoryValueSemantics,'total_row_v1');
+   await finish(d,true,24); assert.equal(Number((await admin.query('select inventory_value from inventory_items where id=$1',[id])).rows[0].inventory_value),30);
+   await client.query("select apply_collector_inventory_mutation($1,'quantity',2,null,null,null,$2,'manual')",[id,randomUUID()]);
+   row=(await admin.query('select * from inventory_items where id=$1',[id])).rows[0];assert.equal(Number(row.inventory_value),20);assert.equal(Number(row.data.totalCostBasis),24);
+  });
+  await check('receipt one-unit, missing-market and genuine-zero prices remain distinct',async()=>{
+   for(const market of [10,null,0]) {
+    const d=await draft('offer_ready',[{id:randomUUID(),cardName:'Receipt price fixture',gameId:'magic',productType:'card',setCode:'TST',collectorNumber:'2',condition:'NM',finish:'nonfoil',language:'English',quantity:1,unitMarketValue:market,reviewState:'ready'}]);
+    const agreedCost=market===10?8:0; // Missing weights require allocation review for positive offers; do not bypass that guard.
+    const receipt=await finish(d,true,agreedCost);
+    const row=(await admin.query('select inventory_value,data from inventory_items where id=$1',[receipt.items[0].inventoryItemId])).rows[0];
+    assert.equal(row.inventory_value===null?null:Number(row.inventory_value),market);
+    assert.equal(Number(row.data.totalCostBasis),agreedCost);
+   }
+  });
+  await check('create known one-unit and unknown valuation have distinct event semantics',async()=>{
+   for(const amount of [10,null,0]) {
+    const id=randomUUID(); const row=(await client.query("select (create_inventory_item_with_event($1,'manual',$2,null,null)).*",[{id,card_name:'Fixture',quantity:1,inventory_value:amount},id])).rows[0];
+    assert.equal(row.inventory_value===null?null:Number(row.inventory_value),amount);
+    const event=(await admin.query('select unit_value,total_value from inventory_events where inventory_item_id=$1',[id])).rows[0];
+    assert.equal(event.total_value===null?null:Number(event.total_value),amount);
+   }
+  });
+
+  await check('split known total and unknown total preserve semantics; removal prorates market not cost',async()=>{
+   const loc=randomUUID();await admin.query("insert into inventory_locations(id,user_id,name,location_type) values($1,$2,'Synthetic destination','box')",[loc,owner]);
+   for(const amount of [30,null]) {
+    const id=randomUUID();await client.query("select create_inventory_item_with_event($1,'manual',$2,null,null)",[{id,card_name:'Split fixture',quantity:3,inventory_value:amount},id]);
+    const moved=(await client.query("select move_inventory_lot_quantity($1,1,$2,$3,'manual') r",[id,loc,randomUUID()])).rows[0].r;
+    const original=(await admin.query('select inventory_value from inventory_items where id=$1',[id])).rows[0];
+    const dest=(await admin.query('select inventory_value from inventory_items where id=$1',[moved.destinationItemId])).rows[0];
+    assert.equal(original.inventory_value===null?null:Number(original.inventory_value),amount===null?null:20);
+    assert.equal(dest.inventory_value===null?null:Number(dest.inventory_value),amount===null?null:10);
+   }
+   const id=randomUUID();await client.query("select create_inventory_item_with_event($1,'manual',$2,null,null)",[{id,card_name:'Remove fixture',quantity:5,inventory_value:50},id]);
+   await client.query("select remove_inventory_lot_quantity($1,2,$2,'manual')",[id,randomUUID()]);
+   const remaining=(await admin.query('select quantity,inventory_value from inventory_items where id=$1',[id])).rows[0];assert.equal(remaining.quantity,3);assert.equal(Number(remaining.inventory_value),30);
+  });
+  await check('valuation metadata preserves immutable fingerprints, replay and payload conflict rejection',async()=>{
+   const id=randomUUID(), op=randomUUID(); const payload={id,card_name:'Valuation replay fixture',quantity:3,inventory_value:30};
+   const create=body=>client.query("select to_jsonb(create_inventory_item_with_event($1,'manual',$2,null,null)) r",[body,op]);
+   const first=(await create(payload)).rows[0].r; const repeated=(await create(payload)).rows[0].r;
+   assert.deepEqual(repeated,first); assert.equal(Number(first.inventory_value),30);
+   await assert.rejects(create({...payload,inventory_value:10}),/IDEMPOTENCY_CONFLICT/);
+   const mutation=randomUUID(); const adjust=()=>client.query("select apply_collector_inventory_mutation($1,'quantity',2,null,null,null,$2,'manual') r",[id,mutation]);
+   assert.deepEqual((await adjust()).rows[0].r,(await adjust()).rows[0].r);
+   assert.equal(Number((await admin.query('select inventory_value from inventory_items where id=$1',[id])).rows[0].inventory_value),20);
+   const events=(await admin.query('select unit_value,total_value from inventory_events where inventory_item_id=$1 order by created_at',[id])).rows;
+   assert.equal(events.length,2); assert.equal(Number(events[0].unit_value),10); assert.equal(Number(events[0].total_value),30);
+  });
+  await check('Showcase quote and request use explicit asking price; no market/row fallback',async()=>{
+   await admin.query('alter table inventory_items add column if not exists asking_price numeric(14,2)');
+   await admin.query('create or replace function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at=now(); return new; end $$');
+   await admin.query(sql('supabase/migrations/202609090001_showcase_v1.sql'));
+   await admin.query(sql('supabase/migrations/202609100003_showcase_image_projection.sql'));
+   await admin.query(sql('supabase/migrations/20260925061022_showcase_explicit_asking_price.sql'));
+   await admin.query("insert into showcase_profiles(workspace_id,slug,enabled) values($1,'valuation-test',true)",[workspace]);
+   const id=randomUUID(); await client.query("select create_inventory_item_with_event($1,'manual',$2,null,null)",[{id,card_name:'Explicit price',quantity:3,inventory_value:30,data:{marketPrice:10}},id]);
+   await admin.query('update inventory_items set asking_price=11.99 where id=$1',[id]);
+   const quote=(await admin.query("select * from get_public_showcase_inventory('valuation-test') where public_id=$1",[id])).rows[0];assert.equal(Number(quote.public_price),11.99);
+   const request=(await admin.query("select submit_showcase_request('valuation-test','Synthetic',null,null,null,$1) id",[JSON.stringify([{public_id:id,quantity:2,unitPrice:11.99}])])).rows[0].id;
+   assert.equal(Number((await admin.query('select subtotal from showcase_requests where id=$1',[request])).rows[0].subtotal),23.98);
+   await assert.rejects(admin.query("select submit_showcase_request('valuation-test','Synthetic',null,null,null,$1)",[JSON.stringify([{public_id:id,quantity:1,unitPrice:10}])]),/SHOWCASE_PRICE_CHANGED/);
+   await admin.query("update inventory_items set inventory_value=150,data=data||'{\"marketPrice\":50}'::jsonb where id=$1",[id]);
+   assert.equal(Number((await admin.query("select public_price from get_public_showcase_inventory('valuation-test') where public_id=$1",[id])).rows[0].public_price),11.99);
+   assert.equal(Number((await admin.query('select subtotal from showcase_requests where id=$1',[request])).rows[0].subtotal),23.98);
+   await admin.query('update inventory_items set asking_price=null where id=$1',[id]);
+   await assert.rejects(admin.query("select submit_showcase_request('valuation-test','Synthetic',null,null,null,$1)",[JSON.stringify([{public_id:id,quantity:1}])]),/SHOWCASE_PRICE_REQUIRED/);
+   assert.equal(Number((await admin.query('select quantity from inventory_items where id=$1',[id])).rows[0].quantity),3);
+  });
+ }
  console.log(`PASS ${passed} acquisition database checks`);
 }finally{await client?.end();await admin?.end();await db.stop();}

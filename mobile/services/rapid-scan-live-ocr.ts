@@ -570,7 +570,7 @@ function rapidResultFromFusion(
     setCode: fusion.printing.selected?.setCode ?? fusion.visual?.record?.setCode ?? null,
     collectorNumber: fusion.printing.selected?.collectorNumber ?? fusion.visual?.record?.collectorNumber ?? null,
     finish: null,
-    language: fusion.printing.selected?.language ?? 'en',
+    language: fusion.printing.selected?.language ?? null,
     pricingState: 'not_started',
     createdAt,
     refinementState: fusion.printing.ambiguous ? 'review_required' : 'resolved',

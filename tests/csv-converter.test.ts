@@ -66,14 +66,14 @@ test("CSV converter rejects sealed inventory for card export formats", () => {
   assert.throws(() => exportCsv(rows, "tcgplayer"), /sealed inventory/);
 });
 
-test("TCGplayer export fills required marketplace price from the lowest available price", () => {
+test("TCGplayer export never turns market estimates into owner asking prices", () => {
   const output = outputForTemplate([canonicalPriceRow()], "tcgplayer");
   const marketplacePriceIndex = output.headers.indexOf("TCG Marketplace Price");
-  assert.equal(output.values[0][marketplacePriceIndex], "1.76");
+  assert.equal(output.values[0][marketplacePriceIndex], "");
   assert.equal(
-    outputForTemplate([canonicalPriceRow({ marketPrice: "2.10" })], "tcgplayer")
+    outputForTemplate([canonicalPriceRow({ marketPrice: "2.10", askingPrice: "3.50" })], "tcgplayer")
       .values[0][marketplacePriceIndex],
-    "2.10",
+    "3.50",
   );
 });
 
@@ -81,7 +81,7 @@ test("TCGplayer export consolidates repeated SKU rows and preserves total quanti
   const base = Object.fromEntries(CANONICAL_FIELDS.map(({ key }) => [key, ""])) as CanonicalRow;
   const output = outputForTemplate([
     { ...base, name: "Icatian Priest", tcgplayerId: "403168", quantity: "2", addQuantity: "2" },
-    { ...base, name: "Icatian Priest", tcgplayerId: "403168", quantity: "1", addQuantity: "1", marketPrice: "1.57" },
+    { ...base, name: "Icatian Priest", tcgplayerId: "403168", quantity: "1", addQuantity: "1", marketPrice: "1.57", askingPrice: "1.80" },
   ], "tcgplayer");
   const quantityIndex = output.headers.indexOf("Total Quantity");
   const addQuantityIndex = output.headers.indexOf("Add to Quantity");
@@ -89,5 +89,5 @@ test("TCGplayer export consolidates repeated SKU rows and preserves total quanti
   assert.equal(output.values.length, 1);
   assert.equal(output.values[0][quantityIndex], "3");
   assert.equal(output.values[0][addQuantityIndex], "3");
-  assert.equal(output.values[0][marketplacePriceIndex], "1.57");
+  assert.equal(output.values[0][marketplacePriceIndex], "1.80");
 });

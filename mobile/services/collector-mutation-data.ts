@@ -1,3 +1,6 @@
+import { currentInventoryWorkspace } from '@/services/inventory-workspace';
+import { isDurableCollectorEdit, persistCollectorEdit, deliverCollectorEdit } from '@/services/collector-inventory-command';
+import { findOfflineOperation } from '@/services/storage/offline';
 import { supabase } from '@/lib/supabase';
 import {
   COLLECTION_MUTATION_QUEUE_TYPE,
@@ -29,6 +32,18 @@ export async function runMobileCollectorMutation({
   currentTotalQuantity: number;
   currentCardQuantity: number;
 }): Promise<MutationResult> {
+  if (isDurableCollectorEdit(mutation)) {
+    const original = JSON.parse(JSON.stringify(mutation)) as typeof mutation;
+    const operationId = mutation.operationId ?? globalThis.crypto?.randomUUID?.();
+    if (!operationId) return { ok: false, error: 'Secure operation identity is unavailable. No edit was sent.' };
+    try {
+      const transport = collectorEditTransport();
+      const context = await transport.context();
+      await persistCollectorEdit(collectorQueue, original, operationId, context);
+      const result = await deliverCollectorEdit(collectorQueue, operationId, original.userId, transport);
+      return result.committed ? { ok: true, queued: false } : { ok: true, queued: true, warning: result.operation?.lastError ?? 'Original edit saved for safe retry.' };
+    } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'No edit was acknowledged.' }; }
+  }
   const auth = await currentUserId();
   if (!auth) return queueCollectorMutation(mutation, 'Collection storage is offline. The change is queued for sync.');
 
@@ -63,8 +78,15 @@ export async function retryQueuedCollectorMutations({
   let attempted = 0;
   for (const operation of queue) {
     if (operation.type !== COLLECTION_MUTATION_QUEUE_TYPE || operation.userId !== userId) continue;
+    if (operation.payload.command) {
+      await deliverCollectorEdit(collectorQueue, operation.id, userId, collectorEditTransport());
+      attempted += 1;
+      continue;
+    }
+    // Old target-key edits have no immutable server command. Never mint a new ID on replay.
     const outcome = await processOfflineOperation(operation.id, userId, COLLECTION_MUTATION_QUEUE_TYPE, async (claimed) => {
       const mutation = claimed.payload as unknown as CollectorMutation;
+      if (isDurableCollectorEdit(mutation)) throw new Error('LEGACY_OPERATION: review the prior server outcome.');
       if (mutation.userId !== userId || !mutation.inventoryItemId) throw new Error('Invalid collector operation.');
       if (!['quantity', 'condition', 'finish', 'storage', 'trade_binder_status', 'wishlist'].includes(mutation.type)) throw new Error('Unsupported queued mutation requires review.');
       const totals = await loadMutationQuantityContext(userId, mutation.inventoryItemId);
@@ -92,50 +114,7 @@ async function executeOnlineMutation(
   });
   if (!validation.ok) throw new Error(validation.reason);
 
-  if (mutation.type === 'quantity') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: 'quantity',
-      p_quantity: mutation.quantity,
-      p_condition: null,
-      p_finish: null,
-      p_location_id: null,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
-
-  if (mutation.type === 'condition' || mutation.type === 'finish') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: mutation.type,
-      p_quantity: null,
-      p_condition: mutation.type === 'condition' ? mutation.condition : null,
-      p_finish: mutation.type === 'finish' ? mutation.finish : null,
-      p_location_id: null,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
-
-  if (mutation.type === 'storage') {
-    const { error } = await supabase.rpc('apply_collector_inventory_mutation', {
-      p_inventory_item_id: mutation.inventoryItemId,
-      p_mutation_type: 'storage',
-      p_quantity: null,
-      p_condition: null,
-      p_finish: null,
-      p_location_id: mutation.storageLocationId,
-      p_idempotency_key: mutationQueueKey(mutation),
-      p_source: 'mobile',
-    });
-    if (error) throw new Error(error.message);
-    return;
-  }
+  if (isDurableCollectorEdit(mutation)) throw new Error('OPERATION_ID_REQUIRED: use the durable inventory command.');
 
   if (mutation.type === 'trade_binder_status') {
     const { error } = await supabase
@@ -232,4 +211,19 @@ async function loadMutationQuantityContext(userId: string, inventoryItemId: stri
   if (cardResult.error) throw new Error(cardResult.error.message);
   const currentCardQuantity = Number(cardResult.data?.quantity ?? 0);
   return { currentTotalQuantity, currentCardQuantity };
+}
+
+const collectorQueue = { list: getOfflineQueue, enqueue: enqueueOfflineOperation, process: processOfflineOperation, find: findOfflineOperation };
+function collectorEditTransport() {
+  return {
+    context: async () => {
+      const userId = await currentUserId();
+      if (!supabase || !userId) throw new Error('AUTHORIZATION_FAILURE: connect to confirm the current workspace before preparing an edit.');
+      return { userId, workspaceId: await currentInventoryWorkspace(supabase) };
+    },
+    rpc: async (endpoint: import('./inventory-command').InventoryCommand['endpoint'] | 'apply_inventory_manifest', args: Record<string, unknown>) => {
+      if (!supabase) throw new Error('Collection storage unavailable.');
+      return supabase.rpc(endpoint, args);
+    },
+  };
 }

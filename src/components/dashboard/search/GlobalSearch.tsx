@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { availableMoney, summarizeInventoryValues } from "@/lib/intelligence-provenance";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -81,7 +82,7 @@ type CardPlacement = {
   collectorNumber?: string;
   finish?: string;
   imageUrl?: string;
-  unitValue: number;
+  unitValue: number | null;
   href: string;
   locationId?: string;
   batchId?: string | null;
@@ -95,7 +96,8 @@ type CardGroup = {
   key: string;
   name: string;
   quantity: number;
-  value: number;
+  value: number | null;
+  unpricedRows: number;
   imageUrl?: string;
   placements: CardPlacement[];
 };
@@ -278,7 +280,7 @@ export function GlobalSearch() {
           set: card.setCode?.toUpperCase(),
           collectorNumber: card.collectorNumber,
           imageUrl: card.image,
-          unitValue: card.price || 0,
+          unitValue: availableMoney(card.price),
           href: `/dashboard/deck-vault/decks/${encodeURIComponent(deck.id)}`,
         }))));
         setLoading(false);
@@ -355,9 +357,7 @@ export function GlobalSearch() {
               finish: card?.printing.finish !== "unknown" ? card?.printing.finish : item.finish,
               imageUrl: card?.printing.imageUrl ?? undefined,
               unitValue:
-                card?.marketPrice.amount != null
-                  ? card.marketPrice.amount
-                  : ((item.value ?? 0) / Math.max(1, item.quantity || 1)),
+                card?.marketPrice.amount ?? null,
               href: `/dashboard/cards/${encodeURIComponent(item.id)}`,
               locationId: locationId || undefined,
               batchId: provenance?.batchId ?? undefined,
@@ -389,7 +389,7 @@ export function GlobalSearch() {
           set: card.setCode?.toUpperCase(),
           collectorNumber: card.collectorNumber,
           imageUrl: card.image,
-          unitValue: card.price || 0,
+          unitValue: availableMoney(card.price),
           href: `/dashboard/deck-vault/decks/${encodeURIComponent(deck.id)}`,
         })),
       );
@@ -442,10 +442,7 @@ export function GlobalSearch() {
         key,
         name: groupPlacements[0].cardName,
         quantity: groupPlacements.reduce((sum, item) => sum + item.quantity, 0),
-        value: groupPlacements.reduce(
-          (sum, item) => sum + item.unitValue * item.quantity,
-          0,
-        ),
+        ...summarizeInventoryValues(groupPlacements.map((item) => item.unitValue === null ? null : item.unitValue * item.quantity)),
         imageUrl: groupPlacements.find((item) => item.imageUrl)?.imageUrl,
         placements: groupPlacements.sort((a, b) =>
           a.locationName.localeCompare(b.locationName),
@@ -455,7 +452,7 @@ export function GlobalSearch() {
     result.sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
       if (sort === "quantity") return b.quantity - a.quantity;
-      if (sort === "value") return b.value - a.value;
+      if (sort === "value") return (b.value ?? -1) - (a.value ?? -1);
       if (sort === "location") {
         return (a.placements[0]?.locationName ?? "").localeCompare(
           b.placements[0]?.locationName ?? "",
@@ -705,7 +702,7 @@ function CardResult({
             </div>
             <div className="rounded-xl border border-td-success/[0.12] bg-td-success/[0.045] px-3 py-2 text-right">
               <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-td-success/75">Total value</p>
-              <p className="mt-0.5 text-sm font-semibold text-td-success">${group.value.toFixed(2)}</p>
+              <p className="mt-0.5 text-sm font-semibold text-td-success">{group.value === null ? "Valuation unavailable" : `$${group.value.toFixed(2)} known`}{group.unpricedRows ? ` · ${group.unpricedRows} unpriced` : ""}</p>
             </div>
           </div>
         </div>
@@ -750,7 +747,7 @@ function CardResult({
                 <span className="block text-[11px] uppercase tracking-[0.1em] text-td-muted">Value here</span>
                 <span className="inline-flex items-center gap-1 text-sm font-semibold text-td-primary">
                   <CircleDollarSign className="h-3 w-3 text-td-success/55" />
-                  {(placement.unitValue * placement.quantity).toFixed(2)}
+                  {placement.unitValue === null ? "Unavailable" : (placement.unitValue * placement.quantity).toFixed(2)}
                 </span>
               </span>
             </div>

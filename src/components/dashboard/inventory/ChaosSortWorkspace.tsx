@@ -30,6 +30,7 @@ import type { ScannerProvider, ScannerSession } from "@/lib/chaos-sort/scanner-p
 import { RecognitionPool, physicalCardCount, unresolvedLiveItems, liveScanStatus, assertIntakeRoom } from "@/lib/chaos-sort/live-intake";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { physicalResolution } from "@/lib/card-intelligence/resolution";
 import { csvValue, parseSimpleCsv } from "@/lib/csv-simple";
 import {
   buildChaosSortPlan,
@@ -60,7 +61,7 @@ type InventoryRow = {
   set_code: string | null;
   collector_number: string | null;
   quantity: number;
-  inventory_value: number;
+  inventory_value: number | null;
   data: Record<string, unknown> | null;
 };
 
@@ -683,8 +684,8 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         const setCode = csvValue(values, "set", "set_code", "set code") || null;
         const collectorNumber = csvValue(values, "collector number", "collector_number", "number") || null;
         const scryfallId = csvValue(values, "scryfall id", "scryfall_id", "scryfallid") || null;
-        const condition = csvValue(values, "condition") || "NM";
-        const finish = csvValue(values, "finish", "printing") || "nonfoil";
+        const condition = csvValue(values, "condition") || null;
+        const finish = csvValue(values, "finish", "printing") || null;
         const language = csvValue(values, "language", "lang") || null;
         const now = new Date().toISOString();
         const id = crypto.randomUUID();
@@ -696,7 +697,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
           sourceImageUrl: null,
           processingState: "ready",
           recognitionState: cardName && setCode && collectorNumber ? "high_confidence" : "review",
-          humanState: cardName && setCode && collectorNumber ? "confirmed" : "pending",
+          humanState: cardName && physicalResolution({ exactPrinting: Boolean(setCode && collectorNumber), condition, finish, language }).canFinalize ? "confirmed" : "pending",
           cardName,
           scryfallId,
           gameId: csvValue(values, "game", "game_id") || "magic",

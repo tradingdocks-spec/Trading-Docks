@@ -286,3 +286,19 @@ function pokemonProduct(overrides: Partial<{
     raw: {},
   };
 }
+
+
+test("Pokemon SKU omissions never manufacture Normal or English", async () => {
+  const resolved = await resolveTcgProductSkus({
+    gameId: TCGTRACKING_POKEMON_GAME_ID, providerProductId: "188370", setId: "swsh4",
+    client: {
+      product: async () => pokemonProduct({ providerProductId: "188370" }),
+      skus: async () => [{ providerSkuId: "unknown", providerProductId: "188370", raw: {} }],
+      pricing: async () => [],
+    },
+  });
+  assert.equal(resolved.skus[0]?.variant, "");
+  assert.equal(resolved.skus[0]?.language, "");
+  assert.equal(resolved.skus[0]?.condition, "Condition unavailable");
+  assert.equal(resolved.skus[0]?.marketPrice, null);
+});

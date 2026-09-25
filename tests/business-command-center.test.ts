@@ -177,8 +177,8 @@ test("capital at risk uses explicit stale inventory threshold and value coverage
   const capital = calculateInventoryCapital({
     now: new Date("2026-08-14T12:00:00.000Z"),
     inventoryRows: [
-      { id: "listed", inventory_value: 200, updated_at: "2026-08-01T12:00:00.000Z" },
-      { id: "stale", inventory_value: 842, updated_at: "2026-04-01T12:00:00.000Z" },
+      { id: "listed", inventory_value: 200, data: {inventoryValueSemantics:"total_row_v1"}, updated_at: "2026-08-01T12:00:00.000Z" },
+      { id: "stale", inventory_value: 842, data: {inventoryValueSemantics:"total_row_v1"}, updated_at: "2026-04-01T12:00:00.000Z" },
       { id: "unvalued", inventory_value: 0, updated_at: "2026-03-01T12:00:00.000Z" },
     ],
     listingRows: [{ inventory_item_id: "listed", match_status: "matched" }],
@@ -465,7 +465,7 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(component, /Pending cost basis/);
   assert.match(component, /Cost basis coverage/);
   assert.match(component, /Trading Docks Signals/);
-  assert.match(component, /Inventory Capital/);
+  assert.match(component, /Known inventory market subtotal/);
   assert.match(component, /What Changed/);
   assert.match(component, /Profit Confidence/);
   assert.match(component, /Inventory Attribution/);

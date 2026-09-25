@@ -431,7 +431,7 @@ export function shouldRenderDiagnosticsInline(diagnosticsEnabled: boolean) {
 export function highVolumeCardShowDefaults(input?: Partial<PremiumScannerModeDefaults>): PremiumScannerModeDefaults {
   return {
     highVolume: true,
-    defaultCondition: input?.defaultCondition ?? 'near_mint',
+    defaultCondition: input?.defaultCondition ?? 'unknown',
     defaultFinish: input?.defaultFinish ?? 'normal',
     defaultLanguage: input?.defaultLanguage ?? 'en',
     cashOfferRate: input?.cashOfferRate ?? 70,

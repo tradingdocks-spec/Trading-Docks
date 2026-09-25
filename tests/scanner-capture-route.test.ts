@@ -18,6 +18,7 @@ test("capture API rejects a capability-authorized but unapproved caller before s
       if (name === "@/lib/chaos-sort/scanner-bridge-access") return { scannerBridgeOwnerAccess: async (client: unknown, identity: unknown) => { assert.equal(client, supabase); assert.equal(identity, user); checked++; return false; } };
       if (name === "@/lib/chaos-sort/capture-permit") return { issueCapturePermit() { throw new Error("Unauthorized signing"); } };
       if (name === "node:crypto" || name === "sharp") return {};
+      if (name === "@/lib/supabase/admin" || name === "@/lib/chaos-sort/trusted-commit") return new Proxy({}, { get() { throw new Error('Unauthorized validation'); } });
       throw new Error(`Unexpected dependency: ${name}`);
     },
   });
