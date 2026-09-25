@@ -1,6 +1,6 @@
 # Phase 1 — Data integrity and scanner parity
 
-Status: **PHASE 1F IMPLEMENTED LOCALLY — REVIEW / RELEASE GATES REMAIN OPEN**.
+Status: **PHASE 1G CERTIFICATION EXECUTED — PHASE 1 INCOMPLETE**.
 
 The owner resolved the architectural stop on 2026-09-24: the existing purchase ledger is the sole acquisition financial authority. The Phase 1F implementation below supersedes the stop recommendation. Sections after “Historical investigation” preserve the original investigation as historical evidence, not the current implementation status. Phase 2 has not begun.
 
@@ -248,3 +248,149 @@ After a reviewed, rehearsed implementation: real owner/two-workspace receipt, fa
 **NOT READY.** First review the recommendation to make the existing purchase ledger the sole financial acquisition authority, with collection intake retained as draft/review workflow. Then resume Phase 1A–1E implementation and all release gates. Passing existing unit tests would not resolve this authority conflict.
 
 Production, inventory, CS-000023, POS/Square settings and hardware certification were not changed. No second acquisition system was built.
+
+## PHASE 1 RELEASE CERTIFICATION
+
+Certification date: 2026-09-25 UTC / 2026-09-24 Arizona. Scope: Phase 1G local certification and narrowly scoped integrity gates. No production migration, deployment, financial transaction, inventory mutation, POS/Square change or physical scanner activity.
+
+### 1. Remaining-item disposition checklist
+
+This checklist supersedes the earlier open-item narrative without erasing it. A documented limitation is not automatically a release blocker, but a BLOCKER cannot be waived by passing unit tests.
+
+| ID | Previously open item | Disposition | Evidence / remaining work |
+|---|---|---|---|
+| G01 | Competing financial ledgers / unusable invoker permission model | FIXED | Phase 1F finalizer and compatibility delegate write existing purchase ledger; real authenticated receipt passes. |
+| G02 | Atomic draft save, stable lines, stale revisions | PASS | Browser save/reload and DB revision/rollback checks. |
+| G03 | Real authenticated intake → purchase → receipt | PASS | Real Next app, GoTrue, PostgREST, capability resolution and existing database triggers; no mocked user/RPC. |
+| G04 | Retry after completion, double submission/refresh | PASS | Real Complete purchase button/confirmation/double-click; API concurrent submissions and refresh retry retain one purchase/receipt. |
+| G05 | Generic header-then-lines purchase service | FIXED | Permanent application gate before any insert, plus authenticated direct ledger DML revoked by new forward migration. |
+| G06 | Purchasing lookup existing-stock quantity then metadata update | FIXED | Inventory-producing lookup actions gated before either mutation; read lookup/wishlist remain available. |
+| G07 | Card-show purchase / bulk-purchase CSV snapshot finalization | FIXED | Purchase/import actions gated before stock writes; optional bulk_purchases DML revoked. Historical data preserved. |
+| G08 | Inventory edits overwrite linked acquisition cost | FIXED | Trigger rejects linked cost/provenance changes; authenticated condition/storage/notes/market/list-price edits pass. |
+| G09 | Acquisition metrics from inventory timestamps | FIXED | Ledger financial/receipt cohorts; real analytics page unchanged by edits. |
+| G10 | Bounded Purchase History summaries | DOCUMENTED LIMITATION | Latest 250 accessible records; visible scope notice added. Not all-history accounting. |
+| G11 | Unknown historical purchase dates and provenance | FIXED | Missing date stays empty, not today. Unlinked inventory excluded from financial acquisitions; no backfill. |
+| G12 | Fees, taxes, shipping, alternate collection allocation | DOCUMENTED LIMITATION | No verified detailed breakdown; existing saved-value proportional allocation only. No new accounting policy invented. |
+| G13 | Deferred receipt, partial shipments and reversal UI | DOCUMENTED LIMITATION | Full later receipt supported/tested through authenticated API; UI remains immediate receipt. Partial receipt/reversal not implemented. |
+| G14 | Current full-schema/workspace interaction | PASS | Recovery clone plus schema-only copy into dedicated local Supabase Auth stack. Live schema freshness remains a production preflight, not assumed. |
+| G15 | Anonymous / other user / same-owner other-workspace isolation | PASS | Actual Auth/PostgREST and application API tests; manager may receive their own intake in shared workspace, not owner intake. |
+| G16 | Exact identity/financial value validation | PASS | Unknown metadata blocks finalization; invalid amount, invalid location, stale/finalized intake and one-invalid-line rollbacks tested. Catalog correctness remains human-reviewed, not inferred from IDs alone. |
+| G17 | Synthesized demand/opportunity/sparklines and missing fee provenance (Phase 1B) | BLOCKER | `src/lib/market-engine/helpers.ts` still constructs deterministic demand/sparkline signals. Field-level observed/calculated/estimated/unknown treatment remains unimplemented. |
+| G18 | Buylist unknown physical attributes / provider conflicts (Phase 1C) | BLOCKER | `src/lib/buylist.ts` still substitutes nonfoil/English/NM for absent attributes when matching. Needs review-first behavior and conflict regressions. |
+| G19 | Mobile save/replay optional follow-up failure and snapshot partial writes (Phase 1A) | BLOCKER | Current scanner save/replay can perform stock then separate follow-ups. Financial ledger is not invoked, but physical idempotency/partial-success semantics still need the previously scoped repair. |
+| G20 | Main/private scanner contract parity and lifecycle-safe recovery port (Phase 1E) | BLOCKER | Earlier native diff includes lifecycle replacement risk; no parity port or physical certification in this task. Do not replace main with the private tree. |
+| G21 | Generic CSV/manual inventory snapshots | DOCUMENTED LIMITATION | Physical inventory import, not a financial acquisition. No inferred purchase. Chunked import atomicity is not represented as atomic purchase completion. |
+| G22 | Physical scanner acceptance / hardware claims | DOCUMENTED LIMITATION | PENDING; no physical test or certification change. Does not become PASS through database tests. |
+| G23 | Default Turbopack worktree junction | DOCUMENTED LIMITATION | Local resolution boundary, supported by installed Next documentation; Webpack build passes. CI still uses default build and must run on a normal checkout before promotion. |
+| G24 | Production preflight, release/rollback and post-deployment verification | DOCUMENTED LIMITATION | MANUAL REQUIRED in readiness matrix; not authorized or performed during this local certification. |
+
+No unresolved integrity issue was relabeled DEFERRED TO PHASE 2 to manufacture completion. Phase 2 remains blocked by G17–G20.
+
+### 2. Authenticated browser acceptance
+
+Harness: `tests/acquisition-auth-setup.mjs` and `tests/acquisition-auth-browser.mjs`. Dedicated local Supabase project `td-phase1g-auth-20260924`, API `127.0.0.1:55321`, Next development app `127.0.0.1:4331`. Schema-only recovery copy; no production users, inventory, credentials or sessions copied. Synthetic users sign in through the real `/sign-in` form and GoTrue. Application code, SSR cookies, capability checks, `/api/collection-intake`, financial RPC, PostgREST and RLS are real.
+
+Test setup omits platform-managed ALTER DEFAULT PRIVILEGES statements that the local postgres role cannot execute; explicit application grants/policies are restored. Only the Playwright context bypasses production CSP to allow its loopback Auth URL; application authorization is not bypassed. No hosted authentication claim is made. Agent-browser CLI was unavailable; existing Playwright infrastructure was used. Screenshots/results stay in the private temporary directory, not Git.
+
+Passing sequence:
+
+1. Sign in, create reviewed draft in Collection Buying, save and reload. Zero financial purchases and zero owned stock.
+2. Authenticated completion API with `receiveNow=false`: one $4 commitment, no stock or receipt event.
+3. Receive the same purchase: one stock row, two units, one receipt event and link. Stable-key retries, reload retry and repeated requests retain the same purchase ID/value.
+4. Analytics renders `Financial purchases: 1` and `Agreed acquisition cost: $4.00` from real data.
+5. Authenticated condition correction, storage move, notes, market value and asking-price edits. Purchase count/value remain unchanged; acquisition cost overwrite is denied.
+6. Switch the same owner to a different workspace: original private purchase SELECT returns no rows and finalization is denied. Restore context. Unrelated authenticated user and anonymous caller denied.
+7. Client-supplied foreign user and malformed workspace on draft save cannot override database actor/current workspace. Two simultaneous API finalizations return one new purchase.
+8. Real New intake → Complete purchase button → confirmation → double-click: exactly one additional $2 single-card purchase. Owner cohort finishes at three purchases / $7 / three stock rows / four units.
+9. A manager in the shared workspace successfully receives their **own** intake and cannot finalize the owner's intake. This preserves the existing partner-owner inventory model; it is not staff delegation over owner stock.
+
+No physical inventory was committed outside the disposable local stack. The first harness iteration used an unsupported `location` mutation name; it was corrected to the existing `storage` command. A transient saved toast was replaced by authoritative response/state assertions because reload/recovery can replace the toast. These were test-harness corrections, not production fixes.
+
+### 3. Legacy acquisition-path audit
+
+Search covered tracked web/server/mobile source, SQL migrations/triggers, scanner C#, import/CSV/bulk consumers, POS/provider integrations, jobs and tests. Historical mobile backup trees remain snapshots, not active application entry points. No Supabase Edge Functions directory exists in this checkout. A path being present in an old migration is not proof it is the effective installed function.
+
+| Path/category | Classification | Certification behavior |
+|---|---|---|
+| Intake server/API → finalize_intake_purchase | AUTHORITATIVE | Only approved purchase finalization and receipt writer. |
+| complete_collection_intake compatibility RPC | COMPATIBILITY PATH | Delegates to the same finalizer; does not write collection_purchases. |
+| createPurchaseLedgerRecord / purchase-history POST / bulk calculator/product purchase payload | LEGACY UNSAFE | Gated in service before header insert; API returns 409 with Collection Intake guidance. Database blocks direct authenticated ledger DML. |
+| CardShowsWorkspace.finalizePurchase | LEGACY UNSAFE | Gated before snapshot stock creation. Cart/history not deleted. |
+| BulkPurchasesWorkspace creation/import | LEGACY UNSAFE | Gated before purchase/stock writes; existing historical reads remain. Optional table DML revoked. |
+| Purchasing product-lookup stock upsert and binder/trade follow-up | LEGACY UNSAFE | Inventory-producing actions return gate before any stock action. Lookup and wishlist paths do not represent acquisitions. |
+| collection-buying/[id] legacy collection_purchases reader | COMPATIBILITY PATH | Historical read path only; not a new writer or authoritative acquisition aggregate. |
+| Inventory manual edits / CSV / marketplace imports / persistInventorySnapshotDiff | NOT AN ACQUISITION | Physical inventory operations or user-reported historical metadata. No ledger write; never counted as financial purchases. Linked cost fields now protected. |
+| Mobile scanner-data.ts / scanner-replay.ts | NOT AN ACQUISITION | A: inventory-only. Existing owned/manual import or ambiguous provenance; stock creation alone is not acquisition proof. Separate physical retry blocker G19 remains. |
+| Mobile collector-mutation-data.ts / storage-location-data.ts | NOT AN ACQUISITION | Quantity/condition/finish/storage commands; do not create financial headers. |
+| Chaos cloud commit/capture and native Scanner Bridge | NOT AN ACQUISITION | Physical capture/import and cloud stock commit; no forced purchase entry. Native agent owns no financial business state. |
+| POS sales/refunds / Square / marketplace sales and returns | NOT AN ACQUISITION | Sales and physical restoration are not fresh purchases. No workflow or provider enablement changed. |
+| RevenueCat/Stripe subscriptions and background billing jobs | NOT AN ACQUISITION | Product subscription purchases, not trading-card acquisition. No ledger bridge introduced. |
+| Inventory cost resolvers / card workspace / selling candidate views | COMPATIBILITY PATH | Read stored cost metadata; not proof of purchase lineage. Market/list/sale price must not substitute for missing financial acquisition cost. |
+| Dashboard financial acquisition summary | AUTHORITATIVE | Purchase ledger only; receipt date cohort separate. |
+
+Forward migration `20260925002945_acquisition_legacy_write_gate.sql` follows Phase 1F. It revokes unsafe direct writes, narrows purchase reads to current workspace, and guards acquisition-linked cost/provenance fields during inventory updates. It does not modify historical rows, backfill links, change POS/Square or replay applied migrations. Promotion would intentionally pause the gated legacy actions and requires release review.
+
+### 4. Purchase ledger invariants
+
+| Invariant | Evidence | Result |
+|---|---|---|
+| Intake without purchase | Draft/rejected SQL and browser reload | PASS |
+| Stock edit is not purchase | Authenticated edits + stable ledger totals | PASS |
+| Receipt cannot duplicate finance | Deferred receipt + retries | PASS |
+| Acquisitions derive from ledger | Real analytics page and pure summary tests | PASS |
+| Market cannot overwrite linked acquisition cost | Allowed market/asking updates; rejected cost overwrite | PASS |
+| Retry cannot duplicate purchase or receipt | Locked finalizer, concurrent API requests, UI double-click | PASS |
+| No private purchase read/write across workspace | Same-owner second workspace and unrelated user tests | PASS |
+| Location does not change acquisition history | Actual storage RPC + unchanged reporting | PASS |
+| Condition does not change acquisition history | Actual condition RPC + unchanged reporting | PASS |
+| Unknown history cannot become known by default | Missing date regression; no inventory-to-ledger backfill | PASS |
+
+### 5. Cost provenance and history
+
+Single-card UI purchase, quantity-two exact printing and multi-card SQL collection all pass. Multi-card allocation sums to the agreed total and keeps distinct line/inventory identities. Unreviewed identity and unpriced paid allocations are blocked by the existing finalizer. Acquisition unit/total cost lives in purchase lines and receipt lineage; market value and asking/list price can change independently. Sale price is NOT APPLICABLE: no sale/POS action was exercised. No profit or fee calculation was certified by these tests.
+
+Historical ledger records with valid original financial metadata can be displayed as recorded purchases. Existing inventory-only metadata is user-reported historical cost, not independently verified purchase provenance. Missing dates remain unknown; unknown-workspace financial records are excluded from current-workspace private reads rather than attributed by guessing. Future backfill requires source documents/ledger evidence, explicit mapping and review. Records without that evidence intentionally remain unattributed.
+
+### 6. Failure, rollback and security
+
+`tests/acquisition-authority-db.mjs`: **21 checks per variant / 42 total** (with and without legacy intake proposal). Actual Postgres roles execute functions; injected purchase/header, line, inventory, event and link failures roll back. Invalid money, identity, location, stale revisions and finalized edits are rejected. Failed later receipt preserves the earlier valid commitment. Replay over populated data preserves snapshots. New gate replay, direct-write denial, linked cost protection and multi-card allocation pass.
+
+Prior production-shaped recovery-clone proof is retained; Phase 1G additionally runs the real Auth application against its schema-only counterpart and synthetic data. Service credentials are setup-only and never given to the browser. RLS/tenant checks execute using authenticated user sessions. Recovery dumps and private local runtime keys remain outside Git.
+
+### 7. Production readiness matrix
+
+| Area / check | Status | Qualification |
+|---|---|---|
+| Database migrations/replay | PASS | Both local starting variants; schema-first production application not performed. |
+| Database constraints / RLS | PASS | Authenticated and negative checks; no broader grants. |
+| Database transactionality / idempotency | PASS | Failure injection, receipt separation, concurrency. |
+| Server authorization / validation | PASS | Real capability checks and DB owner/current workspace checks. |
+| Server failure handling / structured errors | PASS | Atomic errors; 400/403/409 and gated legacy message. |
+| Web authenticated intake / retry | PASS | Actual screen and API, real login. |
+| Web loading / error / success | PASS | Save response/reload, success, permission errors and gate; no forced finance success. |
+| Mobile acquisition nonregression | PASS | 580 tests; no financial ledger writes introduced. |
+| Mobile domain semantics | PASS | Inventory-only is not financial acquisition. |
+| Mobile physical retry safety / scanner parity | FAIL | G19/G20 remain. |
+| Analytics ledger / no edit inflation | PASS | Live local page after edits. |
+| Analytics unknown history | PASS | Unknown date preserved; unlinked stock excluded from finance. |
+| Intelligence provenance / buylist uncertainty | FAIL | G17/G18 remain. |
+| Security tenant / owner enforcement | PASS | Actual authenticated API/PostgREST plus negative DB checks. |
+| Security secret exposure | PASS | 13 changed/new text files and 355 browser bundles audited; zero findings, valid UTF-8. No private fixtures/artifacts committed. |
+| Testing root | PASS | 1,026 tests (baseline retained). |
+| Testing mobile | PASS | 580 tests. |
+| Testing database / E2E / recovery shape | PASS | Evidence above; local only. |
+| Testing production build | PASS | Optimized Webpack build, TypeScript, page generation and traces passed. Normal-checkout default-build CI still required for promotion. |
+| Hosted production smoke / migration readiness | MANUAL REQUIRED | Production remains untouched. |
+| Physical scanner / POS / Square testing | NOT APPLICABLE | No enablement or certification changes in Phase 1G. |
+
+### 8. Turbopack determination
+
+**LOCAL ENVIRONMENT ONLY for the observed failure.** The error identifies the node_modules junction pointing outside the worktree root. Installed Next 16 documentation (`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/turbopack.md`, Root directory) explicitly excludes linked dependencies outside that root unless a common root is configured. No broad root expansion into personal folders or dependency rewrite was performed.
+
+Webpack is a passing local production-build cross-check, **not established as the deployed build strategy**. `package.json` uses `next build`; `.github/workflows/quality.yml` uses `npm run build`; no Vercel build-command override was inspected or changed. A normal-checkout CI build remains a promotion requirement. The local junction failure alone is not a production application defect.
+
+### 9. Final decision and next gate
+
+**PHASE 1 INCOMPLETE.** Authenticated acquisition/receipt authority is now demonstrated and unsafe legacy financial entry points are gated locally. G17 (intelligence provenance), G18 (buylist uncertainty), G19 (mobile/physical retry) and G20 (scanner parity) remain substantive blockers from the accepted Phase 1 scope. They are not waived or moved to Phase 2.
+
+Before production promotion: review the legacy workflow gates, compare the actual production schema and recovery freshness, apply only reviewed forward migrations in schema-first order, run normal CI, and conduct separately authorized post-deployment checks. No such promotion is performed here. **Phase 2 is not ready to begin.**
