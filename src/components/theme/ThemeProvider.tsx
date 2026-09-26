@@ -8,11 +8,12 @@ import { useHydrated } from "@/hooks/use-hydrated";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isStorefront = pathname === "/shop" || pathname.startsWith("/s/");
+  // /shop has a complete light/dark palette; the compact slug route keeps its existing theme.
+  const forceDarkTheme = pathname.startsWith("/s/");
   return (
     <NextThemeProvider
       attribute="data-theme"
-      forcedTheme={isStorefront ? "dark" : undefined}
+      forcedTheme={forceDarkTheme ? "dark" : undefined}
       defaultTheme="system"
       enableSystem
       storageKey="trading-docks-theme"

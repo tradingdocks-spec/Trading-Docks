@@ -17,7 +17,7 @@ export async function LegacyStorefrontReadOnly({ slug, query = "" }: { slug: str
   const cards = (data ?? []) as { public_id: string; name: string; set_code: string | null;
     collector_number: string | null; game: string; public_price: number | null }[];
   const visible = cards.filter((card) => typeof card.public_price === "number" && card.public_price > 0);
-  return <main className="min-h-screen bg-[#071017] px-4 py-8 text-white sm:px-8">
+  return <main data-theme="dark" className="min-h-screen bg-[#071017] px-4 py-8 text-white sm:px-8">
     <div className="mx-auto max-w-5xl">
       <a href="/shop" className="text-cyan-200">Store home</a>
       <h1 className="mt-4 text-3xl font-semibold">{profile.display_name}</h1>
