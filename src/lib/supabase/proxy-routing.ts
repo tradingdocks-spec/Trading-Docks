@@ -8,6 +8,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/card-shows/search",
   "/api/market-cards",
   "/api/multi-game-market",
+  "/api/storefront/catalog",
 ];
 
 const API_AUTH_EXEMPT_PREFIXES = [

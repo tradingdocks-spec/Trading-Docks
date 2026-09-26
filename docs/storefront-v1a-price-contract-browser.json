@@ -1,0 +1,122 @@
+{
+  "results": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "path": "/shop",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "path": "/s/trading-docks",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "conflicts": 3,
+      "zerosHidden": 2,
+      "taxonomy": true,
+      "detail": true,
+      "refreshCartPrice": 0.24,
+      "snapshotFilters": true
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "/shop",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "path": "/s/trading-docks",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "conflicts": 3,
+      "zerosHidden": 2,
+      "taxonomy": true,
+      "detail": true,
+      "refreshCartPrice": 0.24,
+      "snapshotFilters": true
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "path": "/shop",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "path": "/s/trading-docks",
+      "load": true,
+      "price": 0.24,
+      "cart": true,
+      "overflow": false
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "conflicts": 3,
+      "zerosHidden": 2,
+      "taxonomy": true,
+      "detail": true,
+      "refreshCartPrice": 0.24,
+      "snapshotFilters": true
+    },
+    {
+      "path": "/shop",
+      "mode": "legacy",
+      "readOnly": true,
+      "price": 0.24,
+      "zeroUnavailable": true
+    },
+    {
+      "path": "/s/trading-docks",
+      "mode": "legacy",
+      "readOnly": true,
+      "price": 0.24,
+      "zeroUnavailable": true
+    }
+  ],
+  "errors": [],
+  "failedRequests": []
+}

@@ -11,7 +11,7 @@ const pairRoute = readFileSync("src/app/api/showcase/kiosks/pair/route.ts", "utf
 const pairingLib = readFileSync("src/lib/showcase-pairing.ts", "utf8");
 const ownerKioskRoute = readFileSync("src/app/api/showcase/kiosks/route.ts", "utf8");
 const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page.tsx", "utf8");
-const settingsRoute = readFileSync("src/app/api/showcase/settings/route.ts", "utf8");
+const settingsRoute = readFileSync("src/app/api/storefront/settings/route.ts", "utf8");
 const settingsComponent = readFileSync("src/components/dashboard/showcase/ShowcaseSettings.tsx", "utf8");
 const dashboardComponent = readFileSync("src/components/dashboard/showcase/ShowcaseDashboard.tsx", "utf8");
 const imageMigration = readFileSync("supabase/migrations/202609100003_showcase_image_projection.sql", "utf8");
@@ -92,13 +92,13 @@ test("Showcase onboarding creates and edits one workspace profile", () => {
   assert.match(settingsRoute, /onConflict: "workspace_id"/);
   assert.match(settingsRoute, /Display name is required/);
   assert.match(settingsRoute, /already in use/);
-  assert.match(settingsComponent, /Create Showcase/);
+  assert.match(settingsComponent, /Create storefront/);
   assert.match(settingsComponent, /Save changes/);
   assert.match(settingsComponent, /showcaseSlugError/);
 });
 
 test("Showcase checklist uses persisted profile and paired-device state", () => {
-  assert.match(dashboardComponent, /pairedKioskCount > 0/);
+  assert.match(dashboardComponent, /listedCount/);
   assert.match(dashboardComponent, /\/dashboard\/showcase\/settings/);
   assert.match(kioskManagementPage, /Create Showcase Profile/);
   assert.match(kioskManagementPage, /\/dashboard\/showcase\/settings/);
