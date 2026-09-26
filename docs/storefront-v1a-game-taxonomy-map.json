@@ -1,0 +1,91 @@
+{
+  "status": "Implemented in revised 20260926025045 guarded migration; recovery-tested; not applied to production",
+  "normalization": "Unicode NFKC, trim, collapse whitespace, lowercase; exact alias match",
+  "unknown": "Block; never silently map to Other",
+  "conflicting_identifiers": "Block",
+  "legacy_missing_metadata": "Only manifest-listed rows in the audited workspace with unchanged identity and legacy Magic label may preserve magic; require Scryfall reference and no contradicting explicit game",
+  "mappings": [
+    {
+      "id": "magic",
+      "label": "Magic: The Gathering",
+      "aliases": [
+        "magic",
+        "mtg",
+        "magic: the gathering",
+        "magic-the-gathering"
+      ],
+      "status": "production"
+    },
+    {
+      "id": "pokemon",
+      "label": "Pokémon",
+      "aliases": [
+        "pokemon",
+        "pokémon",
+        "ptcg",
+        "pkm"
+      ],
+      "status": "beta"
+    },
+    {
+      "id": "yu-gi-oh",
+      "label": "Yu-Gi-Oh!",
+      "aliases": [
+        "yu-gi-oh",
+        "yu-gi-oh!",
+        "yugioh",
+        "ygo"
+      ],
+      "status": "planned"
+    },
+    {
+      "id": "flesh-and-blood",
+      "label": "Flesh and Blood",
+      "aliases": [
+        "flesh-and-blood",
+        "flesh and blood",
+        "fab"
+      ],
+      "status": "planned"
+    },
+    {
+      "id": "digimon",
+      "label": "Digimon",
+      "aliases": [
+        "digimon"
+      ],
+      "status": "planned"
+    },
+    {
+      "id": "pokemon-japan",
+      "label": "Pokémon Japan",
+      "aliases": [
+        "pokemon-japan",
+        "pokemon japan",
+        "pokémon japan"
+      ],
+      "status": "market/card-show only"
+    },
+    {
+      "id": "lorcana",
+      "label": "Disney Lorcana",
+      "aliases": [
+        "lorcana",
+        "disney-lorcana",
+        "disney lorcana"
+      ],
+      "status": "market/card-show only"
+    },
+    {
+      "id": "one-piece",
+      "label": "One Piece",
+      "aliases": [
+        "one-piece",
+        "one-piece-card-game",
+        "one piece",
+        "one piece card game"
+      ],
+      "status": "market/card-show only"
+    }
+  ]
+}

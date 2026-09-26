@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const [{ data: binding }, { data: integration }, { data: profile }] = await Promise.all([
     actor.supabase.from("discord_channel_bindings").select("id,channel_id,channel_name,enabled,can_send,can_embed,discord_integration_id").eq("id", bindingId).eq("workspace_id", actor.workspaceId).maybeSingle(),
     actor.supabase.from("discord_integrations").select("id,guild_name,status").eq("workspace_id", actor.workspaceId).eq("status", "connected").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
-    actor.supabase.from("showcase_profiles").select("slug,display_name,enabled").eq("workspace_id", actor.workspaceId).maybeSingle(),
+    actor.supabase.from("storefront_profiles").select("slug,display_name,enabled").eq("workspace_id", actor.workspaceId).maybeSingle(),
   ]);
   if (!binding || !integration || binding.discord_integration_id !== integration.id) return NextResponse.json({ error: "The selected Discord channel is not authorized for this workspace." }, { status: 409 });
   if (!binding.enabled || !binding.can_send) return NextResponse.json({ error: "Enable this channel after granting the bot permission to post." }, { status: 422 });

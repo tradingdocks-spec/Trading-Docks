@@ -28,6 +28,8 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "cloudflare-email-webhook", pattern: /^\/api\/webhooks\/cloudflare-email\/?$/, kind: "webhook", label: "Cloudflare email webhook" },
   { id: "public-card-images", pattern: /^\/api\/(catalog\/product-image|landing-card-image|scryfall-image|scryfall-card-image|tcg-image|tcgcsv\/image|card-shows\/image)(\/|$)/, kind: "public", label: "Public card image proxy" },
   { id: "public-market-data", pattern: /^\/api\/(market-cards|multi-game-market|deck-vault\/game-changers)(\/|$)/, kind: "public", label: "Public market data" },
+  { id: "public-storefront-catalog", pattern: /^\/api\/storefront\/catalog\/?$/, kind: "public", label: "Public storefront catalog and cart revalidation" },
+  { id: "storefront-admin", pattern: /^\/api\/storefront\/(settings|tags)\/?$/, kind: "authenticated", label: "Authenticated storefront profile and tag administration" },
   { id: "card-intelligence-inventory-validation", pattern: /^\/api\/card-intelligence\/inventory-validation\/?$/, kind: "capability", capability: "collection.write", label: "Authoritative inventory printing validation" },
   { id: "public-card-intelligence", pattern: /^\/api\/card-intelligence(\/|$)/, kind: "public", label: "Rate-limited card intelligence lookup" },
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },

@@ -1,0 +1,117 @@
+{
+  "status": "STOREFRONT V1A TRANSITION READY",
+  "container": "supabase_db_trading-docks-recovery-test",
+  "database": "storefront_price_contract_20260926",
+  "checks": 55,
+  "passed": [
+    "recovery equals production fingerprints",
+    "1454 identities, 1452 published, 2 price-required, no duplicates",
+    "all prices and inventory/workspace references preserved",
+    "all 1454 Magic",
+    "zero inventory identities",
+    "zero listings disabled",
+    "catalog 1452 distinct",
+    "catalog positive snapshots and Magic",
+    "no inventory price/ownership leakage",
+    "Sultai Charm conflict preserved",
+    "Serra Angel conflict preserved",
+    "Prodigy's Prototype conflict preserved",
+    "missing store isolated",
+    "anonymous public RPC allowed",
+    "anonymous table access denied",
+    "non-admin cannot alter listings",
+    "zero excluded even from cart ID revalidation",
+    "taxonomy magic",
+    "taxonomy mtg",
+    "taxonomy magic: the gathering",
+    "taxonomy magic-the-gathering",
+    "taxonomy pokemon",
+    "taxonomy pokémon",
+    "taxonomy ptcg",
+    "taxonomy pkm",
+    "taxonomy yu-gi-oh",
+    "taxonomy yu-gi-oh!",
+    "taxonomy yugioh",
+    "taxonomy ygo",
+    "taxonomy flesh-and-blood",
+    "taxonomy flesh and blood",
+    "taxonomy fab",
+    "taxonomy digimon",
+    "taxonomy pokemon-japan",
+    "taxonomy pokemon japan",
+    "taxonomy pokémon japan",
+    "taxonomy lorcana",
+    "taxonomy disney-lorcana",
+    "taxonomy disney lorcana",
+    "taxonomy one-piece",
+    "taxonomy one-piece-card-game",
+    "taxonomy one piece",
+    "taxonomy one piece card game",
+    "taxonomy blocks array['Other']",
+    "taxonomy blocks array['mixed']",
+    "taxonomy blocks array['magic','pokemon']",
+    "taxonomy blocks array['magic','unknown']",
+    "taxonomy blocks array[]::text[]",
+    "catalog has no live inventory price fallback",
+    "explicit storefront price edit reaches public catalog",
+    "migration contains no inventory/event DML",
+    "repeat is idempotent including capture timestamps",
+    "conflicting destination aborts atomically",
+    "failed transition leaves listings intact",
+    "all inventory/event fingerprints unchanged"
+  ],
+  "zeroListings": [
+    {
+      "id": "00b9180e-6955-a226-ed84-484d2c460b83",
+      "inventory_item_id": "chaos-3995102bbeb4450dbd3171836055c969-529c7240d437478d",
+      "enabled": false,
+      "price_status": "PRICE_REQUIRED"
+    },
+    {
+      "id": "ca892505-bc12-32f0-ba4f-edb3fcef7158",
+      "inventory_item_id": "chaos-c60a727e2c9640d4be78e8819f46c042-d3205ae6908c4537",
+      "enabled": false,
+      "price_status": "PRICE_REQUIRED"
+    }
+  ],
+  "conflicts": [
+    [
+      "Sultai Charm",
+      "ktk",
+      "204",
+      0.24
+    ],
+    [
+      "Serra Angel",
+      "w16",
+      "3",
+      0.48
+    ],
+    [
+      "Prodigy's Prototype",
+      "neo",
+      "231",
+      1.6
+    ]
+  ],
+  "publicCount": 1452,
+  "fingerprints": {
+    "inventory": "0fef56d528f9b9bb3d83c397935b2891",
+    "events": "85a8820f5ea75430c3440a60f0ff8093",
+    "positions": "b1f2188986662e4ac941542ad5f3377b",
+    "profiles": "5be86f73004ed09192f0987174d8791f"
+  },
+  "productionApplied": false,
+  "migrationSha256": "5710AED7BE3AC17FA6D1D34728104C30E92845AB6225890DC766CEDF05844EC1",
+  "finalGuardRepeatPassed": true,
+  "browserEvidence": "storefront-v1a-price-contract-browser.json",
+  "validation": {
+    "root": 1023,
+    "focused": 21,
+    "typescript": "passed",
+    "lintErrors": 0,
+    "lintWarnings": 551,
+    "build": "passed",
+    "diffCheck": "passed"
+  }
+}

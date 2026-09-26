@@ -7,9 +7,12 @@ import { type ReactNode } from "react";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isStorefront = pathname === "/shop" || pathname.startsWith("/s/");
   return (
     <NextThemeProvider
       attribute="data-theme"
+      forcedTheme={isStorefront ? "dark" : undefined}
       defaultTheme="system"
       enableSystem
       storageKey="trading-docks-theme"
@@ -47,6 +50,7 @@ export function ThemeCorner() {
   if (
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
+    pathname === "/shop" || pathname.startsWith("/s/") ||
     pathname === '/hardware' || pathname.startsWith('/hardware/') ||
     ["/privacy", "/terms", "/security"].includes(pathname)
   )
