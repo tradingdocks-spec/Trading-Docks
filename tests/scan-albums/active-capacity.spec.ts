@@ -23,6 +23,7 @@ test('100 kept cards: remove, refresh, replace with new identity, commit exclude
  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','100');
  await expect(page.getByRole('button',{name:'Arm One Capture',exact:true})).toBeDisabled();
  const full=await current(),removed=full.captures.at(-1);
+ page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('button',{name:'Remove latest',exact:true}).click();
  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','99');
  await expect(page.getByRole('button',{name:'Arm One Capture',exact:true})).toBeEnabled();
@@ -41,7 +42,7 @@ test('100 kept cards: remove, refresh, replace with new identity, commit exclude
  expect(replaced.captures.find((c:{capture_id:string})=>c.capture_id===removed.capture_id)).toEqual(tombstone);
  const restore=await page.request.post('/api/chaos-sort/scans',{data:{action:'review',payload:{batchId:id,captureId:tombstone.capture_id,revision:tombstone.revision,item:{...tombstone.item,humanState:'confirmed'}}}});
  expect(restore.ok()).toBe(false);expect((await restore.json()).error).toContain('SCAN_CAPTURE_REMOVED_IMMUTABLE');
- expect((await page.request.get(`/api/chaos-sort/scans?captureId=${tombstone.capture_id}`)).ok()).toBe(true);
+ expect((await page.request.get(`/api/chaos-sort/scans?captureId=${tombstone.capture_id}`)).status()).toBe(404);
  await page.getByRole('button',{name:'Commit 100 Cards to Inventory',exact:true}).click();
  await expect(page.getByRole('heading',{name:'100 cards added',exact:true})).toBeVisible();
  expect(await (await page.request.get('/api/evidence')).json()).toMatchObject({cards:100,positions:100,events:100,captures:101,objects:101,closed:1});

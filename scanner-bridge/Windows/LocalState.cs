@@ -42,6 +42,17 @@ public sealed class LocalState : ITrustStore
         if (certificate is null || !certificate.HasPrivateKey || certificate.NotAfter < DateTime.Now) throw new InvalidOperationException("Local HTTPS trust is missing or expired. Run the reviewed installer again. Do not bypass browser certificate checks.");
         return certificate;
     }
+    public static bool HasValidTrustedCertificate()
+    {
+        try
+        {
+            using var certificate = new LocalState().Certificate();
+            using var root = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            root.Open(OpenFlags.ReadOnly);
+            return certificate.NotBefore <= DateTime.Now && root.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count == 1;
+        }
+        catch { return false; }
+    }
     public static void InstallCertificate()
     {
         Directory.CreateDirectory(DirectoryPath);

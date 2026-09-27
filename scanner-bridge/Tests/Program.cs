@@ -95,7 +95,7 @@ try
     var oversized = JsonSerializer.SerializeToElement(captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString() })).GetProperty("captureId").GetString()!;
     Check(JsonSerializer.SerializeToElement(captures.Read(credential.Id, oversized)).GetProperty("error").GetString() == "IMAGE_LIMIT_EXCEEDED", "image size bound");
     backend.Oversize = false;
-    var unsupported = JsonSerializer.SerializeToElement(captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString(), Settings = new(Duplex: true) })).GetProperty("captureId").GetString()!;
+    var unsupported = JsonSerializer.SerializeToElement(captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString(), Settings = new(Duplex: true), PairedImages = true })).GetProperty("captureId").GetString()!;
     Check(JsonSerializer.SerializeToElement(captures.Read(credential.Id, unsupported)).GetProperty("error").GetString() == "UNSUPPORTED_SETTING", "capability validation");
     backend.Wait = true;
     var pending = JsonSerializer.SerializeToElement(captures.Begin(credential.Id, captureRequest with { RequestId = Guid.NewGuid().ToString() })).GetProperty("captureId").GetString()!;
@@ -109,6 +109,8 @@ try
 finally { await app.StopAsync(); Environment.SetEnvironmentVariable("Kestrel__Endpoints__Injected__Url", null); Environment.SetEnvironmentVariable("ASPNETCORE_URLS", null); }
 await ScanSnapTests.Run(Check);
 await InboxTests.Run(Check);
+await RecoveryTests.Run(Check);
+await DiscoveryTests.Run(Check);
 Console.WriteLine($"{count} security/contract assertions passed; no OS trust store changed.");
 
 sealed class Store : ITrustStore { private TrustRecord[] records = []; public TrustRecord[] Load() => records; public void Save(TrustRecord[] value) => records = value; }

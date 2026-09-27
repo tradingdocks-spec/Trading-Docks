@@ -3,13 +3,16 @@ namespace TradingDocks.ScannerBridge;
 public record ScanCapabilities(int[] Dpi, string[] ColorModes, string[] Sources, bool Duplex = false, bool AutoCrop = false, bool CancelCapture = false, bool ExternalSettings = false, string? CaptureInstruction = null, bool SetupRequired = false);
 public record ScannerDevice(string Id, string DisplayName, string Manufacturer, string Model, string Connection, string Backend, ScanCapabilities Capabilities);
 public record ScanSettings(int Dpi = 300, string ColorMode = "color", string Source = "flatbed", bool Duplex = false, bool AutoCrop = false);
-public record CaptureRequest(string RequestId, string DeviceId, ScanSettings Settings, long RequestedAt, string? SessionId = null);
-public sealed record CapturedImage(byte[] Bytes, string MimeType, int Width, int Height, Action? Release = null) : IDisposable
+public record CaptureBinding(string UserId, string WorkspaceId, string BatchId, string WorkstationId, string SessionId, string DestinationId);
+public record CaptureRequest(string RequestId, string DeviceId, ScanSettings Settings, long RequestedAt, string? SessionId = null, CaptureBinding? Binding = null, string? Authorization = null, bool Preview = false, bool PairedImages = false);
+public sealed record CapturedImage(byte[] Bytes, string MimeType, int Width, int Height, Action? Release = null, CapturedImage? Back = null) : IDisposable
 {
     private int disposed;
-    public void Dispose() { if (Interlocked.Exchange(ref disposed, 1) == 0) { Array.Clear(Bytes); Release?.Invoke(); } }
+    public void Dispose() { if (Interlocked.Exchange(ref disposed, 1) == 0) { Array.Clear(Bytes); Back?.Dispose(); Release?.Invoke(); } }
 }
 public record CaptureContext(string RequestId, string CaptureId);
+public record ScannerDiagnostic(string Backend, string Code, string Message);
+public interface IScannerDiagnostics { ScannerDiagnostic[] Diagnostics { get; } }
 public interface IWindowsScannerBackend
 {
     Task<ScannerDevice[]> Devices(CancellationToken cancellation);
@@ -24,7 +27,7 @@ public static class Protocol
 {
     public const int Version = 1;
     public const int Port = 47391;
-    public const string VersionString = "1.3.1";
+    public const string VersionString = "1.4.0";
     public const int MaxImageBytes = 8 * 1024 * 1024;
     public static void Validate(ScanSettings settings, ScanCapabilities caps)
     {

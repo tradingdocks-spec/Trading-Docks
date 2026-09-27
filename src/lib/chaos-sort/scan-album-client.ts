@@ -9,29 +9,30 @@ export async function scanCommand<T>(action: string, payload: Record<string, unk
   const response = await fetch("/api/chaos-sort/scans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, payload }) });
   const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Scan album unavailable"); return result;
 }
-export async function storeScan(batchId: string, captureId: string, file: File): Promise<string> {
-  if (file.size > 3_000_000) {
-    const image = await createImageBitmap(file);
-    try {
-      const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
-      const canvas = document.createElement("canvas"); canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
-      const context = canvas.getContext("2d"); if (!context) throw new Error("Image normalization unavailable; local source retained.");
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("Image normalization failed")), "image/jpeg", 0.88));
-      if (blob.size > 3_500_000) throw new Error("Scan too large; lower scanner resolution. Local source retained.");
-      file = new File([blob], `${captureId}.jpg`, { type: "image/jpeg" });
-    } finally { image.close(); }
+export async function storeScan(batchId: string, captureId: string, file: File, backFile?: File): Promise<string> {
+  // Preserve native captures. Recognition creates its own cropped/rotated image.
+  if (backFile) {
+    const capabilities = await scanCommand<{ pairedImages: boolean }>("capture-capabilities", {});
+    if (!capabilities.pairedImages) throw new Error("Cloud duplex storage update required. Original sides remain in agent recovery.");
   }
+  if (file.size + (backFile?.size ?? 0) > 3_900_000) throw new Error("Capture exceeds upload capacity; original sides remain in agent recovery.");
   const form = new FormData(); form.set("batchId", batchId); form.set("captureId", captureId); form.set("image", file);
+  if (backFile) form.set("backImage", backFile);
   const response = await fetch("/api/chaos-sort/scans", { method: "POST", body: form });
-  const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Scan upload failed; local capture retained."); return result.sourceImageUrl;
+  const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "Scan upload failed; local capture retained.");
+  if (backFile && result.sides !== 2) throw new Error("Cloud did not confirm both sides. Original pair retained in agent recovery.");
+  return result.sourceImageUrl;
 }
 let reviewQueue: Promise<void> = Promise.resolve();
+// A late recognition/autosave snapshot must never undo a persisted removal.
+const removedCaptures = new Set<string>();
 export function saveScanReview(batchId: string, items: ChaosSortItem[]) {
   const task = reviewQueue.catch(() => {}).then(async () => { for (const item of items) {
     if (!item.captureId) throw new Error("This scan album cannot include unrelated upload/CSV items.");
+    if (removedCaptures.has(item.captureId)) continue;
     const result = await scanCommand<{ revision: number }>("review", { batchId, captureId: item.captureId, revision: revisions.get(item.captureId) ?? 0, item: { ...item, sourceImageUrl: null } });
     revisions.set(item.captureId, result.revision);
+    if (item.humanState === "removed") removedCaptures.add(item.captureId);
   } });
   reviewQueue = task;
   return task;

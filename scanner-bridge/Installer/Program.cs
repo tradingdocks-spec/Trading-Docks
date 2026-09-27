@@ -35,14 +35,21 @@ internal static class Program
             }
             if (args.Length != 0) throw new InvalidOperationException("Unsupported installer option.");
             using var window = new Form { Text = InstallerIdentity.WindowTitle, Width = 520, Height = 300, StartPosition = FormStartPosition.CenterScreen };
-            var label = new Label { Dock = DockStyle.Top, Height = 130, Padding = new Padding(15), Text = "Internal unsigned development build. Windows 11 only.\nPhysical scanner certification is PENDING.\n\nInstalls for your Windows user (no administrator required). Local HTTPS certificate trust requires a separate explicit confirmation. No production credentials are bundled." };
+            var label = new Label { Dock = DockStyle.Top, Height = 130, Padding = new Padding(15), Text = "Private acceptance build. Windows 11 only. Verify the installer's signature before proceeding.\nPhysical scanner certification is PENDING.\n\nInstalls for your Windows user. Existing local HTTPS trust is preserved when valid. New trust requires separate confirmation. No production credentials are bundled." };
             var startupOption = new CheckBox { Dock = DockStyle.Top, Text = "Start Scanner Bridge with Windows", Checked = true, Height = 35 };
             var install = new Button { Dock = DockStyle.Bottom, Text = "Install internal build", Height = 45 };
             install.Click += (_, _) =>
             {
                 try
                 {
-                    StopBridge(); Directory.CreateDirectory(InstallPath);
+                    // Never terminate a legacy agent: its pending captures may be memory-only.
+                    // The operator must resolve pending intake before explicitly exiting it.
+                    foreach (var process in Process.GetProcessesByName("TradingDocks.ScannerBridge"))
+                    {
+                        using (process) if (string.Equals(process.MainModule?.FileName, BridgePath, StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException("Resolve pending captures and exit the current agent before upgrading.");
+                    }
+                    Directory.CreateDirectory(InstallPath);
                     using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip")!;
                     using var zip = new ZipArchive(stream);
                     foreach (var entry in zip.Entries)
@@ -60,7 +67,7 @@ internal static class Program
                     if (startupOption.Checked) run.SetValue("TradingDocksScannerBridge", $"\"{BridgePath}\""); else run.DeleteValue("TradingDocksScannerBridge", false);
                     Process.Start(new ProcessStartInfo(BridgePath) { UseShellExecute = false }); window.Close();
                 }
-                catch { MessageBox.Show("Installation did not finish. Close the bridge and verify the installer, then retry or uninstall from Windows Settings."); }
+                catch { MessageBox.Show("Installation did not finish. If the agent is running, resolve pending captures before exiting it. Preserve recovery and pairing state; do not uninstall to retry."); }
             };
             window.Controls.Add(startupOption); window.Controls.Add(label); window.Controls.Add(install); Application.Run(window);
         }

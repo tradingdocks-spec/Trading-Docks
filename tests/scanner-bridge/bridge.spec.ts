@@ -3,6 +3,7 @@ test.beforeEach(async ({ request }) => { expect((await request.post("/api/reset-
 import { mock, open, pair } from "../helpers/mock-scanner-bridge";
 test("signed bridge protocol: pairing, profiles, test scan, 100 cards, review, real commit, next batch", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  page.on("response", async response => { if (response.url().includes("/api/chaos-sort/scans") && response.status() >= 400) console.log("SCAN ERROR", await response.text()); });
   const state = await mock(page); await open(page); await pair(page);
   const baseline = await (await page.request.get("/api/evidence")).json();
   await page.getByRole("button", { name: "Scanner Settings", exact: true }).click();
@@ -28,7 +29,7 @@ test("remembered scanner, missing device, jam, cancellation and disconnect retai
   await page.getByRole("button", { name: "Scan One", exact: true }).click(); await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1"); await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled();
   state.fail = "PAPER_JAM"; await page.getByRole("button", { name: "Scan One", exact: true }).click(); await expect(page.getByText(/Paper\/card jam/)).toBeVisible(); state.fail = "";
   state.hold = true; const beforeCancel = state.captures; await page.getByRole("button", { name: "Start Continuous Scan", exact: true }).click(); await expect.poll(() => state.captures).toBe(beforeCancel + 1); await page.getByRole("button", { name: "Cancel Current Scan", exact: true }).click(); await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled(); expect(state.cancelled).toBeGreaterThan(0); state.hold = false;
-  state.missing = true; await expect(page.getByText(/Previously selected scanner not found/)).toBeVisible({ timeout: 15000 }); await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  state.missing = true; await expect(page.getByText(/previously selected device missing/)).toBeVisible({ timeout: 15000 }); await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   state.missing = false; await expect(page.getByRole("button", { name: "Scan One", exact: true })).toBeEnabled({ timeout: 15000 });
   state.offline = true; await page.getByRole("button", { name: "Scan One", exact: true }).click(); await expect(page.getByText(/not reachable/)).toBeVisible(); await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
 });
@@ -39,8 +40,8 @@ test("absent and incompatible bridge preserve Upload and CSV", async ({ page }) 
   await expect(page.getByRole("combobox", { name: "Installed scanner" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Scanner Settings", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Test Scan", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Upload Images", exact: true }).click(); await expect(page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]')).toHaveCount(1);
-  state.offline = false; state.version = 0; await page.getByRole("button", { name: "Live Scan", exact: true }).click(); await page.getByRole("button", { name: "Scanner Settings", exact: true }).click(); await page.getByText("Advanced", { exact: true }).click(); await expect(page.getByText("Scanner Bridge update required.", { exact: true })).toBeVisible();
+  await page.getByRole("group", { name: "Intake mode", exact: true }).getByRole("button", { name: "Upload Scans", exact: true }).click(); await expect(page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]')).toHaveCount(1);
+  state.offline = false; state.version = 0; await page.getByRole("button", { name: "Live Scanner", exact: true }).click(); await page.getByRole("button", { name: "Scanner Settings", exact: true }).click(); await page.getByText("Advanced", { exact: true }).click(); await expect(page.getByRole("status").filter({ hasText: "Scanner Bridge update required." })).toBeVisible();
 });
 test("mobile device selection and settings fit the workstation", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await mock(page); await open(page); await pair(page);

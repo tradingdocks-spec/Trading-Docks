@@ -33,7 +33,7 @@ export async function mock(page: Page) {
   });
   return state;
 }
-export async function open(page: Page) { await page.goto("/"); await expect(page.getByRole("button", { name: "Live Scan", exact: true })).toBeEnabled(); await page.getByRole("combobox", { name: "Destination storage location", exact: true }).selectOption("scanner-fixture-location"); await page.getByRole("button", { name: "Live Scan", exact: true }).click(); }
+export async function open(page: Page) { await page.goto("/"); await expect(page.getByRole("button", { name: "Live Scanner", exact: true })).toBeEnabled(); await page.getByRole("combobox", { name: "Destination storage location", exact: true }).selectOption("scanner-fixture-location"); await page.getByRole("button", { name: "Live Scanner", exact: true }).click(); }
 export async function pair(page: Page) {
   await page.getByRole("button", { name: "Pair this workstation", exact: true }).click();
   await page.getByLabel("One-time pairing code").fill("123456"); await page.getByRole("button", { name: "Confirm pairing", exact: true }).click();

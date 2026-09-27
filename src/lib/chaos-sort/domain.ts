@@ -43,6 +43,8 @@ export type ChaosSortItem = {
   captureId?: string;
   sourceFileHash: string;
   sourceImageUrl: string | null;
+  backImageUrl?: string | null;
+  rotation?: 0 | 90 | 180 | 270;
   processingState: ChaosSortProcessingState;
   recognitionState: ChaosSortRecognitionState;
   humanState: ChaosSortHumanState;

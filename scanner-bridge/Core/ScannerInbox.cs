@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace TradingDocks.ScannerBridge;
 
@@ -6,7 +7,7 @@ public record LiveInboxSession(string Id, string WorkspaceId, string BatchId, st
 
 // Polling reconciles filesystem notifications: repeated/omitted events cannot create cards.
 // Only this fixed application-owned directory is enumerated, never browser-supplied paths.
-public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int pollMilliseconds = 250)
+public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int pollMilliseconds = 250, IRecoveryStore? recovery = null)
 {
     private readonly object gate = new();
     private LiveInboxSession? session;
@@ -18,12 +19,39 @@ public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int po
     private sealed record Entry(string Path, string Fingerprint, byte[] Bytes, int Width, int Height);
     private int accepted;
     private bool paused;
+    private bool loaded;
+    private sealed record Saved(LiveInboxSession? Session, string? Owner, DateTimeOffset Expires, string[] Baseline, string[] Claimed, Dictionary<string, Entry> Requests, int Accepted);
+    private void Load()
+    {
+        if (loaded) return;
+        var bytes = recovery?.Read("inbox");
+        if (bytes is not null)
+        {
+            try
+            {
+                var s = JsonSerializer.Deserialize<Saved>(bytes) ?? throw new InvalidDataException("Invalid inbox recovery");
+                session = s.Session; owner = s.Owner; expires = s.Expires; baseline = s.Baseline.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var path in s.Claimed) claimed.Add(path);
+                foreach (var entry in s.Requests) requests.Add(entry.Key, entry.Value);
+                accepted = s.Accepted; paused = true;
+            }
+            finally { CryptographicOperations.ZeroMemory(bytes); }
+        }
+        loaded = true;
+    }
+    private void Save()
+    {
+        if (recovery is null) return;
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(session, owner, expires, baseline.ToArray(), claimed.ToArray(), requests, accepted));
+        try { recovery.Write("inbox", bytes); } finally { CryptographicOperations.ZeroMemory(bytes); }
+    }
     public string Root => root;
-    public void Prepare() { lock (gate) EnsureRoot(); }
+    public void Prepare() { lock (gate) { EnsureRoot(); Load(); } }
     public void Expire()
     {
         lock (gate) if (session is not null && expires <= DateTimeOffset.UtcNow)
         {
+            if (recovery is not null) { paused = true; return; }
             foreach (var entry in requests.Values) CryptographicOperations.ZeroMemory(entry.Bytes);
             requests.Clear(); paused = true;
             // Unacknowledged source files remain local for explicit owner recovery.
@@ -43,12 +71,14 @@ public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int po
         lock (gate)
         {
             EnsureRoot();
-            if (session == value && owner == credential && expires > DateTimeOffset.UtcNow) { paused = false; expires = DateTimeOffset.UtcNow.AddMinutes(30); return; }
+            Load();
+            if (session == value && owner == credential) { paused = false; expires = DateTimeOffset.UtcNow.AddMinutes(30); Save(); return; }
             if (session?.Id == value.Id) throw new BridgeException("SESSION_CONFLICT", 409);
             if (requests.Count > 0) throw new BridgeException("PENDING_CAPTURE_REQUIRES_RECOVERY", 409);
             // Files present before activation (including overflow #101) are preserved and excluded.
             baseline = Directory.EnumerateFiles(root).ToHashSet(StringComparer.OrdinalIgnoreCase);
             session = value; owner = credential; accepted = 0; claimed.Clear(); paused = false; expires = DateTimeOffset.UtcNow.AddMinutes(30);
+            Save();
         }
     }
     private void Authorize(string credential, string id)
@@ -57,7 +87,7 @@ public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int po
     }
     public void Pause(string credential, string id) { lock (gate) { Authorize(credential, id); paused = true; } }
     public void ValidateDevice(string credential, string id, string deviceId) { lock (gate) { Authorize(credential, id); if (session!.DeviceId != deviceId) throw new BridgeException("SESSION_DEVICE_MISMATCH", 403); } }
-    public void Revoke() { lock (gate) { foreach (var entry in requests.Values) CryptographicOperations.ZeroMemory(entry.Bytes); requests.Clear(); paused = true; owner = null; } }
+    public void Revoke() { lock (gate) { paused = true; Save(); } } // Keep pending data bound to its revoked credential; never hand it to a new pairing.
     public object Status(string credential, string id)
     {
         lock (gate) { Authorize(credential, id); return new { sessionId = id, batchId = session!.BatchId, accepted, paused, full = accepted >= 100, pending = requests.Count }; }
@@ -94,6 +124,7 @@ public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int po
                     {
                         var entry = new Entry(path, fingerprint, decoded.Bytes.ToArray(), decoded.Width, decoded.Height);
                         requests.Add(requestId, entry); claimed.Add(path); accepted++;
+                        Save(); // Persist file identity and batch binding before exposing image bytes.
                         if (accepted == 100) paused = true;
                         return Image(entry);
                     }
@@ -103,15 +134,33 @@ public sealed class ScannerInbox(string root, IScanSnapPlatform platform, int po
         }
     }
     private static CapturedImage Image(Entry entry) => new(entry.Bytes.ToArray(), "image/jpeg", entry.Width, entry.Height);
+    public CapturedImage? Recover(string credential, string id, string requestId)
+    {
+        lock (gate) { Load(); if (owner != credential || session?.Id != id) return null; return requests.TryGetValue(requestId, out var entry) ? Image(entry) : null; }
+    }
+    public void DiscardAttempt(string credential, string id, string requestId)
+    {
+        lock (gate)
+        {
+            Load();
+            if (owner != credential || session?.Id != id) throw new BridgeException("SESSION_EXPIRED_OR_INVALID", 403);
+            if (requests.ContainsKey(requestId)) { Ack(credential, id, requestId); return; }
+            // An interrupted request may have produced an unclaimed file. Preserve
+            // it, but never silently attach it to the next capture request.
+            EnsureRoot(); baseline.UnionWith(Directory.EnumerateFiles(root)); Save();
+        }
+    }
     public void Ack(string credential, string id, string requestId)
     {
         lock (gate)
         {
-            Authorize(credential, id);
+            Load();
+            if (owner != credential || session?.Id != id) throw new BridgeException("SESSION_EXPIRED_OR_INVALID", 403);
             if (!requests.TryGetValue(requestId, out var entry)) return;
             // Never delete a replaced file. Keep pending on sharing violations for retry.
             if (File.Exists(entry.Path)) { ScanSnapBackend.NoLinks(entry.Path); if (Fingerprint(entry.Path) == entry.Fingerprint) File.Delete(entry.Path); }
             CryptographicOperations.ZeroMemory(entry.Bytes); requests.Remove(requestId);
+            Save();
         }
     }
 }

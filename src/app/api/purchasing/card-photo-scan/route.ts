@@ -9,6 +9,7 @@ import type {
   ScanIdentification,
 } from "@/lib/card-photo-scanner/types";
 import { resolveExactProductImageUrl } from "@/lib/card-image-authority";
+import { normalizeScan } from "@/lib/chaos-sort/normalize-scan";
 import {
   TCGTRACKING_POKEMON_CATEGORY_ID,
   TCGTRACKING_POKEMON_GAME_ID,
@@ -193,7 +194,7 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
             content: [
               {
                 type: "input_text",
-                text: "Identify this Magic: The Gathering card. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.",
+                text: "Identify this Magic: The Gathering card. The card may be rotated 0, 90, 180 or 270 degrees; read it in its correct orientation. Return JSON only with name, setCode, collectorNumber, language, finish, confidence, notes. Use null instead of guessing unreadable printing details.",
               },
               {
                 type: "input_image",
@@ -530,7 +531,7 @@ export async function POST(request: Request) {
     const manualName = String(form.get("cardName") ?? "").trim();
     const gameId = normalizeGameId(form.get("gameId"));
     const compressedImage = String(form.get("compressedImage") ?? "").trim();
-    const file = image instanceof File && image.size > 0 ? image : null;
+    let file = image instanceof File && image.size > 0 ? image : null;
     if (file) recognitionLog("FILE INGESTED", { surface, contentType: file.type, bytes: file.size });
     if (!file && !manualName && !compressedImage) {
       return NextResponse.json({ error: "Add a card photo or enter a card name." }, { status: 400 });
@@ -540,6 +541,10 @@ export async function POST(request: Request) {
     }
     if (file && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       return NextResponse.json({ error: "Use a JPG, PNG, or WebP image." }, { status: 415 });
+    }
+    if (file && surface === "chaos-sort") {
+      const normalized = await normalizeScan(new Uint8Array(await file.arrayBuffer()), Number(form.get("rotation") ?? 0));
+      file = new File([new Uint8Array(normalized)], file.name, { type: "image/jpeg" });
     }
 
     const warnings: string[] = [];

@@ -9,6 +9,7 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         if (args.SequenceEqual(["--install-trust"]))
         {
+            if (LocalState.HasValidTrustedCertificate()) return;
             if (MessageBox.Show("Internal development build — physical scanner certification pending.\n\nTrust this workstation's unique loopback HTTPS certificate for 90 days? It is installed for this Windows user only. Never accept certificates from an unverified installer.", "Trading Docks Scanner Bridge", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes) LocalState.InstallCertificate();
             else Environment.ExitCode = 2;
             return;
@@ -53,23 +54,26 @@ internal sealed class BridgeTray : ApplicationContext
     {
         _ = dispatcher.Handle;
         var state = new LocalState();
+        var recovery = new EncryptedRecoveryStore(Path.Combine(LocalState.DirectoryPath, "recovery"));
         var setupMarker = Path.Combine(LocalState.DirectoryPath, "scansnap-inbox-configured");
-        backend = new(new WiaScannerBackend(state.Salt), new ScanSnapBackend(new ScanSnapPlatform(dispatcher), Path.Combine(LocalState.DirectoryPath, "captures"), state.Salt, () => File.Exists(setupMarker)));
+        backend = new(new WiaScannerBackend(state.Salt), new TwainScannerBackend(state.Salt), new ScanSnapBackend(new ScanSnapPlatform(dispatcher), Path.Combine(LocalState.DirectoryPath, "captures"), state.Salt, () => File.Exists(setupMarker)));
         trust = new(state, prompt =>
         {
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dispatcher.BeginInvoke(() => completion.SetResult(MessageBox.Show($"Allow pairing from:\n{prompt.Origin}\n\nEnter this one-time code in that browser: {prompt.Code}\n\nCode expires after two minutes. Approve only if you initiated pairing.", "Pair Trading Docks workstation", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes));
             return completion.Task;
-        });
-        var inbox = new ScannerInbox(Path.Combine(LocalState.DirectoryPath, "Inbox"), new ScanSnapPlatform(dispatcher));
+        }, recovery: recovery);
+        var inbox = new ScannerInbox(Path.Combine(LocalState.DirectoryPath, "Inbox"), new ScanSnapPlatform(dispatcher), recovery: recovery);
         inbox.Prepare();
-        captures = new(backend, inbox);
+        captures = new(backend, inbox, recovery);
         // Additional origins must be reviewed and explicitly set in this local-user file.
         var config = Path.Combine(LocalState.DirectoryPath, "origins.json");
         var origins = File.Exists(config) ? System.Text.Json.JsonSerializer.Deserialize<string[]>(File.ReadAllText(config)) ?? [] : ["https://www.tradingdocks.com"];
+        var keysPath = Path.Combine(AppContext.BaseDirectory, "capture-public-keys.json");
+        var keys = File.Exists(keysPath) ? System.Text.Json.JsonSerializer.Deserialize<string[]>(File.ReadAllText(keysPath)) ?? [] : [];
         var certificate = state.Certificate();
         AgentLifecycle.Log($"configuration-loaded origins={origins.Length} tls={certificate.Thumbprint}");
-        server = BridgeHost.Create(new(certificate, origins), trust, captures, backend, state.WorkstationId, inbox);
+        server = BridgeHost.Create(new(certificate, origins), trust, captures, backend, state.WorkstationId, inbox, new CaptureAuthorization(keys));
         AgentLifecycle.RunHostOperation(() => server.StartAsync());
         AgentLifecycle.Log("listener-started 127.0.0.1:47391");
         var menu = new ContextMenuStrip();
