@@ -26,7 +26,8 @@ import { LiveScanStation } from "./LiveScanStation";
 import { UploadCardIntake } from "./UploadCardIntake";
 import { scanCommand, storeScan, saveScanReview, recoveredScanItem, rememberScanRevisions, type ScanAlbum } from "@/lib/chaos-sort/scan-album-client";
 import type { ScannerProvider, ScannerSession } from "@/lib/chaos-sort/scanner-provider";
-import { RecognitionPool, physicalCardCount, unresolvedLiveItems, liveScanStatus, assertIntakeRoom } from "@/lib/chaos-sort/live-intake";
+import { RecognitionPool, physicalCardCount, unresolvedLiveItems, assertIntakeRoom } from "@/lib/chaos-sort/live-intake";
+import { chaosResultStatus, chaosPrintingDetails, chaosSortLabel, chaosCandidateMarketPrice } from "@/lib/chaos-sort/results-presentation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { csvValue, parseSimpleCsv } from "@/lib/csv-simple";
@@ -36,7 +37,6 @@ import {
   classifyChaosSortRecognition,
   getChaosSortBatchProgress,
   makeChaosSortFileHash,
-  summarizeChaosSortBatch,
   type ChaosSortBatch,
   type ChaosSortItem,
   type ChaosSortRecognitionState,
@@ -182,7 +182,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const [nextBatchPrompt, setNextBatchPrompt] = useState(false);
   const [carryDestination, setCarryDestination] = useState<boolean | null>(null);
   const [printingQuery, setPrintingQuery] = useState("");
-  const [printingCandidates, setPrintingCandidates] = useState<Array<{ id: string; name: string; setCode: string; collectorNumber: string; language?: string }>>([]);
+  const [printingCandidates, setPrintingCandidates] = useState<NonNullable<ChaosSortItem["recognitionCandidates"]>>([]);
   const [printingBusy, setPrintingBusy] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(true);
   const reviewRef = useRef<HTMLDetailsElement | null>(null);
@@ -340,26 +340,12 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     unknown: activeItems.filter((item) => item.processingState === "ready" && item.recognitionState === "unknown").length,
     failed: activeItems.filter((item) => item.processingState === "failed").length,
   }), [activeItems]);
-  const summary = useMemo(() => {
-    const liveBatch: ChaosSortBatch = {
-      ...batch,
-      title,
-      acquisitionCost: acquisitionCost.trim() ? Number(acquisitionCost) : null,
-      destinationLocationId: destinationLocationId || null,
-      destinationLabel: destinationLocationLabel(destinationLocationId, locations),
-      sourceCount: activeItems.length,
-      duplicateCount: activeItems.filter((item) => item.duplicateOfItemId !== null).length,
-      identifiedCount: activeItems.filter((item) => item.recognitionState !== "unknown").length,
-      confirmedCount: activeItems.filter((item) => item.humanState === "confirmed").length,
-      needsReviewCount: activeItems.filter((item) => item.recognitionState === "review" || item.humanState === "pending").length,
-      unknownCount: activeItems.filter((item) => item.recognitionState === "unknown").length,
-      estimatedMarketValue: roundMoney(activeItems.reduce((sum, item) => sum + (item.marketPrice ?? 0) * item.quantity, 0)),
-      updatedAt: new Date().toISOString(),
-      items: activeItems,
-      rules,
-    };
-    return summarizeChaosSortBatch(liveBatch);
-  }, [acquisitionCost, batch, destinationLocationId, activeItems, locations, rules, title]);
+  const resultCounts = useMemo(() => {
+    const counts = { "Ready to add": 0, "Review needed": 0, Unknown: 0, Failed: 0, Processing: 0 };
+    for (const item of activeItems) counts[chaosResultStatus(item)] += item.quantity;
+    return counts;
+  }, [activeItems]);
+  const resultSummary = `${resultCounts["Ready to add"]} ready to add · ${resultCounts["Review needed"]} need review${resultCounts.Unknown ? ` · ${resultCounts.Unknown} unknown` : ""}${resultCounts.Failed ? ` · ${resultCounts.Failed} failed` : ""}${resultCounts.Processing ? ` · ${resultCounts.Processing} processing` : ""}`;
   const physicalCount = activeItems.length + stagedFiles.length;
   const unresolved = unresolvedLiveItems(items);
   const batchProgress = getChaosSortBatchProgress(physicalCount, targetBatchSize);
@@ -391,11 +377,11 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const visibleItems = useMemo(() => {
     return items.filter((item) => {
       if (item.humanState === "removed") return false;
-      if (filterState === "ready") return item.recognitionState === "high_confidence" && item.humanState !== "unknown";
-      if (filterState === "needs_review") return item.recognitionState === "review";
+      if (filterState === "ready") return chaosResultStatus(item) === "Ready to add";
+      if (filterState === "needs_review") return chaosResultStatus(item) === "Review needed";
       if (filterState === "failed") return item.processingState === "failed";
       if (filterState === "unknown") return item.processingState !== "failed" && item.recognitionState === "unknown";
-      if (filterState === "exceptions") return item.processingState === "failed" || (item.processingState === "ready" && (item.recognitionState === "review" || item.recognitionState === "unknown"));
+      if (filterState === "exceptions") return ["Review needed", "Unknown", "Failed"].includes(chaosResultStatus(item));
       return true;
     });
   }, [filterState, items]);
@@ -425,7 +411,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!loadingItems) {
-      setProgressText(activeItems.length ? `Processing ${activeItems.length} cards in ${batch.batchCode}.` : "Drop scanner photos to create a batch.");
+      setProgressText(activeItems.length ? `Scans saved in ${batch.batchCode}.` : "Drop scanner photos to create a batch.");
     }
   }, [batch.batchCode, activeItems.length, loadingItems]);
 
@@ -1034,7 +1020,6 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     }));
   }, []);
 
-  const selectedItemPlan = selectedItem ? planById.get(selectedItem.id) ?? null : null;
   const selectItems = useCallback((predicate: (item: ChaosSortItem) => boolean) => {
     setSelectedItemIds(items.filter((item) => item.humanState !== "removed" && predicate(item)).map((item) => item.id));
   }, [items]);
@@ -1183,14 +1168,14 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                 <TDButton className={intakeMode !== "csv" ? "hidden" : undefined} variant="secondary" size="sm" disabled={!albumReady || intakeMode !== "csv" || scannerBusy || staging || loadingItems > 0} icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => { csvInputRef.current?.click(); }}>
                   Add CSV
                 </TDButton>
-                <TDButton
+                {visibleItems.some(item => item.processingState === "ready" && item.recognitionState === "high_confidence" && item.humanState !== "confirmed") && <TDButton
                   variant="secondary"
                   size="sm"
                   icon={<Sparkles className="h-4 w-4" />}
                   onClick={confirmVisible}
                 >
                   Confirm high confidence
-                </TDButton>
+                </TDButton>}
                 {queueCounts.failed ? <TDButton variant="secondary" size="sm" onClick={() => void retryRecognition(items.filter((item) => item.processingState === "failed"))}>Retry Failed ({queueCounts.failed})</TDButton> : null}
                 <TDButton
                   size="sm"
@@ -1223,14 +1208,14 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
             <div className="text-right">
               <p className="text-lg font-semibold tabular-nums text-td-primary">{physicalCount} / 100 cards</p>
               <p className="mt-1 text-xs text-td-secondary">
-                {physicalCount >= 100 ? `Batch full — print and file Batch ${batch.batchCode}, then start the next 100.` : "Physical cards, not line items. Maximum 100 per batch."}
+                {physicalCount >= 100 ? `Batch full — print and file Batch ${batch.batchCode}, then start the next 100.` : "Up to 100 cards per batch."}
               </p>
             </div>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/30" role="progressbar" aria-valuemin={0} aria-valuemax={targetBatchSize} aria-valuenow={physicalCount} aria-label={`${physicalCount} of ${targetBatchSize} physical cards`}>
             <div className={cn("h-full rounded-full transition-all", batchProgress.state === "over_target" ? "bg-td-warning" : "bg-td-accent")} style={{ width: `${batchProgress.ratio * 100}%` }} />
           </div>
-          <p className="mt-3 text-sm" aria-live="polite">{items.filter(item => item.humanState !== "removed" && liveScanStatus(item) === "CONFIRMED").reduce((sum, item) => sum + item.quantity, 0)} Ready · {unresolved.filter(item => liveScanStatus(item) === "NEEDS REVIEW").length} Review · {unresolved.filter(item => liveScanStatus(item) === "UNKNOWN").length} Unknown · {unresolved.filter(item => liveScanStatus(item) === "PROCESSING").length} Processing · {unresolved.filter(item => liveScanStatus(item) === "FAILED").length} Failed</p>
+          <p className="mt-3 text-sm text-td-secondary" aria-live="polite">{resultSummary}</p>
         </section>
 
             {intakeMode === "upload" && progressText && <p role="status" className="text-sm text-td-secondary">{progressText}</p>}
@@ -1269,11 +1254,10 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
             <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.target.value = ""; }} />
             {intakeMode === "csv" && <div className="rounded-xl border border-dashed border-td-accent/30 p-5" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); const files = Array.from(event.dataTransfer.files); if (files.length !== 1 || !(files[0].type === "text/csv" || files[0].name.toLowerCase().endsWith(".csv"))) { setError("Choose one CSV file, or select Upload Scans for card images."); return; } void importCsv(files[0]); }}><p className="text-sm text-td-secondary">Drop one CSV batch here, or choose Add CSV.</p></div>}
 
-            {items.length ? <div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-td-muted"><span>{queueCounts.analyzed} / {activeItems.length} line items analyzed · {queueCounts.analyzedCards} / {queueCounts.totalCards} cards</span><span>{queueCounts.needsReview + queueCounts.unknown} line items need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-td-accent transition-all" style={{ width: `${(queueCounts.analyzed / Math.max(1, activeItems.length)) * 100}%` }} /></div></div> : null}
-
-            <div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3">
-              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-td-primary">{queueCounts.analyzed} / {activeItems.length} line items · {queueCounts.totalCards} cards</span><span className="font-bold text-td-success">{queueCounts.identified} READY</span><span className="font-bold text-td-warning">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-td-secondary">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-td-danger">{queueCounts.failed} FAILED</span><span className="font-bold text-td-accent-text">{queueCounts.processing} PROCESSING</span></div>
-              <p className="mt-2 text-xs text-td-muted">{queueCounts.failed + queueCounts.needsReview + queueCounts.unknown} exceptions need attention before commit.</p>
+            <div aria-label="Recognition summary" className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3">
+              <p className="font-semibold text-td-primary">{queueCounts.totalCards} {queueCounts.totalCards === 1 ? "card" : "cards"} scanned</p>
+              <p className="mt-1 text-sm text-td-secondary">{resultSummary}</p>
+              {resultCounts.Processing > 0 && <p className="mt-1 text-xs text-td-muted">{queueCounts.analyzedCards} of {queueCounts.totalCards} identified</p>}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -1289,29 +1273,29 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                       : "border-td-ink/[0.08] bg-td-ink/[0.02] text-td-secondary hover:text-td-primary",
                   )}
                 >
-                  {filter === "all" ? "All" : filter === "ready" ? "Ready" : filter === "needs_review" ? "Needs Review" : filter === "failed" ? "Failed" : "Unknown"}
+                  {filter === "all" ? "All" : filter === "ready" ? "Ready to add" : filter === "needs_review" ? "Review needed" : filter === "failed" ? "Failed" : "Unknown"}
                 </button>
               ))}
-              {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed > 0 ? <button type="button" onClick={() => { setFilterState("exceptions"); setSelectedItemIds([]); }} className="rounded-full border border-td-warning/[0.22] bg-td-warning/[0.08] px-3 py-1.5 text-xs font-black text-td-warning">Review {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed} exceptions</button> : null}
+              {resultCounts["Review needed"] + resultCounts.Unknown + resultCounts.Failed > 0 ? <button type="button" onClick={() => { setFilterState("exceptions"); setSelectedItemIds([]); }} className="rounded-full border border-td-warning/[0.22] bg-td-warning/[0.08] px-3 py-1.5 text-xs font-black text-td-warning">Review {resultCounts["Review needed"] + resultCounts.Unknown + resultCounts.Failed} cards</button> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] p-2 text-xs">
               <span className="mr-2 text-td-muted">{selectedItemIds.length} selected</span>
-              <button type="button" onClick={() => selectItems((item) => item.processingState === "ready" && item.recognitionState === "high_confidence")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select all ready</button>
-              <button type="button" onClick={() => selectItems((item) => item.recognitionState === "review" || item.processingState === "failed")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select exceptions</button>
+              <button type="button" onClick={() => selectItems((item) => chaosResultStatus(item) === "Ready to add")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select ready</button>
+              <button type="button" onClick={() => selectItems((item) => chaosResultStatus(item) === "Review needed")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select needs review</button>
               <button type="button" onClick={() => selectItems(() => true)} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select all</button>
               {selectedItemIds.length ? <button type="button" onClick={removeSelected} className="rounded-lg border border-td-danger/[0.18] px-3 py-2 font-semibold text-td-danger">Remove selected</button> : null}
             </div>
 
             <div className={cn("grid gap-3", intakeMode === "live" && "hidden")}>
               {visibleItems.length ? visibleItems.map((item) => {
-                const entry = planById.get(item.id);
-                const pile = entry?.pile ?? item.sortPile;
+                const status = chaosResultStatus(item);
+                const metadata = chaosPrintingDetails(item);
                 const isSelected = selectedItemId === item.id;
                 return (
                   <article
                     key={item.id}
                     className={cn(
-                      "group grid gap-4 rounded-2xl border p-3 text-left transition sm:grid-cols-[104px_minmax(0,1fr)]",
+                      "group grid grid-cols-[76px_minmax(0,1fr)] gap-3 rounded-2xl border p-3 text-left transition sm:grid-cols-[104px_minmax(0,1fr)] sm:gap-4",
                       isSelected
                         ? "border-td-accent/30 bg-td-accent/[0.06]"
                         : "border-td-ink/[0.06] bg-td-ink/[0.02] hover:border-td-ink/[0.12] hover:bg-td-ink/[0.03]",
@@ -1326,31 +1310,25 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                         </div>
                       )}
                     </div>
-                      <div className="min-w-0 space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-6">
-                        <div className="min-w-0 flex-1 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-td-accent" />
-                        <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
-                          {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "READY" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
-                        </TDBadge>
-                        {item.humanState === "confirmed" || item.humanState === "edited" ? <TDBadge tone="neutral">{item.humanState}</TDBadge> : null}
-                        <TDBadge tone="neutral">{pile}</TDBadge>
+                    <div className="min-w-0 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onChange={() => setSelectedItemIds(current => current.includes(item.id) ? current.filter(id => id !== item.id) : [...current, item.id])} className="mt-1 h-4 w-4 shrink-0 accent-td-accent" />
+                        <button type="button" onClick={() => reviewItem(item.id)} className="min-w-0 text-left text-base font-semibold leading-snug text-td-primary sm:text-lg">{item.cardName || item.sourceFileName}</button>
                       </div>
-                      <button type="button" onClick={() => reviewItem(item.id)} className="font-semibold text-left">{item.cardName || item.sourceFileName}</button>
-                      <TDText variant="caption" tone="muted" className="truncate">
-                        {[
-                          item.setCode,
-                          item.collectorNumber,
-                          item.finish,
-                          item.condition,
-                        ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
-                      </TDText>
-                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-td-secondary"><span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>{item.quantity > 1 ? <span className="rounded-full border border-td-accent/20 bg-td-accent/[0.06] px-2.5 py-1 text-td-accent-text">Qty {item.quantity}</span> : null}<span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-td-secondary">{item.notes || "Recognition did not complete."}</p>}
-                        </div>
-                      <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-[280px]">
-                        {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
-                        <TDButton size="sm" variant="secondary" onClick={() => markUnknown(item.id)}>Mark unknown</TDButton>
-                        <TDButton size="sm" variant="ghost" onClick={() => removeItem(item.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
+                      <div className="space-y-1">
+                        <p className="text-sm text-td-secondary">{metadata.printing}</p>
+                        <p className="text-xs text-td-muted">{metadata.finish} · {metadata.language}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <TDBadge className="normal-case tracking-normal" tone={status === "Ready to add" ? "success" : status === "Processing" ? "info" : status === "Review needed" ? "warning" : "danger"}>{status}</TDBadge>
+                        {metadata.price !== null && <p className="text-sm font-semibold text-td-primary">{metadata.priceLabel} {money(metadata.price)}{metadata.priceSource && <span className="ml-1 text-xs font-normal text-td-muted">· {metadata.priceSource}</span>}</p>}
+                      </div>
+                      {item.processingState === "ready" && <p className="text-xs text-td-secondary">{Math.round(item.confidence * 100)}% match · {item.existingOwnedQuantity} owned{item.quantity > 1 ? ` · ${item.quantity} copies` : ""}</p>}
+                      {status !== "Ready to add" && <p className="text-sm text-td-secondary">{status === "Processing" ? "Identifying this card…" : item.notes || item.evidence.join(" · ") || (status === "Review needed" ? "Check the proposed card and printing before confirming." : status === "Failed" ? "Recognition did not complete. Retry when ready." : "Card identity not determined. Search for a match or leave it unknown.")}</p>}
+                      <div className="flex flex-wrap gap-2 border-t border-td-ink/[0.06] pt-2">
+                        {status === "Failed" ? <TDButton size="sm" variant="secondary" disabled={locked} onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" disabled={locked || status === "Processing"} onClick={() => reviewItem(item.id)}>{status === "Ready to add" ? "Change Match" : "Review Match"}</TDButton>}
+                        {status !== "Ready to add" && <TDButton size="sm" variant="ghost" disabled={locked || status === "Processing"} onClick={() => markUnknown(item.id)}>Mark unknown</TDButton>}
+                        <TDButton size="sm" variant="ghost" disabled={locked} onClick={() => removeItem(item.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
                       </div>
                     </div>
                   </article>
@@ -1391,7 +1369,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                   <div className="space-y-4">
                     <div className="flex items-center justify-between text-xs text-td-muted">
                       <span>Card {sortIndex + 1} / {sortableItems.length}</span>
-                      <span>Pile {currentSortEntry?.label ?? "Review"}</span>
+                      <span>Pile {chaosSortLabel(currentSortEntry?.label ?? "Review")}</span>
                     </div>
                     <div className="grid gap-4 md:grid-cols-[240px_1fr]">
                       <div className="overflow-hidden rounded-[20px] border border-td-ink/[0.08] bg-black">
@@ -1410,7 +1388,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                         </div>
                         <div className="rounded-[20px] border border-td-accent/20 bg-td-accent/[0.06] p-4">
                           <TDText variant="label" tone="info">Sort destination</TDText>
-                          <TDText as="h3" variant="display" className="mt-1">{currentSortEntry?.label ?? "Review"}</TDText>
+                          <TDText as="h3" variant="display" className="mt-1">{chaosSortLabel(currentSortEntry?.label ?? "Review")}</TDText>
                           <TDText variant="caption" tone="muted" className="mt-2">
                             {currentSortEntry?.secondPassLabel ?? "Use the first pass pile now, then subdivide later."}
                           </TDText>
@@ -1446,15 +1424,15 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                   <TDText variant="title">Batch summary</TDText>
                   <TDText variant="caption" tone="muted">Shows exactly what the commit will write.</TDText>
                 </div>
-                <TDBadge tone={summary.needsReview > 0 || summary.unknown > 0 ? "warning" : "success"}>
-                  {summary.needsReview > 0 || summary.unknown > 0 ? "Needs review" : "Ready"}
+                <TDBadge tone={resultCounts["Review needed"] + resultCounts.Unknown + resultCounts.Failed + resultCounts.Processing > 0 ? "warning" : "success"}>
+                  {resultCounts["Review needed"] + resultCounts.Unknown + resultCounts.Failed + resultCounts.Processing > 0 ? "Review needed" : "Ready to add"}
                 </TDBadge>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <SummaryTile label="Total images" value={summary.totalImages.toString()} detail="Files in this batch" />
-                <SummaryTile label="Confirmed" value={summary.confirmed.toString()} detail="Verified cards" />
-                <SummaryTile label="Needs review" value={summary.needsReview.toString()} detail="Must be resolved" />
-                <SummaryTile label="Unknown" value={summary.unknown.toString()} detail="No silent invention" />
+                <SummaryTile label="Cards scanned" value={queueCounts.totalCards.toString()} detail="Cards in this batch" />
+                <SummaryTile label="Ready to add" value={resultCounts["Ready to add"].toString()} detail="Accepted matches" />
+                <SummaryTile label="Review needed" value={resultCounts["Review needed"].toString()} detail="Must be resolved" />
+                <SummaryTile label="Unknown" value={resultCounts.Unknown.toString()} detail="Card identity not determined" />
               </div>
               <div className="space-y-3">
                 <TDInput
@@ -1478,7 +1456,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                 <div className="mt-3 space-y-2 text-sm text-td-secondary">
                   {plan.piles.map((pile) => (
                     <div key={pile.pile} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] px-3 py-2">
-                      <span>{pile.label}</span>
+                      <span>{chaosSortLabel(pile.label)}</span>
                       <span className="text-xs text-td-muted">{pile.count} cards · {money(pile.marketValue)}</span>
                     </div>
                   ))}
@@ -1507,7 +1485,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                     <TDButton size="sm" variant="secondary" disabled={selectedItem.processingState === "processing" || scannerBusy || loadingItems > 0} onClick={() => void retryRecognition([selectedItem])}>Retry recognition</TDButton>
                     <TDButton size="sm" variant="danger" disabled={removingItem} onClick={() => void removeItem(selectedItem.id)} icon={<Trash2 className="h-4 w-4" />}>Remove from Batch</TDButton>
                   </div>
-                  <div className="space-y-2"><label className="block text-sm" htmlFor="printing-search">Search / correct printing</label><div className="flex gap-2"><input id="printing-search" className="min-w-0 flex-1 rounded border p-2" value={printingQuery} onChange={event => setPrintingQuery(event.target.value)} /><TDButton size="sm" disabled={printingBusy || printingQuery.trim().length < 2} onClick={() => void searchPrinting()}>Find printings</TDButton></div>{(printingCandidates.length ? printingCandidates : selectedItem.recognitionCandidates ?? []).map(candidate => <button key={candidate.id} className="block w-full rounded border p-2 text-left text-sm" onClick={() => { updateItem(selectedItem.id, { cardName: candidate.name, scryfallId: candidate.id, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, language: candidate.language ?? selectedItem.language, humanState: "pending", recognitionState: "review" }); setPrintingCandidates([]); }}>{candidate.name} · {candidate.setCode} #{candidate.collectorNumber}</button>)}</div>
+                  <div className="space-y-2"><label className="block text-sm" htmlFor="printing-search">Search / correct printing</label><div className="flex gap-2"><input id="printing-search" className="min-w-0 flex-1 rounded border p-2" value={printingQuery} onChange={event => setPrintingQuery(event.target.value)} /><TDButton size="sm" disabled={printingBusy || printingQuery.trim().length < 2} onClick={() => void searchPrinting()}>Find printings</TDButton></div>{(printingCandidates.length ? printingCandidates : selectedItem.recognitionCandidates ?? []).map(candidate => <button key={candidate.id} className="block w-full rounded border p-2 text-left text-sm" onClick={() => { updateItem(selectedItem.id, { cardName: candidate.name, scryfallId: candidate.id, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, language: candidate.language ?? selectedItem.language, humanState: "pending", recognitionState: "review", recognitionCandidates: [candidate], marketPrice: chaosCandidateMarketPrice(candidate) }); setPrintingCandidates([]); }}>{candidate.name} · {candidate.setCode} #{candidate.collectorNumber}</button>)}</div>
                   <div className="overflow-hidden rounded-[22px] border border-td-ink/[0.06] bg-black">
                     {selectedItem.sourceImageUrl ? <img src={selectedItem.sourceImageUrl} alt={selectedItem.cardName} style={{ transform: `rotate(${selectedItem.rotation ?? 0}deg)` }} className="h-64 w-full object-contain" /> : <p className="py-8 text-center text-sm text-td-muted">No source image available.</p>}
                     {selectedItem.backImageUrl && <Image unoptimized width={640} height={880} src={selectedItem.backImageUrl} alt="Back of the same physical card" className="h-48 w-full object-contain" />}
@@ -1534,16 +1512,16 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                       <p className="text-xs text-td-muted">This location is saved with the cloud batch.</p>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Human state</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Review status</label>
                       <select
                         value={selectedItem.humanState}
                         onChange={(event) => updateItem(selectedItem.id, { humanState: event.target.value as ChaosSortItem["humanState"] })}
                         className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)]"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="edited">Edited</option>
-                        <option value="unknown">Unknown</option>
+                        <option value="pending">Awaiting review</option>
+                        <option value="confirmed">Match accepted</option>
+                        <option value="edited">Manually edited — review needed</option>
+                        <option value="unknown">Card identity unknown</option>
                       </select>
                     </div>
                     <div className="space-y-2 sm:col-span-2">
@@ -1556,18 +1534,18 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <TDButton variant="secondary" size="sm" onClick={() => confirmItem(selectedItem.id)}>Confirm</TDButton>
+                    {chaosResultStatus(selectedItem) !== "Ready to add" && <TDButton variant="secondary" size="sm" disabled={locked || selectedItem.processingState !== "ready"} onClick={() => confirmItem(selectedItem.id)}>Confirm</TDButton>}
                     <TDButton variant="secondary" size="sm" onClick={() => markUnknown(selectedItem.id)}>Mark unknown</TDButton>
                     <TDButton variant="ghost" size="sm" onClick={() => removeItem(selectedItem.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
                   </div>
                   <div className="rounded-[18px] border border-td-ink/[0.06] bg-td-ink/[0.02] p-4 text-xs text-td-secondary">
                     <div className="flex items-center justify-between gap-3">
                       <span>Recognition</span>
-                      <span>{selectedItem.recognitionState}</span>
+                      <span>{chaosResultStatus(selectedItem)}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <span>Canonical plan</span>
-                      <span>{selectedPlan?.label ?? "Review"}</span>
+                      <span>Sorting pile</span>
+                      <span>{chaosSortLabel(selectedPlan?.label ?? "Review")}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span>Existing owned quantity</span>
@@ -1608,7 +1586,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                           className="h-4 w-4 rounded border-td-ink/20 bg-transparent"
                         />
                         <TDInput
-                          value={rule.label}
+                          value={chaosSortLabel(rule.label)}
                           onChange={(event) => updateRule(rule.id, { label: event.target.value })}
                           className="!min-h-10 !w-[240px]"
                         />
@@ -1621,10 +1599,10 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                         <option value="high_value">High Value</option>
                         <option value="mid_value">Mid Value</option>
                         <option value="bulk_rare">Bulk Rare</option>
-                        <option value="bulk_cu">Bulk C/U</option>
+                        <option value="bulk_cu">Bulk commons &amp; uncommons</option>
                         <option value="foil">Foil</option>
                         <option value="review">Review</option>
-                        <option value="unknown">Unknown</option>
+                        <option value="unknown">Card identity unknown</option>
                       </select>
                     </div>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1683,7 +1661,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
                           <option value="">Any confidence</option>
                           <option value="high_confidence">High confidence</option>
                           <option value="review">Review</option>
-                          <option value="unknown">Unknown</option>
+                          <option value="unknown">Card identity unknown</option>
                           <option value="review,unknown">Review + unknown</option>
                         </select>
                       </div>

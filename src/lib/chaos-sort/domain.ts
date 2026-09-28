@@ -70,7 +70,7 @@ export type ChaosSortItem = {
   duplicateOfItemId: string | null;
   sortRuleId: string | null;
   createdAt: string;
-  recognitionCandidates?: Array<{ id: string; name: string; setCode: string; collectorNumber: string; language?: string }>;
+  recognitionCandidates?: Array<{ id: string; name: string; setCode: string; collectorNumber: string; language?: string; setName?: string | null; prices?: Array<{ label?: string; value?: number | null; market?: number | null; available?: boolean; currency?: string; source?: string }> }>;
   updatedAt: string;
 };
 
