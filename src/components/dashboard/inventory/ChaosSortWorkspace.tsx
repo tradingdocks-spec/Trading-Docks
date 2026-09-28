@@ -513,7 +513,17 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   }, [stagedFiles, scannerBusy, staging, loadingItems, cloudLoading]);
 
   const processFiles = useCallback(async (files: StagedScan[]) => {
-    files = files.filter(file => !removingItemsRef.current.has(file.replaceId ?? file.id) && !itemsRef.current.some(item => item.id === (file.replaceId ?? file.id) && item.humanState === "removed"));
+    // Recognition consumes admitted capture events. Replay protection is by ID,
+    // never by image bytes shared with another physical card or a tombstone.
+    const captureIds = new Set<string>();
+    files = files.filter(file => {
+      const id = file.replaceId ?? file.id;
+      const existing = itemsRef.current.find(item => item.id === id);
+      if (captureIds.has(id) || removingItemsRef.current.has(id) || existing?.humanState === "removed") return false;
+      if (!file.replaceId && existing) return false;
+      captureIds.add(id);
+      return true;
+    });
     if (!files.length || closedRef.current || committingRef.current) return;
     assertIntakeRoom(physicalCardCount(itemsRef.current) - files.filter(file => file.replaceId).length, files.length);
     if (fullRef.current && files.some(file => !file.replaceId && !reservedCapturesRef.current.has(file.id))) throw new Error(`Batch full — print and file Batch ${batch.batchCode}, then start the next 100.`);
@@ -524,18 +534,13 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     setError("");
     setNotice("");
     setLoadingItems(current => current + files.length);
-    const queue = buildChaosSortQueue(files, (entry, index) => `${entry.hash}:${index}`);
-    const seenHashes = new Map<string, string>();
+    const queue = buildChaosSortQueue(files, entry => entry.replaceId ?? entry.id);
     const baseItems = queue.map((entry) => {
       const { file, hash, previewUrl } = entry.input;
       const id = entry.input.replaceId ?? entry.input.id;
       const previous = itemsRef.current.find(item => item.id === entry.input.replaceId);
-      // Retry is recognition of an existing capture, not new image intake.
-      // Historical same-hash captures (including tombstones) cannot veto it.
-      const retry = previous?.captureId === entry.input.id && previous.sourceFileHash === hash;
-      const duplicate = itemsRef.current.find((item) => item.humanState !== "removed" && item.id !== id && item.sourceFileHash === hash);
-      const duplicateOfItemId = retry ? null : duplicate?.id ?? seenHashes.get(hash) ?? null;
-      seenHashes.set(hash, id);
+      // stageFiles guards accidental duplicate uploads before storage. Once a
+      // capture is admitted, recognition must not veto it using another ID's hash.
       return {
         id,
         batchId: batch.id,
@@ -567,7 +572,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
         confidence: 0,
         evidence: [],
         notes: "",
-        duplicateOfItemId,
+        duplicateOfItemId: null,
         sortRuleId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -579,13 +584,6 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     await runBoundedChaosSortQueue(queue, async (entry) => {
       const base = baseItems[queue.findIndex((candidate) => candidate.id === entry.id)];
       if (!base) return;
-      if (base.duplicateOfItemId && !entry.input.live) {
-        const duplicate = itemsRef.current.find((item) => item.id === base.duplicateOfItemId) ?? baseItems.find((item) => item.id === base.duplicateOfItemId);
-        updateItem(base.id, { processingState: "ready", recognitionState: duplicate?.recognitionState ?? "review", humanState: "unknown", notes: "Duplicate scan image." });
-        completed += 1;
-        setLoadingItems(current => Math.max(0, current - 1));
-        return;
-      }
       await poolRef.current.run(async () => { try {
         entry.state = "processing";
         let response: Response | null = null;
