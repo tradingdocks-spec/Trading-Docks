@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import sharp from 'sharp';
+import { mock, open, pair } from '../helpers/mock-scanner-bridge';
 const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAHUlEQVQokWP4TyJgGNVABGAgRhEyGNVADKB9KAEAr639H8LdEzEAAAAASUVORK5CYII=','base64');
 const front=(name:string)=>({name,mimeType:'image/png',buffer:image});
 test.beforeEach(async({request})=>{expect((await request.post('/api/reset-fixture')).ok()).toBe(true);});
@@ -28,6 +29,7 @@ test('real local SQL: provider recovery retries stored identity, including a rep
  await expect.poll(async()=> (await current()).captures[0].item?.processingState).toBe('ready');
  expect((await current()).captures.map((c:{capture_id:string})=>c.capture_id)).toEqual([first]);
  expect((await current()).physicalCount).toBe(1);
+ await expect(page.getByText('Cloud draft synchronized.',{exact:true})).toBeVisible();
  page.once('dialog',dialog=>dialog.accept());
  await page.getByRole('article').getByRole('button',{name:'Remove',exact:true}).click();
  await expect.poll(async()=> (await current()).captures[0].status).toBe('REMOVED');
@@ -45,6 +47,37 @@ test('real local SQL: provider recovery retries stored identity, including a rep
  const after=await current();
  expect(after.captures).toHaveLength(2);expect(after.captures[0].status).toBe('REMOVED');
  expect(await (await request.get('/api/evidence')).json()).toMatchObject({captures:2,objects:2,cards:0,positions:0,events:0});
+ // Replay the same stored intake event: one row and one capacity slot.
+ const second=after.captures[1].capture_id;
+ for(let replay=0;replay<2;replay++) {
+  expect((await request.post('/api/chaos-sort/scans',{multipart:{batchId:after.album.id,captureId:second,image:{name:'review-one.png',mimeType:'image/png',buffer:image}}})).ok()).toBe(true);
+ }
+ expect((await current()).captures).toHaveLength(2);
+ expect((await current()).physicalCount).toBe(1);
+ // A new upload with active identical bytes is rejected before another row exists.
+ await expect(page.getByRole('button',{name:'Choose Card Images',exact:true})).toBeEnabled();
+ await page.getByLabel('Card front images').setInputFiles(front('same-active.png'));
+ await expect(page.getByText(/Duplicate scan image\. Retry recognition/)).toBeVisible();
+ expect((await current()).captures).toHaveLength(2);
+ // Removing B permits C; A/B remain tombstones, including after refresh.
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('article').getByRole('button',{name:'Remove',exact:true}).click();
+ await expect.poll(async()=> (await current()).physicalCount).toBe(0);
+ await expect(page.getByText('Cloud draft synchronized.',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Choose Card Images',exact:true})).toBeEnabled();
+ await page.getByLabel('Card front images').setInputFiles(front('review-one.png'));
+ await page.getByRole('button',{name:'Identify Cards',exact:true}).click();
+ await expect.poll(()=>calls).toBe(5);
+ await expect.poll(async()=> (await current()).captures[2]?.item?.processingState).toBe('ready');
+ await page.reload();
+ await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','1');
+ const third=await current();
+ expect(third.captures).toHaveLength(3);
+ expect(new Set(third.captures.map((c:{capture_id:string})=>c.capture_id)).size).toBe(3);
+ expect(third.captures.slice(0,2).map((c:{status:string})=>c.status)).toEqual(['REMOVED','REMOVED']);
+ expect(third.captures[2].item.duplicateOfItemId).toBeNull();
+ expect(third.captures[2].item.cardName).toBe('Fixture Sol Ring');
+ expect(await (await request.get('/api/evidence')).json()).toMatchObject({captures:3,objects:3,cards:0,positions:0,events:0});
 });
 test('real local SQL: one front review/removal persists, ten fronts commit once with unchanged destination',async({page,request})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -91,4 +124,24 @@ test('real local SQL: one front review/removal persists, ten fronts commit once 
  expect(await (await request.get('/api/evidence')).json()).toMatchObject({cards:10,positions:10,events:10,closed:1});
  expect((await request.post('/api/chaos-sort/scans',{data:{action:'commit',payload:{batchId:ten.album.id}}})).ok()).toBe(true);
  expect(await (await request.get('/api/evidence')).json()).toMatchObject({cards:10,positions:10,events:10});expect(errors).toEqual([]);
+});
+
+
+test('separate physical scanner events with identical bytes coexist without duplicate markers',async({page,request})=>{
+ const scanner=await mock(page);scanner.external=true;
+ let calls=0;
+ await page.route('**/api/purchasing/card-photo-scan',async route=>{calls++;await route.continue();});
+ await open(page);await pair(page);
+ for(let i=1;i<=2;i++) {
+  await page.getByRole('button',{name:'Arm One Capture',exact:true}).click();
+  await expect.poll(()=>scanner.ack).toBe(i);
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow',String(i));
+ }
+ const snapshot=await (await request.get('/api/chaos-sort/scans')).json();
+ expect(snapshot.captures).toHaveLength(2);
+ expect(new Set(snapshot.captures.map((c:{capture_id:string})=>c.capture_id)).size).toBe(2);
+ expect(new Set(snapshot.captures.map((c:{sha256:string})=>c.sha256)).size).toBe(1);
+ expect(snapshot.captures.every((c:{item:{duplicateOfItemId:string|null;processingState:string}})=>c.item.duplicateOfItemId===null&&c.item.processingState==='ready')).toBe(true);
+ expect(calls).toBe(2);
+ expect(await (await request.get('/api/evidence')).json()).toMatchObject({captures:2,cards:0,positions:0,events:0});
 });
