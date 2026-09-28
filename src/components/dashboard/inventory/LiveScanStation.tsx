@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pause, Play, ScanLine, Settings2 } from "lucide-react";
 import type { ScannerProvider, ScannerConfiguration, ScannerSession } from "@/lib/chaos-sort/scanner-provider";
 import type { ChaosSortItem } from "@/lib/chaos-sort/domain";
-import { liveScanStatus } from "@/lib/chaos-sort/live-intake";
+import { chaosResultStatus, chaosPrintingDetails } from "@/lib/chaos-sort/results-presentation";
 import { TDButton } from "@/components/design-system/td-primitives";
 import { ScannerBridgeControls } from "./ScannerBridgeControls";
 
@@ -197,7 +197,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
       <div className="space-y-3">
         <p className="text-3xl font-bold tabular-nums">{count} / 100 <span className="text-sm font-normal">physical cards</span></p>
         <p role="status">{capturing ? physicalButton ? "Waiting for ScanSnap — place one card in the feeder and press the physical Scan button." : "CAPTURING" : busy ? "PROCESSING — capture pipeline active" : locked ? "Batch read only" : recoveryRequired ? "Unfinished scan — resume or discard before scanning again." : blockedReason || (count >= 100 ? "Batch Complete — 100 Cards" : "Ready")}</p>
-        {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{latest.setCode || "Set unknown"} #{latest.collectorNumber || "?"} · {latest.condition || "Condition unrecorded"} · {latest.finish || "Finish unrecorded"}</p><p className="text-sm">{latest.language || "Language unrecorded"} · {Math.round(latest.confidence * 100)}% confidence · {liveScanStatus(latest)}</p></div>}
+        {latest && <div><p className="font-bold">{latest.cardName || "Awaiting identification"}</p><p>{chaosPrintingDetails(latest).printing} · {chaosPrintingDetails(latest).finish}</p><p className="text-sm">{chaosPrintingDetails(latest).language} · {Math.round(latest.confidence * 100)}% match · {chaosResultStatus(latest)}</p></div>}
         <div className="flex flex-wrap gap-2">
           <TDButton size="sm" icon={busy ? <Pause size={15} /> : <Play size={15} />} onClick={() => busy ? pause() : void capture(true)} disabled={locked || (!busy && (recoveryRequired || Boolean(blockedReason) || !connected || intakeFull || count >= 100 || source === "emulator" && !fixtureCount))}>{busy ? "Pause Scanner" : source === "bridge" ? physicalButton ? "Arm Continuous Capture" : "Start Continuous Scan" : "Resume Scanner"}</TDButton>
           {busy && source === "bridge" && <TDButton size="sm" variant="secondary" onClick={pause}>Cancel Current Scan</TDButton>}
@@ -210,7 +210,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
       </div>
     </div>
     <div className="max-h-64 overflow-auto rounded-xl border" aria-label="Scanner queue">
-      <table className="w-full text-left text-sm"><thead className="sticky top-0 bg-td-surface"><tr><th className="p-2">#</th><th>Card</th><th>Status</th><th>Review</th></tr></thead><tbody>{active.map((item, index) => <tr key={item.id} className="border-t"><td className="p-2">{index + 1}</td><td>{item.cardName || "—"}{item.duplicateOfItemId ? " · duplicate image / separate copy" : ""}</td><td>{liveScanStatus(item)}</td><td><button className="underline p-2" onClick={() => onReview(item.id)}>Inspect</button></td></tr>)}</tbody></table>
+      <table className="w-full text-left text-sm"><thead className="sticky top-0 bg-td-surface"><tr><th className="p-2">#</th><th>Card</th><th>Status</th><th>Review</th></tr></thead><tbody>{active.map((item, index) => <tr key={item.id} className="border-t"><td className="p-2">{index + 1}</td><td>{item.cardName || "—"}{item.duplicateOfItemId ? " · duplicate image / separate copy" : ""}</td><td>{chaosResultStatus(item)}</td><td><button className="underline p-2" onClick={() => onReview(item.id)}>Inspect</button></td></tr>)}</tbody></table>
     </div>
   </section>;
 }
