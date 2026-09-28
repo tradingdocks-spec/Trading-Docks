@@ -25,7 +25,7 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
   useEffect(() => { callbacks.current = { onReady, onUnavailable }; }, [onReady, onUnavailable]);
   async function choose(device: ScannerDevice) {
     await bridge.current!.selectDevice(device); await bridge.current!.connect();
-    setSelected(device.id); setSettings(defaultScanSettings(device.scanCapabilities!)); setProfile("fast");
+    setSelected(device.id); setSettings(bridge.current!.getSettings()); setProfile(device.backend === "TWAIN" ? "custom" : "fast");
     setStatus("Ready"); callbacks.current.onReady(bridge.current!);
   }
   async function refresh() {
@@ -33,16 +33,19 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
     refreshing.current = true;
     if (!bridge.current) bridge.current = new TradingDocksLocalScannerProvider();
     setBusy(true);
+    let agentReachable = false;
     try {
-      await bridge.current.health(); setFound(true);
-      if (!await bridge.current.paired()) { setPaired(false); setStatus("Needs setup — pair this computer"); return; }
+      await bridge.current.health(); agentReachable = true; setFound(true); setDiagnostic("");
+      if (!await bridge.current.paired()) { setPaired(false); setDevices([]); setSelected(""); callbacks.current.onUnavailable(); setStatus("Agent connected — pair this computer"); return; }
       const list = await bridge.current.detect(); setDevices(list); setPaired(true);
+      const diagnostics = bridge.current.getDiscoveryDiagnostics();
+      setDiagnostic(diagnostics.map(d => d.message).join(" "));
       const remembered = await bridge.current.rememberedDevice();
       const device = list.find(d => d.id === remembered);
       if (device && bridge.current.getStatus() !== "ready") await choose(device);
       else if (device) { setSelected(device.id); setStatus("Ready"); callbacks.current.onReady(bridge.current!); }
-      else { setSelected(""); callbacks.current.onUnavailable(); setStatus(remembered ? "Previously selected scanner not found. Choose another scanner." : list.length ? "Paired — select a scanner" : "Paired — no supported scanners detected"); }
-    } catch (error) { if (error instanceof ScannerBridgeError && ["UNPAIRED_OR_EXPIRED", "INVALID_PROOF"].includes(error.code)) setPaired(false); callbacks.current.onUnavailable(); setDiagnostic(error instanceof Error ? error.message : "Agent unavailable"); setStatus("Scanner disconnected"); }
+      else { setSelected(""); callbacks.current.onUnavailable(); setStatus(diagnostics.length && !list.length ? "Agent connected — scanner or driver unavailable. See details below." : remembered ? "Agent connected — previously selected device missing. Refresh devices or choose another scanner." : list.length ? "Agent connected — select a scanner" : "Agent connected — no compatible scanners discovered."); }
+    } catch (error) { setFound(agentReachable); setDevices([]); setSelected(""); if (error instanceof ScannerBridgeError && ["UNPAIRED_OR_EXPIRED", "INVALID_PROOF"].includes(error.code)) setPaired(false); callbacks.current.onUnavailable(); setDiagnostic(error instanceof Error ? error.message : "Agent unavailable"); setStatus(agentReachable ? "Agent connected — discovery failed" : "Agent disconnected"); }
     finally { refreshing.current = false; setBusy(false); }
   }
   useEffect(() => {
@@ -69,14 +72,15 @@ export function ScannerBridgeControls({ disabled, active, onReady, onUnavailable
   function configure(next: ScanSettings, preset = "custom") { try { bridge.current!.configure({ settings: next }); setSettings(next); setProfile(preset); } catch (error) { setStatus(error instanceof Error ? error.message : "Unsupported setting"); } }
   return <div className="rounded-xl border p-3 space-y-3" aria-label="Scanner Bridge connection">
     <p role="status">{status}</p>
+    {diagnostic && <p role="status" className="text-sm">{diagnostic}</p>}
     {!found && <p className="text-sm">Needs setup. Start the installed Scanner Agent and allow the browser's local-network connection. Do not bypass certificate warnings.</p>}
     {!paired && <TDButton size="sm" disabled={!found || disabled || busy} onClick={() => void pair()}>Pair this workstation</TDButton>}
     {pairing && <div className="flex flex-wrap gap-2"><label>One-time pairing code<input className="block border rounded p-2" inputMode="numeric" autoComplete="off" maxLength={7} value={code} onChange={event => setCode(event.target.value)} /></label><TDButton disabled={disabled || busy || code.replaceAll(" ", "").length !== 6} onClick={() => void finish()}>Confirm pairing</TDButton></div>}
     <label className="block">Scanner<select aria-label="Installed scanner" className="block w-full border rounded p-2" value={selected} disabled={!paired || disabled || busy} onChange={async event => { const next = devices.find(d => d.id === event.target.value); if (!next) return; setBusy(true); try { await choose(next); } catch (error) { setStatus(error instanceof Error ? error.message : "Scanner disconnected"); callbacks.current.onUnavailable(); } finally { setBusy(false); } }}><option value="">{paired ? "Select a scanner" : "Pair this workstation first"}</option>{devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
     <TDButton size="sm" variant="secondary" disabled={disabled || busy} onClick={() => setShowSettings(v => !v)}>Scanner Settings</TDButton>
+    <TDButton size="sm" disabled={disabled || busy || !paired} onClick={() => void refresh()}>Refresh Devices</TDButton>
     {showSettings && <details><summary>Advanced</summary>
       <p>{diagnostic || status}</p><p>{device?.backend} · {device?.connection} · Detected; physical verification is recorded separately.</p>
-      <TDButton size="sm" disabled={disabled || busy} onClick={() => void refresh()}>Refresh Devices</TDButton>
       {paired && <TDButton size="sm" variant="ghost" disabled={disabled || busy} onClick={async () => { if (!window.confirm("Forget this computer? Unfinished scans remain protected and will not move to another batch.")) return; try { await bridge.current!.unpair(); setPaired(false); setSelected(""); setDevices([]); callbacks.current.onUnavailable(); setStatus("Needs setup — pair this computer"); } catch (error) { setDiagnostic(error instanceof Error ? error.message : "Unable to forget this computer"); } }}>Forget this computer</TDButton>}
     </details>}
     {showSettings && device && settings && <>

@@ -6,7 +6,7 @@ async function setup(page: Page) {
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   await page.goto("/");
   await page.getByRole("combobox", { name: "Destination storage location", exact: true }).selectOption("scanner-fixture-location");
-  await page.getByRole("button", { name: "Live Scan", exact: true }).click();
+  await page.getByRole("button", { name: "Live Scanner", exact: true }).click();
   await page.getByRole("button", { name: "Connect Scanner", exact: true }).click();
   await page.getByRole("button", { name: "Scanner Settings", exact: true }).click();
 }
@@ -99,7 +99,7 @@ test("history preference persists and existing image upload still recognizes car
   await page.getByRole("combobox", { name: "Destination storage location", exact: true }).selectOption("scanner-fixture-location");
   await page.getByRole("button", { name: "Create Cloud Batch", exact: true }).click();
   await page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]').setInputFiles(fixture("upload-card.png"));
-  await page.getByRole("button", { name: "Start Batch", exact: true }).click();
+  await page.getByRole("button", { name: "Identify Cards", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
   await expect(page.getByRole("button", { name: "Commit 1 Cards to Inventory", exact: true })).toBeEnabled();
 });
@@ -127,6 +127,28 @@ test("capture failure, jam, disconnect, pause, rescan and removal preserve a dra
   await page.getByRole("button", { name: "Scan One", exact: true }).click();
   await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
   await expect(page.getByRole("button", { name: "Remove latest", exact: true })).toBeEnabled();
+  page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Remove latest", exact: true }).click();
-  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  await page.reload();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+});
+
+test("review inspector removal persists across refresh and does not write inventory", async ({ page }) => {
+  await setup(page);
+  const before = await (await page.request.get("/api/evidence")).json();
+  await page.getByLabel("Scanner image fixtures", { exact: true }).setInputFiles(fixture("unknown.png"));
+  await page.getByRole("button", { name: "Scan One", exact: true }).click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  await page.getByRole("button", { name: "Correct / Review latest", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Remove from Batch", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Rotate 90°", exact: true })).toBeVisible();
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Remove from Batch", exact: true }).click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+  await page.reload();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+  await expect(page.getByRole("button", { name: "Remove from Batch", exact: true })).toHaveCount(0);
+  const after = await (await page.request.get("/api/evidence")).json();
+  expect(after.cards).toBe(before.cards); expect(after.events).toBe(before.events);
 });

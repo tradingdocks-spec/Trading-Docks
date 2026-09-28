@@ -2,7 +2,7 @@ import type { ScannerProvider, ScannerDevice, ScannerStatus, ScannerConfiguratio
 
 export const BRIDGE_URL = "https://127.0.0.1:47391";
 export const BRIDGE_PROTOCOL = 1;
-type PendingRequest = { requestId: string; deviceId: string; settings: ScanSettings; requestedAt: number; sessionId?: string; preview?: boolean; binding?: { userId: string; workspaceId: string; batchId: string; workstationId: string; sessionId: string; destinationId: string } };
+type PendingRequest = { pairedImages?: boolean; requestId: string; deviceId: string; settings: ScanSettings; requestedAt: number; sessionId?: string; preview?: boolean; binding?: { userId: string; workspaceId: string; batchId: string; workstationId: string; sessionId: string; destinationId: string } };
 type Credential = { privateKey: CryptoKey; publicKey: string; credentialId?: string; expires?: string; workstationId?: string; selectedDevice?: string; liveSession?: ScannerSession; pendingRequest?: PendingRequest; cloudAcknowledged?: string };
 type BridgeDevice = { id: string; displayName: string; manufacturer: string; model: string; connection: string; backend: string; capabilities: ScanCapabilities };
 export type BridgeStorage = { get(): Promise<Credential | undefined>; set(value: Credential): Promise<void>; clear(): Promise<void> };
@@ -33,6 +33,8 @@ const messages: Record<string, string> = {
   CAPTURE_INTERRUPTED: "We found an unfinished scan. The agent stopped before confirming acquisition. Resume to retry recovery, or discard this local attempt before scanning again.",
   RECOVERY_STORAGE_FAILED: "Unable to save the scan safely. Free disk space and resume; do not scan another card.",
   CAPTURE_FAILED: "Scan failed. Check the scanner and retry.", UNSUPPORTED_SETTING: "The scanner does not support this setting.",
+  DUPLEX_INCOMPLETE: "Duplex capture is incomplete. Both sides are required for one physical card; inspect the scanner before retrying.",
+  DRIVER_UNAVAILABLE: "Scanner driver unavailable. Repair the PaperStream driver or Scanner Agent, then refresh devices.",
   BRIDGE_DISCONNECTED: "Scanner Bridge is not reachable. Start it, check local-network permission and retry. Do not bypass HTTPS warnings.",
   UNPAIRED_OR_EXPIRED: "Workstation pairing expired or was revoked. Pair this workstation again.", INVALID_PROOF: "Workstation authentication failed. Unpair and pair again.",
   PAIR_EXPIRED_OR_INVALID: "Pairing code expired or is incorrect. Start pairing again.", PAIR_REJECTED: "Pairing was declined or already used.",
@@ -44,6 +46,8 @@ export function defaultScanSettings(caps: ScanCapabilities, highQuality = false)
   return { dpi: highQuality ? sorted.at(-1)! : sorted.includes(300) ? 300 : sorted[0], colorMode: caps.colorModes.includes("color") ? "color" : caps.colorModes[0], source: caps.sources.includes("feeder") ? "feeder" : caps.sources[0], duplex: false, autoCrop: caps.autoCrop };
 }
 export class TradingDocksLocalScannerProvider implements ScannerProvider {
+  private discoveryDiagnostics: Array<{ backend: string; code: string; message: string }> = [];
+  getDiscoveryDiagnostics() { return this.discoveryDiagnostics; }
   readonly capabilities = { detect: true, capture: true, cancelCapture: true, configure: true };
   private status: ScannerStatus = "disconnected";
   private credential?: Credential;
@@ -108,7 +112,8 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
       const renewed = await this.call<{ expires: string }>("/v2/pair/renew", {});
       this.credential!.expires = renewed.expires; await this.storage.set(this.credential!);
     }
-    const result = await this.call<{ devices: BridgeDevice[] }>("/v1/devices");
+    const result = await this.call<{ devices: BridgeDevice[]; diagnostics?: Array<{ backend: string; code: string; message: string }> }>("/v1/devices");
+    this.discoveryDiagnostics = result.diagnostics ?? [];
     return result.devices.map(d => ({ id: d.id, name: d.displayName, simulated: false, manufacturer: d.manufacturer, model: d.model, connection: d.connection, backend: d.backend, scanCapabilities: d.capabilities }));
   }
   async rememberedDevice() { this.credential ??= await this.storage.get(); return this.credential?.selectedDevice; }
@@ -166,7 +171,8 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
     const preview = this.pendingRequest.preview === true;
     return { ...await this.capture(), preview };
   }
-  async selectDevice(device: ScannerDevice) { this.device = device; this.settings = defaultScanSettings(device.scanCapabilities!); this.credential ??= await this.storage.get(); if (this.credential) { this.credential.selectedDevice = device.id; await this.storage.set(this.credential); } }
+  async selectDevice(device: ScannerDevice) { this.device = device; this.settings = defaultScanSettings(device.scanCapabilities!); if (device.backend === "TWAIN") this.settings = { ...this.settings, dpi: device.scanCapabilities!.dpi.includes(400) ? 400 : this.settings.dpi, duplex: device.scanCapabilities!.duplex }; this.credential ??= await this.storage.get(); if (this.credential) { this.credential.selectedDevice = device.id; await this.storage.set(this.credential); } }
+  getSettings() { return this.settings; }
   async connect() { await this.health(); await this.call("/v1/status"); if (!this.device) throw new ScannerBridgeError("DEVICE_OFFLINE"); this.status = "ready"; }
   async disconnect() { this.cancelCapture(); this.status = "disconnected"; }
   getStatus() { return this.status; }
@@ -190,7 +196,7 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
         catch (error) { if (!(error instanceof ScannerBridgeError) || !["CAPTURE_NOT_FOUND", "CAPTURE_NOT_READY"].includes(error.code)) throw error; }
         this.pendingAck = undefined;
       }
-      this.pendingRequest ??= { requestId: crypto.randomUUID(), deviceId: this.device.id, settings: this.settings, requestedAt: Date.now(), ...(this.session && this.device.backend === "SCANSNAP" ? { sessionId: this.session.id } : {}), ...(this.session?.userId ? { preview: this.session.preview === true, binding: { userId: this.session.userId, workspaceId: this.session.workspaceId, batchId: this.session.batchId, workstationId: this.session.workstationId, sessionId: this.session.id, destinationId: this.session.destinationId } } : {}) };
+      this.pendingRequest ??= { pairedImages: true, requestId: crypto.randomUUID(), deviceId: this.device.id, settings: this.settings, requestedAt: Date.now(), ...(this.session && this.device.backend === "SCANSNAP" ? { sessionId: this.session.id } : {}), ...(this.session?.userId ? { preview: this.session.preview === true, binding: { userId: this.session.userId, workspaceId: this.session.workspaceId, batchId: this.session.batchId, workstationId: this.session.workstationId, sessionId: this.session.id, destinationId: this.session.destinationId } } : {}) };
       if (this.session && this.credential) { this.credential.pendingRequest = this.pendingRequest; await this.storage.set(this.credential); }
       this.capturePermit = await this.authorizeCapture(this.pendingRequest.requestId);
       const started = await this.call<{ captureId: string }>("/v1/capture", { ...this.pendingRequest, ...(this.capturePermit ? { authorization: this.capturePermit } : {}) });
@@ -198,17 +204,22 @@ export class TradingDocksLocalScannerProvider implements ScannerProvider {
       const deadline = Date.now() + 95_000;
       while (Date.now() < deadline) {
         if (this.cancelled) { await this.call(`/v1/capture/${started.captureId}/cancel`, {}); throw new Error("Capture cancelled; batch retained."); }
-        const result = await this.call<{ status: string; error?: string; image?: string; mimeType: string; width: number; height: number }>(this.captureAuthorization ? `/v2/capture/${started.captureId}/read` : `/v1/capture/${started.captureId}`, this.captureAuthorization ? { authorization: this.capturePermit } : undefined);
+        type Page = { image?: string; mimeType: string; width: number; height: number };
+        const result = await this.call<Page & { status: string; error?: string; back?: Page }>(this.captureAuthorization ? `/v2/capture/${started.captureId}/read` : `/v1/capture/${started.captureId}`, this.captureAuthorization ? { authorization: this.capturePermit } : undefined);
         if (this.cancelled) { await this.call(`/v1/capture/${started.captureId}/cancel`, {}); throw new Error("Capture cancelled; batch retained."); }
         if (result.status === "ready") {
-          if (!result.image || result.image.length > 12_000_000 || !["image/jpeg", "image/png"].includes(result.mimeType) || result.width > 3000 || result.height > 3000) throw new ScannerBridgeError("IMAGE_LIMIT_EXCEEDED");
-          const bytes = Uint8Array.from(atob(result.image), ch => ch.charCodeAt(0));
-          if (bytes.length > 8 * 1024 * 1024) throw new ScannerBridgeError("IMAGE_LIMIT_EXCEEDED");
-          const file = new File([bytes], `${started.captureId}.${result.mimeType === "image/png" ? "png" : "jpg"}`, { type: result.mimeType });
+          const decode = (page: Page, suffix = "") => {
+            if (!page.image || page.image.length > 12_000_000 || !["image/jpeg", "image/png"].includes(page.mimeType) || page.width < 1 || page.height < 1 || page.width > 3000 || page.height > 3000) throw new ScannerBridgeError("IMAGE_LIMIT_EXCEEDED");
+            const bytes = Uint8Array.from(atob(page.image), ch => ch.charCodeAt(0));
+            if (bytes.length > 8 * 1024 * 1024) throw new ScannerBridgeError("IMAGE_LIMIT_EXCEEDED");
+            return new File([bytes], `${started.captureId}${suffix}.${page.mimeType === "image/png" ? "png" : "jpg"}`, { type: page.mimeType });
+          };
+          if (this.pendingRequest.settings.duplex && !result.back) throw new ScannerBridgeError("DUPLEX_INCOMPLETE");
+          const file = decode(result), backFile = result.back ? decode(result.back, "-back") : undefined;
           this.pendingAck = started.captureId;
           // Once received, deliver exactly once even if the acknowledgement response is lost.
           if (!this.session) { try { await this.call(`/v1/capture/${started.captureId}/ack`, {}); this.pendingAck = undefined; } catch { /* Retry acknowledgement before any next capture. */ } this.pendingRequest = undefined; }
-          return { captureId: started.captureId, file };
+          return { captureId: started.captureId, file, backFile };
         }
         if (result.status === "interrupted") throw new ScannerBridgeError(result.error ?? "CAPTURE_INTERRUPTED");
         if (result.status !== "capturing") { this.pendingRequest = undefined; if (this.credential) { this.credential.pendingRequest = undefined; await this.storage.set(this.credential); } throw new ScannerBridgeError(result.error ?? "CAPTURE_FAILED"); }

@@ -46,8 +46,8 @@ public sealed class WiaScannerBackend : IWindowsScannerBackend, IDisposable
                         dynamic item = device.Items[1];
                         try
                         {
-                            int[] xDpi = Values(item.Properties, 6147, new[] { 300, 600 });
-                            int[] yDpi = Values(item.Properties, 6148, new[] { 300, 600 });
+                            int[] xDpi = Values(item.Properties, 6147, new[] { 300, 400, 600 });
+                            int[] yDpi = Values(item.Properties, 6148, new[] { 300, 400, 600 });
                             int[] dpi = xDpi.Intersect(yDpi).Where(d => Supports(item.Properties, 6151, d * 3) && Supports(item.Properties, 6152, d * 4)).ToArray();
                             if (!Supports(item.Properties, 6146, 1)) continue;
                             if (dpi.Length == 0) continue;
@@ -94,7 +94,7 @@ public sealed class WiaScannerBackend : IWindowsScannerBackend, IDisposable
                             try
                             {
                                 cancellation.ThrowIfCancellationRequested();
-                                byte[] bytes = (byte[])image.FileData.get_BinaryData();
+                                byte[] bytes = (byte[])image.FileData.BinaryData;
                                 if (bytes.Length > 32 * 1024 * 1024) throw new BridgeException("IMAGE_LIMIT_EXCEEDED");
                                 using var input = new MemoryStream(bytes); using var bitmap = Image.FromStream(input);
                                 if ((long)bitmap.Width * bitmap.Height > 20_000_000) throw new BridgeException("IMAGE_LIMIT_EXCEEDED");
@@ -110,23 +110,33 @@ public sealed class WiaScannerBackend : IWindowsScannerBackend, IDisposable
             throw new BridgeException("DEVICE_OFFLINE");
         } finally { Release(manager); }
     }, cancellation);
-    private static object Read(dynamic properties, int id, object fallback) { foreach (dynamic p in properties) { try { if ((int)p.PropertyID == id) return p.get_Value(); } finally { Release(p); } } return fallback; }
-    private static bool Write(dynamic properties, int id, int value) { foreach (dynamic p in properties) { try { if ((int)p.PropertyID == id) { if ((bool)p.IsReadOnly) return (int)p.get_Value() == value; p.set_Value(value); return (int)p.get_Value() == value; } } finally { Release(p); } } return false; }
+    private static object Read(dynamic properties, int id, object fallback) { foreach (dynamic p in properties) { try { if ((int)p.PropertyID == id) return p.Value; } finally { Release(p); } } return fallback; }
+    private static bool Write(dynamic properties, int id, int value) { foreach (dynamic p in properties) { try { if ((int)p.PropertyID == id) { if ((bool)p.IsReadOnly) return (int)p.Value == value; p.Value = value; return (int)p.Value == value; } } finally { Release(p); } } return false; }
     private static bool Supports(dynamic properties, int id, int value) => Values(properties, id, new[] { value }).Length != 0;
     private static int[] Values(dynamic properties, int id, int[] preferred)
     {
         foreach (dynamic p in properties) try
         {
             if ((int)p.PropertyID != id) continue;
-            if ((bool)p.IsReadOnly) return preferred.Contains((int)p.get_Value()) ? [(int)p.get_Value()] : [];
+            if ((bool)p.IsReadOnly) return preferred.Contains((int)p.Value) ? [(int)p.Value] : [];
             int kind = p.SubType;
             if (kind == 1) { int min = p.SubTypeMin, max = p.SubTypeMax, step = Math.Max(1, (int)p.SubTypeStep); return preferred.Where(v => v >= min && v <= max && (v - min) % step == 0).ToArray(); }
-            if (kind == 2) { var values = new List<int>(); foreach (var value in p.SubTypeValues) values.Add(Convert.ToInt32(value)); return preferred.Intersect(values).ToArray(); }
-            return preferred.Contains((int)p.get_Value()) ? [(int)p.get_Value()] : [];
+            if (kind is 2 or 3) { var values = new List<int>(); foreach (var value in p.SubTypeValues) values.Add(Convert.ToInt32(value)); return kind == 3 ? WiaCapabilityValues.Flags(values, preferred) : preferred.Intersect(values).ToArray(); }
+            return preferred.Contains((int)p.Value) ? [(int)p.Value] : [];
         } finally { Release(p); }
         return [];
     }
     private static void Release(object? value) { if (value is not null && Marshal.IsComObject(value)) Marshal.FinalReleaseComObject(value); }
     private static string Error(int code) => unchecked((uint)code) switch { 0x80210002 => "PAPER_JAM", 0x80210003 => "NO_MEDIA", 0x80210006 => "DEVICE_BUSY", 0x80210005 => "DEVICE_OFFLINE", 0x8021000C => "UNSUPPORTED_SETTING", _ => "CAPTURE_FAILED" };
     public void Dispose() { work.CompleteAdding(); }
+}
+
+public static class WiaCapabilityValues
+{
+    // WIA FlagSubType advertises combinable bits, independently of the current value.
+    public static int[] Flags(IEnumerable<int> supported, IEnumerable<int> preferred)
+    {
+        int mask = supported.Aggregate(0, (bits, value) => bits | value);
+        return preferred.Where(value => (value & ~mask) == 0).ToArray();
+    }
 }

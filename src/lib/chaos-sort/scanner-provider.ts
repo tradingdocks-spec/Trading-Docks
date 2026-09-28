@@ -3,7 +3,7 @@ export type ScannerStatus = "disconnected" | "ready" | "capturing" | "jammed" | 
 export type ScanCapabilities = { dpi: number[]; colorModes: string[]; sources: string[]; duplex: boolean; autoCrop: boolean; cancelCapture: boolean; externalSettings?: boolean; captureInstruction?: string; setupRequired?: boolean };
 export type ScanSettings = { dpi: number; colorMode: string; source: string; duplex: boolean; autoCrop: boolean };
 export type ScannerDevice = { id: string; name: string; simulated: boolean; manufacturer?: string; model?: string; connection?: string; backend?: string; scanCapabilities?: ScanCapabilities };
-export type ScannerCapture = { captureId: string; file: File };
+export type ScannerCapture = { captureId: string; file: File; backFile?: File };
 export type ScannerSession = { id: string; userId?: string; preview?: boolean; workspaceId: string; batchId: string; destinationId: string; workstationId: string; deviceId: string; limit: 100 };
 export type ScannerConfiguration = { delayMs?: number; scenario?: "success" | "failure" | "jam" | "duplicate" | "disconnect" | "slow"; fixtures?: File[]; settings?: ScanSettings };
 export interface ScannerProvider {
@@ -20,7 +20,7 @@ export interface ScannerProvider {
   startSession?(session: ScannerSession): Promise<void>;
   pauseSession?(): Promise<void>;
   acknowledge?(captureId: string): Promise<void>;
-  recoverPendingCapture?(): Promise<{ captureId: string; file: File; preview?: boolean } | null>;
+  recoverPendingCapture?(): Promise<{ captureId: string; file: File; backFile?: File; preview?: boolean } | null>;
   hasPendingCapture?(): Promise<boolean>;
   discardPendingCapture?(): Promise<void>;
 }

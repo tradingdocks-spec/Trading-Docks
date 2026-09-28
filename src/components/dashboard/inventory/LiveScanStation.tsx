@@ -16,7 +16,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   isActive?: boolean;
   count: number; items: ChaosSortItem[]; locked: boolean; batchId: string;
   blockedReason?: string;
-  onCapture: (file: File, captureId: string, replaceId?: string) => Promise<void>;
+  onCapture: (file: File, captureId: string, replaceId?: string, backFile?: File) => Promise<void>;
   onBusy: (busy: boolean) => void; onReview: (id: string) => void;
   onRemove: (id: string) => void; onUpload: () => void; onConfigured: () => void;
 }) {
@@ -62,7 +62,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
   async function connect() {
     try {
       // Deliberately compiled out of production. No flag can turn an emulator into hardware.
-      if (process.env.NODE_ENV === "production") throw new Error("Physical scanner provider is not installed. Use Upload Images or CSV.");
+      if (process.env.NODE_ENV === "production") throw new Error("Physical scanner provider is not installed. Use Upload Scans or CSV.");
       if (!provider.current) {
         const { EmulatorScannerProvider } = await import("@/lib/chaos-sort/scanner-provider");
         provider.current = new EmulatorScannerProvider();
@@ -85,7 +85,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         if (pending.preview) {
           if (testImageRef.current) URL.revokeObjectURL(testImageRef.current);
           testImageRef.current = URL.createObjectURL(pending.file); setTestImage(testImageRef.current);
-        } else await callbacks.current.onCapture(pending.file, pending.captureId);
+        } else await callbacks.current.onCapture(pending.file, pending.captureId, undefined, pending.backFile);
         await scanner.acknowledge?.(pending.captureId);
       }
       setRecoveryRequired(false);
@@ -132,7 +132,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
           setMessage("Test capture successful. No card added to this batch."); break;
         }
         if (!replaceId) accepted += 1;
-        const job = callbacks.current.onCapture(result.file, result.captureId, replaceId).then(async () => { if (onStartSession) await scanner.acknowledge?.(result.captureId); }).catch(error => {
+        const job = callbacks.current.onCapture(result.file, result.captureId, replaceId, result.backFile).then(async () => { if (onStartSession) await scanner.acknowledge?.(result.captureId); }).catch(error => {
           running.current = false;
           if (mounted.current) setMessage(error instanceof Error ? error.message : "Image intake failed. Pause and review.");
         });
@@ -177,7 +177,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         if (!mounted.current || provider.current !== scanner || running.current || recoveryRunning.current || recoveryNeedsDecision.current) return;
         if (pending) { setRecoveryRequired(true); await recover(); }
       }).catch(error => { recoveryNeedsDecision.current = true; setRecoveryRequired(true); setMessage(error instanceof Error ? error.message : "Could not inspect unfinished scans."); }).finally(() => { inspectingRecovery.current = false; }); }} onUnavailable={() => { setConnected(false); }} />}
-    {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Use Upload Instead</button></p>}
+    {process.env.NODE_ENV === "production" && !bridgeEnabled && <p className="text-sm text-td-secondary">Direct scanner integration is not available yet. Browser JavaScript cannot control arbitrary TWAIN/WIA scanners. <button onClick={onUpload} className="underline">Upload Scans</button></p>}
     {source === "emulator" && settings && <div className="rounded-xl border p-3 space-y-3 text-sm">
       <p>A reviewed physical provider is required for hardware. Development simulation uses image fixtures, not a connected scanner.</p>
       {process.env.NODE_ENV !== "production" && <>
@@ -206,7 +206,7 @@ export function LiveScanStation({ count, items, locked, blockedReason, batchId, 
         </div>
         {message && <p role="status" className="text-sm">{message}</p>}
         {testImage && <div className="flex gap-2"><TDButton size="sm" onClick={() => { URL.revokeObjectURL(testImage); testImageRef.current = null; setTestImage(null); setMessage("Test accepted. Ready to start live scanning; no card added."); }}>Looks Good</TDButton><TDButton size="sm" disabled={busy} onClick={() => void capture(false, undefined, true)}>Scan Again</TDButton></div>}
-        {!connected && <button className="text-sm underline" onClick={onUpload}>Use Upload Instead</button>}
+        {!connected && <button className="text-sm underline" onClick={onUpload}>Upload Scans</button>}
       </div>
     </div>
     <div className="max-h-64 overflow-auto rounded-xl border" aria-label="Scanner queue">

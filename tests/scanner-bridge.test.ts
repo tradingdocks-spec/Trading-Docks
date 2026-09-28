@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { TradingDocksLocalScannerProvider, defaultScanSettings, type BridgeStorage } from "../src/lib/chaos-sort/local-scanner-provider.ts";
 
 const caps = { dpi: [300, 600], colorModes: ["color"], sources: ["flatbed"], duplex: false, autoCrop: false, cancelCapture: false };
-function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unreachable") {
+function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unreachable", duplex = false, missingBack = false) {
   let credential: Awaited<ReturnType<BridgeStorage["get"]>>;
   const storage: BridgeStorage = { get: async () => credential, set: async value => { credential = value; }, clear: async () => { credential = undefined; } };
   const requests: { path: string; body: Record<string, unknown>; headers: Headers }[] = [];
@@ -24,14 +24,14 @@ function fixture(cancelledStatus?: "cancelled" | "ready" | "interrupted" | "unre
     const digest = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw))).toString("hex");
     const canonical = `${init?.method}\n${path}\n${headers.get("X-TD-Timestamp")}\n${nonce}\n${digest}`;
     assert.equal(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, publicKey, Buffer.from(headers.get("X-TD-Proof")!, "base64"), new TextEncoder().encode(canonical)), true);
-    if (path === "/v1/devices") return respond({ devices: [{ id: "opaque", displayName: "Fixture WIA", manufacturer: "Fixture", model: "Mock", connection: "Driver-managed", backend: "WIA", capabilities: caps }] });
+    if (path === "/v1/devices") return respond({ devices: [{ id: "opaque", displayName: "Fixture WIA", manufacturer: "Fixture", model: "Mock", connection: "Driver-managed", backend: duplex ? "TWAIN" : "WIA", capabilities: { ...caps, duplex } }] });
     if (path === "/v1/capture") { if (!captureIds.has(body.requestId)) { captures++; captureIds.set(body.requestId, crypto.randomUUID()); } if (startFailure) { startFailure = false; throw new TypeError("response lost"); } return respond({ captureId: captureIds.get(body.requestId) }); }
     if (path.endsWith("/ack")) { if (ackFailure) { ackFailure = false; throw new TypeError("ack response lost"); } return respond({ ok: true }); }
     if (path.endsWith("/cancel")) { cancelled = true; return respond({ ok: true }); }
     if (path.startsWith("/v1/capture/")) {
       if (cancelledStatus && !cancelled) provider.cancelCapture();
       if (cancelledStatus === "unreachable") throw new TypeError("response lost");
-      return respond({ status: cancelledStatus ?? "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800 });
+      return respond({ status: cancelledStatus ?? "ready", image: "aW1hZ2U=", mimeType: "image/png", width: 600, height: 800, ...(duplex && !missingBack ? { back: { image: "YmFjaw==", mimeType: "image/png", width: 600, height: 800 } } : {}) });
     }
     return respond({ ok: true });
   };
@@ -91,4 +91,16 @@ test("recovered test scan stays preview-only with original session identity", as
 test("cloud accepted capture with lost ack retries only acknowledgement after browser reload", async () => {
   const f = fixture(); await f.connect(); await f.provider.startSession(recoverySession); const image = await f.provider.capture(); f.loseAck(); await assert.rejects(f.provider.acknowledge(image.captureId));
   const next = await reloadConnected(f); await next.startSession(recoverySession); assert.equal(await next.recoverPendingCapture(), null); assert.equal(f.count(), 1); assert.equal(await next.hasPendingCapture(), false);
+});
+
+test("TWAIN duplex delivers one capture ID with both images and acknowledges only a complete pair", async () => {
+  const f = fixture(undefined, true); await f.connect();
+  const result = await f.provider.capture();
+  assert.equal(f.count(), 1);
+  assert.equal(await result.file.text(), "image");
+  assert.equal(await result.backFile!.text(), "back");
+  assert.equal(f.requests.filter(r => r.path.endsWith("/ack")).length, 1);
+  const partial = fixture(undefined, true, true); await partial.connect();
+  await assert.rejects(partial.provider.capture(), /Duplex capture is incomplete/i);
+  assert.equal(partial.requests.filter(r => r.path.endsWith("/ack")).length, 0);
 });

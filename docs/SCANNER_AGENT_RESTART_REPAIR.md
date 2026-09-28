@@ -1,6 +1,18 @@
 # Scanner Agent 1.3.1 local restart repair
 
-Status: lifecycle repair implemented; production promotion validation below. No website or database changes are included.
+Status: lifecycle repair implemented; the historical 1.3.1 promotion validation below remains intact. The later Chaos promotion is documented separately in `CHAOS_DATABASE_FIRST_PROMOTION.md`.
+
+## September 27 forward promotion reconciliation
+
+Current main's lifecycle implementation, asynchronous host shutdown, dispatcher,
+single-instance behavior, exact relaunch executable/directory and regression tests
+are preserved. The 1.4 candidate adds encrypted durable recovery and an isolated
+32-bit PaperStream TWAIN worker, with paired front/back delivery under one capture
+identity. Startup wiring adds these services without replacing AgentLifecycle.
+This is implemented and locally tested; physical Ricoh certification, production
+configuration, distribution, database application and deployment remain separate.
+See the promotion report for current test counts and release blockers. The older
+seven-file scope and counts below describe the earlier 1.3.1 promotion only.
 
 ## Diagnosis
 

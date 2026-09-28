@@ -40,7 +40,10 @@ test("Chaos Sort exposes the protected intake path and filing destination", () =
   const navigation = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
   const commitRoute = readFileSync(path.join(repoRoot, "src/app/api/chaos-sort/route.ts"), "utf8");
 
-  assert.match(workspace, /Scan.*Review.*Choose location.*Import into inventory/s);
+  const upload = readFileSync(path.join(repoRoot, "src/components/dashboard/inventory/UploadCardIntake.tsx"), "utf8");
+  assert.match(upload, /"Upload", "Identify", "Review", "Add to Inventory"/);
+  assert.match(workspace, /Upload Scans/);
+  assert.match(workspace, /Destination storage location/);
   assert.match(workspace, /Inventory changes only when you commit the reviewed batch/);
   assert.match(workspace, /Resolve.*Items/);
   assert.match(workspace, /dashboard\/inventory\/batches/);

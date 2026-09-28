@@ -8,19 +8,24 @@ export async function expireScanAlbums(client, { execute = false, now = new Date
   if (error) throw error;
   let objects = 0;
   for (const album of albums ?? []) {
-    const { data: captures, error: readError } = await client.from('chaos_scan_captures').select('capture_id,object_path').eq('album_id', album.id).neq('status', 'EXPIRED');
+    const { data: captures, error: readError } = await client.from('chaos_scan_captures').select('capture_id,object_path,back_object_path').eq('album_id', album.id);
     if (readError) throw readError;
     for (const capture of captures ?? []) {
       // Exact generated path only; never recursive prefix deletion. Closed state
       // cannot revert, so unresolved/active review images are never selected.
-      if (!/^[a-f0-9-]{36}\/[a-f0-9-]{36}\/[a-f0-9-]{36}\.jpg$/.test(capture.object_path) || capture.object_path.split('/')[1] !== album.id) throw new Error('Invalid retention object identity');
-      if (execute) {
-        const removed = await client.storage.from('chaos-scans').remove([capture.object_path]);
-        if (removed.error) throw removed.error;
-        const marked = await client.from('chaos_scan_captures').update({ status: 'EXPIRED' }).eq('capture_id', capture.capture_id).eq('album_id', album.id);
-        if (marked.error) throw marked.error; // Next run safely retries an already absent object.
+      const paths = [capture.object_path, capture.back_object_path].filter(Boolean);
+      for (const path of paths) {
+        if (!/^[a-f0-9-]{36}\/[a-f0-9-]{36}\/[a-f0-9-]{36}(-back)?\.jpg$/.test(path) || path.split('/')[1] !== album.id || path.split('/')[2] !== `${capture.capture_id}${path === capture.back_object_path ? '-back' : ''}.jpg`) throw new Error('Invalid retention object identity');
       }
-      objects++;
+      if (execute) {
+        if (paths.length) {
+          const removed = await client.storage.from('chaos-scans').remove(paths);
+          if (removed.error) throw removed.error;
+        }
+        // Closed captures and tombstones remain immutable. Album expiry already
+        // denies reads; mark only the album after all exact objects are removed.
+      }
+      objects += paths.length;
     }
     if (execute) {
       const marked = await client.from('chaos_scan_albums').update({ scans_purged_at: now.toISOString() }).eq('id', album.id).eq('state', 'CLOSED');
