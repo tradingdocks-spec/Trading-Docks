@@ -3,6 +3,49 @@ import sharp from 'sharp';
 const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAHUlEQVQokWP4TyJgGNVABGAgRhEyGNVADKB9KAEAr639H8LdEzEAAAAASUVORK5CYII=','base64');
 const front=(name:string)=>({name,mimeType:'image/png',buffer:image});
 test.beforeEach(async({request})=>{expect((await request.post('/api/reset-fixture')).ok()).toBe(true);});
+
+test('real local SQL: provider recovery retries stored identity, including a replacement beside its tombstone',async({page,request})=>{
+ let unavailable=true,calls=0;
+ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ await page.route('**/api/purchasing/card-photo-scan',async route=>{
+  calls++;
+  if(unavailable) await route.fulfill({status:503,json:{failureReason:'quota_exhausted',providerCode:'credit_balance_exhausted'}});
+  else await route.continue();
+ });
+ await page.goto('/');
+ await page.getByRole('combobox',{name:'Destination storage location',exact:true}).selectOption('scanner-fixture-location');
+ await page.getByRole('button',{name:'Create Cloud Batch',exact:true}).click();
+ const current=async()=> (await (await request.get('/api/chaos-sort/scans')).json());
+ await expect(page.getByText('Cloud draft synchronized.',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Choose Card Images',exact:true})).toBeEnabled();
+ await page.getByLabel('Card front images').setInputFiles(front('review-one.png'));
+ await page.getByRole('button',{name:'Identify Cards',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Retry Failed (1)',exact:true})).toBeVisible();
+ await expect.poll(async()=> (await current()).captures[0].item?.processingState).toBe('failed');
+ const first=(await current()).captures[0].capture_id;
+ unavailable=false;
+ await page.getByRole('button',{name:'Retry Failed (1)',exact:true}).click();
+ await expect.poll(async()=> (await current()).captures[0].item?.processingState).toBe('ready');
+ expect((await current()).captures.map((c:{capture_id:string})=>c.capture_id)).toEqual([first]);
+ expect((await current()).physicalCount).toBe(1);
+ page.once('dialog',dialog=>dialog.accept());
+ await page.getByRole('article').getByRole('button',{name:'Remove',exact:true}).click();
+ await expect.poll(async()=> (await current()).captures[0].status).toBe('REMOVED');
+ await expect(page.getByText('Cloud draft synchronized.',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Choose Card Images',exact:true})).toBeEnabled();
+ await page.getByLabel('Card front images').setInputFiles(front('review-one.png'));
+ await page.getByRole('button',{name:'Identify Cards',exact:true}).click();
+ await expect.poll(async()=> (await current()).captures[1]?.item?.processingState).toBe('ready');
+ await page.getByRole('button',{name:'Fixture Sol Ring',exact:true}).click();
+ await page.getByRole('button',{name:'Retry recognition',exact:true}).click();
+ await expect.poll(()=>calls).toBe(4);
+ await expect.poll(async()=> (await current()).captures[1].item?.duplicateOfItemId).toBeNull();
+ await page.reload();
+ await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','1');
+ const after=await current();
+ expect(after.captures).toHaveLength(2);expect(after.captures[0].status).toBe('REMOVED');
+ expect(await (await request.get('/api/evidence')).json()).toMatchObject({captures:2,objects:2,cards:0,positions:0,events:0});
+});
 test('real local SQL: one front review/removal persists, ten fronts commit once with unchanged destination',async({page,request})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
@@ -32,6 +75,8 @@ test('real local SQL: one front review/removal persists, ten fronts commit once 
  expect((await request.get('/api/chaos-sort/scans?captureId='+tombstone.capture_id)).status()).toBe(404);
  expect(await (await request.get('/api/evidence')).json()).toMatchObject({cards:0,positions:0,events:0});
  const mixed=await Promise.all(Array.from({length:10},async(_,i)=>({name:`front-${i}.png`,mimeType:'image/png',buffer:await sharp({create:{width:16,height:16,channels:3,background:{r:10+i*20,g:50,b:150}}}).png().toBuffer()})));
+ await expect(page.getByText('Cloud draft synchronized.',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Choose Card Images',exact:true})).toBeEnabled();
  await files.setInputFiles(mixed);
  await expect(page.getByText('10 scans ready',{exact:true})).toBeVisible();
  await expect(page.getByRole('region',{name:'Upload card scans'}).getByText('10 cards',{exact:true})).toBeVisible();

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAHUlEQVQokWP4TyJgGNVABGAgRhEyGNVADKB9KAEAr639H8LdEzEAAAAASUVORK5CYII=', 'base64');
-const front = (name: string) => ({name, mimeType:'image/png', buffer:image});
+const front = (name: string) => ({name, mimeType:'image/png', buffer:Buffer.concat([image,Buffer.from(name)])});
 test.beforeEach(async ({page,request}) => {
   await request.delete('/api/chaos-sort/scans');
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
@@ -32,7 +32,7 @@ test('multiple front files, visible removal, counts and refresh persistence', as
   expect(state.commits).toBe(0);
 });
 test('whole drop zone accepts multiple files and reports unsupported files',async ({page,request})=>{
-  const transfer=await page.evaluateHandle(({bytes})=>{const data=new DataTransfer();for(const name of ['one.png','two.png'])data.items.add(new File([new Uint8Array(bytes)],name,{type:'image/png'}));data.items.add(new File(['unsupported'],'notes.txt',{type:'text/plain'}));return data;},{bytes:Array.from(image)});
+  const transfer=await page.evaluateHandle(({bytes})=>{const data=new DataTransfer();for(const name of ['one.png','two.png'])data.items.add(new File([new Uint8Array(bytes),name],name,{type:'image/png'}));data.items.add(new File(['unsupported'],'notes.txt',{type:'text/plain'}));return data;},{bytes:Array.from(image)});
   await page.getByTestId('card-image-dropzone').dispatchEvent('drop',{dataTransfer:transfer});
   await expect(page.getByText('1 file skipped. JPG, JPEG, PNG, and WebP are supported.',{exact:true})).toBeVisible();
   await identify(page,2);
