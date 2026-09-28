@@ -104,8 +104,25 @@ try {
  const race=await Promise.allSettled(Array.from({length:12},()=>call('reserve',reservation())));
  equal(race.filter(r=>r.status==='fulfilled').length,1);
  equal(race.filter(r=>r.status==='rejected'&&/SCAN_BATCH_FULL/.test(r.reason.message)).length,11);
- const state=await call('snapshot',{batchId:album.id});equal(state.physicalCount,100);equal(state.captures.length,101);
+ let state=await call('snapshot',{batchId:album.id});equal(state.physicalCount,100);equal(state.captures.length,101);
  equal((await db.query('select count(*)::int n from chaos_scan_private.capture_capacity')).rows[0].n,100);
+ // Recognition retry updates the same row even at capacity. Two stale browser
+ // sessions cannot both replace its review revision or allocate another slot.
+ const failedReview={...item(old),processingState:'failed',humanState:'unknown',recognitionState:'unknown',notes:'credit_balance_exhausted'};
+ const failedRevision=await call('review',{batchId:album.id,captureId:old.capture_id,revision:0,item:failedReview});
+ const retryPayload={batchId:album.id,captureId:old.capture_id,revision:failedRevision.revision,item:item(old)};
+ const retries=await Promise.allSettled([call('review',retryPayload),call('review',retryPayload)]);
+ equal(retries.filter(r=>r.status==='fulfilled').length,2);
+ equal(retries[0].value.revision,retries[1].value.revision); // identical writes replay
+ await deny(()=>call('review',{...retryPayload,item:{...retryPayload.item,notes:'stale different result'}}),/SCAN_REVIEW_CONFLICT/);
+ state=await call('snapshot',{batchId:album.id});
+ const retried=state.captures.find(c=>c.capture_id===old.capture_id);
+ equal(retried.item.processingState,'ready');
+ await call('review',{...retryPayload,revision:retried.revision});
+ state=await call('snapshot',{batchId:album.id});
+ equal(state.physicalCount,100);equal(state.captures.length,101);
+ equal((await db.query('select count(*)::int n from chaos_scan_private.capture_capacity')).rows[0].n,100);
+ equal((await db.query("select quantity from inventory_items where id='five'")).rows[0].quantity,5);
  await deny(()=>db.query('delete from chaos_scan_captures where capture_id=$1',[pair.capture_id]),/SCAN_CAPTURE_HISTORY_IMMUTABLE/);
  await deny(()=>db.query("update chaos_scan_captures set status='RECEIVED' where capture_id=$1",[pair.capture_id]),/SCAN_CAPTURE_REMOVED_IMMUTABLE/);
  await deny(()=>call('commit',{batchId:album.id}),/SCAN_REVIEW_REQUIRED/);

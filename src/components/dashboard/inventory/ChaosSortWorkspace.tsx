@@ -196,6 +196,7 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
   const itemsRef = useRef<ChaosSortItem[]>([]);
   const inventoryRef = useRef<InventoryRow[]>([]);
   const activeRecognitionJobsRef = useRef(new Set<string>());
+  const retryingCapturesRef = useRef(new Set<string>());
   const removingItemsRef = useRef(new Set<string>());
   const [removingItem, setRemovingItem] = useState(false);
 
@@ -489,16 +490,27 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
     intakePendingRef.current += 1;
     let saved = 0;
     try {
+      const hashes = new Set([
+        ...itemsRef.current.filter(item => item.humanState !== "removed").map(item => item.sourceFileHash),
+        ...stagedFiles.map(item => item.hash),
+      ]);
       for (const file of accepted) {
+        const hash = await makeChaosSortFileHash(file);
+        if (hashes.has(hash)) {
+          warnings.push(`${file.name}: Duplicate scan image. Retry recognition on the existing capture instead.`);
+          setError(warnings.join(" "));
+          continue;
+        }
         const id = crypto.randomUUID();
         const previewUrl = await storeScan(albumRef.current.id, id, file);
-        const staged = { id, file, hash: await makeChaosSortFileHash(file), previewUrl };
+        const staged = { id, file, hash, previewUrl };
+        hashes.add(hash);
         setStagedFiles(current => [...current, staged]);
         saved += 1;
       }
     } catch (caught) { setError(`${warnings.join(" ")} ${caught instanceof Error ? caught.message : "Images could not be staged."} ${saved} selected images saved; ${accepted.length - saved} not staged. Retry those remaining images.`.trim()); }
     finally { intakePendingRef.current -= 1; setStaging(false); }
-  }, [stagedFiles.length, scannerBusy, staging, loadingItems, cloudLoading]);
+  }, [stagedFiles, scannerBusy, staging, loadingItems, cloudLoading]);
 
   const processFiles = useCallback(async (files: StagedScan[]) => {
     files = files.filter(file => !removingItemsRef.current.has(file.replaceId ?? file.id) && !itemsRef.current.some(item => item.id === (file.replaceId ?? file.id) && item.humanState === "removed"));
@@ -518,8 +530,11 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
       const { file, hash, previewUrl } = entry.input;
       const id = entry.input.replaceId ?? entry.input.id;
       const previous = itemsRef.current.find(item => item.id === entry.input.replaceId);
-      const duplicate = itemsRef.current.find((item) => item.id !== entry.input.replaceId && item.sourceFileHash === hash);
-      const duplicateOfItemId = duplicate?.id ?? seenHashes.get(hash) ?? null;
+      // Retry is recognition of an existing capture, not new image intake.
+      // Historical same-hash captures (including tombstones) cannot veto it.
+      const retry = previous?.captureId === entry.input.id && previous.sourceFileHash === hash;
+      const duplicate = itemsRef.current.find((item) => item.humanState !== "removed" && item.id !== id && item.sourceFileHash === hash);
+      const duplicateOfItemId = retry ? null : duplicate?.id ?? seenHashes.get(hash) ?? null;
       seenHashes.set(hash, id);
       return {
         id,
@@ -808,12 +823,26 @@ export function ChaosSortWorkspace({ scannerBridgeEnabled }: { scannerBridgeEnab
 
   const retryRecognition = useCallback(async (retryItems: ChaosSortItem[]) => {
     if (closedRef.current || committingRef.current || switchingModeRef.current || scannerBusy || loadingItems || staging) return;
-    const candidates = retryItems.filter((item) => item.humanState !== "removed" && !removingItemsRef.current.has(item.id) && item.processingState !== "processing" && item.sourceImageUrl);
-    const staged = await Promise.all(candidates.map(async (item) => {
-      const blob = await fetch(item.sourceImageUrl as string).then((response) => response.blob());
-      return { id: item.id, file: new File([blob], item.sourceFileName, { type: blob.type || "image/jpeg" }), hash: item.sourceFileHash, previewUrl: item.sourceImageUrl as string, live: item.intakeSource === "live", replaceId: item.id };
-    }).filter(Boolean));
-    await processFiles(staged);
+    const candidates = [...new Set(retryItems.map(item => item.id))].flatMap(id => {
+      const item = itemsRef.current.find(current => current.id === id);
+      if (!item?.captureId || item.captureId !== id || item.humanState === "removed" || removingItemsRef.current.has(id) || retryingCapturesRef.current.has(id) || item.processingState === "processing" || !item.sourceImageUrl) return [];
+      // Claim synchronously, before image retrieval: bulk and single retries can overlap.
+      retryingCapturesRef.current.add(id);
+      return [item];
+    });
+    try {
+      const staged = await Promise.all(candidates.map(async (item) => {
+        const response = await fetch(item.sourceImageUrl as string);
+        if (!response.ok) throw new Error("Stored scan could not be loaded. Retry recognition without re-uploading.");
+        const blob = await response.blob();
+        return { id: item.captureId!, file: new File([blob], item.sourceFileName, { type: blob.type || "image/jpeg" }), hash: item.sourceFileHash, previewUrl: item.sourceImageUrl as string, live: item.intakeSource === "live", replaceId: item.id };
+      }));
+      await processFiles(staged);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Recognition retry failed.");
+    } finally {
+      for (const item of candidates) retryingCapturesRef.current.delete(item.id);
+    }
   }, [processFiles, scannerBusy, loadingItems, staging]);
 
   const confirmItem = useCallback((itemId: string) => {
